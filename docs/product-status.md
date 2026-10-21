@@ -4,11 +4,12 @@ Ce tableau distingue les capacités en cours de revue, les maquettes et les vers
 
 | Domaine | État vérifiable | Limite |
 | --- | --- | --- |
-| Moteur PowerShell 5.1 / inventaire E1 | Sources techniques en PR d'intégration ; pas encore un composant de version publiée | Aucun scan sur données réelles autorisé |
+| Moteur PowerShell 5.1 / inventaire E1 | Sources historiques présentes sur le main Produit (intégration privée #24) ; pas de livraison applicative publiée | Exécution et tests métier non revérifiés sur le main intégré ; aucun scan réel autorisé |
 | Pester 4.10.1 et gardes CI | Suites à revalider au HEAD effectivement intégré dans ce dépôt | Les succès d'un autre commit ne sont pas transférables |
 | Dashboard, Collection, fiches | Conception documentée, **non implémentée** | Aucune interface graphique |
 | Bibliothèques, Offline/Stale, snapshots | Critères de conception, contrats/test à finaliser | Support Offline n'implique pas une collection supprimée |
-| Favoris, tags, comparaison | Besoins étudiés | Aucun stockage personnel disponible |
+| Favoris et tags | Besoins étudiés, non implémentés | Aucun stockage personnel disponible |
+| Comparaison de snapshots — Issue #9 | Module autonome PowerShell 5.1 en PR Draft, lecture exclusivement en mémoire ; cinq classes dont `notComparable` | Contrat et tests synthétiques écrits, **NON EXÉCUTÉS / CI_SERVICE_BLOCKED** ; aucune déduction de suppression physique |
 | Simulation/export et conversion | Études fonctionnelles, **opérations réelles non autorisées** | Aucun effet physique implicite, aucun E6 |
 | ZIP Windows / Release | **NON PUBLIÉ / NON TESTÉ** | Pas de programme à télécharger |
 | Licence et médias | Diffusion non décidée, cinq visuels soumis à vérification de droits | Aucune redistribution autorisée par défaut |
