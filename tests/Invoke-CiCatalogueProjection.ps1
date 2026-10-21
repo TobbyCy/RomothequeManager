@@ -42,7 +42,7 @@ Require ($partial.games[0].coverageStatus -ceq 'INCOMPLETE') 'PARTIAL_NOT_COMPLE
 $bad=New-T1Registry
 $bad.libraries[0].indexAccessible=$false
 $inaccessible=New-RmCatalogueProjection -Registry $bad
-Require ($inaccessible.gameCount -eq 0 -and @($inaccessible.diagnostics | Where-Object { $_.code -ceq 'CATALOG_INDEX_INACCESSIBLE' }).Count -eq 1) 'INDEX_NOT_ZERO_PROOF'
+Require ($null -eq $inaccessible.gameCount -and -not $inaccessible.countKnown -and @($inaccessible.diagnostics | Where-Object { $_.code -ceq 'CATALOG_INDEX_INACCESSIBLE' }).Count -eq 1) 'INDEX_NOT_ZERO_PROOF'
 $bad=New-T1Registry
 $bad.libraries[0].snapshots[1].schemaVersion='9.9'
 MustReject { New-RmCatalogueProjection -Registry $bad } 'LIBRARY_SCHEMA_UNSUPPORTED'
