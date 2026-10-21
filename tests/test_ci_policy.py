@@ -420,6 +420,15 @@ class CliRoutingProofTests(unittest.TestCase):
             subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", "--no-local", "--", str(source), str(root)], check=True, capture_output=True)
             for key, value in (("user.name", "Synthetic CI"), ("user.email", "ci@example.invalid"), ("commit.gpgsign", "false"), ("core.autocrlf", "false")):
                 p.git(root, "config", key, value)
+            # The clone tests policy behavior, not the separate documentation PR.
+            # Complete the disposable fixture only; real repository checks stay strict.
+            for name in p.REQUIRED_DOCS:
+                target = root / name
+                if not target.exists():
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text("# Synthetic CI test document\n", encoding="utf-8")
+            p.git(root, "add", "--all")
+            p.git(root, "commit", "--quiet", "-m", "Synthetic baseline documents")
             def save():
                 p.git(root, "add", "--all")
                 p.git(root, "commit", "--quiet", "-m", "Synthetic routing proof")
