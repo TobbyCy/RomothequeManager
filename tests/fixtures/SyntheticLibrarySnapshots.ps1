@@ -16,7 +16,7 @@ function New-RmSyntheticSnapshot {
 }
 function New-RmSyntheticRegistry {
     param([string]$Availability='ONLINE',[string]$Freshness='FRESH',[bool]$Index=$true,
-          [object[]]$Snapshots=@(),[object[]]$Sources=@(),[string]$LastComplete='snap-b')
+          [object[]]$Snapshots=@(),[object[]]$Sources=@(),[AllowNull()][object]$LastComplete='snap-b')
     if ($Sources.Count -eq 0) {
         $Sources=@([pscustomobject]@{sourceKey='source-1';rootKey='root-1';domains=@('ROMS')})
     }
