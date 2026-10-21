@@ -1,7 +1,7 @@
 /* UI #11 — no framework, no network, no PowerShell runtime. Read-only synthetic projection. */
 (function(){
 "use strict";
-const LIBS=window.RM_FIXTURES.libraries;
+const payload=window.RM_PROJECTION_DATA;const projectionMode=!!payload;let projectionError=null;let LIBS=window.RM_FIXTURES.libraries;if(projectionMode){try{LIBS=window.RM_PROJECTION.registry(payload.registry)}catch(e){projectionError=e.message;LIBS=[]}}
 const CLASSIFICATIONS=[
 ["ADDED","Ajout observé","added"],
 ["CHANGED","Observation différente","changed"],
@@ -29,7 +29,7 @@ const label=x=>labels[x]||x;
 const tag=(x,type)=>'<span class="tag tag-'+safe(type||({ONLINE:"online",OFFLINE:"offline",INACCESSIBLE:"inaccessible",FRESH:"fresh",STALE:"stale",UNKNOWN:"unknown",partial:"partial"}[x]||"muted"))+'">'+safe(label(x))+'</span>';
 const cls=x=>CLASSIFICATIONS.find(c=>c[0]===x)||[x,x,"unknown"];
 const lib=()=>LIBS.find(x=>x.libraryId===s.libraryId)||LIBS[0];
-const getSnap=(l,id)=>l.snapshots.find(x=>x.generationId===id);
+const getSnap=(l,id)=>l?.snapshots.find(x=>x.generationId===id||x.snapshotId===id);
 const unique=a=>[...new Set(a)];
 const button=(text,action,variant="")=>'<button class="btn '+variant+'" data-action="'+safe(action)+'">'+text+'</button>';
 function validateSnapshot(x){
@@ -110,7 +110,7 @@ return header+chooser+'<section class="panel" style="margin-top:18px"><div class
 +'<section class="panel"><div class="panel-header"><h2>Détail de l’unité</h2></div>'+(item?'<div class="panel-pad"><div class="row">'+tag(cls(item.classification)[1],cls(item.classification)[2])+'</div><h3>'+safe(item.title)+'</h3><p class="muted small">'+safe(reasonLabels[item.reason]||item.reason)+'</p><dl class="detail-grid"><div><dt>Identité ROM</dt><dd>'+safe(item.romUnitId)+'</dd></div><div><dt>Plateforme</dt><dd>'+safe(item.console)+'</dd></div><div><dt>Jeu</dt><dd>'+safe(item.gameId)+'</dd></div><div><dt>Variante</dt><dd>'+safe(item.variantId)+'</dd></div><div><dt>Génération A</dt><dd>'+safe(item.sourceRefs.beforeGenerationId)+'</dd></div><div><dt>Génération B</dt><dd>'+safe(item.sourceRefs.afterGenerationId)+'</dd></div></dl><hr class="divider"><p class="small muted">Observation A : '+safe(item.beforeDigest?item.beforeDigest.slice(0,12)+"…":"Inconnue ou absente")+'</p><p class="small muted">Observation B : '+safe(item.afterDigest?item.afterDigest.slice(0,12)+"…":"Inconnue ou absente")+'</p><p class="tiny muted">Code de preuve : '+safe(item.reason)+' · observation uniquement, aucune vérification du contenu binaire.</p></div>':'<div class="empty"><strong>Sélectionnez une unité</strong>Les motifs et preuves disponibles s’affichent ici.</div>')+'</section></div>';
 }
 function collection(){
-const items=LIBS.filter(l=>l.indexAvailable&&(s.collectionLibrary==="ALL"||s.collectionLibrary===l.libraryId)).flatMap(l=>{const snap=getSnap(l,l.lastVerifiedCompleteRef);return snap?snap.units.map(u=>({...u,library:l})):[]});
+const items=LIBS.filter(l=>l.indexAvailable&&(s.collectionLibrary==="ALL"||s.collectionLibrary===l.libraryId)).flatMap(l=>{const snap=getSnap(l,l.lastVerifiedCompleteRef);return snap&&Array.isArray(snap.units)?snap.units.map(u=>({...u,library:l})):[]});
 const filtered=items.filter(u=>!s.collectionSearch||[u.title,u.romUnitId,u.gameId].some(x=>String(x).toLocaleLowerCase().includes(s.collectionSearch.toLocaleLowerCase())));
 const selected=items.find(x=>x.romUnitId===s.collectionUnit);
 return heading("Collection","Explorer la collection","Consultation fictive basée sur le dernier snapshot complet connu, pas sur les fichiers physiques.")
@@ -121,12 +121,12 @@ return heading("Collection","Explorer la collection","Consultation fictive basé
 function chooseLibrary(id){s.libraryId=id;const l=lib();s.before=l.snapshots[0]?.generationId||"";s.after=l.snapshots[1]?.generationId||"";s.result=null;s.selectedUnit=null;s.filter="ALL";s.console="ALL";s.search=""}
 function route(to){s.route=to;render()}
 function runCompare(){
-const l=lib();try{if(!l.indexAvailable)throw Error("INDEX_UNAVAILABLE");const A=getSnap(l,s.before),B=getSnap(l,s.after);if(!A||!B)throw Error("SNAPSHOT_UNAVAILABLE");s.result=compare(A,B);s.selectedUnit=null;s.filter="ALL";s.console="ALL";s.search=""}
-catch(e){s.result={error:({"INDEX_UNAVAILABLE":"Index indisponible.","SNAPSHOT_UNAVAILABLE":"Deux snapshots accessibles sont requis.","SNAPSHOT_LIBRARY_MISMATCH":"Bibliothèques différentes.","SNAPSHOT_GENERATION_REUSED":"Sélectionnez deux générations distinctes.","SNAPSHOT_DATE_ORDER_INVALID":"La génération B doit être aussi récente ou plus récente que A."}[e.message]||"Contrat de snapshot invalide : "+e.message)}}
+const l=lib();try{if(!l.indexAvailable)throw Error("INDEX_UNAVAILABLE");const A=getSnap(l,s.before),B=getSnap(l,s.after);if(!A||!B)throw Error("SNAPSHOT_UNAVAILABLE");if(projectionMode){const dto=(payload.comparisons||[]).find(x=>x.library?.libraryId===l.libraryId&&x.before?.snapshotId===A.snapshotId&&x.after?.snapshotId===B.snapshotId);if(!dto)throw Error('PROJECTION_PAIR_UNAVAILABLE');s.result=window.RM_PROJECTION.comparison(dto,l.libraryId)}else{s.result=compare(A,B)}s.selectedUnit=null;s.filter="ALL";s.console="ALL";s.search=""}
+catch(e){s.result={error:({"INDEX_UNAVAILABLE":"Index indisponible.","SNAPSHOT_UNAVAILABLE":"Deux snapshots accessibles sont requis.","SNAPSHOT_LIBRARY_MISMATCH":"Bibliothèques différentes.","SNAPSHOT_GENERATION_REUSED":"Sélectionnez deux générations distinctes.","SNAPSHOT_DATE_ORDER_INVALID":"La génération B doit être aussi récente ou plus récente que A.","PROJECTION_PAIR_UNAVAILABLE":"Comparaison précalculée indisponible : aucun recalcul dans le navigateur."}[e.message]||"Contrat de snapshot invalide : "+e.message)}}
 render();
 }
 function render(){
-const titles={dashboard:"Tableau de bord",libraries:"Bibliothèques",collection:"Collection",compare:"Comparaison"};
+if(projectionError){$('view').innerHTML='<div class="notice danger">Projection refusée : '+safe(projectionError)+'</div>';return}if(!LIBS.length){$('view').innerHTML='<div class="panel empty"><strong>Registre vide</strong>Aucune bibliothèque déclarée ; ce n’est pas une preuve de collection vide.</div>';return}const titles={dashboard:"Tableau de bord",libraries:"Bibliothèques",collection:"Collection",compare:"Comparaison"};
 $("breadcrumb").textContent=titles[s.route]||"Tableau de bord";
 document.querySelectorAll("[data-route]").forEach(x=>{x.classList.toggle("active",x.dataset.route===s.route);x.setAttribute("aria-current",x.dataset.route===s.route?"page":"false")});
 $("view").innerHTML=({dashboard,libraries,collection,compare:comparePage}[s.route]||dashboard)();
