@@ -29,6 +29,15 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 **Validation Windows PowerShell 5.1/Pester/CI : NOT_EXECUTED.** PR #27 dépend de #26 non fusionnée ; pas de GUI, données réelles, application publiée ni Release.
 
+## En préparation — Sprint #14 Stabilisation noyau et export UI (#27)
+
+- Identités `libraryId/snapshotId/generationId/sourceKey/rootKey` traitées en ordinal sensible à la casse ; partitions `console/sourceKey/rootKey/domain` encodées par segments de longueur, sans collision de séparateur `|`.
+- Index inaccessible : `countKnown=false` et `observedUnitCount=null` ; aucune fausse bibliothèque vide. Scan failed ou preuve exhaustive absente → couverture non complète.
+- Producteur synthétique `tests/Export-SyntheticUiProjection.ps1` → `{registry,comparisons}` JSON `0.1.0-synthetic` et affectation JS optionnelle `window.RM_PROJECTION_DATA`, via le **vrai** comparateur #26 ; six scénarios de référence et harness de sérialisation.
+- Contrat `docs/architecture/contrat-json-ui-projection.md` pour Dev 2 #28 ; allowlist chemins précis et gate CI-0 de sérialisation ajoutés sans désactiver les protections.
+
+**Tests PowerShell 5.1 et Actions : NOT_EXECUTED.** Sortie JSON synthétique non générée en runtime dans cette session ; adaptation UI nullable à recevoir. PR Draft empilée sur #26 ; pas de fusion ni Release.
+
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.
