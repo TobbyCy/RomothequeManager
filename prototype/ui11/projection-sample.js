@@ -3,7 +3,7 @@
    Replace this with a real synthetic PS5.1 export before parity sign-off. */
 (function(){"use strict";
 const at="2026-10-20T12:00:00Z";
-const gen=(id,generationId,day)=>({snapshotId:id,scanId:"scan-"+id,generationId,capturedAtUtc:day,scanStatus:"complete",scopeIsExhaustive:true,coverage:[{console:"GBA",status:"complete",reason:"ALL_DECLARED_PARTITIONS_PROVEN"}],coverageProof:[{console:"GBA",sourceKey:"source-demo",rootKey:"root-demo",domain:"ROMS",status:"complete"}],observedUnitCount:1});
+const gen=(id,generationId,day)=>({snapshotId:id,scanId:"scan-"+id,generationId,capturedAtUtc:day,scanStatus:"complete",scopeIsExhaustive:true,coverage:[{console:"GBA",status:"complete",reason:"ALL_DECLARED_PARTITIONS_PROVEN"}],coverageProof:[{console:"GBA",sourceKey:"source-demo",rootKey:"root-demo",domain:"ROMS",status:"complete"}],countKnown:true,observedUnitCount:1});
 const a=gen("snap-a","gen-a","2026-10-19T12:00:00Z"),b=gen("snap-b","gen-b",at);
 const library={libraryId:"lib-demo",name:"Bibliothèque synthétique",platforms:["GBA"],sources:[{sourceKey:"source-demo",rootKey:"root-demo",domains:["ROMS"]}],currentAvailability:"OFFLINE",availabilityObservedAtUtc:at,freshness:"STALE",indexAccessible:true,lastVerifiedCompleteRef:"snap-b",lastObservedAtUtc:at,generations:[a,b]};
 const inaccessible={libraryId:"lib-closed",name:"Source non consultable",platforms:["PS1"],sources:[{sourceKey:"source-closed",rootKey:"root-closed",domains:["ROMS"]}],currentAvailability:"INACCESSIBLE",availabilityObservedAtUtc:at,freshness:"UNKNOWN",indexAccessible:false,lastVerifiedCompleteRef:null,lastObservedAtUtc:null,generations:[]};
