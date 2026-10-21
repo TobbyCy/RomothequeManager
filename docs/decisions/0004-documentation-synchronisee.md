@@ -1,6 +1,6 @@
 # ADR-0004 — Documentation synchronisée aux évolutions
 
-**État historique : ACCEPTED, modalités CI à revalider lors de l'intégration du dépôt indépendant.**
+**État historique : ACCEPTED, modalités CI à revalider sur la version du dépôt réellement testée.**
 
 ## Contexte
 
@@ -12,4 +12,4 @@ Maintenir le **statut produit** pour les capacités effectivement testées, le *
 
 ## Conséquences
 
-Un gate docs-sync est utile mais doit être **réadapté et testé** sur le nouvel historique Git ; on ne présume pas que les anciens SHA/paths sont encore valides. La présence d'un guide ne vaut jamais preuve de tests exécutés ou de Release publiée.
+Un gate docs-sync est utile mais doit être **réadapté et testé** sur la branche et le graphe Git effectivement concernés ; on ne présume pas que les anciens SHA/paths sont encore valides. La présence d'un guide ne vaut jamais preuve de tests exécutés ou de Release publiée.

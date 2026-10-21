@@ -1,6 +1,6 @@
 # Référence de mesure de couverture — reproductibilité
 
-**État : protocole hérité, à vérifier lors de la migration technique.**
+**État : protocole de mesure à vérifier sur les suites et sources réellement présentes.**
 
 Pour juger un rapport de couverture recevable, contrôler successivement : correspondance de la révision mesurée avec HEAD de PR ; découverte des suites ; exécution des tests synthétiques avec Pester 4.10.1 ; liste des sources instrumentées ; dénominateur et exclusions vérifiés ; nombre de points mesurés ; canaris de découverte ; deux mesures reproductibles sans contamination d'une session précédente.
 

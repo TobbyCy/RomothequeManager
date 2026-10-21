@@ -2,7 +2,7 @@
 
 **Spécification des garanties héritées ; preuve de nouvelle exécution attendue dans ce dépôt.**
 
-Les suites métier historiques comportent **42 cas distincts** au dernier référentiel validé avant migration. Elles doivent être découvertes **et** exécutées dans Windows PowerShell 5.1 Desktop avec **Pester 4.10.1** identifié et vérification de provenance/signature selon la politique de CI. Une découverte qui réussit sans exécuter de test n'est pas PASS.
+Les suites métier historiques comportent **42 cas distincts** dans le dernier référentiel historique vérifié. Elles doivent être découvertes **et** exécutées dans Windows PowerShell 5.1 Desktop avec **Pester 4.10.1** identifié et vérification de provenance/signature selon la politique de CI. Une découverte qui réussit sans exécuter de test n'est pas PASS.
 
 ## Contrôles à conserver
 

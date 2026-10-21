@@ -16,6 +16,6 @@ Les décisions de rapprochement doivent être traçables, révisables selon leur
 
 ## Référence de conformité
 
-Les sources transférées sous Modules/ restent l'autorité de l'implémentation. Toute évolution de schéma, codec ou format de transaction doit passer par une PR technique avec tests de compatibilité et preuve de non-régression, pas par une édition silencieuse de ce résumé.
+Une fois intégrées, les sources sous Modules/ restent l'autorité sur l'implémentation. Toute évolution de schéma, codec ou format de transaction doit passer par une PR technique avec tests de compatibilité et preuve de non-régression, pas par une édition silencieuse de ce résumé.
 
 Les contrats de futures projections V2 sont des **propositions NON ADOPTÉES**, même s'ils figurent dans des études UX.

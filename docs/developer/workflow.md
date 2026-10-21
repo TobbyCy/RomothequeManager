@@ -8,4 +8,4 @@
 6. Fusion seulement par le mainteneur autorisé, puis vérification du run applicable sur main, mise à jour du changelog/statut et fermeture justifiée de l'Issue terminée.
 7. Ne pas utiliser de données réelles, secrets, assets sans droits ni lien vers une zone privée.
 
-**Dépôt produit actuel : staging privé ; aucune protection main ni règles de contribution publique ne peuvent être réputées actives sans preuve API/UI.** Voir [CONTRIBUTING](../../CONTRIBUTING.md), [tests Pester](pester-execution.md) et [sécurité](../../SECURITY.md).
+**La protection main et les règles de contribution ne peuvent être qualifiées d'actives qu'après vérification de leur configuration réelle.** Voir [CONTRIBUTING](../../CONTRIBUTING.md), [tests Pester](pester-execution.md) et [sécurité](../../SECURITY.md).
