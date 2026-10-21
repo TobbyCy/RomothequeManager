@@ -35,12 +35,16 @@ if(l.lastVerifiedCompleteRef!==null&&l.lastVerifiedCompleteRef!==undefined){cons
 return {libraryId:l.libraryId,name:l.name,description:"Projection synthétique du noyau · lecture seule",platforms,availability,freshness,observedAtUtc:l.availabilityObservedAtUtc??null,indexAvailable:l.indexAccessible,lastVerifiedCompleteRef:l.lastVerifiedCompleteRef??null,snapshots:generations,projectionMode:true};
 });
 }
-function comparison(dto,expectedLibraryId){
+function comparison(dto,expectedLibraryId,libraryCard){
 if(!dto||dto.schemaVersion!=="0.1.0-synthetic"||dto.readOnly!==true)fail("COMPARISON_VERSION_OR_READONLY");
 if(!dto.library||dto.library.libraryId!==expectedLibraryId)fail("COMPARISON_LIBRARY");
 if(!dto.before||!dto.after)fail("COMPARISON_REFS");
 const beforeId=text(dto.before.snapshotId,"BEFORE_SNAPSHOT_ID"),afterId=text(dto.after.snapshotId,"AFTER_SNAPSHOT_ID");
 if(beforeId===afterId)fail("COMPARISON_SAME_SNAPSHOT");
+if(dto.before.generationId===dto.after.generationId)fail("COMPARISON_SAME_GENERATION");
+if(Date.parse(dto.before.capturedAtUtc)>Date.parse(dto.after.capturedAtUtc))fail("COMPARISON_DATE_ORDER");
+if(libraryCard){if(libraryCard.libraryId!==expectedLibraryId||!libraryCard.indexAvailable)fail("COMPARISON_INACCESSIBLE_LIBRARY");for(const [ref,kind] of [[dto.before,"BEFORE"],[dto.after,"AFTER"]]){const s=libraryCard.snapshots.find(x=>x.snapshotId===ref.snapshotId);if(!s||s.generationId!==ref.generationId||s.capturedAtUtc!==ref.capturedAtUtc||s.scanStatus!==ref.scanStatus)fail("COMPARISON_"+kind+"_REGISTRY_MISMATCH")}}
+
 const counts={};for(const type of TYPES)counts[type]=integer(dto.counts?.[type],"CLASS_"+type);
 const entries=array(dto.entries,"ENTRIES");
 if(entries.length!==integer(dto.countDenominator,"DENOMINATOR"))fail("DENOMINATOR_MISMATCH");
@@ -49,6 +53,12 @@ for(const e of entries){enumOf(e.classification,TYPES,"CLASSIFICATION");actual[e
 for(const t of TYPES)if(counts[t]!==actual[t])fail("COUNT_MISMATCH_"+t);
 const compared=array(dto.scopeCompared,"SCOPE_COMPARED"),excluded=array(dto.scopeNotComparable,"SCOPE_EXCLUDED"),limitations=array(dto.limitations,"LIMITATIONS");
 const coverageStatus=enumOf(dto.coverageStatus,["COMPLETE","INCOMPLETE"],"COVERAGE_STATUS");
+const seenScopes=new Set();
+for(const scope of [...compared,...excluded]){text(scope.console,"SCOPE_CONSOLE");if(seenScopes.has(scope.console))fail("DUPLICATE_SCOPE");seenScopes.add(scope.console)}
+for(const scope of compared){if(scope.status!=="complete")fail("COMPARED_SCOPE_NOT_COMPLETE");const a=dto.before.coverage?.find(x=>x.console===scope.console),b=dto.after.coverage?.find(x=>x.console===scope.console);if(!a||!b||a.status!=="complete"||b.status!=="complete")fail("COMPARED_SCOPE_UNPROVEN")}
+if(libraryCard&&seenScopes.size!==libraryCard.platforms.length)fail("SCOPE_PLATFORM_COUNT_MISMATCH");
+for(const limitation of limitations)text(limitation,"LIMITATION");
+
 if(coverageStatus==="COMPLETE"&&(excluded.length||!compared.length))fail("UNPROVEN_COMPLETE");
 if(coverageStatus==="INCOMPLETE"&&!excluded.length)fail("MISSING_INCOMPLETE_EVIDENCE");
 const scopeFrom=x=>array(x.coverage,"REF_COVERAGE").map(c=>({console:c.console,status:c.status,reason:c.reason??null}));
