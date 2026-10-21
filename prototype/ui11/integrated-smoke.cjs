@@ -48,4 +48,41 @@ d.coverageStatus="COMPLETE";d.scopeCompared.push({console:"PS1",status:"complete
 d.before.coverage.find(x=>x.console==="PS1").status="complete";
 d.after.coverage.find(x=>x.console==="PS1").status="complete";
 },/PROJECTION_COMPARISON_(BEFORE|AFTER)_REGISTRY_PROOF_MISMATCH/);
+
+/* S4 — independent contract matrix. Candidate fixtures only; simulated DOM, not browser. */
+function rejectRegistry(name,mutate,pattern){
+test(name,()=>{const d=clone(source.registry);mutate(d);assert.throws(()=>w.RM_PROJECTION.registry(d),pattern)});
+}
+rejectRegistry("S4 registry incompatible schema version",d=>{d.schemaVersion="0.2.0"},/PROJECTION_REGISTRY_VERSION_OR_READONLY/);
+rejectRegistry("S4 registry duplicate library identity",d=>{d.libraries[1].libraryId=d.libraries[0].libraryId},/PROJECTION_DUPLICATE_LIBRARY/);
+rejectRegistry("S4 duplicate generation identity",d=>{const g=d.libraries.find(x=>x.libraryId==="lib-mixed").generations;g[1].generationId=g[0].generationId},/PROJECTION_DUPLICATE_SNAPSHOT_OR_GENERATION/);
+rejectRegistry("S4 duplicate snapshot identity",d=>{const g=d.libraries.find(x=>x.libraryId==="lib-mixed").generations;g[1].snapshotId=g[0].snapshotId},/PROJECTION_DUPLICATE_SNAPSHOT_OR_GENERATION/);
+rejectRegistry("S4 complete partition without exhaustive scope",d=>{d.libraries.find(x=>x.libraryId==="lib-mixed").generations[0].scopeIsExhaustive=false},/PROJECTION_UNPROVEN_SCOPE/);
+rejectRegistry("S4 multi-root proof missing from complete partition",d=>{const l=d.libraries.find(x=>x.libraryId==="lib-mixed");l.sources.push({sourceKey:"second",rootKey:"root-2",domains:["ROMS"]})},/PROJECTION_UNPROVEN_SCOPE/);
+rejectRegistry("S4 unknown count cannot be physical zero",d=>{const g=d.libraries.find(x=>x.libraryId==="lib-closed").generations[0];g.observedUnitCount=0},/PROJECTION_UNKNOWN_COUNT_NOT_NULL/);
+rejectRegistry("S4 inaccessible index cannot claim known count",d=>{const g=d.libraries.find(x=>x.libraryId==="lib-closed").generations[0];g.countKnown=true;g.observedUnitCount=0},/PROJECTION_COUNT_INDEX_CONFLICT/);
+rejectRegistry("S4 unsupported availability",d=>{d.libraries[0].currentAvailability="DISCONNECTED"},/PROJECTION_AVAILABILITY_ENUM/);
+rejectRegistry("S4 unsupported freshness",d=>{d.libraries[0].freshness="OLD"},/PROJECTION_FRESHNESS_ENUM/);
+test("S4 OFFLINE STALE and UNKNOWN remain distinct",()=>{const l=w.RM_PROJECTION.registry(source.registry);const off=l.find(x=>x.libraryId==="lib-demo"),unk=l.find(x=>x.libraryId==="lib-zero");assert.equal(off.availability,"OFFLINE");assert.equal(off.freshness,"STALE");assert.equal(unk.availability,"UNKNOWN")});
+rejectComparison("S4 comparison incompatible schema version",d=>{d.schemaVersion="0.2.0"},/PROJECTION_COMPARISON_VERSION_OR_READONLY/);
+rejectComparison("S4 comparison mismatched library",d=>{d.library.libraryId="wrong"},/PROJECTION_COMPARISON_LIBRARY/);
+rejectComparison("S4 comparison mismatched snapshot",d=>{d.before.snapshotId="wrong"},/PROJECTION_COMPARISON_BEFORE_REGISTRY_MISMATCH/);
+rejectComparison("S4 comparison mismatched generation",d=>{d.before.generationId="wrong"},/PROJECTION_COMPARISON_BEFORE_REGISTRY_MISMATCH/);
+rejectComparison("S4 comparison wrong denominator",d=>{d.countDenominator++},/PROJECTION_DENOMINATOR_MISMATCH/);
+rejectComparison("S4 comparison class counter altered",d=>{d.counts.UNKNOWN++},/PROJECTION_COUNT_MISMATCH_UNKNOWN/);
+rejectComparison("S4 comparison unsupported classification",d=>{d.entries[0].classification="DELETED"},/PROJECTION_CLASSIFICATION_ENUM/);
+rejectComparison("S4 compound forged COMPLETE counts proof and partitions",d=>{
+d.coverageStatus="COMPLETE";d.scopeNotComparable=[];d.scopeCompared.push({console:"PS1",status:"complete",reason:"fabricated"});
+for(const ref of [d.before,d.after]){
+ref.coverage.find(x=>x.console==="PS1").status="complete";
+ref.coverageProof.find(x=>x.console==="PS1").status="complete";
+ref.scopeIsExhaustive=true;
+}
+d.counts.UNKNOWN=0;d.counts.NOT_COMPARABLE=0;d.counts.UNCHANGED=3;
+d.entries=d.entries.map(e=>({...e,classification:"UNCHANGED"}));
+},/PROJECTION_COMPARISON_(BEFORE|AFTER)_REGISTRY_PROOF_MISMATCH/);
+test("S4 projection mode never calls JS demonstration comparator",()=>{
+const original=w.RM_COMPARE;w.RM_COMPARE=()=>{throw Error("S4_FORBIDDEN_JS_RECOMPUTATION")};
+try{const r=w.RM_PROJECTION.comparison(s2cmp,"lib-mixed",s2lib);assert.equal(r.projectionMode,true);assert.equal(r.countDenominator,r.entries.length)}finally{w.RM_COMPARE=original}
+});
 console.log("UI17_INTEGRATED_SMOKE_PASS | checks="+count+" | Node simulated DOM | PS5.1=NOT_EXECUTED | BROWSER=NOT_EXECUTED");
