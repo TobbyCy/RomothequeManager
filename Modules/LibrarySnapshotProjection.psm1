@@ -174,7 +174,7 @@ function New-RmLibraryProjection {
     foreach ($lib in @($Registry.libraries | Sort-Object -Property libraryId -CaseSensitive)) {
         $gens=New-Object 'System.Collections.Generic.List[object]'
         foreach ($snap in @($lib.snapshots | Sort-Object -Property capturedAtUtc,generationId -CaseSensitive)) {
-            $coverage=@(Get-RmLibraryCoverage $lib $snap)
+            $coverage=Get-RmLibraryCoverage $lib $snap
             $gens.Add([pscustomobject]@{
                 snapshotId=$snap.snapshotId;scanId=$snap.scanId;generationId=$snap.generationId
                 capturedAtUtc=$snap.capturedAtUtc;schemaVersion=$snap.schemaVersion
@@ -195,4 +195,86 @@ function New-RmLibraryProjection {
     }
     return [pscustomobject]@{schemaVersion='0.1.0-synthetic';readOnly=$true;libraries=$cards.ToArray()}
 }
-Export-ModuleMember -Function New-RmLibraryProjection
+# Adapter: the comparator is imported, never copied or reimplemented.
+# It reads already supplied synthetic snapshots and creates a view DTO in memory.
+function Get-RmLibraryComparisonView {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]$Registry,
+        [Parameter(Mandatory=$true)][string]$LibraryId,
+        [Parameter(Mandatory=$true)][string]$BeforeSnapshotId,
+        [Parameter(Mandatory=$true)][string]$AfterSnapshotId
+    )
+    $catalog=New-RmLibraryProjection -Registry $Registry
+    $selected=@($catalog.libraries | Where-Object { $_.libraryId -ceq $LibraryId })
+    if ($selected.Count -ne 1) { throw 'LIBRARY_NOT_FOUND' }
+    $card=$selected[0]
+    if (-not $card.indexAccessible) { throw 'LIBRARY_INDEX_INACCESSIBLE' }
+    $source=@($Registry.libraries | Where-Object { $_.libraryId -ceq $LibraryId })[0]
+    $a=@($source.snapshots | Where-Object { $_.snapshotId -ceq $BeforeSnapshotId })
+    $b=@($source.snapshots | Where-Object { $_.snapshotId -ceq $AfterSnapshotId })
+    if ($a.Count -ne 1 -or $b.Count -ne 1) { throw 'LIBRARY_SNAPSHOT_NOT_FOUND' }
+    $a=$a[0]; $b=$b[0]
+    if ($a.snapshotId -ceq $b.snapshotId) { throw 'LIBRARY_SNAPSHOT_REUSED' }
+    $aCoverage=Get-RmLibraryCoverage $source $a
+    $bCoverage=Get-RmLibraryCoverage $source $b
+    $aInput=[pscustomobject]@{
+        schemaVersion=$a.schemaVersion;libraryId=$source.libraryId
+        generationId=$a.generationId;capturedAtUtc=$a.capturedAtUtc
+        scanStatus=$a.scanStatus;sourceAvailability='UNKNOWN';freshness='UNKNOWN'
+        coverage=@($aCoverage);units=@($a.units)
+    }
+    $bInput=[pscustomobject]@{
+        schemaVersion=$b.schemaVersion;libraryId=$source.libraryId
+        generationId=$b.generationId;capturedAtUtc=$b.capturedAtUtc
+        scanStatus=$b.scanStatus;sourceAvailability='UNKNOWN';freshness='UNKNOWN'
+        coverage=@($bCoverage);units=@($b.units)
+    }
+    # The dependency is the pure comparator from PR #26. Do not infer outcomes here.
+    Import-Module -Name (Join-Path $PSScriptRoot 'SnapshotComparison.psm1') -ErrorAction Stop
+    $diff=Compare-RmInventorySnapshots -Before $aInput -After $bInput
+    $compared=New-Object 'System.Collections.Generic.List[object]'
+    $excluded=New-Object 'System.Collections.Generic.List[object]'
+    foreach ($console in @($source.platforms | Sort-Object -CaseSensitive)) {
+        $beforeScope=@($aCoverage | Where-Object { $_.console -ceq $console })[0]
+        $afterScope=@($bCoverage | Where-Object { $_.console -ceq $console })[0]
+        if ($beforeScope.status -ceq 'complete' -and $afterScope.status -ceq 'complete') {
+            $compared.Add([pscustomobject]@{console=$console;status='complete';reason='PROVEN_IN_A_AND_B'})
+        } else {
+            $excluded.Add([pscustomobject]@{
+                console=$console;status='INCOMPLETE'
+                beforeStatus=$beforeScope.status;afterStatus=$afterScope.status
+                beforeReason=$beforeScope.reason;afterReason=$afterScope.reason
+            })
+        }
+    }
+    $aRef=@($card.generations | Where-Object { $_.snapshotId -ceq $BeforeSnapshotId })[0]
+    $bRef=@($card.generations | Where-Object { $_.snapshotId -ceq $AfterSnapshotId })[0]
+    $limitations=New-Object 'System.Collections.Generic.List[string]'
+    $limitations.Add('HISTORICAL_OBSERVATIONS_NOT_PHYSICAL_ROM_BYTES')
+    $limitations.Add('COUNTS_ONLY_OBSERVED_UNION_A_B')
+    if ($excluded.Count -gt 0) { $limitations.Add('SCOPE_INTERSECTION_NOT_FULLY_PROVEN') }
+    if ($card.currentAvailability -cne 'ONLINE') { $limitations.Add('CURRENT_SOURCE_NOT_CONFIRMED_ONLINE') }
+    if ($card.freshness -cne 'FRESH') { $limitations.Add('HISTORICAL_FRESHNESS_NOT_CURRENT') }
+    if (@($a.units).Count -eq 0 -and @($b.units).Count -eq 0 -and $excluded.Count -gt 0) {
+        $limitations.Add('ZERO_OBSERVED_UNITS_NOT_PROOF_OF_EMPTY_LIBRARY')
+    }
+    return [pscustomobject]@{
+        schemaVersion='0.1.0-synthetic';readOnly=$true
+        library=[pscustomobject]@{
+            libraryId=$card.libraryId;name=$card.name;platforms=$card.platforms
+            currentAvailability=$card.currentAvailability
+            availabilityObservedAtUtc=$card.availabilityObservedAtUtc
+            freshness=$card.freshness;indexAccessible=$card.indexAccessible
+            lastVerifiedCompleteRef=$card.lastVerifiedCompleteRef
+        }
+        before=$aRef;after=$bRef
+        scopeCompared=$compared.ToArray()
+        scopeNotComparable=$excluded.ToArray()
+        coverageStatus=$(if ($excluded.Count -eq 0) {'COMPLETE'} else {'INCOMPLETE'})
+        counts=$diff.counts;entries=$diff.entries
+        countDenominator=@($diff.entries).Count
+        limitations=$limitations.ToArray()
+    }
+}
+Export-ModuleMember -Function New-RmLibraryProjection,Get-RmLibraryComparisonView
