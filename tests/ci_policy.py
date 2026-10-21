@@ -303,7 +303,7 @@ def audit_baseline(root, static_text, entries):
         "DecisionSchema", "StateCodec", "Identity", "PersistentIdentity", "MediaMatcher",
         "MediaModel", "Reconciliation", "Proposals", "Projection", "Transactions",
         "Catalogue", "Associations")}
-    actual_modules = {p for p in entries if re.fullmatch(r"Modules/[^/]+\.psm1", p)}
+    actual_modules = {p for p in entries if p.startswith("Modules/") and p.endswith(".psm1") and "/" not in p[len("Modules/"):]}
     require(actual_modules == bootstrap | approved_extensions, "EXPECTED_APPROVED_20_MODULES")
 
 
