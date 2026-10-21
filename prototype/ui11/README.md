@@ -75,3 +75,5 @@ node prototype/ui11/integrated-smoke.cjs
 ### Réception Dev 1 — nouveau HEAD observé pendant Sprint #17
 
 Après vérification initiale de `19be89fa`, la PR #27 a avancé à `7aa593f71884bcf519692d8863847fb8a2f3ecbf`. **CHANGES_REQUIRED sur ce nouveau HEAD** : `tests/Export-SyntheticUiProjection.ps1` contient une chaîne `-cnotmatch 'Z` tronquée et deux blocs exporteurs superposés (anciens contrôles 6/5 et nouveaux 7/6/7). Revue ciblée publiée dans [PR #27](https://github.com/TobbyCy/RomothequeManager/pull/27). Ce défaut bloque la preuve d'un export PowerShell utilisable, mais ne bloque pas la fixture UI candidate autonome. Dev 2 n'a pas modifié la branche Dev 1.
+
+**Addendum compteurs #17** : la fixture « Source non consultable » comporte deux générations historiques métadonnées, chacune avec `countKnown=false` et `observedUnitCount=null` ; les cartes Bibliothèques affichent « Inconnu » plutôt que zéro. La fixture « Zéro non probant » affiche le compteur observé 0 mais conserve sa couverture partielle et son avertissement. Contrôle V8 supplémentaire effectué sur ces deux états ; aucune exécution PS5.1 ni navigateur.
