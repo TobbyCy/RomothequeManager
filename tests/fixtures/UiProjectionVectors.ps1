@@ -21,6 +21,8 @@ function New-RmUiProjectionVectors {
     )
     # Namespace every identity; keep cross-scenario references deterministic.
     foreach ($v in $defs) {
+        # Isolate the shared synthetic fixture objects before namespace mutation.
+        $v.registry=(ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $v.registry -Depth 20 -Compress))
         $v.registry.libraries[0].libraryId=('lib-'+$v.scenarioId)
         foreach ($snap in $v.registry.libraries[0].snapshots) {
             $snap.snapshotId=($v.scenarioId+'-'+$snap.snapshotId)
