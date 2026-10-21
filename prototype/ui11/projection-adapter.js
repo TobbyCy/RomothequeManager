@@ -32,7 +32,7 @@ return {snapshotId:g.snapshotId,generationId:g.generationId,capturedAtUtc:g.capt
 const availability=enumOf(l.currentAvailability,["ONLINE","OFFLINE","INACCESSIBLE","UNKNOWN"],"AVAILABILITY");
 const freshness=enumOf(l.freshness,["FRESH","STALE","UNKNOWN"],"FRESHNESS");
 if(l.lastVerifiedCompleteRef!==null&&l.lastVerifiedCompleteRef!==undefined){const last=generations.find(g=>g.snapshotId===l.lastVerifiedCompleteRef);if(!last||last.scanStatus!=="complete"||last.coverage.some(x=>x.status!=="complete"))fail("LAST_VERIFIED_REF_UNPROVEN")}
-return {libraryId:l.libraryId,name:l.name,description:"Projection synthétique du noyau · lecture seule",platforms,availability,freshness,observedAtUtc:l.availabilityObservedAtUtc??null,indexAvailable:l.indexAccessible,lastVerifiedCompleteRef:l.lastVerifiedCompleteRef??null,snapshots:generations,projectionMode:true};
+return {libraryId:l.libraryId,name:l.name,description:"Projection synthétique du noyau · lecture seule",platforms,availability,freshness,observedAtUtc:l.availabilityObservedAtUtc??null,indexAvailable:l.indexAccessible,lastVerifiedCompleteRef:l.lastVerifiedCompleteRef??null,snapshots:generations,declaredPartitions:[...expected],projectionMode:true};
 });
 }
 function comparison(dto,expectedLibraryId,libraryCard){
@@ -45,18 +45,54 @@ if(dto.before.generationId===dto.after.generationId)fail("COMPARISON_SAME_GENERA
 if(Date.parse(dto.before.capturedAtUtc)>Date.parse(dto.after.capturedAtUtc))fail("COMPARISON_DATE_ORDER");
 if(libraryCard){if(libraryCard.libraryId!==expectedLibraryId||!libraryCard.indexAvailable)fail("COMPARISON_INACCESSIBLE_LIBRARY");for(const [ref,kind] of [[dto.before,"BEFORE"],[dto.after,"AFTER"]]){const s=libraryCard.snapshots.find(x=>x.snapshotId===ref.snapshotId);if(!s||s.generationId!==ref.generationId||s.capturedAtUtc!==ref.capturedAtUtc||s.scanStatus!==ref.scanStatus)fail("COMPARISON_"+kind+"_REGISTRY_MISMATCH")}}
 
+// S2: compare immutable registry-derived evidence, never trust the comparison DTO alone.
+if(!libraryCard)fail("COMPARISON_REGISTRY_REQUIRED");
+const declared=array(libraryCard.declaredPartitions,"DECLARED_PARTITIONS");
+if(!declared.length)fail("COMPARISON_PARTITIONS_MISSING");
+const scopesByRef=[];
+for(const [ref,kind] of [[dto.before,"BEFORE"],[dto.after,"AFTER"]]){
+const registered=libraryCard.snapshots.find(x=>x.snapshotId===ref.snapshotId);
+if(!registered)fail("COMPARISON_"+kind+"_REGISTRY_MISSING");
+const keys=new Set(),proof=new Map();
+for(const p of array(ref.coverageProof,"COMPARISON_"+kind+"_PROOF")){
+const key=JSON.stringify([p.console,p.sourceKey,p.rootKey,p.domain]);
+if(keys.has(key)||!declared.includes(key))fail("COMPARISON_"+kind+"_PROOF_PARTITION");
+keys.add(key);proof.set(key,p.status);
+}
+const registryProof=JSON.stringify(registered.coverageProof);
+if(JSON.stringify(ref.coverageProof)!==registryProof||
+ref.scopeIsExhaustive!==registered.scopeIsExhaustive||
+JSON.stringify(ref.coverage)!==JSON.stringify(registered.coverage))
+fail("COMPARISON_"+kind+"_REGISTRY_PROOF_MISMATCH");
+const proven=new Map();
+for(const platform of libraryCard.platforms){
+const partitions=declared.filter(key=>JSON.parse(key)[0]===platform);
+const complete=registered.scanStatus==="complete"&&registered.scopeIsExhaustive===true&&partitions.length>0&&partitions.every(key=>proof.get(key)==="complete");
+const scope=array(ref.coverage,"COMPARISON_"+kind+"_COVERAGE").find(x=>x.console===platform);
+if(!scope||scope.status==="complete"&&!complete)fail("COMPARISON_"+kind+"_UNPROVEN_SCOPE");
+proven.set(platform,complete);
+}
+scopesByRef.push(proven);
+}
 const counts={};for(const type of TYPES)counts[type]=integer(dto.counts?.[type],"CLASS_"+type);
 const entries=array(dto.entries,"ENTRIES");
 if(entries.length!==integer(dto.countDenominator,"DENOMINATOR"))fail("DENOMINATOR_MISMATCH");
-const actual=Object.fromEntries(TYPES.map(t=>[t,0]));
-for(const e of entries){enumOf(e.classification,TYPES,"CLASSIFICATION");actual[e.classification]++;}
+const actual=Object.fromEntries(TYPES.map(t=>[t,0]));const unitIds=new Set();
+for(const e of entries){enumOf(e.classification,TYPES,"CLASSIFICATION");actual[e.classification]++;
+const unitId=text(e.romUnitId,"ROM_UNIT_ID");if(unitIds.has(unitId))fail("DUPLICATE_ROM_UNIT_ID");unitIds.add(unitId);
+if(!e.sourceRefs||e.sourceRefs.beforeGenerationId!==dto.before.generationId||e.sourceRefs.afterGenerationId!==dto.after.generationId)fail("ENTRY_SOURCE_REFS");
+}
 for(const t of TYPES)if(counts[t]!==actual[t])fail("COUNT_MISMATCH_"+t);
 const compared=array(dto.scopeCompared,"SCOPE_COMPARED"),excluded=array(dto.scopeNotComparable,"SCOPE_EXCLUDED"),limitations=array(dto.limitations,"LIMITATIONS");
 const coverageStatus=enumOf(dto.coverageStatus,["COMPLETE","INCOMPLETE"],"COVERAGE_STATUS");
 const seenScopes=new Set();
 for(const scope of [...compared,...excluded]){text(scope.console,"SCOPE_CONSOLE");if(seenScopes.has(scope.console))fail("DUPLICATE_SCOPE");seenScopes.add(scope.console)}
 for(const scope of compared){if(scope.status!=="complete")fail("COMPARED_SCOPE_NOT_COMPLETE");const a=dto.before.coverage?.find(x=>x.console===scope.console),b=dto.after.coverage?.find(x=>x.console===scope.console);if(!a||!b||a.status!=="complete"||b.status!=="complete")fail("COMPARED_SCOPE_UNPROVEN")}
-if(libraryCard&&seenScopes.size!==libraryCard.platforms.length)fail("SCOPE_PLATFORM_COUNT_MISMATCH");
+if(seenScopes.size!==libraryCard.platforms.length)fail("SCOPE_PLATFORM_COUNT_MISMATCH");
+for(const platform of libraryCard.platforms){
+const isProven=scopesByRef[0].get(platform)===true&&scopesByRef[1].get(platform)===true;
+if(isProven!==compared.some(x=>x.console===platform))fail("COMPARISON_SCOPE_REGISTRY_CONFLICT");
+}
 for(const limitation of limitations)text(limitation,"LIMITATION");
 
 if(coverageStatus==="COMPLETE"&&(excluded.length||!compared.length))fail("UNPROVEN_COMPLETE");
