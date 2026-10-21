@@ -1,6 +1,6 @@
 # Architecture actuelle et trajectoire — lecture publique
 
-**Architecture implémentée historique :** un noyau Windows PowerShell 5.1 structuré en modules, avec identifiants métier stables, rapprochements de métadonnées, journaux/transactions et couche Export E1. Le code et les tests sont en cours de transfert vers un dépôt produit à historique indépendant ; consulter leur HEAD après la PR technique.
+**Architecture implémentée historique :** un noyau Windows PowerShell 5.1 structuré en modules, avec identifiants métier stables, rapprochements de métadonnées, journaux/transactions et couche Export E1. Les sources et leurs tests sont en cours de revue ; consulter les fichiers et résultats présents sur le commit effectivement testé.
 
 ## Modules et frontières
 

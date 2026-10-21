@@ -4,7 +4,7 @@ La couche Export E1 du moteur PowerShell est conçue pour **inventorier en lectu
 
 ## Ce qui existe
 
-- Modules PowerShell 5.1 historiques et script d'inventaire read-only, sous transfert technique vers ce dépôt.
+- Modules PowerShell 5.1 et script d'inventaire en lecture seule ; leur disponibilité dépend de la version réellement intégrée dans le dépôt.
 - Suites synthétiques et vérifications de chemins, identités, rôles ES-DE game/folder, variantes et cas négatifs.
 - Préflight diagnostique distinct du lancement complet et de toute opération physique.
 

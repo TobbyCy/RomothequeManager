@@ -1,6 +1,6 @@
 # CI adaptative — politique et vérifications obligatoires
 
-**Plan des vérifications à conserver ; disponibilité du workflow/runner à confirmer après le transfert technique du dépôt indépendant.** La documentation ne prouve aucun run GitHub distant ni build .NET.
+**Plan des vérifications à conserver ; disponibilité des workflows et des runners à confirmer sur le commit testé.** La documentation ne prouve aucun run GitHub distant ni build .NET.
 
 ## Routage
 
@@ -14,12 +14,12 @@
 
 Le gate ne peut pas devenir SUCCESS si un check **obligatoire** est failed, cancelled, skipped ou absent. Un test .NET non applicable n'est **pas** un succès fictif : expliquer son absence.
 
-## Migration sur nouvel historique
+## Vérifier l'initialisation et les chemins Git
 
-Le premier push peut avoir un SHA antérieur entièrement nul ; son interprétation doit rester fail-closed. Les anciens SHA figés, baselines/manifestes, noms de dossiers et règles de diff historiques doivent être adaptés et contrôlés par le propriétaire CI. Les changements de policy/permissions, de chemins inconnus ou de workflows exigent FULL, pas DOCS_ONLY.
+Le premier push peut avoir un SHA antérieur entièrement nul ; son interprétation doit rester fail-closed. Les références Git figées, baselines/manifestes, chemins et règles de diff doivent correspondre au dépôt et au HEAD testés. Les changements de policy/permissions, de chemins inconnus ou de workflows exigent FULL, pas DOCS_ONLY.
 
 ## Sécurité forks et publication
 
 Permissions contents:read par défaut, aucune écriture ou secret dans la CI de PR de fork, ne pas exécuter de code non fiable dans un contexte privilégié, checkout sans credentials persistés, actions épinglées. Publication Release uniquement via job distinct autorisé avec permissions minimales et tag/HEAD/ZIP/manifest/SHA-256 cohérents. **Aucune Release ni build .NET n'est autorisé ou revendiqué dans cette documentation.**
 
-L'ancien blocage de runners du dépôt privé source ne constitue ni un bug démontré du routeur ni une réussite du nouveau pipeline. Les preuves de chaque HEAD doivent venir de ses **propres runs**.
+Une exécution refusée avant démarrage des runners ne démontre ni un échec du code testé ni la réussite du pipeline. Les preuves de chaque HEAD doivent venir de ses **propres runs**.
