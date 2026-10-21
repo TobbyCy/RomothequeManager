@@ -296,6 +296,29 @@ class DocumentTests(unittest.TestCase):
         for path in (".github/workflows/unreviewed.yml", "tests/ci_policy_extra.py", "docs/secret.exe", "ROMS/demo.gba", "SECURITY.txt"):
             self.assertFalse(any(__import__('re').fullmatch(r, path) for r in rules))
 
+    def test_public_issue_form_allowlist_and_unexpected_paths_fail_closed(self):
+        root = Path(__file__).resolve().parent.parent
+        rules, _ = p.path_rules(root)
+        permitted = ("bug", "config", "docs", "feature", "question")
+        for name in permitted:
+            path = ".github/ISSUE_TEMPLATE/" + name + ".yml"
+            with self.subTest(allowed=path):
+                self.assertTrue(any(__import__("re").fullmatch(rule, path) for rule in rules))
+        denied = (
+            ".github/ISSUE_TEMPLATE/private.yml",
+            ".github/ISSUE_TEMPLATE/internal.yml",
+            ".github/ISSUE_TEMPLATE/docs.yaml",
+            ".github/ISSUE_TEMPLATE/bug.yml.bak",
+            ".github/ISSUE_TEMPLATE/../private.yml",
+            ".github/ISSUE_TEMPLATE/question.yml/extra",
+        )
+        for path in denied:
+            with self.subTest(denied=path):
+                self.assertFalse(any(__import__("re").fullmatch(rule, path) for rule in rules))
+                with self.assertRaisesRegex(p.PolicyError, "TRACKED_PATH_NOT_ALLOWED"):
+                    p.audit_entries(root, {path: ("100644", "blob", "f" * 40)}, rules)
+
+
     def test_dotnet_missing_project_never_green(self):
         with patch.object(p, "tree", return_value={"README.md": ("100644", "blob", "fake")}):
             with self.assertRaisesRegex(p.PolicyError, "DOTNET_PROJECT_OR_TEST_MISSING"):
