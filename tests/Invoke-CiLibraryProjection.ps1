@@ -97,6 +97,40 @@ try {
     $dup=New-RmSyntheticSnapshot -Id 'duplicate' -Generation 'gen-bad' -At '2026-10-21T12:00:00Z'
     $dup.coverageProof=@($dup.coverageProof[0],$dup.coverageProof[0])
     Assert-Refuses { New-RmLibraryProjection -Registry (New-RmSyntheticRegistry -Snapshots @($old,$dup)) } 'LIBRARY_DUPLICATE_PROOF_PARTITION'
+    # Ordinal policy: case-only IDs remain distinct; delimiter-containing roots cannot collide.
+    $caseA=New-RmSyntheticRegistry -Snapshots @($old,$new)
+    $caseB=New-RmSyntheticRegistry -Snapshots @($old,$new)
+    $caseB.libraries[0].libraryId='Lib-fixture'
+    $caseRegistry=[pscustomobject]@{libraries=@($caseA.libraries[0],$caseB.libraries[0])}
+    Assert-View ((New-RmLibraryProjection -Registry $caseRegistry).libraries.Count -eq 2) 'ordinal-library-id'
+    $caseSnap=New-RmSyntheticSnapshot -Id 'Snap-a' -Generation 'Gen-a' -At '2026-10-19T12:00:00Z'
+    $caseGen=New-RmSyntheticSnapshot -Id 'snap-a' -Generation 'gen-a' -At '2026-10-18T12:00:00Z'
+    $caseSnapReg=New-RmSyntheticRegistry -Snapshots @($caseSnap,$caseGen) -LastComplete 'Snap-a'
+    Assert-View ((New-RmLibraryProjection -Registry $caseSnapReg).libraries[0].generations.Count -eq 2) 'ordinal-snapshot-generation-id'
+    $root1=[pscustomobject]@{sourceKey='a|b';rootKey='c';domains=@('ROMS')}
+    $root2=[pscustomobject]@{sourceKey='a';rootKey='b|c';domains=@('ROMS')}
+    $rootA=New-RmSyntheticSnapshot -Id 'root-a' -Generation 'root-gen-a' -At '2026-10-20T12:00:00Z'
+    $rootB=New-RmSyntheticSnapshot -Id 'root-b' -Generation 'root-gen-b' -At '2026-10-21T12:00:00Z'
+    $rootA.coverageProof=@([pscustomobject]@{console='GBA';sourceKey='a|b';rootKey='c';domain='ROMS';status='complete'})
+    $rootB.coverageProof=@([pscustomobject]@{console='GBA';sourceKey='a';rootKey='b|c';domain='ROMS';status='complete'})
+    $rootReg=New-RmSyntheticRegistry -Sources @($root1,$root2) -Snapshots @($rootA,$rootB) -LastComplete $null
+    $rootView=Get-RmLibraryComparisonView -Registry $rootReg -LibraryId 'lib-fixture' -BeforeSnapshotId 'root-a' -AfterSnapshotId 'root-b'
+    Assert-View ($rootView.coverageStatus -ceq 'INCOMPLETE' -and $rootView.scopeNotComparable.Count -eq 1) 'delimiters-do-not-create-false-completeness'
+    $caseSource=[pscustomobject]@{sourceKey='Source-1';rootKey='Root-1';domains=@('ROMS')}
+    $caseRoot=[pscustomobject]@{sourceKey='source-1';rootKey='root-1';domains=@('ROMS')}
+    $caseRoots=New-RmSyntheticRegistry -Sources @($caseSource,$caseRoot) -Snapshots @($old,$new) -LastComplete $null
+    Assert-View ((New-RmLibraryProjection -Registry $caseRoots).libraries[0].generations[0].coverage[0].status -cne 'complete') 'case-only-partitions-not-aggregated'
+    $inaccessible=New-RmLibraryProjection -Registry $missingIndex
+    Assert-View (-not $inaccessible.libraries[0].generations[0].countKnown -and $null -eq $inaccessible.libraries[0].generations[0].observedUnitCount) 'index-inaccessible-count-null'
+    $emptyUnknown=New-RmSyntheticSnapshot -Id 'unknown-empty' -Generation 'gen-unknown-empty' -At '2026-10-21T12:00:00Z' -Scan 'failed' -Exhaustive $false
+    $emptyUnknown.coverageProof=@()
+    $unknownRegistry=New-RmSyntheticRegistry -Snapshots @($emptyUnknown) -LastComplete $null
+    $unknownProjection=New-RmLibraryProjection -Registry $unknownRegistry
+    Assert-View ($unknownProjection.libraries[0].generations[0].coverage[0].status -cne 'complete') 'failed-no-proof-never-complete'
+    $noExhaust=New-RmSyntheticSnapshot -Id 'no-exhaust' -Generation 'gen-no-exhaust' -At '2026-10-21T12:00:00Z' -Exhaustive $false
+    $noExhaust.coverageProof=@()
+    $noExhaustProjection=New-RmLibraryProjection -Registry (New-RmSyntheticRegistry -Snapshots @($noExhaust) -LastComplete $null)
+    Assert-View ($noExhaustProjection.libraries[0].generations[0].coverage[0].status -cne 'complete') 'empty-proof-not-exhaustive'
     $again=Get-RmLibraryComparisonView -Registry $reg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b'
     Assert-View ((ConvertTo-Json -InputObject $view -Depth 20 -Compress) -ceq (ConvertTo-Json -InputObject $again -Depth 20 -Compress)) 'deterministic-repeated-view'
     Write-Host ('LIBRARY_SYNTHETIC_PASS | assertions='+$script:passed+' | synthetic=1 | real_io=0')
