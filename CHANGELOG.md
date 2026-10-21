@@ -1,15 +1,15 @@
-# Journal des évolutions
+# Journal des changements
 
-Tous les changements listés concernent **les versions du code réellement intégrées** et doivent être vérifiables par commit/tag correspondant. Aucune Release n'a été publiée depuis ce dépôt à ce jour.
+Ce document décrit les évolutions **effectivement intégrées**. Les fonctionnalités proposées figurent dans la [roadmap](docs/roadmap.md) et ne sont pas annoncées comme livrées.
 
-## En préparation — migration privée et documentation
+## Non publié — développement
 
-- Nouveau dépôt Produit indépendant, historique Git neuf ; reprise graduelle de la base PowerShell 5.1, contrôlée par tests et empreintes.
-- Guides publics candidats réécrits sans références à l'ancienne coordination, sans données utilisateur ni licence adoptée.
-- Interface V2, index, nouveautés metadata/exports et contrat .NET : **spécifications**, pas fonctionnalités exécutées.
+- Guides du produit, de la contribution et de la sécurité, lexique et documentation d'architecture.
+- Parcours d'interface et critères d'acceptation décrits pour les travaux futurs.
+- Préparation des contrôles du moteur PowerShell 5.1 sur données synthétiques.
 
-## Historique technique hérité — à qualifier par Dev 1
+**Aucune application Windows, ZIP ni GitHub Release n'a encore été publiée.** Les PR non fusionnées ne constituent pas des fonctionnalités disponibles.
 
-Le moteur PS5.1 Rev.3 et les tests synthétiques ont un historique de développement pré-migration. Ce fichier ne revendique ni identité de commits hérités, ni exécution nouvelle réussie avant vérification du transfert technique dans ce dépôt.
+## Convention
 
-**Convention** : chaque PR code met à jour ce journal avec comportement, compatibilité, risques, lien de PR **Produit** et résultats observés. Ne pas inventorier ici les mandats internes.
+Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.

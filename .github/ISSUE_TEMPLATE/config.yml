@@ -1,20 +1,5 @@
-{
-  "blank_issues_enabled": false,
-  "contact_links": [
-    {
-      "name": "Signaler un problème de sécurité",
-      "url": "https://github.com/TobbyCy/RomothequeManager-App/blob/main/SECURITY.md",
-      "about": "Ne déposez jamais de détails sensibles dans une Issue ; suivre un canal privé réellement convenu."
-    },
-    {
-      "name": "Guide de support",
-      "url": "https://github.com/TobbyCy/RomothequeManager-App/blob/main/SUPPORT.md",
-      "about": "Questions, limites et versions réellement disponibles."
-    },
-    {
-      "name": "Roadmap",
-      "url": "https://github.com/TobbyCy/RomothequeManager-App/blob/main/docs/roadmap.md",
-      "about": "Fonctions à l'étude sans promesse de livraison."
-    }
-  ]
-}
+blank_issues_enabled: false
+# Aucun lien GitHub codé en dur pendant la préparation du nom canonique.
+# SECURITY.md et SUPPORT.md sont mentionnés dans l'introduction des formulaires.
+# Avant publication, ajouter des contact_links seulement après vérification du
+# nom final du dépôt et de l'accès effectif aux pages cibles.
