@@ -48,7 +48,7 @@ try {
         '^(contracts|schemas)/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json$',
         '^adapters/shared/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|ps1|psm1|json)$',
         '^tests/Invoke-Ci[A-Za-z]+\.ps1$', '^tests/Invoke-CiE1NegativeCanary\.ps1$', '^tests/Invoke-CiE1Integration\.ps1$',
-        '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/(ci-export-sources|ci-preflight-sources)\.json$'
+        '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/fixtures/SyntheticLibrarySnapshots\.ps1$', '^tests/(ci-export-sources|ci-preflight-sources)\.json$'
     )
     $collisions = @{}
     foreach ($path in $paths) {
@@ -68,7 +68,14 @@ try {
     }
     $expectedModules = @('Utils','Canonical','Configuration','Inventory','Metadata','RomResolver','DecisionSchema','StateCodec','Identity','PersistentIdentity','MediaMatcher','MediaModel','Reconciliation','Proposals','Projection','Transactions','Catalogue','Associations')
     $modules = @(Get-ChildItem -LiteralPath (Join-Path $root 'Modules') -File -Filter '*.psm1')
-    Require ($modules.Count -eq 18) ('EXPECTED_18_MODULES actual=' + $modules.Count)
+    Require ($modules.Count -eq 20) ('EXPECTED_20_MODULES actual=' + $modules.Count)
+    $extensionModules = @('SnapshotComparison','LibrarySnapshotProjection')
+    foreach ($name in $extensionModules) {
+        Require (Test-Path (Join-Path $root ('Modules\' + $name + '.psm1')) -PathType Leaf) ('MISSING_APPROVED_EXTENSION_MODULE: ' + $name)
+    }
+    $actualModuleNames = @($modules | ForEach-Object { $_.BaseName } | Sort-Object)
+    $approvedModuleNames = @(($expectedModules + $extensionModules) | Sort-Object)
+    Require (($actualModuleNames -join '|') -ceq ($approvedModuleNames -join '|')) 'UNEXPECTED_EXTENSION_MODULE'
     $init = [IO.File]::ReadAllText((Join-Path $root 'Initialize.ps1'))
     $order = [regex]::Match($init,'(?s)\$moduleOrder\s*=\s*@\((.*?)\)')
     Require $order.Success 'BOOTSTRAP_ORDER_NOT_FOUND'
