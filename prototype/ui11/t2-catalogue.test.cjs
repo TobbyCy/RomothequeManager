@@ -6,7 +6,7 @@ for(const file of ["fixtures.js","t2-catalogue-model.js","t2-catalogue-fixture.j
 const clone=v=>JSON.parse(JSON.stringify(v)),parse=(dto=w.RM_T2_FIXTURE,libs=w.RM_FIXTURES.libraries)=>w.RM_T2_CATALOGUE.normalize(dto,libs);
 let checks=0;const test=(name,fn)=>{fn();checks++;console.log("PASS",name)};
 test("five synthetic games",()=>assert.equal(parse().games.length,5));
-test("combined search and platform",()=>assert.equal(w.RM_T2_CATALOGUE.query(parse(),{search:"Pocket",platform:"GBA"}).length,1));
+test("combined search and platform",()=>assert.equal(w.RM_T2_CATALOGUE.query(parse(),{search:"Adventures",platform:"GBA"}).length,1));
 test("combined library and coverage",()=>assert.equal(w.RM_T2_CATALOGUE.query(parse(),{library:"lib-pocket",coverage:"KNOWN"}).length,1));
 test("sort title",()=>assert.equal(w.RM_T2_CATALOGUE.query(parse(),{sort:"title"})[0].title,"Légende de la Forêt"));
 test("invalid schema",()=>{const x=clone(w.RM_T2_FIXTURE);x.schemaVersion="wrong";assert.throws(()=>parse(x),/T2_CATALOGUE_CONTRACT/)});
