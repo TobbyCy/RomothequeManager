@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "purpose": "explicit versioned approval for E1 source files; historical baseline remains separately SHA-locked",
+  "sources": [
+    {
+      "path": "Export/ExportE1.psm1",
+      "sha256": "bab2e86103f14ef862a4864356c3e9849a927f266ab572fc7a21b558f81655ab"
+    },
+    {
+      "path": "Export/Invoke-ExportE1InventoryReadOnly.ps1",
+      "sha256": "bce63a2b879ea272f7633df8da5472a649fd065221d37989a3e1d69bc5ae0f00"
+    }
+  ]
+}
