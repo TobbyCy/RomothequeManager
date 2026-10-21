@@ -98,6 +98,9 @@ try {
     $offline = New-FixtureSnapshot -Generation 'offline-cache' -At '2026-10-21T12:00:00Z' -Availability 'OFFLINE' -Freshness 'STALE' -Units @((New-FixtureUnit 'unit-1' $a))
     $r = Compare-RmInventorySnapshots $oldSingle $offline
     Assert-Synthetic ($r.counts.unchanged -eq 1 -and $r.afterAvailability -ceq 'OFFLINE' -and $r.afterFreshness -ceq 'STALE') 'offline-stale-cached-observation'
+    $offlinePartial = New-FixtureSnapshot -Generation 'offline-partial' -At '2026-10-21T12:00:00Z' -Scan 'partial' -Availability 'OFFLINE' -Freshness 'STALE'
+    $r = Compare-RmInventorySnapshots $oldSingle $offlinePartial
+    Assert-Synthetic ($r.counts.notObserved -eq 0 -and $r.counts.notComparable -eq 1 -and $r.afterAvailability -ceq 'OFFLINE') 'offline-partial-never-deleted'
     $failedAfter = New-FixtureSnapshot -Generation 'failed' -At '2026-10-21T12:00:00Z' -Scan 'failed'
     $r = Compare-RmInventorySnapshots $oldSingle $failedAfter
     Assert-Synthetic ($r.counts.notObserved -eq 0 -and $r.counts.notComparable -eq 1) 'failed-scan-no-removal'
@@ -122,7 +125,7 @@ try {
     $duplicates.coverage = @($duplicates.coverage[0],$duplicates.coverage[0])
     Assert-ThrowsCode { Compare-RmInventorySnapshots $duplicates $newBlank } 'SNAPSHOT_DUPLICATE_COVERAGE'
 
-    Write-Host ('SNAPSHOT_SYNTHETIC_PASS | assertions=' + $script:passed + ' | filesystem_reads=0 | filesystem_writes=0 | real_collections=0')
+    Write-Host ('SNAPSHOT_SYNTHETIC_PASS | assertions=' + $script:passed + ' | input=synthetic-memory-objects | physical_scans=0')
     exit 0
 } catch {
     [Console]::Error.WriteLine($_.Exception.ToString())
