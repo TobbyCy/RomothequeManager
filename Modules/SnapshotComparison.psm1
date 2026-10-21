@@ -136,53 +136,86 @@ function Compare-RmInventorySnapshots {
     [string[]]$ids = @($all.Keys)
     [Array]::Sort($ids, [StringComparer]::Ordinal)
     $entries = New-Object 'System.Collections.Generic.List[object]'
-    $counts = @{added=0;modified=0;unchanged=0;notObserved=0;notComparable=0}
+    $counts = @{
+        ADDED=0; CHANGED=0; UNCHANGED=0
+        NOT_OBSERVED_IN_B_COVERED_SCOPE=0; UNKNOWN=0; NOT_COMPARABLE=0
+    }
     foreach ($id in $ids) {
         $prior = $null; $current = $null
         if ($old.units.ContainsKey($id)) { $prior = $old.units[$id] }
         if ($new.units.ContainsKey($id)) { $current = $new.units[$id] }
         $owner = if ($null -ne $current) { $current } else { $prior }
-        $category = 'notComparable'; $reason = 'UNKNOWN'
-        if ($null -ne $prior -and $null -ne $current) {
+        $console = [string]$owner.console
+        $category = 'UNKNOWN'
+        $reason = 'SCOPE_OR_SCAN_INCOMPLETE'
+        $changedFields = @()
+        $comparedFields = @()
+
+        # A "complete" flag only qualifies its declared console; both dated
+        # observations must explicitly prove completeness for any conclusion.
+        if (-not $old.coverage.ContainsKey($console) -or
+            -not $new.coverage.ContainsKey($console)) {
+            $category = 'NOT_COMPARABLE'
+            $reason = 'SCOPE_INTERSECTION_NOT_DECLARED'
+        } elseif (-not (Test-RmComparisonScope $old $console) -or
+                  -not (Test-RmComparisonScope $new $console)) {
+            $category = 'UNKNOWN'
+            $reason = 'SCOPE_OR_SCAN_INCOMPLETE'
+        } elseif ($null -ne $prior -and $null -ne $current) {
             if ($prior.gameId -cne $current.gameId -or
                 $prior.variantId -cne $current.variantId -or
                 $prior.console -cne $current.console) {
+                $category = 'NOT_COMPARABLE'
                 $reason = 'IDENTITY_OWNER_CONFLICT'
-            } elseif ($old.scanStatus -ceq 'failed' -or $new.scanStatus -ceq 'failed') {
-                $reason = 'SCAN_FAILED'
             } elseif ($null -eq $prior.observationDigest -or
                       $null -eq $current.observationDigest) {
+                $category = 'UNKNOWN'
                 $reason = 'OBSERVATION_DIGEST_UNKNOWN'
-            } elseif ($prior.observationDigest -ceq $current.observationDigest) {
-                $category = 'unchanged'; $reason = 'OBSERVATION_IDENTICAL'
+            } elseif ($prior.observationDigest -cne $current.observationDigest) {
+                $category = 'CHANGED'
+                $reason = 'OBSERVATION_DIGEST_DIFFERENT'
+                # This is not a ROM file-content checksum or byte-change proof.
+                $changedFields = @([pscustomobject]@{
+                    field = 'observationDigest'
+                    before = $prior.observationDigest
+                    after = $current.observationDigest
+                    level = 'observedStat'
+                    evidence = 'unit-observation-only'
+                })
             } else {
-                $category = 'modified'; $reason = 'OBSERVATION_CHANGED'
+                $category = 'UNCHANGED'
+                $reason = 'OBSERVATION_DIGEST_EQUAL'
+                $comparedFields = @([pscustomobject]@{
+                    field = 'observationDigest'
+                    before = $prior.observationDigest
+                    after = $current.observationDigest
+                    level = 'observedStat'
+                    evidence = 'unit-observation-only'
+                })
             }
         } elseif ($null -ne $current) {
-            if ((Test-RmComparisonScope $old $current.console) -and
-                $new.scanStatus -cne 'failed') {
-                $category = 'added'; $reason = 'ABSENT_FROM_VERIFIED_PRIOR_SCOPE'
-            } else {
-                $reason = 'PRIOR_SCOPE_UNVERIFIED'
-            }
+            $category = 'ADDED'
+            $reason = 'ABSENT_FROM_VERIFIED_PRIOR_SCOPE'
         } else {
-            if ((Test-RmComparisonScope $new $prior.console) -and
-                $old.scanStatus -cne 'failed') {
-                $category = 'notObserved'; $reason = 'ABSENT_FROM_VERIFIED_CURRENT_SCOPE'
-            } else {
-                $reason = 'CURRENT_SCOPE_UNVERIFIED'
-            }
+            $category = 'NOT_OBSERVED_IN_B_COVERED_SCOPE'
+            $reason = 'ABSENT_FROM_VERIFIED_CURRENT_SCOPE'
         }
         $counts[$category]++
         $entries.Add([pscustomobject]@{
             romUnitId = $id
             gameId = $owner.gameId
             variantId = $owner.variantId
-            console = $owner.console
+            console = $console
             classification = $category
             reason = $reason
             beforeDigest = $(if ($null -ne $prior) { $prior.observationDigest } else { $null })
             afterDigest = $(if ($null -ne $current) { $current.observationDigest } else { $null })
+            comparedFields = $comparedFields
+            changedFields = $changedFields
+            sourceRefs = [pscustomobject]@{
+                beforeGenerationId = $old.generationId
+                afterGenerationId = $new.generationId
+            }
         })
     }
     return [pscustomobject]@{
@@ -199,11 +232,12 @@ function Compare-RmInventorySnapshots {
         beforeFreshness = $old.freshness
         afterFreshness = $new.freshness
         counts = [pscustomobject]@{
-            added = $counts.added
-            modified = $counts.modified
-            unchanged = $counts.unchanged
-            notObserved = $counts.notObserved
-            notComparable = $counts.notComparable
+            ADDED = $counts.ADDED
+            CHANGED = $counts.CHANGED
+            UNCHANGED = $counts.UNCHANGED
+            NOT_OBSERVED_IN_B_COVERED_SCOPE = $counts.NOT_OBSERVED_IN_B_COVERED_SCOPE
+            UNKNOWN = $counts.UNKNOWN
+            NOT_COMPARABLE = $counts.NOT_COMPARABLE
         }
         entries = $entries.ToArray()
     }
