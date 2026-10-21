@@ -57,6 +57,29 @@ try {
                     @($g.coverageProof | Where-Object { $_.status -ceq 'complete' }).Count -eq 0) { throw 'DTO_PROOF_MISSING' }
             }
         }
+        foreach ($vector in $Dto.referenceVectors) {
+            $matches=@($Dto.registry.libraries | Where-Object { $_.libraryId -ceq $vector.libraryId })
+            if ($matches.Count -ne 1) { throw 'DTO_REFERENCE_LIBRARY_MISMATCH' }
+            $lib=$matches[0]
+            if (@($lib.generations | Where-Object { $_.snapshotId -ceq $vector.beforeSnapshotId }).Count -ne 1 -or
+                @($lib.generations | Where-Object { $_.snapshotId -ceq $vector.afterSnapshotId }).Count -ne 1) {
+                throw 'DTO_REFERENCE_SNAPSHOT_MISMATCH'
+            }
+            $comparisons=@($Dto.comparisons | Where-Object { $_.library.libraryId -ceq $vector.libraryId })
+            if ($vector.comparisonAvailable -and $comparisons.Count -ne 1) { throw 'DTO_REFERENCE_COMPARISON_MISSING' }
+            if (-not $vector.comparisonAvailable -and $comparisons.Count -ne 0) { throw 'DTO_INACCESSIBLE_COMPARISON' }
+            if (-not $lib.indexAccessible) {
+                foreach ($g in $lib.generations) {
+                    if ($g.countKnown -or $null -ne $g.observedUnitCount) { throw 'DTO_INDEX_COUNT_NOT_UNKNOWN' }
+                }
+            }
+            if ($vector.comparisonAvailable -and
+                ($comparisons[0].before.snapshotId -cne $vector.beforeSnapshotId -or
+                 $comparisons[0].after.snapshotId -cne $vector.afterSnapshotId -or
+                 $comparisons[0].coverageStatus -cne $vector.expectedCoverageStatus)) {
+                throw 'DTO_REFERENCE_AB_MISMATCH'
+            }
+        }
         foreach ($cmp in $Dto.comparisons) {
             $total=0
             foreach ($class in $classes) {
@@ -80,6 +103,22 @@ try {
     $invalid=ConvertFrom-Json -InputObject $first
     $invalid.registry.libraries[0].generations[0].coverageProof=@()
     Assert-DtoRejected -Dto $invalid -Expected 'DTO_PROOF_MISSING'
+    $invalid=ConvertFrom-Json -InputObject $first
+    $invalid.comparisons[0].countDenominator=999
+    Assert-DtoRejected -Dto $invalid -Expected 'DTO_COUNT_MISMATCH'
+    $invalid=ConvertFrom-Json -InputObject $first
+    $invalid.referenceVectors[0].beforeSnapshotId='nonexistent-snapshot'
+    Assert-DtoRejected -Dto $invalid -Expected 'DTO_REFERENCE_SNAPSHOT_MISMATCH'
+    $invalid=ConvertFrom-Json -InputObject $first
+    $invalid.comparisons[0].after.snapshotId='forged-b'
+    Assert-DtoRejected -Dto $invalid -Expected 'DTO_REFERENCE_AB_MISMATCH'
+    $invalid=ConvertFrom-Json -InputObject $first
+    $inaccessible=@($invalid.registry.libraries | Where-Object { -not $_.indexAccessible })[0]
+    $inaccessible.generations[0].observedUnitCount=0
+    Assert-DtoRejected -Dto $invalid -Expected 'DTO_INDEX_COUNT_NOT_UNKNOWN'
+    $invalid=ConvertFrom-Json -InputObject $first
+    $invalid.comparisons[0].counts.ADDED=-1
+    Assert-DtoRejected -Dto $invalid -Expected 'DTO_COUNT_INVALID'
     Write-Host 'UI_SYNTHETIC_SERIALIZATION_PASS | deterministic=1 | scenarioCount=7 | comparisonCount=6 | real_io=0'
     exit 0
 } catch {
