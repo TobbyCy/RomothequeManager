@@ -297,7 +297,9 @@ def audit_baseline(root, static_text, entries):
         require(len(sources) == len(approved) and {s["path"] for s in sources} == approved, "SOURCE_MANIFEST_SCOPE")
         for s in sources:
             require(s["path"] in entries and hashlib.sha256(git(root, "cat-file", "blob", entries[s["path"]][2])).hexdigest() == s["sha256"], "SOURCE_HASH_CHANGED")
-    require(len([p for p in entries if re.fullmatch(r"Modules/[^/]+\.psm1", p)]) == 18, "EXPECTED_18_MODULES")
+    approved = {"Modules/" + name + ".psm1" for name in ("Utils","Canonical","Configuration","Inventory","Metadata","RomResolver","DecisionSchema","StateCodec","Identity","PersistentIdentity","MediaMatcher","MediaModel","Reconciliation","Proposals","Projection","Transactions","Catalogue","Associations","SnapshotComparison")}
+    actual = {p for p in entries if re.fullmatch(r"Modules/[^/]+\\.psm1", p)}
+    require(actual == approved, "EXPECTED_APPROVED_19_MODULES")
 
 
 def check_links(root, paths, entries):
