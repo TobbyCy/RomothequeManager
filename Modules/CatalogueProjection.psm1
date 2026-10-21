@@ -28,12 +28,14 @@ function New-RmCatalogueProjection {
  param([Parameter(Mandatory=$true)]$Registry)
  Import-Module (Join-Path $PSScriptRoot 'LibrarySnapshotProjection.psm1') -ErrorAction Stop
  $projected=New-RmLibraryProjection -Registry $Registry
+ $allIndicesAccessible=$true
  $games=New-Object 'System.Collections.Generic.List[object]'
  $diagnostics=New-Object 'System.Collections.Generic.List[object]'
  $libraries=Sort-RmCatOrdinal -Items @($projected.libraries) -Property 'libraryId'
  foreach ($card in $libraries) {
   $raw=@($Registry.libraries | Where-Object { $_.libraryId -ceq $card.libraryId })[0]
   if (-not $card.indexAccessible) {
+   $allIndicesAccessible=$false
    $diagnostics.Add([pscustomobject][ordered]@{code='CATALOG_INDEX_INACCESSIBLE';libraryId=$card.libraryId;snapshotId=$null})
    continue
   }
@@ -113,7 +115,7 @@ function New-RmCatalogueProjection {
  return [pscustomobject][ordered]@{
   schemaVersion='0.1.0-ui-catalogue-t1-candidate';readOnly=$true
   libraries=@($libraries);games=@($gameMap.Values);diagnostics=@($diagnostics.ToArray())
-  countKnown=$true;gameCount=$gameMap.Count
+  countKnown=$allIndicesAccessible;gameCount=$(if($allIndicesAccessible){$gameMap.Count}else{$null})
   limitations=@('SYNTHETIC_ONLY','LATEST_SNAPSHOT_PER_LIBRARY','NOT_PHYSICAL_ROM_BYTES','NO_INFERRED_IDENTITY')
  }
 }
