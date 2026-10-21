@@ -1,0 +1,65 @@
+
+# ================================
+# ROMOTHEQUE MANAGER - GITIGNORE
+# ================================
+
+# Bibliotheques de jeux et medias
+ROMS/
+MEDIAS/
+ROMothèque/
+roms/
+medias/
+
+# Formats de jeux et contenus binaires
+*.gba
+*.gb
+*.gbc
+*.chd
+*.iso
+*.cso
+*.gcm
+*.wbfs
+*.pkg
+*.rap
+
+# Archives et rapports volumineux
+*.zip
+*.7z
+*.rar
+*_PROOFS/
+*_PROOFS.zip
+
+# Etats et donnees persistantes
+StateRoot/
+RealCommitLot1/
+runtime/
+local-data/
+backups/
+exports/
+output/
+
+# Resultats temporaires
+*.log
+*.tmp
+*.bak
+*.old
+
+# Secrets et configuration locale
+.env
+.env.*
+secrets/
+credentials/
+config.local.json
+
+# IDE / Systeme
+.vscode/
+.vs/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
+# Never track confidential local evidence or signing material.
+SECURE_EVIDENCE_OFF_REPO/
+*.pem
+*.pfx
+*.p12

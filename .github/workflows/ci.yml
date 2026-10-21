@@ -1,0 +1,210 @@
+name: Adaptive CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    name: CI policy / classify and canaries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      policy: ${{ steps.select.outputs.policy }}
+      ps: ${{ steps.select.outputs.ps }}
+      dotnet: ${{ steps.select.outputs.dotnet }}
+    steps:
+      - name: Checkout policy and full Git context
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Positive and negative policy canaries (synthetic only)
+        run: python3 -B -m unittest discover -s tests -p test_ci_policy.py -v
+      - name: Classify complete Git range
+        id: select
+        run: python3 -B tests/ci_policy.py classify
+
+  ci-docs:
+    name: Documents / paths, security and currency
+    needs: policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Portable document and security gate (no product runtime)
+        run: python3 -B tests/ci_policy.py docs
+
+  ci0-static:
+    name: CI-0 / Static and source integrity
+    needs: [policy, ci-docs]
+    if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' && needs.policy.outputs.ps == 'true' }}
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - name: Checkout (no persisted credentials)
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Static syntax, sensitive files, source integrity
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiStatic.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Negative canary - verify syntax failure propagates
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiNegativeCanary.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Documentation currency gate (PR and main)
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiDocsSync.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Documentation gate negative canary
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiDocsCanary.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  ci1-runtime:
+    name: CI-1 / Windows PowerShell 5.1 bootstrap
+    needs: [policy, ci-docs, ci0-static]
+    if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' && needs.policy.outputs.ps == 'true' && needs.ci0-static.result == 'success' }}
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - name: Checkout (no persisted credentials)
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+      - name: Run isolated bootstrap in powershell.exe
+        shell: powershell
+        run: |
+          $PSVersionTable | Format-Table -AutoSize
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw 'Windows PowerShell 5.1 required' }
+          & .\tests\Invoke-CiSmoke.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  ci2-pester:
+    name: CI-2 / Pester 4.10.1 synthetic tests
+    needs: [policy, ci-docs, ci1-runtime]
+    if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' && needs.policy.outputs.ps == 'true' && needs.ci1-runtime.result == 'success' }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (no persisted credentials)
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+      - name: Detect all Pester suites and reject omissions
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiPesterDiscovery.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install pinned Pester and run synthetic unit tests
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiPester.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify real Pester suite execution using disposable fixtures
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiPesterExecutionCanary.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Validate reproducible Pester command coverage (no rate threshold)
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiPesterCoverage.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: E1 negative regression canary
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiE1NegativeCanary.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  ci3-e1-integration:
+    name: CI-3 / E1 full launcher and path safety
+    needs: [policy, ci-docs, ci1-runtime]
+    if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' && needs.policy.outputs.ps == 'true' && needs.ci1-runtime.result == 'success' }}
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - name: Checkout (no persisted credentials)
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+      - name: Run real E1 launcher on disposable synthetic fixtures
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiE1Integration.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  ci4-preflight-synthetic:
+    name: CI-4 / E1 local preflight synthetic PS5.1
+    needs: [policy, ci-docs]
+    if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' && needs.policy.outputs.ps == 'true' }}
+    runs-on: windows-2022
+    timeout-minutes: 18
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout full history without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify preflight on disposable synthetic fixtures only
+        shell: powershell
+        run: |
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw 'Windows PS5.1 required' }
+          & .\tests\Invoke-CiE1PreflightSynthetic.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  ci-dotnet:
+    name: .NET / locked build and nonempty tests
+    needs: [policy, ci-docs]
+    if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' && needs.policy.outputs.dotnet == 'true' }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact sources without credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require actual projects, locked restore, build and executed tests
+        shell: cmd
+        run: python -B tests/ci_policy.py dotnet
+
+  ci-policy-gate:
+    name: ci-policy-gate
+    if: ${{ always() }}
+    needs: [policy, ci-docs, ci0-static, ci1-runtime, ci2-pester, ci3-e1-integration, ci4-preflight-synthetic, ci-dotnet]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout for independent policy recomputation
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Reject omitted, cancelled, skipped or failed required checks
+        env:
+          CI_NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 -B tests/ci_policy.py gate
