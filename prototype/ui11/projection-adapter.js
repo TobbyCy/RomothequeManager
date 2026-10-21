@@ -13,7 +13,16 @@ return array(dto.libraries,"LIBRARIES").map(l=>{
 text(l.libraryId,"LIBRARY_ID");text(l.name,"LIBRARY_NAME");
 const generations=array(l.generations,"GENERATIONS").map(g=>{
 text(g.snapshotId,"SNAPSHOT_ID");text(g.generationId,"GENERATION_ID");text(g.capturedAtUtc,"CAPTURED_AT");
-return {snapshotId:g.snapshotId,generationId:g.generationId,capturedAtUtc:g.capturedAtUtc,scanStatus:enumOf(g.scanStatus,["complete","partial","failed"],"SCAN"),coverage:array(g.coverage,"COVERAGE"),coverageProof:array(g.coverageProof,"COVERAGE_PROOF"),scopeIsExhaustive:g.scopeIsExhaustive===true,observedUnitCount:integer(g.observedUnitCount,"OBSERVED_UNITS")};
+const scanStatus=enumOf(g.scanStatus,["complete","partial","failed"],"SCAN");
+if(typeof g.scopeIsExhaustive!=="boolean")fail("SCOPE_EXHAUSTIVE_FLAG");
+const coverage=array(g.coverage,"COVERAGE"),proof=array(g.coverageProof,"COVERAGE_PROOF");
+for(const p of proof){text(p.console,"PROOF_CONSOLE");text(p.sourceKey,"PROOF_SOURCE");text(p.rootKey,"PROOF_ROOT");enumOf(p.domain,["ROMS","MEDIAS"],"PROOF_DOMAIN");enumOf(p.status,["complete","partial","unobserved"],"PROOF_STATUS")}
+for(const v of coverage){text(v.console,"COVERAGE_CONSOLE");enumOf(v.status,["complete","partial","unobserved"],"COVERAGE_STATUS");if(v.status==="complete"&&(scanStatus!=="complete"||!g.scopeIsExhaustive||!proof.some(p=>p.console===v.console&&p.status==="complete")))fail("UNPROVEN_SCOPE")}
+if(typeof g.countKnown!=="boolean")fail("COUNT_KNOWN_FLAG");
+if(g.countKnown!==l.indexAccessible)fail("COUNT_INDEX_CONFLICT");
+if(g.countKnown&& !l.indexAccessible)fail("INACCESSIBLE_COUNT");
+const observedUnitCount=g.countKnown?integer(g.observedUnitCount,"OBSERVED_UNITS"):(g.observedUnitCount===null?null:fail("UNKNOWN_COUNT_NOT_NULL"));
+return {snapshotId:g.snapshotId,generationId:g.generationId,capturedAtUtc:g.capturedAtUtc,scanStatus,coverage,coverageProof:proof,scopeIsExhaustive:g.scopeIsExhaustive,countKnown:g.countKnown,observedUnitCount};
 });
 const availability=enumOf(l.currentAvailability,["ONLINE","OFFLINE","INACCESSIBLE","UNKNOWN"],"AVAILABILITY");
 const freshness=enumOf(l.freshness,["FRESH","STALE","UNKNOWN"],"FRESHNESS");
