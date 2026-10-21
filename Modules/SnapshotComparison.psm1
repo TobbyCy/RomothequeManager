@@ -7,7 +7,8 @@ function Get-RmSnapshotField {
     if ($null -eq $Record) { throw ('SNAPSHOT_NULL_RECORD:' + $Context) }
     $property = $Record.PSObject.Properties[$Name]
     if ($null -eq $property) { throw ('SNAPSHOT_FIELD_MISSING:' + $Context + '.' + $Name) }
-    return $property.Value
+    # Keep an empty array as one pipeline object instead of dropping it.
+    return ,$property.Value
 }
 
 function Get-RmSnapshotText {
@@ -158,14 +159,14 @@ function Compare-RmInventorySnapshots {
                 $category = 'modified'; $reason = 'OBSERVATION_CHANGED'
             }
         } elseif ($null -ne $current) {
-            if (Test-RmComparisonScope $old $current.console -and
+            if ((Test-RmComparisonScope $old $current.console) -and
                 $new.scanStatus -cne 'failed') {
                 $category = 'added'; $reason = 'ABSENT_FROM_VERIFIED_PRIOR_SCOPE'
             } else {
                 $reason = 'PRIOR_SCOPE_UNVERIFIED'
             }
         } else {
-            if (Test-RmComparisonScope $new $prior.console -and
+            if ((Test-RmComparisonScope $new $prior.console) -and
                 $old.scanStatus -cne 'failed') {
                 $category = 'notObserved'; $reason = 'ABSENT_FROM_VERIFIED_CURRENT_SCOPE'
             } else {
