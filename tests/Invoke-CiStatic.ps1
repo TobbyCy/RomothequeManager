@@ -68,7 +68,10 @@ try {
     }
     $expectedModules = @('Utils','Canonical','Configuration','Inventory','Metadata','RomResolver','DecisionSchema','StateCodec','Identity','PersistentIdentity','MediaMatcher','MediaModel','Reconciliation','Proposals','Projection','Transactions','Catalogue','Associations')
     $modules = @(Get-ChildItem -LiteralPath (Join-Path $root 'Modules') -File -Filter '*.psm1')
-    Require ($modules.Count -eq 18) ('EXPECTED_18_MODULES actual=' + $modules.Count)
+    Require ($modules.Count -eq 19) ('EXPECTED_19_MODULES actual=' + $modules.Count)
+    $actualNames = @($modules | ForEach-Object { $_.BaseName } | Sort-Object)
+    $approvedNames = @(($expectedModules + @('SnapshotComparison')) | Sort-Object)
+    Require (($actualNames -join '|') -ceq ($approvedNames -join '|')) 'UNEXPECTED_MODULE'
     $init = [IO.File]::ReadAllText((Join-Path $root 'Initialize.ps1'))
     $order = [regex]::Match($init,'(?s)\$moduleOrder\s*=\s*@\((.*?)\)')
     Require $order.Success 'BOOTSTRAP_ORDER_NOT_FOUND'
