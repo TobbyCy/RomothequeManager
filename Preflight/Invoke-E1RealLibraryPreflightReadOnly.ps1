@@ -23,7 +23,9 @@ param(
     [string]$ExpectedSnapshotScanId,
     [string]$ExpectedLibraryId,
     [switch]$ProbeProofWrite,
-    [switch]$SaveReports
+    [switch]$SaveReports,
+    [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-fA-F]{40}$')][string]$ApprovedGitCommit,
+    [Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')][string]$ApprovedRepository
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,8 +36,8 @@ if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -n
 }
 
 # Verrou explicite : seul ce commit Git est admis. Ne pas changer sans verdict.
-$ExpectedCommit = '00c47bb2bfcd60ed2e0b64f43869d169e41ffffe'
-$ExpectedRepo = 'TobbyCy/RomothequeManager-App'
+$ExpectedCommit = $ApprovedGitCommit.ToLowerInvariant()
+$ExpectedRepo = $ApprovedRepository
 $files = @('associations.json','catalogue.json','identity_registry.json')
 $checks = New-Object 'System.Collections.Generic.List[object]'
 $fullHashes = @{}
@@ -218,7 +220,8 @@ try {
     $gitStatus=@(Invoke-GitText @('status','--porcelain=v1','--untracked-files=all'))
     Test-Check 'GIT_CLEAN' ($gitStatus.Count -eq 0 -or ($gitStatus.Count -eq 1 -and [string]::IsNullOrWhiteSpace($gitStatus[0]))) 'Aucun fichier modifie ou non suivi dans le clone.'
     $remote=([string]((Invoke-GitText @('remote','get-url','origin'))[0])).Trim()
-    $isRemote=($remote -match '^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)TobbyCy/RomothequeManager-App(\.git)?$')
+    $officialRemotePattern='^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)'+[regex]::Escape($ExpectedRepo)+'(\.git)?$'
+    $isRemote=($remote -match $officialRemotePattern)
     Test-Check 'GIT_ORIGIN' $isRemote 'Origin correspond au depot officiel.'
     $private.git=[ordered]@{head=$gitHead;origin=$remote}
 
