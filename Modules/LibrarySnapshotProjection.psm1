@@ -125,8 +125,8 @@ function Assert-RmLibraryRegistry {
             $domains=Get-RmLibraryRequired $source 'domains' 'source'
             Assert-RmLibraryArray $domains 'source.domains'
             if ($domains.Count -eq 0) { throw 'LIBRARY_SOURCE_DOMAINS_EMPTY' }
-            if ($sourceKeys.ContainsKey($key+'|'+$root)) { throw 'LIBRARY_DUPLICATE_SOURCE' }
-            $sourceKeys[$key+'|'+$root]=$true
+            if ($sourceKeys.ContainsKey($key)) { throw 'LIBRARY_DUPLICATE_SOURCE' }
+            $sourceKeys[$key]=$true
             $domainKeys=@{}
             foreach ($domain in $domains) {
                 Assert-RmLibraryChoice $domain @('ROMS','MEDIAS') 'source.domain'
@@ -163,6 +163,10 @@ function Assert-RmLibraryRegistry {
             if ($last -isnot [string] -or -not $snapKeys.ContainsKey($last)) { throw 'LIBRARY_LAST_VERIFIED_REF_INVALID' }
             $lastSnapshot=$snapKeys[$last]
             if ($lastSnapshot.scanStatus -cne 'complete') { throw 'LIBRARY_LAST_VERIFIED_NOT_COMPLETE' }
+            $lastCoverage=Get-RmLibraryCoverage $lib $lastSnapshot
+            if (@($lastCoverage | Where-Object { $_.status -cne 'complete' }).Count -gt 0) {
+                throw 'LIBRARY_LAST_VERIFIED_SCOPE_NOT_COMPLETE'
+            }
         }
     }
 }
