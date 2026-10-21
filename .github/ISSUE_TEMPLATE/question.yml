@@ -1,0 +1,74 @@
+{
+  "name": "Question ou aide",
+  "description": "Question de compréhension non sensible, distincte d'un bug.",
+  "title": "[Question] ",
+  "body": [
+    {
+      "type": "markdown",
+      "attributes": {
+        "value": "ROMothèque Manager est en développement. N'incluez ni ROM, BIOS, XML ES-DE réel, StateRoot, secrets, identifiant de machine ni capture/chemin personnel. Aucune Issue n'autorise une opération réelle. Une vulnérabilité doit suivre SECURITY.md via un canal privé effectivement confirmé, jamais ce formulaire."
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "topic",
+      "attributes": {
+        "label": "Sujet et version consultée",
+        "description": "Version, documentation, fonctionnalité à l'étude ou code existant."
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "question",
+      "attributes": {
+        "label": "Question précise",
+        "description": "Aucun secret, log sensible ou contenu de collection réelle."
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "checked",
+      "attributes": {
+        "label": "Documentation déjà lue",
+        "description": "Liens du dépôt Produit uniquement, pas d'autre dépôt."
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "expectation",
+      "attributes": {
+        "label": "Type de réponse utile",
+        "description": "Clarification, guide ou proposition de ticket distinct."
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "checkboxes",
+      "id": "privacy",
+      "attributes": {
+        "label": "Vérifications",
+        "options": [
+          {
+            "label": "Mes exemples et preuves sont fictifs ou expurgés.",
+            "required": true
+          },
+          {
+            "label": "Je ne demande aucune action réelle implicite sur les bibliothèques.",
+            "required": true
+          }
+        ]
+      }
+    }
+  ]
+}
