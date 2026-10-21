@@ -157,7 +157,7 @@ else if(act==="unit"){s.selectedUnit=id;render()}
 else if(act==="game"){s.collectionUnit=id;render()}
 else if(act==="catalogue-game"){s.collectionUnit=id;render()}
 else if(act==="close-game"){s.collectionUnit=null;render()}
-else if(act==="snapshot"){const parts=id.split(":");chooseLibrary(parts[0]);s.before=getSnap(lib(),parts[1])?.generationId||s.before;route("compare")}
+else if(act==="snapshot"){const parts=id.split(":");chooseLibrary(parts[0]);const target=getSnap(lib(),parts[1]);if(target){s.after=target.generationId;s.before=lib().snapshots.find(x=>x.snapshotId!==target.snapshotId)?.generationId||s.before}route("compare")}
 });
 document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("tr[data-action]")){e.preventDefault();e.target.click()}});
 document.addEventListener("change",e=>{
