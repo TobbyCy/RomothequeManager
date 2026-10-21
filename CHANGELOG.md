@@ -29,6 +29,15 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 **Validation Windows PowerShell 5.1/Pester/CI : NOT_EXECUTED.** PR #27 dépend de #26 non fusionnée ; pas de GUI, données réelles, application publiée ni Release.
 
+## En préparation — Sprint #16 Chaîne synthétique UI (#27)
+
+- Sept scénarios indépendants, dont ONLINE/STALE distinct de OFFLINE/STALE, exposés dans le JSON via `referenceVectors[]` avec identité de bibliothèque, snapshots A/B et résultats attendus.
+- Producteur renforcé : refus des IDs dupliqués, références de comparaison incohérentes, preuve de couverture absente et compteur incohérent ; harness JSON renforcé.
+- Contrôle statique optionnel `tests/Invoke-CiUiAdapterContract.ps1` pour les sources UI #28 externes, sans modifier la branche UI.
+- Procédure de reproduction Windows PS5.1 et plan de réalignement empilé documentés dans `docs/architecture/contrat-json-ui-projection.md`.
+
+**PS51_NOT_EXECUTED**, aucune sortie JSON calculée en exécution, aucune fusion ou Release.
+
 ## En préparation — Sprint #14 Stabilisation noyau et export UI (#27)
 
 - Identités `libraryId/snapshotId/generationId/sourceKey/rootKey` traitées en ordinal sensible à la casse ; partitions `console/sourceKey/rootKey/domain` encodées par segments de longueur, sans collision de séparateur `|`.
