@@ -10,7 +10,7 @@ try {
     Import-Module -Name (Join-Path $root 'Modules\SnapshotComparison.psm1') -Force -ErrorAction Stop
 
     function New-FixtureUnit {
-        param([string]$Id, [string]$Digest, [string]$Game='game-1',
+        param([string]$Id, [AllowNull()][object]$Digest, [string]$Game='game-1',
               [string]$Variant='variant-1', [string]$Console='GBA')
         return [pscustomobject]@{
             romUnitId=$Id; gameId=$Game; variantId=$Variant
@@ -67,19 +67,19 @@ try {
         (New-FixtureUnit 'unit-conflict' $a -Variant 'variant-2')
     )
     $result = Compare-RmInventorySnapshots -Before $before -After $after
-    Assert-Synthetic ($result.counts.unchanged -eq 1 -and (Get-Classification $result 'unit-unchanged') -ceq 'unchanged') 'unchanged'
-    Assert-Synthetic ($result.counts.modified -eq 1 -and (Get-Classification $result 'unit-modified') -ceq 'modified') 'modified'
-    Assert-Synthetic ($result.counts.added -eq 1 -and (Get-Classification $result 'unit-added') -ceq 'added') 'added'
-    Assert-Synthetic ($result.counts.notObserved -eq 1 -and (Get-Classification $result 'unit-not-observed') -ceq 'notObserved') 'observed-absence-not-deletion'
-    Assert-Synthetic ($result.counts.notComparable -eq 1 -and (Get-Classification $result 'unit-conflict') -ceq 'notComparable') 'owner-conflict'
-    Assert-Synthetic (@($result.entries | Where-Object { $_.classification -ceq 'deleted' }).Count -eq 0) 'never-infer-physical-deletion'
+    Assert-Synthetic ($result.counts.UNCHANGED -eq 1 -and (Get-Classification $result 'unit-unchanged') -ceq 'UNCHANGED') 'unchanged'
+    Assert-Synthetic ($result.counts.CHANGED -eq 1 -and (Get-Classification $result 'unit-modified') -ceq 'CHANGED') 'modified'
+    Assert-Synthetic ($result.counts.ADDED -eq 1 -and (Get-Classification $result 'unit-added') -ceq 'ADDED') 'added'
+    Assert-Synthetic ($result.counts.NOT_OBSERVED_IN_B_COVERED_SCOPE -eq 1 -and (Get-Classification $result 'unit-not-observed') -ceq 'NOT_OBSERVED_IN_B_COVERED_SCOPE') 'observed-absence-not-deletion'
+    Assert-Synthetic ($result.counts.NOT_COMPARABLE -eq 1 -and (Get-Classification $result 'unit-conflict') -ceq 'NOT_COMPARABLE') 'owner-conflict'
+    Assert-Synthetic (@($result.entries | Where-Object { $_.classification -ceq 'DELETED' }).Count -eq 0) 'never-infer-physical-deletion'
     $ids = @($result.entries | ForEach-Object { $_.romUnitId })
     Assert-Synthetic (($ids -join ',') -ceq (@($ids | Sort-Object) -join ',')) 'deterministic-identity-order'
 
     $empty = New-FixtureSnapshot -Generation 'empty'
     $later = New-FixtureSnapshot -Generation 'later' -At '2026-10-21T12:00:00Z'
     $emptyResult = Compare-RmInventorySnapshots $empty $later
-    Assert-Synthetic ($emptyResult.entries.Count -eq 0 -and $emptyResult.counts.added -eq 0) 'empty-array-safe'
+    Assert-Synthetic ($emptyResult.entries.Count -eq 0 -and $emptyResult.counts.ADDED -eq 0) 'empty-array-safe'
     $oldSingle = New-FixtureSnapshot -Generation 'old-single' -Units @((New-FixtureUnit 'unit-1' $a))
     $newSingle = New-FixtureSnapshot -Generation 'new-single' -At '2026-10-21T12:00:00Z' -Units @((New-FixtureUnit 'unit-1' $a))
     $oldBlank = New-FixtureSnapshot -Generation 'old-blank'
@@ -87,26 +87,61 @@ try {
 
     $partialAfter = New-FixtureSnapshot -Generation 'partial-after' -At '2026-10-21T12:00:00Z' -Scan 'partial'
     $r = Compare-RmInventorySnapshots $oldSingle $partialAfter
-    Assert-Synthetic ((Get-Classification $r 'unit-1') -ceq 'notComparable' -and $r.counts.notObserved -eq 0) 'partial-after-never-disappearance'
+    Assert-Synthetic ((Get-Classification $r 'unit-1') -ceq 'UNKNOWN' -and $r.counts.NOT_OBSERVED_IN_B_COVERED_SCOPE -eq 0) 'partial-after-never-disappearance'
     $partialBefore = New-FixtureSnapshot -Generation 'partial-before' -Scan 'partial'
     $r = Compare-RmInventorySnapshots $partialBefore $newSingle
-    Assert-Synthetic ((Get-Classification $r 'unit-1') -ceq 'notComparable' -and $r.counts.added -eq 0) 'partial-before-never-added'
+    Assert-Synthetic ((Get-Classification $r 'unit-1') -ceq 'UNKNOWN' -and $r.counts.ADDED -eq 0) 'partial-before-never-added'
     $unverifiedScope = New-FixtureSnapshot -Generation 'scope-partial' -At '2026-10-21T12:00:00Z' -Scope 'partial'
     $r = Compare-RmInventorySnapshots $oldSingle $unverifiedScope
-    Assert-Synthetic ((Get-Classification $r 'unit-1') -ceq 'notComparable') 'platform-partial-never-disappearance'
+    Assert-Synthetic ((Get-Classification $r 'unit-1') -ceq 'UNKNOWN') 'platform-partial-never-disappearance'
+
+    # C1: both A and B must prove complete scan AND complete platform scope.
+    $samePartialB = New-FixtureSnapshot -Generation 'same-partial-b' -At '2026-10-21T12:00:00Z' -Scan 'partial' -Units @((New-FixtureUnit 'unit-1' $a))
+    $r = Compare-RmInventorySnapshots $oldSingle $samePartialB
+    Assert-Synthetic ($r.counts.UNKNOWN -eq 1 -and (Get-Classification $r 'unit-1') -ceq 'UNKNOWN' -and $r.counts.UNCHANGED -eq 0) 'C1-B-partial-same-unit-not-unchanged'
+    $changedPartialB = New-FixtureSnapshot -Generation 'changed-partial-b' -At '2026-10-21T12:00:00Z' -Scan 'partial' -Units @((New-FixtureUnit 'unit-1' $b))
+    $r = Compare-RmInventorySnapshots $oldSingle $changedPartialB
+    Assert-Synthetic ($r.counts.UNKNOWN -eq 1 -and $r.counts.CHANGED -eq 0) 'C1-B-partial-digest-change-not-changed'
+    $addedPartialB = New-FixtureSnapshot -Generation 'added-partial-b' -At '2026-10-21T12:00:00Z' -Scan 'partial' -Units @((New-FixtureUnit 'unit-1' $b))
+    $r = Compare-RmInventorySnapshots $oldBlank $addedPartialB
+    Assert-Synthetic ($r.counts.UNKNOWN -eq 1 -and $r.counts.ADDED -eq 0) 'C1-B-partial-presence-not-added'
+    $partialAOldUnit = New-FixtureSnapshot -Generation 'partial-a-with-unit' -Scan 'partial' -Units @((New-FixtureUnit 'unit-1' $a))
+    $r = Compare-RmInventorySnapshots $partialAOldUnit $newBlank
+    Assert-Synthetic ($r.counts.UNKNOWN -eq 1 -and $r.counts.NOT_OBSERVED_IN_B_COVERED_SCOPE -eq 0) 'C1-A-partial-no-absence-claim'
+    $partialScopeSame = New-FixtureSnapshot -Generation 'scope-incomplete-b' -At '2026-10-21T12:00:00Z' -Scope 'partial' -Units @((New-FixtureUnit 'unit-1' $a))
+    $r = Compare-RmInventorySnapshots $oldSingle $partialScopeSame
+    Assert-Synthetic ($r.counts.UNKNOWN -eq 1 -and $r.counts.UNCHANGED -eq 0) 'C1-B-platform-partial-common-unit'
+    $partialScopeA = New-FixtureSnapshot -Generation 'scope-incomplete-a' -Scope 'partial' -Units @((New-FixtureUnit 'unit-1' $a))
+    $r = Compare-RmInventorySnapshots $partialScopeA $newSingle
+    Assert-Synthetic ($r.counts.UNKNOWN -eq 1 -and $r.counts.UNCHANGED -eq 0) 'C1-A-platform-partial-common-unit'
+    $undeclared = New-FixtureSnapshot -Generation 'no-declared-scope'
+    $undeclared.coverage = @()
+    $r = Compare-RmInventorySnapshots $undeclared $newSingle
+    Assert-Synthetic ($r.counts.NOT_COMPARABLE -eq 1 -and $r.counts.UNKNOWN -eq 0 -and $r.entries[0].reason -ceq 'SCOPE_INTERSECTION_NOT_DECLARED') 'C2-undeclared-scope-not-comparable'
+
+    # C2: observation digest is NOT a content-byte hash.
+    $changedRow = @($result.entries | Where-Object { $_.romUnitId -ceq 'unit-modified' })[0]
+    $sameRow = @($result.entries | Where-Object { $_.romUnitId -ceq 'unit-unchanged' })[0]
+    Assert-Synthetic ($changedRow.changedFields.Count -eq 1 -and $changedRow.changedFields[0].field -ceq 'observationDigest' -and $changedRow.changedFields[0].evidence -ceq 'unit-observation-only' -and $changedRow.comparedFields.Count -eq 0) 'C2-changed-only-observation-evidence'
+    Assert-Synthetic ($sameRow.comparedFields.Count -eq 1 -and $sameRow.comparedFields[0].field -ceq 'observationDigest' -and $sameRow.changedFields.Count -eq 0) 'C2-unchanged-only-compared-observation'
+    $again = Compare-RmInventorySnapshots -Before $before -After $after
+    Assert-Synthetic ((ConvertTo-Json -InputObject $result -Depth 12 -Compress) -ceq (ConvertTo-Json -InputObject $again -Depth 12 -Compress)) 'C2-deterministic-repeated-invocation'
+    Assert-Synthetic (($result.counts.ADDED + $result.counts.CHANGED + $result.counts.UNCHANGED +
+        $result.counts.NOT_OBSERVED_IN_B_COVERED_SCOPE + $result.counts.UNKNOWN +
+        $result.counts.NOT_COMPARABLE) -eq $result.entries.Count) 'C2-six-counts-exhaustive'
 
     $offline = New-FixtureSnapshot -Generation 'offline-cache' -At '2026-10-21T12:00:00Z' -Availability 'OFFLINE' -Freshness 'STALE' -Units @((New-FixtureUnit 'unit-1' $a))
     $r = Compare-RmInventorySnapshots $oldSingle $offline
-    Assert-Synthetic ($r.counts.unchanged -eq 1 -and $r.afterAvailability -ceq 'OFFLINE' -and $r.afterFreshness -ceq 'STALE') 'offline-stale-cached-observation'
+    Assert-Synthetic ($r.counts.UNCHANGED -eq 1 -and $r.afterAvailability -ceq 'OFFLINE' -and $r.afterFreshness -ceq 'STALE') 'offline-stale-cached-observation'
     $offlinePartial = New-FixtureSnapshot -Generation 'offline-partial' -At '2026-10-21T12:00:00Z' -Scan 'partial' -Availability 'OFFLINE' -Freshness 'STALE'
     $r = Compare-RmInventorySnapshots $oldSingle $offlinePartial
-    Assert-Synthetic ($r.counts.notObserved -eq 0 -and $r.counts.notComparable -eq 1 -and $r.afterAvailability -ceq 'OFFLINE') 'offline-partial-never-deleted'
+    Assert-Synthetic ($r.counts.NOT_OBSERVED_IN_B_COVERED_SCOPE -eq 0 -and $r.counts.UNKNOWN -eq 1 -and $r.afterAvailability -ceq 'OFFLINE') 'offline-partial-never-deleted'
     $failedAfter = New-FixtureSnapshot -Generation 'failed' -At '2026-10-21T12:00:00Z' -Scan 'failed'
     $r = Compare-RmInventorySnapshots $oldSingle $failedAfter
-    Assert-Synthetic ($r.counts.notObserved -eq 0 -and $r.counts.notComparable -eq 1) 'failed-scan-no-removal'
+    Assert-Synthetic ($r.counts.NOT_OBSERVED_IN_B_COVERED_SCOPE -eq 0 -and $r.counts.UNKNOWN -eq 1) 'failed-scan-no-removal'
     $missingDigest = New-FixtureSnapshot -Generation 'unknown-digest' -At '2026-10-21T12:00:00Z' -Units @((New-FixtureUnit 'unit-1' $null))
     $r = Compare-RmInventorySnapshots $oldSingle $missingDigest
-    Assert-Synthetic ($r.counts.notComparable -eq 1 -and $r.entries[0].reason -ceq 'OBSERVATION_DIGEST_UNKNOWN') 'unknown-digest-not-equal'
+    Assert-Synthetic ($r.counts.UNKNOWN -eq 1 -and $r.entries[0].reason -ceq 'OBSERVATION_DIGEST_UNKNOWN') 'unknown-digest-not-equal'
 
     Assert-ThrowsCode { Compare-RmInventorySnapshots $oldSingle (New-FixtureSnapshot -Generation 'other-lib' -Library 'other' -At '2026-10-21T12:00:00Z') } 'SNAPSHOT_LIBRARY_MISMATCH'
     Assert-ThrowsCode { Compare-RmInventorySnapshots $oldSingle (New-FixtureSnapshot -Generation 'old-single' -At '2026-10-21T12:00:00Z') } 'SNAPSHOT_GENERATION_REUSED'
