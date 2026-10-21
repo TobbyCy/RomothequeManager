@@ -36,6 +36,14 @@ function Assert-RmLibraryArray {
     param($Value,[string]$Context)
     if ($Value -isnot [array]) { throw ('LIBRARY_ARRAY_REQUIRED:'+$Context) }
 }
+# Identifiers are case-sensitive ordinal strings; no delimiter-based composite keys.
+function New-RmOrdinalSet { return (New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)) }
+function New-RmOrdinalMap { return (New-Object 'System.Collections.Generic.Dictionary[string,object]' ([StringComparer]::Ordinal)) }
+function Get-RmPartitionKey {
+    param([string]$Console,[string]$SourceKey,[string]$RootKey,[string]$Domain)
+    # Length-prefix each segment so embedded separators never collide.
+    return ('{0}:{1}{2}:{3}{4}:{5}{6}:{7}' -f $Console.Length,$Console,$SourceKey.Length,$SourceKey,$RootKey.Length,$RootKey,$Domain.Length,$Domain)
+}
 function Get-RmLibraryCoverage {
     param($Library,$Snapshot)
     $scan=Get-RmLibraryText $Snapshot 'scanStatus' 'snapshot'
@@ -46,16 +54,16 @@ function Get-RmLibraryCoverage {
     Assert-RmLibraryArray $proof 'coverageProof'
     $exhaustive=Get-RmLibraryRequired $Snapshot 'scopeIsExhaustive' 'snapshot'
     if ($exhaustive -isnot [bool]) { throw 'LIBRARY_SCOPE_PROOF_INVALID' }
-    $expected=@{}
+    $expected=New-RmOrdinalMap
     foreach ($platform in $Library.platforms) {
         foreach ($source in $Library.sources) {
             foreach ($domain in $source.domains) {
-                $key=($platform+'|'+$source.sourceKey+'|'+$source.rootKey+'|'+$domain)
+                $key=Get-RmPartitionKey $platform $source.sourceKey $source.rootKey $domain
                 $expected[$key]=$true
             }
         }
     }
-    $seen=@{}
+    $seen=New-RmOrdinalMap
     foreach ($item in $proof) {
         $platform=Get-RmLibraryText $item 'console' 'coverageProof'
         $source=Get-RmLibraryText $item 'sourceKey' 'coverageProof'
@@ -63,7 +71,7 @@ function Get-RmLibraryCoverage {
         $domain=Get-RmLibraryText $item 'domain' 'coverageProof'
         $status=Get-RmLibraryText $item 'status' 'coverageProof'
         Assert-RmLibraryChoice $status @('complete','partial','unobserved') 'coverageProof.status'
-        $key=($platform+'|'+$source+'|'+$root+'|'+$domain)
+        $key=Get-RmPartitionKey $platform $source $root $domain
         if (-not $expected.ContainsKey($key)) { throw 'LIBRARY_UNDECLARED_PROOF_PARTITION' }
         if ($seen.ContainsKey($key)) { throw 'LIBRARY_DUPLICATE_PROOF_PARTITION' }
         $seen[$key]=$status
@@ -73,7 +81,7 @@ function Get-RmLibraryCoverage {
         $allComplete=$true; $anyMissing=$false; $anyPartial=$false
         foreach ($source in $Library.sources) {
             foreach ($domain in $source.domains) {
-                $key=($platform+'|'+$source.sourceKey+'|'+$source.rootKey+'|'+$domain)
+                $key=Get-RmPartitionKey $platform $source.sourceKey $source.rootKey $domain
                 if (-not $seen.ContainsKey($key)) { $allComplete=$false; $anyMissing=$true }
                 elseif ($seen[$key] -cne 'complete') {
                     $allComplete=$false
@@ -100,12 +108,11 @@ function Assert-RmLibraryRegistry {
     param($Registry)
     $libraries=Get-RmLibraryRequired $Registry 'libraries' 'registry'
     Assert-RmLibraryArray $libraries 'libraries'
-    $ids=@{}
+    $ids=New-RmOrdinalSet
     foreach ($lib in $libraries) {
         $id=Get-RmLibraryText $lib 'libraryId' 'library'
         [void](Get-RmLibraryText $lib 'name' 'library')
-        if ($ids.ContainsKey($id)) { throw 'LIBRARY_DUPLICATE_ID' }
-        $ids[$id]=$true
+        if (-not $ids.Add($id)) { throw 'LIBRARY_DUPLICATE_ID' }
         $platforms=Get-RmLibraryRequired $lib 'platforms' 'library'
         $sources=Get-RmLibraryRequired $lib 'sources' 'library'
         $snapshots=Get-RmLibraryRequired $lib 'snapshots' 'library'
@@ -113,11 +120,10 @@ function Assert-RmLibraryRegistry {
         Assert-RmLibraryArray $sources 'sources'
         Assert-RmLibraryArray $snapshots 'snapshots'
         if ($platforms.Count -eq 0 -or $sources.Count -eq 0) { throw 'LIBRARY_EMPTY_DECLARED_SCOPE' }
-        $platformKeys=@{}; $sourceKeys=@{}
+        $platformKeys=New-RmOrdinalSet; $sourceKeys=New-RmOrdinalSet
         foreach ($platform in $platforms) {
             if ($platform -isnot [string] -or $platform -cnotmatch '^[A-Z][A-Z0-9_-]*$') { throw 'LIBRARY_PLATFORM_INVALID' }
-            if ($platformKeys.ContainsKey($platform)) { throw 'LIBRARY_DUPLICATE_PLATFORM' }
-            $platformKeys[$platform]=$true
+            if (-not $platformKeys.Add($platform)) { throw 'LIBRARY_DUPLICATE_PLATFORM' }
         }
         foreach ($source in $sources) {
             $key=Get-RmLibraryText $source 'sourceKey' 'source'
@@ -125,13 +131,11 @@ function Assert-RmLibraryRegistry {
             $domains=Get-RmLibraryRequired $source 'domains' 'source'
             Assert-RmLibraryArray $domains 'source.domains'
             if ($domains.Count -eq 0) { throw 'LIBRARY_SOURCE_DOMAINS_EMPTY' }
-            if ($sourceKeys.ContainsKey($key)) { throw 'LIBRARY_DUPLICATE_SOURCE' }
-            $sourceKeys[$key]=$true
-            $domainKeys=@{}
+            if (-not $sourceKeys.Add($key)) { throw 'LIBRARY_DUPLICATE_SOURCE' }
+            $domainKeys=New-RmOrdinalSet
             foreach ($domain in $domains) {
                 Assert-RmLibraryChoice $domain @('ROMS','MEDIAS') 'source.domain'
-                if ($domainKeys.ContainsKey($domain)) { throw 'LIBRARY_DUPLICATE_DOMAIN' }
-                $domainKeys[$domain]=$true
+                if (-not $domainKeys.Add($domain)) { throw 'LIBRARY_DUPLICATE_DOMAIN' }
             }
         }
         $availability=Get-RmLibraryText $lib 'currentAvailability' 'library'
@@ -145,7 +149,7 @@ function Assert-RmLibraryRegistry {
         if ($availability -ceq 'UNKNOWN' -and $null -ne $observed) { throw 'LIBRARY_UNKNOWN_AVAILABILITY_HAS_DATE' }
         if ($availability -cne 'UNKNOWN' -and $null -eq $observed) { throw 'LIBRARY_AVAILABILITY_DATE_MISSING' }
         $last=Get-RmLibraryRequired $lib 'lastVerifiedCompleteRef' 'library'
-        $snapKeys=@{}; $genKeys=@{}
+        $snapKeys=New-RmOrdinalMap; $genKeys=New-RmOrdinalSet
         foreach ($snap in $snapshots) {
             $snapId=Get-RmLibraryText $snap 'snapshotId' 'snapshot'
             [void](Get-RmLibraryText $snap 'scanId' 'snapshot')
@@ -154,9 +158,8 @@ function Assert-RmLibraryRegistry {
             [void](Assert-RmLibraryDate $date)
             $units=Get-RmLibraryRequired $snap 'units' 'snapshot'
             Assert-RmLibraryArray $units 'snapshot.units'
-            if ($snapKeys.ContainsKey($snapId) -or $genKeys.ContainsKey($gen)) { throw 'LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION' }
+            if ($snapKeys.ContainsKey($snapId) -or -not $genKeys.Add($gen)) { throw 'LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION' }
             $snapKeys[$snapId]=$snap
-            $genKeys[$gen]=$true
             [void](Get-RmLibraryCoverage $lib $snap)
         }
         if ($null -ne $last) {
@@ -184,7 +187,8 @@ function New-RmLibraryProjection {
                 capturedAtUtc=$snap.capturedAtUtc;schemaVersion=$snap.schemaVersion
                 scanStatus=$snap.scanStatus;scopeIsExhaustive=$snap.scopeIsExhaustive
                 coverage=$coverage;coverageProof=@($snap.coverageProof)
-                observedUnitCount=@($snap.units).Count
+                countKnown=[bool]$lib.indexAccessible
+                observedUnitCount=$(if ($lib.indexAccessible) { @($snap.units).Count } else { $null })
             })
         }
         $latest=$null
