@@ -51,6 +51,39 @@ $bad.libraries[0].snapshots[1].coverageProof=@()
 $bad.libraries[0].lastVerifiedCompleteRef='a'
 $missing=New-RmCatalogueProjection -Registry $bad
 Require ($missing.games[0].coverageStatus -ceq 'INCOMPLETE') 'MISSING_PROOF'
+# Additional invariants: title conflict, missing title, failed scan, unknown-empty and distinct roots.
+$bad=New-T1Registry
+$u2=New-RmSyntheticUnit -Id 'unit-2'
+$u2 | Add-Member -NotePropertyName title -NotePropertyValue 'Different title'
+$bad.libraries[0].snapshots[1].units=@($bad.libraries[0].snapshots[1].units[0],$u2)
+$conflict=New-RmCatalogueProjection -Registry $bad
+Require ($conflict.games[0].quality -ceq 'CONTRADICTORY' -and $null -eq $conflict.games[0].title) 'TITLE_CONFLICT_NOT_GUESSED'
+$bad=New-T1Registry
+$bad.libraries[0].snapshots[1].units[0].PSObject.Properties.Remove('title')
+$unknown=New-RmCatalogueProjection -Registry $bad
+Require ($null -eq $unknown.games[0].title -and @($unknown.diagnostics | Where-Object { $_.code -ceq 'CATALOG_TITLE_UNKNOWN' }).Count -eq 1) 'TITLE_UNKNOWN'
+$bad=New-T1Registry
+$bad.libraries[0].snapshots[1].scanStatus='failed'
+$bad.libraries[0].lastVerifiedCompleteRef='a'
+$failed=New-RmCatalogueProjection -Registry $bad
+Require ($failed.games[0].coverageStatus -ceq 'INCOMPLETE') 'FAILED_SCAN_NOT_COMPLETE'
+$bad=New-T1Registry
+$bad.libraries[0].snapshots[1].units=@()
+$bad.libraries[0].snapshots[1].scopeIsExhaustive=$false
+$bad.libraries[0].lastVerifiedCompleteRef='a'
+$zero=New-RmCatalogueProjection -Registry $bad
+Require (@($zero.diagnostics | Where-Object { $_.code -ceq 'CATALOG_ZERO_NOT_EMPTY_PROOF' }).Count -eq 1) 'ZERO_UNPROVEN'
+$bad=New-T1Registry
+$bad.libraries[0].snapshots[1].units=@()
+$empty=New-RmCatalogueProjection -Registry $bad
+Require ($empty.gameCount -eq 0 -and @($empty.diagnostics | Where-Object { $_.code -ceq 'CATALOG_ZERO_NOT_EMPTY_PROOF' }).Count -eq 0) 'EMPTY_PROVEN'
+$bad=New-T1Registry
+$bad.libraries[0].sources=@(
+ [pscustomobject]@{sourceKey='source-1';rootKey='root-1';domains=@('ROMS')},
+ [pscustomobject]@{sourceKey='source-2';rootKey='root-2';domains=@('ROMS')}
+)
+$multi=New-RmCatalogueProjection -Registry $bad
+Require ($multi.games[0].coverageStatus -ceq 'INCOMPLETE') 'MULTI_ROOT_UNPROVEN'
 $first=& (Join-Path $PSScriptRoot 'Export-SyntheticCatalogue.ps1')
 $second=& (Join-Path $PSScriptRoot 'Export-SyntheticCatalogue.ps1')
 Require ($first -ceq $second) 'DETERMINISTIC_JSON'
