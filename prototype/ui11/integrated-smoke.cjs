@@ -32,4 +32,20 @@ test("back navigation returns to comparison",()=>{click("back");assert.match(nod
 test("zero without proof is never reported as empty collection",()=>{click("library:lib-zero");click("go:compare");click("run-compare");assert.match(nodes.view.innerHTML,/ZERO_OBSERVED_UNITS_NOT_PROOF_OF_EMPTY_LIBRARY/);assert.match(nodes.view.innerHTML,/Couverture incomplète/)});
 test("inaccessible index refuses comparison",()=>{click("library:lib-closed");click("go:compare");assert.match(nodes.view.innerHTML,/aucun index historique accessible/)});
 test("missing A/B pair refuses silent business recalculation",()=>{click("library:lib-mixed");click("go:compare");change("before-select","mixed-gen-b");click("run-compare");assert.match(nodes.view.innerHTML,/aucun recalcul dans le navigateur/)});
+// S2: negative comparison DTO canaries (not merely registry parser canaries).
+const s2cards=w.RM_PROJECTION.registry(source.registry);
+const s2lib=s2cards.find(x=>x.libraryId==="lib-mixed");
+const s2cmp=source.comparisons.find(x=>x.library.libraryId==="lib-mixed");
+function rejectComparison(name,mutate,reason){
+test(name,()=>{const dto=clone(s2cmp);mutate(dto);assert.throws(()=>w.RM_PROJECTION.comparison(dto,"lib-mixed",s2lib),reason)});
+}
+rejectComparison("S2 missing A comparison proof",d=>{d.before.coverageProof=[]},/PROJECTION_COMPARISON_BEFORE_REGISTRY_PROOF_MISMATCH/);
+rejectComparison("S2 partial A proof cannot support complete scope",d=>{d.before.coverageProof[0].status="partial"},/PROJECTION_COMPARISON_BEFORE_REGISTRY_PROOF_MISMATCH/);
+rejectComparison("S2 duplicate romUnitId",d=>{d.entries[1].romUnitId=d.entries[0].romUnitId},/PROJECTION_DUPLICATE_ROM_UNIT_ID/);
+rejectComparison("S2 wrong sourceRefs generation",d=>{d.entries[0].sourceRefs.beforeGenerationId="wrong"},/PROJECTION_ENTRY_SOURCE_REFS/);
+rejectComparison("S2 forged COMPLETE against registry partitions",d=>{
+d.coverageStatus="COMPLETE";d.scopeCompared.push({console:"PS1",status:"complete",reason:"forged"});d.scopeNotComparable=[];
+d.before.coverage.find(x=>x.console==="PS1").status="complete";
+d.after.coverage.find(x=>x.console==="PS1").status="complete";
+},/PROJECTION_COMPARISON_(BEFORE|AFTER)_REGISTRY_PROOF_MISMATCH/);
 console.log("UI17_INTEGRATED_SMOKE_PASS | checks="+count+" | Node simulated DOM | PS5.1=NOT_EXECUTED | BROWSER=NOT_EXECUTED");
