@@ -8,7 +8,10 @@ if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -n
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $preflight=Join-Path $repo 'Preflight\Invoke-E1RealLibraryPreflightReadOnly.ps1'
 $ps51=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-$approved='00c47bb2bfcd60ed2e0b64f43869d169e41ffffe'
+$approved=([string](& git -C $repo rev-parse HEAD)).Trim().ToLowerInvariant()
+if($LASTEXITCODE -ne 0 -or $approved -cnotmatch '^[0-9a-f]{40}$'){throw 'SYNTHETIC_APPROVED_COMMIT_INVALID'}
+$approvedRepo=[string]$env:GITHUB_REPOSITORY
+if($approvedRepo -cnotmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'){throw 'SYNTHETIC_REPOSITORY_IDENTITY_INVALID'}
 $workspace=Join-Path $env:RUNNER_TEMP ('rm-e1-local-preflight-ci-'+[guid]::NewGuid().ToString('N'))
 $gitRoot=Join-Path $workspace 'ApprovedGitWorktree'
 $root=Join-Path $workspace 'SyntheticLibrary'
@@ -54,7 +57,7 @@ function Get-CimInstance { param($ClassName,$Filter) [pscustomobject]@{DeviceID=
 function Get-Partition { param($DriveLetter) [pscustomobject]@{DiskNumber=1} }
 function Get-Disk { param($Number) [pscustomobject]@{Number=1;FriendlyName='CI fixture';SerialNumber='CI-SYNTHETIC-DISK';BusType='Virtual';UniqueId='CI-ONLY'} }
 '@
-    $params=' -GitRoot '+(PsLiteral $gitRoot)+' -Root '+(PsLiteral $root)+' -StateRoot '+(PsLiteral $state)+' -SnapshotRoot '+(PsLiteral $snapshot)+' -ProofOutputDirectory '+(PsLiteral $Evidence)+' -ExpectedDriveLetter '+(PsLiteral $drive)
+    $params=' -GitRoot '+(PsLiteral $gitRoot)+' -Root '+(PsLiteral $root)+' -StateRoot '+(PsLiteral $state)+' -SnapshotRoot '+(PsLiteral $snapshot)+' -ProofOutputDirectory '+(PsLiteral $Evidence)+' -ExpectedDriveLetter '+(PsLiteral $drive)+' -ApprovedGitCommit '+(PsLiteral $approved)+' -ApprovedRepository '+(PsLiteral $approvedRepo)
     if($WithAllApprovals){$params+=' -ExpectedVolumeSerial '+(PsLiteral $serial)+' -ExpectedDiskSerial '+(PsLiteral $diskSerial)+' -ExpectedSnapshotScanId '+(PsLiteral $Scan)+' -ExpectedLibraryId '+(PsLiteral $Library)}
     if($Probe){$params+=' -ProbeProofWrite'}
     if($Save){$params+=' -SaveReports'}
