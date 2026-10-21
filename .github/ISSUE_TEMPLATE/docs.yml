@@ -1,0 +1,74 @@
+{
+  "name": "Documentation",
+  "description": "Corriger ou améliorer une aide ou référence publique.",
+  "title": "[Documentation] ",
+  "body": [
+    {
+      "type": "markdown",
+      "attributes": {
+        "value": "ROMothèque Manager est en développement. N'incluez ni ROM, BIOS, XML ES-DE réel, StateRoot, secrets, identifiant de machine ni capture/chemin personnel. Aucune Issue n'autorise une opération réelle. Une vulnérabilité doit suivre SECURITY.md via un canal privé effectivement confirmé, jamais ce formulaire."
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "page",
+      "attributes": {
+        "label": "Page/document à corriger",
+        "description": "Chemin du document dans ce dépôt."
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "problem",
+      "attributes": {
+        "label": "Erreur, ambiguïté ou manque",
+        "description": "Exemple uniquement inventé ; aucun historique confidentiel."
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "proposal",
+      "attributes": {
+        "label": "Résultat attendu et vérification",
+        "description": "Lien local à contrôler et version visée."
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "limits",
+      "attributes": {
+        "label": "Limites et environnement",
+        "description": "Ne pas présenter une fonction à l'étude comme déjà livrée."
+      },
+      "validations": {
+        "required": false
+      }
+    },
+    {
+      "type": "checkboxes",
+      "id": "privacy",
+      "attributes": {
+        "label": "Vérifications",
+        "options": [
+          {
+            "label": "Mes exemples et preuves sont fictifs ou expurgés.",
+            "required": true
+          },
+          {
+            "label": "Je ne demande aucune action réelle implicite sur les bibliothèques.",
+            "required": true
+          }
+        ]
+      }
+    }
+  ]
+}
