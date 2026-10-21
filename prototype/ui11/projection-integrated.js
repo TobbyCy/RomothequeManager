@@ -34,6 +34,13 @@ entry("unit-not-observed","NOT_OBSERVED_IN_B_COVERED_SCOPE","ABSENT_FROM_VERIFIE
 entry("unit-unknown","UNKNOWN","SCOPE_OR_SCAN_INCOMPLETE","PS1"),
 entry("unit-conflict","NOT_COMPARABLE","IDENTITY_OWNER_CONFLICT")
 ];
+const hex=c=>c.repeat(64);
+entries[0].afterDigest=hex("a");
+entries[1].beforeDigest=hex("b");entries[1].afterDigest=hex("c");
+entries[1].changedFields=[{field:"observationDigest",before:hex("b"),after:hex("c"),level:"observedStat",evidence:"unit-observation-only"}];
+entries[2].beforeDigest=hex("d");entries[2].afterDigest=hex("d");
+entries[2].comparedFields=[{field:"observationDigest",before:hex("d"),after:hex("d"),level:"observedStat",evidence:"unit-observation-only"}];
+entries[3].beforeDigest=hex("e");
 const counts={ADDED:1,CHANGED:1,UNCHANGED:1,NOT_OBSERVED_IN_B_COVERED_SCOPE:1,UNKNOWN:1,NOT_COMPARABLE:1};
 p.comparisons.push({schemaVersion:"0.1.0-synthetic",readOnly:true,library:{libraryId:mixed.libraryId,name:mixed.name,platforms:mixed.platforms,currentAvailability:mixed.currentAvailability,availabilityObservedAtUtc:at,freshness:mixed.freshness,indexAccessible:true,lastVerifiedCompleteRef:"mixed-a"},before:a,after:b,scopeCompared:[{console:"GBA",status:"complete",reason:"PROVEN_IN_A_AND_B"}],scopeNotComparable:[{console:"PS1",status:"INCOMPLETE",beforeStatus:"complete",afterStatus:"partial",beforeReason:"ALL_DECLARED_PARTITIONS_PROVEN",afterReason:"SCAN_NOT_COMPLETE"}],coverageStatus:"INCOMPLETE",counts,entries,countDenominator:6,limitations:["HISTORICAL_OBSERVATIONS_NOT_PHYSICAL_ROM_BYTES","COUNTS_ONLY_OBSERVED_UNION_A_B","SCOPE_INTERSECTION_NOT_FULLY_PROVEN"]});
 const za=snap("zero-a","zero-gen-a",prior,"partial",[{console:"GBA",status:"partial",reason:"SCAN_NOT_COMPLETE"}],[proof("GBA","partial")],0);
