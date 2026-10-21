@@ -48,3 +48,26 @@ La PR #28 contient maintenant `catalogue-adapter.js`, `projection-sample.js` et 
 Pour essayer **sans PowerShell**, remplacer dans `index.html` uniquement la source du script `projection-data.js` par `projection-sample.js` (fixture entièrement inventée, **pas** un export Dev 1). Le mode projection expose alors Collection, filtres bibliothèque/plateforme/recherche, fiche, variantes, provenance, observations et navigation vers la comparaison précalculée. L'ouverture/fermeture d'une fiche conserve les filtres. L'adaptateur registre accepte `countKnown=false` et `observedUnitCount=null` pour un index inaccessible ; aucune complétude n'est déduite d'un nombre nul. Pour utiliser un export Dev 1, conserver le script `projection-data.js` et remplacer son `null` par le JSON synthétique généré par `tests/Export-SyntheticUiProjection.ps1` après exécution externe autorisée. Ce JSON **n'inclut pas de catalogue**, qui doit rester une entrée candidate séparée.
 
 Exécution optionnelle des tests avec Node.js : `node prototype/ui11/smoke.cjs` puis `node prototype/ui11/projection-smoke.cjs`. **Aucune de ces deux commandes n'a été exécutée dans ce contexte** (pas de checkout privé disponible au runtime Node). Ne pas les confondre avec les 9 contrôles **V8/DOM simulé PASS** de Sprint #15, ni avec des tests navigateur ou PowerShell 5.1. Les sorties de `projection-sample.js` sont fabriquées à la main ; la **parité runtime** avec Dev 1 est **NOT_EXECUTED**.
+
+
+## Sprint #17 — démonstration intégrée hors ligne
+
+**Entrée directe** : ouvrir `demo-integree.html` (dans `prototype/ui11/`) par double-clic, URL `file://`. Ne pas modifier `index.html` pour cette démonstration : il reste le mode historique avec `projection-data.js=null` (démo JS). `demo-integree.html` charge `projection-integrated.js` au lieu de `projection-data.js`, puis les mêmes adaptateurs, vues et styles. Pas de CDN, `fetch()`, serveur, stockage ou lecture ROM.
+
+**Provenance** : `projection-integrated.js` est une **fixture candidate écrite manuellement par Dev 2**. Elle **ne provient pas** d'un export PowerShell 5.1 réellement exécuté et ne démontre **pas** la parité runtime avec Dev 1. Le contrat de Dev 1 reste `tests/Export-SyntheticUiProjection.ps1` → `{registry,comparisons}`, sans `catalogue` normatif. L'UI ne calcule jamais les six classes en mode projection : elle exige la paire précalculée. `RM_COMPARE` demeure uniquement pour le mode démonstration historique.
+
+**Parcours reproductible** : Dashboard → « Ouvrir les bibliothèques » → choisir **Bibliothèque multi-états** → « Comparer → » sur `mixed-gen-b` → « Lancer la comparaison » (6 unités / 6 classes / couverture GBA complète, PS1 partielle) → Collection → sélectionner **Mystère synthétique** → voir la provenance, la variante, l'observation ROM → « Voir le snapshot » → Comparaison. Le bouton « ← Retour » restitue la page précédente ; les filtres de Collection persistent quand une fiche est ouverte puis fermée. Autres cas : **Bibliothèque synthétique** OFFLINE/STALE avec historique utilisable ; **Source non consultable** sans index ni catalogue inventé ; **Zéro non probant** avec zéro unité mais couverture partielle et avertissement explicite.
+
+**Sémantique** : six compteurs distincts, dénominateur affiché, limitations et périmètres A/B. `NOT_OBSERVED_IN_B_COVERED_SCOPE` n'est pas une suppression. Les snapshots et générations sont deux identités distinctes. `countKnown=false` impose `observedUnitCount=null` ; jamais zéro pour un index inaccessible. Les métadonnées de jeux sont indépendantes des observations des unités ROM. La validation rejette identités en doublon, partitions non déclarées ou manquantes pour une couverture dite complète, résultats A/B incohérents avec le registre, compteurs altérés et paires absentes.
+
+**Commandes de recette (sur un checkout autorisé)** :
+
+```text
+node prototype/ui11/smoke.cjs
+node prototype/ui11/projection-smoke.cjs
+node prototype/ui11/integrated-smoke.cjs
+```
+
+**Preuves de cette livraison** : contrôle V8 JavaScript avec DOM simulé, chargement des cinq scripts et parcours Dashboard → Bibliothèques → Snapshot → Comparaison → Collection → Fiche → Retour, **13/13 contrôles PASS** sur le dernier lot exécuté ; canari négatif « preuve de couverture manquante » refusé. Cela n'est **pas** une exécution de `integrated-smoke.cjs` sous Node. Le conteneur de travail dispose de Node.js 22 et de Chromium mais **pas d'un checkout privé autorisé**, donc les trois scripts Node, l'ouverture `file://` et la recette navigateur/clavier/responsive sont **NOT_EXECUTED**. Aucun résultat CI ou PS5.1 revendiqué. Les vecteurs Dev 1 sont écrits dans le dépôt mais aucun export PS5.1 vérifié n'a été fourni pour cette parité.
+
+**Préparation application Windows portable** : (1) exécution synthétique PS5.1 de l'export Dev 1 et injection du JSON pour parité, (2) recette Node + navigateur réel, clavier et responsive sur le checkout, (3) contrat producteur Catalogue arbitré avec Dev 1, (4) mandat distinct pour packaging autonome Windows. Aucune fusion, Release ou usage de ROM réelles autorisés.
