@@ -1,0 +1,66 @@
+name: README bilingual translation (FR to EN)
+
+# This proposal remains inactive while the repository is private.
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: readme-translation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  translate-readme-en:
+    name: Propose English README translation
+    # Never transmit content from a private repository.
+    if: ${{ github.event.repository.private == false && github.ref == 'refs/heads/main' && github.repository == 'TobbyCy/RomothequeManager' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout public README source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0, Node.js 24
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Pinned candidate; uses an unofficial external translation endpoint.
+      # Never run on private content or provide secrets to this third party.
+      - name: Translate French README into English (no git commits or push)
+        uses: ikhsan3adi/markdown-translator@629de65807486cf6ad68605cd03728da7cc90fbd # v3.0.0, Node.js 24
+        with:
+          LANG: en
+          FILES: README.md
+          INCREMENTAL: 'true'
+          COMMIT: 'false'
+          PUSH: 'false'
+          PULL_REQUEST: 'false'
+
+      - name: Verify an English translation exists
+        shell: bash
+        run: test -s README.en.md
+
+      - name: Create or update DRAFT translation PR (never push to main)
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1, Node.js 24
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: README.en.md
+          branch: docs/automated-readme-en
+          delete-branch: 'false'
+          draft: always-true
+          commit-message: 'docs(i18n): refresh English README candidate'
+          title: 'docs(i18n): review English README translation'
+          body: |
+            Automated English translation candidate from the French source README.md.
+
+            Human review is mandatory before merge: meaning, technical terms,
+            links, status claims, security notices, and Markdown formatting.
+            The generated text is not a product release or a test result.
