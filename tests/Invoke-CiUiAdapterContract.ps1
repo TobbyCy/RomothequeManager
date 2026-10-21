@@ -14,7 +14,7 @@ try {
         'generations','snapshots','snapshotId','generationId','coverageProof',
         'scopeIsExhaustive','countKnown','observedUnitCount','scopeNotComparable',
         'countDenominator','NOT_OBSERVED_IN_B_COVERED_SCOPE','UNKNOWN','NOT_COMPARABLE',
-        'PROJECTION_COUNT_MISMATCH','RM_PROJECTION'
+        'COUNT_MISMATCH_','RM_PROJECTION'
     )
     foreach ($token in $must) {
         if (-not $adapter.Contains($token)) { throw ('UI_CONTRACT_ADAPTER_TOKEN_MISSING:'+$token) }
