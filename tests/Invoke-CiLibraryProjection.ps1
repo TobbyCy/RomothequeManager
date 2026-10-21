@@ -131,6 +131,20 @@ try {
     $noExhaust.coverageProof=@()
     $noExhaustProjection=New-RmLibraryProjection -Registry (New-RmSyntheticRegistry -Snapshots @($noExhaust) -LastComplete $null)
     Assert-View ($noExhaustProjection.libraries[0].generations[0].coverage[0].status -cne 'complete') 'empty-proof-not-exhaustive'
+    # S3: mutations must reach the actual registry/projection validators.
+    $caseCollision=New-RmSyntheticRegistry -Snapshots @($old,$new)
+    $caseCollision.libraries[0].snapshots[1].snapshotId=$caseCollision.libraries[0].snapshots[0].snapshotId
+    Assert-Refuses { New-RmLibraryProjection -Registry $caseCollision } 'LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION'
+    $generationCollision=New-RmSyntheticRegistry -Snapshots @($old,$new)
+    $generationCollision.libraries[0].snapshots[1].generationId=$generationCollision.libraries[0].snapshots[0].generationId
+    Assert-Refuses { New-RmLibraryProjection -Registry $generationCollision } 'LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION'
+    $invalidLast=New-RmSyntheticRegistry -Snapshots @($old,$partial) -LastComplete 'snap-partial'
+    Assert-Refuses { New-RmLibraryProjection -Registry $invalidLast } 'LIBRARY_LAST_VERIFIED_SCOPE_NOT_COMPLETE'
+    $noIndex=New-RmSyntheticRegistry -Index $false -Snapshots @($old,$new)
+    Assert-Refuses { Get-RmLibraryComparisonView -Registry $noIndex -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b' } 'LIBRARY_INDEX_INACCESSIBLE'
+    $caseDuplicate=New-RmSyntheticRegistry -Snapshots @($old,$new)
+    $caseDuplicate.libraries[0].snapshots[1].snapshotId='SNAP-A'
+    Assert-View ((New-RmLibraryProjection -Registry $caseDuplicate).libraries[0].generations.Count -eq 2) 'ordinal-snapshot-case-only-distinct'
     $again=Get-RmLibraryComparisonView -Registry $reg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b'
     Assert-View ((ConvertTo-Json -InputObject $view -Depth 20 -Compress) -ceq (ConvertTo-Json -InputObject $again -Depth 20 -Compress)) 'deterministic-repeated-view'
     Write-Host ('LIBRARY_SYNTHETIC_PASS | assertions='+$script:passed+' | synthetic=1 | real_io=0')
