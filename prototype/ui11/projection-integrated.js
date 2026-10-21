@@ -21,7 +21,7 @@ const snap=(id,gen,date,scan,coverage,proofs,count)=>({snapshotId:id,generationI
 const ca=[{console:"GBA",status:"complete",reason:"ALL_DECLARED_PARTITIONS_PROVEN"},{console:"PS1",status:"complete",reason:"ALL_DECLARED_PARTITIONS_PROVEN"}];
 const cb=[ca[0],{console:"PS1",status:"partial",reason:"SCAN_NOT_COMPLETE"}];
 const pa=[proof("GBA","complete"),proof("PS1","complete")],pb=[proof("GBA","complete"),proof("PS1","partial")];
-const a=snap("mixed-a","mixed-gen-a",prior,"complete",ca,pa,5),b=snap("mixed-b","mixed-gen-b",at,"partial",cb,pb,5);
+const a=snap("mixed-a","mixed-gen-a",prior,"complete",ca,pa,5),b=snap("mixed-b","mixed-gen-b",at,"complete",cb,pb,5);
 const mixed={libraryId:"lib-mixed",name:"Bibliothèque multi-états",platforms:["GBA","PS1"],sources:[{sourceKey:"synthetic-source",rootKey:"synthetic-root",domains:["ROMS"]}],currentAvailability:"ONLINE",availabilityObservedAtUtc:at,freshness:"FRESH",indexAccessible:true,lastVerifiedCompleteRef:"mixed-a",lastObservedAtUtc:at,generations:[a,b]};
 p.registry.libraries.push(mixed);
 const ref={beforeGenerationId:a.generationId,afterGenerationId:b.generationId};
