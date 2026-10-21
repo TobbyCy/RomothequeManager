@@ -9,7 +9,7 @@ Ce tableau distingue les capacités en cours de revue, les maquettes et les vers
 | Dashboard, Collection, fiches | Conception documentée, **non implémentée** | Aucune interface graphique |
 | Bibliothèques, Offline/Stale, snapshots | Critères de conception, contrats/test à finaliser | Support Offline n'implique pas une collection supprimée |
 | Favoris et tags | Besoins étudiés, non implémentés | Aucun stockage personnel disponible |
-| Comparaison de snapshots — Issue #9 | Module autonome PowerShell 5.1 en PR Draft, lecture exclusivement en mémoire ; cinq classes dont `notComparable` | Contrat et tests synthétiques écrits, **NON EXÉCUTÉS / CI_SERVICE_BLOCKED** ; aucune déduction de suppression physique |
+| Comparaison de snapshots — Issue #9 | Module PowerShell 5.1 autonome en PR Draft ; six états `ADDED`, `CHANGED`, `UNCHANGED`, `NOT_OBSERVED_IN_B_COVERED_SCOPE`, `UNKNOWN`, `NOT_COMPARABLE` ; **couverture complète A ET B** obligatoire pour conclure | Fixtures C1/C2 ajoutées, **NON EXÉCUTÉES / CI_SERVICE_BLOCKED** ; `observationDigest` prouve une observation, jamais un changement des octets ROM ; aucune suppression physique inférée |
 | Simulation/export et conversion | Études fonctionnelles, **opérations réelles non autorisées** | Aucun effet physique implicite, aucun E6 |
 | ZIP Windows / Release | **NON PUBLIÉ / NON TESTÉ** | Pas de programme à télécharger |
 | Licence et médias | Diffusion non décidée, cinq visuels soumis à vérification de droits | Aucune redistribution autorisée par défaut |
