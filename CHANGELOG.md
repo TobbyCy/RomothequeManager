@@ -20,6 +20,15 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 **Validation : NON EXÉCUTÉE** sur le HEAD Draft dans GitHub Actions (service privé bloqué) ; aucune affirmation de tests Pester, Windows, E1 réel ou Release réussis. L'intégration fonctionnelle et sa revue restent à effectuer.
 
+## En préparation — Sprint #10 Bibliothèques / snapshots (PR Draft empilée #27)
+
+- Registre de bibliothèques **synthétiques** en mémoire : `libraryId` persistant, nom, plateformes, sources/rootKey/domaines, disponibilité live datée, fraîcheur, index consultable, dernier snapshot complet référencé et historique de générations.
+- Adaptateur read-only `Get-RmLibraryComparisonView` utilisant **sans duplication** le comparateur #26, exposant refs A/B, couvertures par plateforme et partitions de provenance, six états, raisons, compteurs sur A∪B et limitations explicites, y compris **zéro unité avec couverture insuffisante**.
+- Fail-closed : couverture `complete` dérivée uniquement d'un manifeste de partitions complet et exhaustif, jamais de la disponibilité ONLINE ; multi-racines/domaines non prouvés → UNKNOWN / INCOMPLETE. Offline/Stale historique conservé lorsque l'index est accessible.
+- Fixtures synthétiques et canaris négatifs ajoutés à CI-0, allowlist limitée au chemin exact de fixture ; intégrité des 18 modules historiques conservée, deux modules de fonctionnalité explicitement approuvés. Aucune politique désactivée.
+
+**Validation Windows PowerShell 5.1/Pester/CI : NOT_EXECUTED.** PR #27 dépend de #26 non fusionnée ; pas de GUI, données réelles, application publiée ni Release.
+
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.
