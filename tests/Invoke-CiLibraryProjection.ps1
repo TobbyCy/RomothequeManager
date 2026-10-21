@@ -55,9 +55,13 @@ try {
 
     $s1=[pscustomobject]@{sourceKey='source-1';rootKey='root-1';domains=@('ROMS','MEDIAS')}
     $s2=[pscustomobject]@{sourceKey='source-2';rootKey='root-2';domains=@('ROMS')}
-    $multiReg=New-RmSyntheticRegistry -Sources @($s1,$s2) -Snapshots @($old,$new)
+    $multiReg=New-RmSyntheticRegistry -Sources @($s1,$s2) -Snapshots @($old,$new) -LastComplete $null
     $multi=Get-RmLibraryComparisonView -Registry $multiReg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b'
     Assert-View ($multi.coverageStatus -ceq 'INCOMPLETE' -and $multi.counts.UNKNOWN -eq 3 -and $multi.scopeNotComparable.Count -eq 1) 'multi-root-domain-missing-proofs'
+    $unverifiedLast=New-RmSyntheticRegistry -Sources @($s1,$s2) -Snapshots @($old,$new)
+    Assert-Refuses { New-RmLibraryProjection -Registry $unverifiedLast } 'LIBRARY_LAST_VERIFIED_SCOPE_NOT_COMPLETE'
+    $sourceDuplicate=[pscustomobject]@{sourceKey='source-1';rootKey='root-other';domains=@('ROMS')}
+    Assert-Refuses { New-RmLibraryProjection -Registry (New-RmSyntheticRegistry -Sources @($s1,$sourceDuplicate) -Snapshots @($old,$new) -LastComplete $null) } 'LIBRARY_DUPLICATE_SOURCE'
     $explicit=New-RmSyntheticSnapshot -Id 'snap-unproven' -Generation 'gen-unproven' -At '2026-10-21T12:00:00Z' -Exhaustive $false -Units @((New-RmSyntheticUnit 'unit-same'))
     $unprovenReg=New-RmSyntheticRegistry -Snapshots @($old,$explicit) -LastComplete 'snap-a'
     $unproven=Get-RmLibraryComparisonView -Registry $unprovenReg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-unproven'
