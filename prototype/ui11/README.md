@@ -30,3 +30,12 @@ Le fichier `smoke.cjs` contient des assertions sur les six classes, le refus des
 - Adaptateur DEV1 de lecture synthétique et mapping des preuves `coverage` / `lastVerifiedCompleteRef`.
 - Contrôle de parité entre `RM_COMPARE` et le module PowerShell 5.1 sur mêmes fixtures.
 - Choix technique Windows et packaging portable **sur mandat ultérieur**, tests d'accessibilité et navigateur, puis vérification externe avant tout ZIP/Release.
+
+
+## Sprint #13 — mode projection du noyau
+
+Le fichier `projection-data.js` vaut `null` par défaut : **mode démonstration** (fixtures + comparateur JS miroir). Pour **mode projection**, y placer un objet littéral `{registry: <JSON New-RmLibraryProjection>, comparisons: [<JSON Get-RmLibraryComparisonView>]}` obtenu **hors du navigateur**, exclusivement sur des fixtures synthétiques. `projection-adapter.js` valide le schéma `0.1.0-synthetic`, `readOnly=true`, les six comptes, leur dénominateur et les preuves de couverture ; `app.js` affiche les DTO précalculés et **n'appelle pas RM_COMPARE** dans ce mode. Si la paire A/B n'a pas de résultat précalculé, l'interface refuse sans recalculer. Aucune requête réseau ni lecture disque depuis le navigateur.
+
+Les générations du registre sont des **métadonnées**, sans `units` : la Collection affiche donc un état vide non probant en mode projection jusqu'à fourniture d'un DTO catalogue distinct. `lastVerifiedCompleteRef` est un **snapshotId** (pas `generationId`). Le registre de Dev 1 exige des plateformes déclarées ; les valeurs inconnues doivent être représentées par un état de source inconnu, pas un faux zéro.
+
+**Tests #13 :** évaluation V8 des fichiers réels (mode démonstration et registre projeté vide) effectuée ; tests navigateur, Node.js et PowerShell restent à confirmer. Le test de parité runtime n'est pas revendiqué.
