@@ -62,6 +62,22 @@ try {
     Assert-Refuses { New-RmLibraryProjection -Registry $unverifiedLast } 'LIBRARY_LAST_VERIFIED_SCOPE_NOT_COMPLETE'
     $sourceDuplicate=[pscustomobject]@{sourceKey='source-1';rootKey='root-other';domains=@('ROMS')}
     Assert-Refuses { New-RmLibraryProjection -Registry (New-RmSyntheticRegistry -Sources @($s1,$sourceDuplicate) -Snapshots @($old,$new) -LastComplete $null) } 'LIBRARY_DUPLICATE_SOURCE'
+    # Complete multi-source/domain comparison requires EVERY declared partition.
+    $allProof=@(
+        [pscustomobject]@{console='GBA';sourceKey='source-1';rootKey='root-1';domain='ROMS';status='complete'},
+        [pscustomobject]@{console='GBA';sourceKey='source-1';rootKey='root-1';domain='MEDIAS';status='complete'},
+        [pscustomobject]@{console='GBA';sourceKey='source-2';rootKey='root-2';domain='ROMS';status='complete'}
+    )
+    $multiA=New-RmSyntheticSnapshot -Id 'multi-a' -Generation 'multi-gen-a' -At '2026-10-20T12:00:00Z' -Units @((New-RmSyntheticUnit 'unit-same'))
+    $multiB=New-RmSyntheticSnapshot -Id 'multi-b' -Generation 'multi-gen-b' -At '2026-10-21T12:00:00Z' -Units @((New-RmSyntheticUnit 'unit-same'))
+    $multiA.coverageProof=@($allProof)
+    $multiB.coverageProof=@($allProof)
+    $provenMulti=New-RmSyntheticRegistry -Sources @($s1,$s2) -Snapshots @($multiA,$multiB) -LastComplete 'multi-b'
+    $multiFull=Get-RmLibraryComparisonView -Registry $provenMulti -LibraryId 'lib-fixture' -BeforeSnapshotId 'multi-a' -AfterSnapshotId 'multi-b'
+    Assert-View ($multiFull.coverageStatus -ceq 'COMPLETE' -and $multiFull.counts.UNCHANGED -eq 1) 'multi-root-all-partitions-explicitly-proven'
+    $unknownLive=New-RmSyntheticRegistry -Availability 'UNKNOWN' -Freshness 'UNKNOWN' -Snapshots @($old,$new)
+    $unknownCard=New-RmLibraryProjection -Registry $unknownLive
+    Assert-View ($unknownCard.libraries[0].currentAvailability -ceq 'UNKNOWN' -and $null -eq $unknownCard.libraries[0].availabilityObservedAtUtc) 'unknown-live-no-fabricated-timestamp'
     $explicit=New-RmSyntheticSnapshot -Id 'snap-unproven' -Generation 'gen-unproven' -At '2026-10-21T12:00:00Z' -Exhaustive $false -Units @((New-RmSyntheticUnit 'unit-same'))
     $unprovenReg=New-RmSyntheticRegistry -Snapshots @($old,$explicit) -LastComplete 'snap-a'
     $unproven=Get-RmLibraryComparisonView -Registry $unprovenReg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-unproven'
