@@ -32,25 +32,34 @@
 
 Les identités `romUnitId`, `gameId` et `variantId` sont émises par le moteur d'identité du catalogue : **pas d'identité automatique à partir du chemin, du titre ou de `fileId`**. `fileId` est local à un scan et interdit dans les entrées comparées. `observationDigest` correspond à l'empreinte d'observation calculée par le mécanisme d'identité existant ; une empreinte manquante est une information inconnue, pas une égalité. Chaque entrée déclare une plateforme présente dans `coverage`. Les identités répétées, générations identiques, dates incohérentes, schémas non reconnus ou périmètres de bibliothèque différents sont rejetés.
 
-## Interprétation
+## Interprétation : C1 / intersection prouvée
 
-La comparaison porte sur la **même bibliothèque logique** et deux générations datées, avec `After` non antérieur à `Before`. Elle est déterministe et **sans effets de bord** : aucune lecture de disque, réseau, XML, fichier ROM ou registre persistant.
+Ce MVP compare uniquement des **unités ROM** appartenant à la même bibliothèque logique, sur deux générations datées (B non antérieure à A). La preuve de comparabilité est volontairement stricte : **pour une plateforme donnée, les deux snapshots doivent chacun déclarer `scanStatus='complete'` ET `coverage[console].status='complete'`**. Les deux conditions doivent être vraies côté A **et** côté B, y compris pour un élément seulement présent dans l'un des deux inventaires. Il n'existe **aucune inférence de complétude** à partir d'une liste de fichiers, d'une date, d'un disque accessible ou d'un compteur.
 
-| Classe | Condition |
+Le niveau `console` n'est pas une preuve pour plusieurs racines, disques ou domaines ROMS/MEDIAS. Les fixtures de ce contrat représentent **une source logique synthétique par console** ; si une bibliothèque réelle requiert un `rootKey` ou des domaines distincts et que le producteur ne peut pas garantir la complétude de ce périmètre, **ne pas alimenter le comparateur avec un indicateur `complete` trompeur**. Reporter la zone comme non prouvée. L'extension à des sous-zones exigera un autre contrat revu, sans extrapolation automatique.
+
+## C2 — Six résultats, distincts et explicites
+
+| `classification` (API) | Condition, **après** preuve C1 de couverture intégrale des deux côtés |
 | --- | --- |
-| `added` | Identité présente après, absente avant, **et** snapshot avant et couverture de la plateforme complets |
-| `modified` | Même `romUnitId` et propriétaire stable, deux digests connus et différents |
-| `unchanged` | Même `romUnitId` et propriétaire stable, deux digests connus et égaux |
-| `notObserved` | Identité présente avant mais absente après, **et** snapshot après et couverture de la plateforme complets |
-| `notComparable` | Périmètre précédent/suivant non prouvé, résultat de scan failed, propriétaire conflictuel ou digest non connu |
+| `ADDED` | `romUnitId` présent seulement dans B, absent du périmètre entièrement observé en A |
+| `CHANGED` | Unité commune, propriétaires `gameId`/`variantId`/`console` concordants, deux `observationDigest` connus et différents |
+| `UNCHANGED` | Unité commune, propriétaires concordants, deux `observationDigest` connus et identiques |
+| `NOT_OBSERVED_IN_B_COVERED_SCOPE` | Unité présente dans A, non retrouvée dans le périmètre entièrement observé en B |
+| `UNKNOWN` | Donnée insuffisante : scan partial/failed, scope partial/unobserved, ou digest absent sur une unité commune |
+| `NOT_COMPARABLE` | Incompatibilité démontrée (identité/propriétaire discordant) ou périmètre **non déclaré** dans A ou B, ne permettant pas de prouver une intersection commune |
 
-`notObserved` signifie **absent de l'inventaire daté dans un périmètre vérifié**, jamais supprimé physiquement. Tout item absent d'un scan `partial` ou `failed`, d'une plateforme `partial` ou `unobserved`, est `notComparable`. On ne déduit aucune suppression d'une absence de résultat. Les observations d'éléments présents sont comparables même si d'autres plateformes ne le sont pas, sauf en cas de scan `failed`. Un changement de propriétaire pour le même `romUnitId` n'est pas une modification anodine : `notComparable`.
+La validation d'entrée refuse globalement les structures invalides (bibliothèque discordante, version non prise en charge, génération répétée, date impossible, identité dupliquée ou `fileId` inter-scans). `NOT_COMPARABLE` est une classification **locale** sur un `romUnitId` quand la contradiction est isolable ; les erreurs structurelles globales lèvent une exception et ne sont jamais transformées en résultats trompeurs. Une zone `partial` ou `failed` connue existe mais manque d'observations : `UNKNOWN` ; une plateforme **non déclarée** ne permet même pas d'établir l'intersection : `NOT_COMPARABLE`.
 
-**Disponibilité et fraîcheur sont orthogonales** à la qualité de la capture. Un ancien snapshot complet reste consultable quand le support est `OFFLINE` ou `STALE` ; cela ne signifie ni nouveau scan réussi, ni suppression. Le comparateur reporte ces états, mais n'effectue aucune connexion, tentative de scan ou réassociation USB.
+**Portée des digests :** `observationDigest` est une empreinte canonique d'**observation** d'unité (structure, chemins, tailles/horodatages observés selon le moteur), **pas** un hash du contenu binaire ROM. Ainsi `CHANGED` signifie *observation différente*, **jamais** « octets ROM modifiés » ; `UNCHANGED` signifie *empreintes observées égales*, **jamais** preuve d'identité physique du fichier. Les entrées communes fournissent `changedFields[]` ou `comparedFields[]` sur le champ `observationDigest` avec preuves A/B et niveau `observedStat`. Aucune affirmation de changement d'octets, d'effacement, de conversion ou de réassociation USB.
+
+`NOT_OBSERVED_IN_B_COVERED_SCOPE` est exclusivement une absence **dans un inventaire daté** ; l'UI doit afficher « Non retrouvé dans l'inventaire B (zone couverte) », **jamais « supprimé »**. OFFLINE et STALE sont des états orthogonaux de consultation : une projection historique intégralement vérifiée reste comparable si elle est accessible. Un essai de scan partial/failed ne remplace pas un ancien snapshot complet.
 
 ## Sortie
 
-`schemaVersion`, `libraryId`, `beforeGenerationId`, `afterGenerationId`, dates, états de capture/disponibilité/fraîcheur, `counts` et `entries`. Chaque entrée contient `romUnitId`, `console`, `classification`, `reason`, `beforeDigest`, `afterDigest` et identités logiques ; tri ordinal par `romUnitId`. Les erreurs sont explicites et bloquantes pour une entrée structurellement invalide ; pas de réparation automatique d'un registre.
+Les champs racine `schemaVersion`, `libraryId`, identités de générations, dates, états de scan/disponibilité/fraîcheur, `counts` et `entries` sont conservés. Les compteurs sont maintenant indexés sur les **six valeurs exactes** de `classification` ci-dessus ; leur dénominateur correspond au nombre d'unités distinctes dans l'union A∪B pour **cette** comparaison, et non à tous les fichiers physiques d'une bibliothèque.
+
+Chaque entrée triée ordinalement par `romUnitId` conserve `gameId`, `variantId`, `console`, `beforeDigest`, `afterDigest`, `reason` et `classification`, avec `changedFields[]`, `comparedFields[]` pour les seules preuves observables. `reason` est un code stable, pas une supposition. Aucun accès à disque, réseau, XML, registre ni données utilisateur réelles. Le résultat est reproductible sur les deux mêmes objets.
 
 ## Frontière d'architecture et tests
 
