@@ -24,6 +24,11 @@ const pa=[proof("GBA","complete"),proof("PS1","complete")],pb=[proof("GBA","comp
 const a=snap("mixed-a","mixed-gen-a",prior,"complete",ca,pa,5),b=snap("mixed-b","mixed-gen-b",at,"complete",cb,pb,5);
 const mixed={libraryId:"lib-mixed",name:"Bibliothèque multi-états",platforms:["GBA","PS1"],sources:[{sourceKey:"synthetic-source",rootKey:"synthetic-root",domains:["ROMS"]}],currentAvailability:"ONLINE",availabilityObservedAtUtc:at,freshness:"FRESH",indexAccessible:true,lastVerifiedCompleteRef:"mixed-a",lastObservedAtUtc:at,generations:[a,b]};
 p.registry.libraries.push(mixed);
+const closed=p.registry.libraries.find(x=>x.libraryId==="lib-closed");
+for(const [id,gen,date] of [["closed-a","closed-gen-a",prior],["closed-b","closed-gen-b",at]]){
+closed.generations.push({snapshotId:id,generationId:gen,scanId:"scan-"+id,capturedAtUtc:date,scanStatus:"complete",scopeIsExhaustive:true,coverage:[{console:"PS1",status:"complete",reason:"ALL_DECLARED_PARTITIONS_PROVEN"}],coverageProof:[{console:"PS1",sourceKey:"source-closed",rootKey:"root-closed",domain:"ROMS",status:"complete"}],countKnown:false,observedUnitCount:null});
+}
+
 const ref={beforeGenerationId:a.generationId,afterGenerationId:b.generationId};
 const entry=(id,classification,reason,console="GBA")=>({romUnitId:id,gameId:"game-"+id,variantId:"variant-"+id,console,classification,reason,beforeDigest:null,afterDigest:null,changedFields:[],comparedFields:[],sourceRefs:ref});
 const entries=[
