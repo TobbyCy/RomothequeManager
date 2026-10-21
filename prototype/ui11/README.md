@@ -77,3 +77,29 @@ node prototype/ui11/integrated-smoke.cjs
 Après vérification initiale de `19be89fa`, la PR #27 a avancé à `7aa593f71884bcf519692d8863847fb8a2f3ecbf`. **CHANGES_REQUIRED sur ce nouveau HEAD** : `tests/Export-SyntheticUiProjection.ps1` contient une chaîne `-cnotmatch 'Z` tronquée et deux blocs exporteurs superposés (anciens contrôles 6/5 et nouveaux 7/6/7). Revue ciblée publiée dans [PR #27](https://github.com/TobbyCy/RomothequeManager/pull/27). Ce défaut bloque la preuve d'un export PowerShell utilisable, mais ne bloque pas la fixture UI candidate autonome. Dev 2 n'a pas modifié la branche Dev 1.
 
 **Addendum compteurs #17** : la fixture « Source non consultable » comporte deux générations historiques métadonnées, chacune avec `countKnown=false` et `observedUnitCount=null` ; les cartes Bibliothèques affichent « Inconnu » plutôt que zéro. La fixture « Zéro non probant » affiche le compteur observé 0 mais conserve sa couverture partielle et son avertissement. Contrôle V8 supplémentaire effectué sur ces deux états ; aucune exécution PS5.1 ni navigateur.
+
+
+## S4 — Matrice de recette navigateur Windows (à exécuter, aucun PASS anticipé)
+
+Préconditions : checkout privé de la PR #28 au SHA indiqué dans le checkpoint, navigateur Windows lancé localement en `file://`, **uniquement** `demo-integree.html` et les fixtures candidates intégrées. Aucun serveur, ROM, disque externe, StateRoot ou accès réseau. Conserver version du navigateur, OS, résolution, SHA, capture et résultat par ligne. L'exécution Node avec DOM simulé est distincte de cette recette.
+
+| ID | Parcours / action | Attendu vérifiable | État |
+|---|---|---|---|
+| B01 | Ouvrir `demo-integree.html` hors ligne | Dashboard affiché, aucun chargement externe | NOT_EXECUTED |
+| B02 | Dashboard → Bibliothèques → multi-états | ONLINE et FRESH distincts ; dates et snapshots lisibles | NOT_EXECUTED |
+| B03 | Bibliothèque OFFLINE/STALE → historique | Historique consultable malgré indisponibilité actuelle | NOT_EXECUTED |
+| B04 | Index INACCESSIBLE → comparaison | Refus explicite ; aucun jeu ni compteur zéro inventé | NOT_EXECUTED |
+| B05 | UNKNOWN et zéro observé non probant | « Inconnu » ≠ « 0 » ; pas « aucune différence » sans preuve | NOT_EXECUTED |
+| B06 | Sélection A/B → comparer | Six classes, dénominateur, limites et preuves affichés | NOT_EXECUTED |
+| B07 | Modifier A/B pour paire absente | Refus sans recalcul par comparateur JS | NOT_EXECUTED |
+| B08 | Collection → recherche, filtres bibliothèque/plateforme → fiche → retour | Filtres et sélection conservés, provenance visible | NOT_EXECUTED |
+| B09 | Fiche → observation ROM → snapshot | Jeu distinct de l'unité ROM ; navigation cohérente | NOT_EXECUTED |
+| B10 | Tab / Shift+Tab / Entrée / Espace | Ordre logique, focus visible, sélecteurs et filtres opérables | NOT_EXECUTED |
+| B11 | Écran 320, 375, 768 et 1280 px | Aucun contrôle essentiel inaccessible, pas de débordement bloquant | NOT_EXECUTED |
+| B12 | Zoom 200 % et contraste | Libellés de statuts lisibles sans dépendre uniquement des couleurs | NOT_EXECUTED |
+| B13 | Vue sans résultats / historique indisponible | Messages non ambigus et sans suppression physique supposée | NOT_EXECUTED |
+| B14 | Charger projection de schéma incompatible | Rejet contrôlé, aucune bascule silencieuse vers la démo | NOT_EXECUTED |
+
+**Trois suites distinctes** : `node prototype/ui11/smoke.cjs` (miroir JS de démonstration), `node prototype/ui11/projection-smoke.cjs` (fixture candidate simple), `node prototype/ui11/integrated-smoke.cjs` (fixture candidate intégrée, canaris S2/S4). Leurs DOM sont simulés et ne valident ni accessibilité réelle, ni responsive, ni runtime PowerShell. Les 7 bibliothèques / 6 comparaisons / 7 vecteurs de Dev 1 nécessitent un export PowerShell 5.1 exécuté avant toute revendication de parité. Les tests S4 ne modifient aucun moteur métier.
+
+**Limite de confiance** : la projection UI compare le DTO de comparaison au registre déjà validé. Si un acteur falsifie simultanément **le registre lui-même** et le DTO avec des preuves concordantes mais mensongères, l'UI ne peut pas authentifier une observation physique ; seule la production contrôlée par le noyau et la recette de parité peuvent établir la provenance. Aucun contenu `COMPLETE` ne constitue une preuve de présence physique de ROM.
