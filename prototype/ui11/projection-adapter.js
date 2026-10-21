@@ -17,7 +17,7 @@ for(const platform of platforms){text(platform,"PLATFORM");for(const src of sour
 const snapIds=new Set(),genIds=new Set();
 const generations=array(l.generations,"GENERATIONS").map(g=>{
 text(g.snapshotId,"SNAPSHOT_ID");text(g.generationId,"GENERATION_ID");text(g.capturedAtUtc,"CAPTURED_AT");if(snapIds.has(g.snapshotId)||genIds.has(g.generationId))fail("DUPLICATE_SNAPSHOT_OR_GENERATION");snapIds.add(g.snapshotId);genIds.add(g.generationId);
-if(!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$/.test(g.capturedAtUtc)||Number.isNaN(Date.parse(g.capturedAtUtc)))fail("CAPTURED_DATE");
+if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(g.capturedAtUtc)||Number.isNaN(Date.parse(g.capturedAtUtc)))fail("CAPTURED_DATE");
 const scanStatus=enumOf(g.scanStatus,["complete","partial","failed"],"SCAN");
 if(typeof g.scopeIsExhaustive!=="boolean")fail("SCOPE_EXHAUSTIVE_FLAG");
 const coverage=array(g.coverage,"COVERAGE"),proof=array(g.coverageProof,"COVERAGE_PROOF");
