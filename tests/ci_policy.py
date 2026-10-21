@@ -298,7 +298,7 @@ def audit_baseline(root, static_text, entries):
         for s in sources:
             require(s["path"] in entries and hashlib.sha256(git(root, "cat-file", "blob", entries[s["path"]][2])).hexdigest() == s["sha256"], "SOURCE_HASH_CHANGED")
     approved = {"Modules/" + name + ".psm1" for name in ("Utils","Canonical","Configuration","Inventory","Metadata","RomResolver","DecisionSchema","StateCodec","Identity","PersistentIdentity","MediaMatcher","MediaModel","Reconciliation","Proposals","Projection","Transactions","Catalogue","Associations","SnapshotComparison")}
-    actual = {p for p in entries if re.fullmatch(r"Modules/[^/]+\\.psm1", p)}
+    actual = {p for p in entries if p.startswith("Modules/") and p.endswith(".psm1") and "/" not in p[len("Modules/"):]}
     require(actual == approved, "EXPECTED_APPROVED_19_MODULES")
 
 
