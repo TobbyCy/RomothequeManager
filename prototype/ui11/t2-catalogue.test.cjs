@@ -1,0 +1,20 @@
+/* Run: node prototype/ui11/t2-catalogue.test.cjs (no network). */
+"use strict";
+const fs=require("node:fs"),vm=require("node:vm"),path=require("node:path"),assert=require("node:assert/strict");
+const w={};const ctx=vm.createContext({window:w,globalThis:w});
+for(const file of ["fixtures.js","t2-catalogue-model.js","t2-catalogue-fixture.js"])vm.runInContext(fs.readFileSync(path.join(__dirname,file),"utf8"),ctx,{filename:file});
+const clone=v=>JSON.parse(JSON.stringify(v)),parse=(dto=w.RM_T2_FIXTURE,libs=w.RM_FIXTURES.libraries)=>w.RM_T2_CATALOGUE.normalize(dto,libs);
+let checks=0;const test=(name,fn)=>{fn();checks++;console.log("PASS",name)};
+test("five synthetic games",()=>assert.equal(parse().games.length,5));
+test("combined search and platform",()=>assert.equal(w.RM_T2_CATALOGUE.query(parse(),{search:"Pocket",platform:"GBA"}).length,1));
+test("combined library and coverage",()=>assert.equal(w.RM_T2_CATALOGUE.query(parse(),{library:"lib-pocket",coverage:"KNOWN"}).length,1));
+test("sort title",()=>assert.equal(w.RM_T2_CATALOGUE.query(parse(),{sort:"title"})[0].title,"Légende de la Forêt"));
+test("invalid schema",()=>{const x=clone(w.RM_T2_FIXTURE);x.schemaVersion="wrong";assert.throws(()=>parse(x),/T2_CATALOGUE_CONTRACT/)});
+test("duplicate identity",()=>{const x=clone(w.RM_T2_FIXTURE);x.games.push(clone(x.games[0]));assert.throws(()=>parse(x),/DUPLICATE_GAME/)});
+test("unknown source library",()=>{const x=clone(w.RM_T2_FIXTURE);x.games[0].provenance[0].libraryId="ghost";assert.throws(()=>parse(x),/SOURCE_INDEX/)});
+test("inaccessible source index",()=>{const x=clone(w.RM_T2_FIXTURE);x.games[0].provenance[0].libraryId="lib-optical";assert.throws(()=>parse(x),/SOURCE_INDEX/)});
+test("missing snapshot",()=>{const x=clone(w.RM_T2_FIXTURE);x.games[0].provenance[0].snapshotId="missing";assert.throws(()=>parse(x),/SOURCE_SNAPSHOT_UNKNOWN/)});
+test("orphan observation",()=>{const x=clone(w.RM_T2_FIXTURE);x.games[0].observations[0].snapshotId="ghost";assert.throws(()=>parse(x),/OBS_REFERENCE/)});
+test("duplicate observation",()=>{const x=clone(w.RM_T2_FIXTURE);x.games[0].observations.push(clone(x.games[0].observations[0]));assert.throws(()=>parse(x),/DUPLICATE_OBSERVATION/)});
+test("projection is never silently treated as fixture",()=>assert.equal(parse().mode,"SYNTHETIC_CANDIDATE"));
+console.log("T2_MODEL_TESTS_PASS",checks,"/ 12");
