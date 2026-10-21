@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "purpose": "CI-approved synthetic preflight source only; historic 19+2 hashes remain immutable",
+  "sources": [
+    {
+      "path": "Preflight/Invoke-E1RealLibraryPreflightReadOnly.ps1",
+      "sha256": "dde3d9b0f984ea65574a9ea285d2c9d14a8b4ecf1a3442431274970e679a8d45"
+    }
+  ]
+}

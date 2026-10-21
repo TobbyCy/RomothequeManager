@@ -1,0 +1,6 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+# Do not rewrite checked-in PowerShell source bytes (BOM/CRLF).
+*.ps1 -text
+*.psm1 -text
+tests/ci-export-sources.json -text
