@@ -41,7 +41,7 @@ try {
         '^docs/(product-status|roadmap)\.md$',
         '^docs/(user|developer|architecture|decisions|ux)/[A-Za-z0-9_.-]+\.md$',
         '^\.github/workflows/ci\.yml$', '^\.github/pull_request_template\.md$',
-        '^\.github/ISSUE_TEMPLATE/(bug|config|feature)\.yml$',
+        '^\.github/ISSUE_TEMPLATE/(bug|config|docs|feature|question)\.yml$',
         '^tests/(ci_policy|test_ci_policy)\.py$',
         '^(src|app)/RomothequeManager\.V2/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|sln|axaml|resx|json|png|svg|ico)$',
         '^tests/dotnet/RomothequeManager\.V2\.Tests/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|json)$',
