@@ -18,6 +18,12 @@ const sharedSample=JSON.parse(fs.readFileSync(path.join(__dirname,"fixtures/Cata
 ok("shared JSON reference fixture accepted",()=>{const v=model.normalize(sharedSample);assert.equal(v.games[0].quality,"STALE");assert.equal(v.games[0].observations.length,2);assert.equal(v.games[0].availability,"OFFLINE")});
 ok("valid nullable title and offline historical source",()=>assert.equal(model.normalize(dto).games.length,1));
 ok("ordinal identity and search",()=>{const x=model.normalize(dto);assert.equal(model.query(x,{libraryId:"LIB"}).total,0);assert.equal(model.query(x,{search:"GAME"}).total,1)});
+rejects("foreign proof console despite valid partition names",d=>d.registry.libraries[0].generations[0].coverageProof[0].console="PS1","PROOF_PARTITION");
+rejects("no generations cannot certify a global zero count",d=>{
+ d.registry.libraries[0].generations=[];
+ d.registry.libraries[0].lastVerifiedCompleteRef=null;
+ d.games=[];d.gameCount=0;d.countKnown=true;
+},"COUNT_FORGED");
 rejects("wrong schema",d=>d.schemaVersion="wrong","SCHEMA");
 rejects("orphan snapshot",d=>d.games[0].provenance[0].snapshotId="ghost","REFERENCE");
 rejects("generation is not snapshot alias",d=>d.games[0].provenance[0].generationId="snap","REFERENCE");
