@@ -18,7 +18,7 @@ import ci_policy as p
 class ClassificationTests(unittest.TestCase):
     def test_routes(self):
         cases = {
-            "DOCS_ONLY": ["README.md", "docs/developer/workflow.md", "docs/decisions/0001-demo.md"],
+            "DOCS_ONLY": ["README.md", "BRANDING.md", "LEGAL.md", "docs/developer/workflow.md", "docs/decisions/0001-demo.md"],
             "PS_ONLY": ["Modules/Inventory.psm1", "tests/Unit/Demo.Tests.ps1", "Export/ExportE1.psm1"],
             "DOTNET_ONLY": ["src/RomothequeManager.V2/Main.cs", "tests/dotnet/RomothequeManager.V2.Tests/Unit.cs"],
             "SHARED_OR_MIXED": ["contracts/demo.json", "Modules/StateCodec.psm1", "adapters/shared/Demo.cs"],
@@ -291,9 +291,13 @@ class DocumentTests(unittest.TestCase):
     def test_policy_uses_existing_allowlist(self):
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
-        for path in ("README.md", "tests/ci_policy.py", "tests/test_ci_policy.py"):
+        for path in ("LICENSE", "BRANDING.md", "LEGAL.md", "README.md", "tests/ci_policy.py", "tests/test_ci_policy.py", "tests/Invoke-CiE1PreflightSynthetic.ps1"):
             self.assertTrue(any(__import__('re').fullmatch(r, path) for r in rules))
-        for path in (".github/workflows/unreviewed.yml", "tests/ci_policy_extra.py", "docs/secret.exe", "ROMS/demo.gba", "SECURITY.txt"):
+        license_text = (root / "LICENSE").read_text(encoding="utf-8")
+        self.assertTrue(license_text.startswith("MIT License\n\nCopyright (c) 2026 Cyril Tobler\n\n"))
+        self.assertTrue(license_text.endswith("OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"))
+        self.assertEqual("INFRA_SECURITY_UNKNOWN", p.classify([("A", "LICENSE")]))
+        for path in (".github/workflows/unreviewed.yml", "tests/ci_policy_extra.py", "docs/secret.exe", "ROMS/demo.gba", "SECURITY.txt", "LICENSE.txt", "LICENSE.bak", "license", "BRANDING.md.bak", "LEGAL.txt", "LEGAL.md/evil", "tests/Invoke-CiE1PreflightSynthetic.ps1.bak", "tests/Invoke-CiE1PreflightSynthetic.ps1/extra"):
             self.assertFalse(any(__import__('re').fullmatch(r, path) for r in rules))
 
     def test_public_issue_form_allowlist_and_unexpected_paths_fail_closed(self):
@@ -353,7 +357,6 @@ class DocumentTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
-
     def test_stab03a_ps51_unicode_sources_have_utf8_bom(self):
         # GitHub-stored bytes: PS5.1 must never interpret UTF-8 literals as ACP.
         root = Path(__file__).resolve().parent.parent
@@ -377,8 +380,8 @@ class WorkflowTests(unittest.TestCase):
         import re
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
-        permitted = ["tests/fixtures/CatalogueT3CanonicalSample.json","tests/fixtures/TEST_MATRIX_S3.md","tests/Export-SyntheticCanonicalCatalogue.ps1","tests/catalogue_t3_consumer.test.cjs","adapters/shared/catalogue-t3-consumer.js","prototype/ui11/t4-catalogue.test.cjs"]
-        forbidden = ["tests/fixtures/unapproved.json","tests/Export-SyntheticUnverified.ps1","tests/untrusted.test.cjs","adapters/shared/unapproved.js","prototype/ui11/unapproved.html"]
+        permitted = ["tests/Invoke-CiE1PreflightSynthetic.ps1", "tests/Export-SyntheticUiProjection.ps1", "tests/fixtures/TEST_MATRIX_S3.md", "tests/fixtures/SyntheticLibrarySnapshots.ps1", "tests/fixtures/UiProjectionVectors.ps1", "tests/fixtures/CatalogueT3CanonicalSample.json", "tests/Export-SyntheticCanonicalCatalogue.ps1", "tests/catalogue_t3_consumer.test.cjs", "adapters/shared/catalogue-t3-consumer.js", "prototype/ui11/t4-catalogue.test.cjs"]
+        forbidden = ["tests/Invoke-CiE1PreflightSynthetic.psm1", "tests/fixtures/unapproved.json", "tests/Export-SyntheticUnverified.ps1", "tests/untrusted.test.cjs", "adapters/shared/unapproved.js", "prototype/ui11/unapproved.html"]
         for path in permitted:
             with self.subTest(permitted=path):
                 self.assertTrue(any(re.fullmatch(rule, path) for rule in rules), path)
@@ -485,10 +488,8 @@ class CliRoutingProofTests(unittest.TestCase):
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_text("# Synthetic CI test document\n", encoding="utf-8")
             p.git(root, "add", "--all")
-            # Clone may already contain every required document. A clean index is
-            # a valid baseline, not a reason to ask Git for an empty commit.
             if p.git(root, "status", "--porcelain").strip():
-                p.git(root, "commit", "--quiet", "-m", "Synthetic baseline documents")
+            p.git(root, "commit", "--quiet", "-m", "Synthetic baseline documents")
             def save():
                 p.git(root, "add", "--all")
                 p.git(root, "commit", "--quiet", "-m", "Synthetic routing proof")

@@ -30,6 +30,8 @@
 }
 ```
 
+Les identités `romUnitId` sont comparées de manière ordinale **sensible à la casse**. `Unit-A` et `unit-a` désignent deux unités distinctes ; la comparaison ne doit jamais les fusionner implicitement.
+
 Les identités `romUnitId`, `gameId` et `variantId` sont émises par le moteur d'identité du catalogue : **pas d'identité automatique à partir du chemin, du titre ou de `fileId`**. `fileId` est local à un scan et interdit dans les entrées comparées. `observationDigest` correspond à l'empreinte d'observation calculée par le mécanisme d'identité existant ; une empreinte manquante est une information inconnue, pas une égalité. Chaque entrée déclare une plateforme présente dans `coverage`. Les identités répétées, générations identiques, dates incohérentes, schémas non reconnus ou périmètres de bibliothèque différents sont rejetés.
 
 ## Interprétation : C1 / intersection prouvée
