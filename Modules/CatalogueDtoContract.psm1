@@ -31,6 +31,48 @@ function Get-RmDtoKey {
  foreach($part in $Parts) { $key+=([string]$part.Length)+':'+$part }
  return $key
 }
+# Canonical JSON transport order is Ordinal, independent from hashtable input ordering
+# or the current Windows culture. This function does not change evidence values.
+function Sort-RmDtoRecords {
+ param([object[]]$Items,[string]$Kind)
+ $map=New-Object 'System.Collections.Generic.SortedDictionary[string,object]' ([StringComparer]::Ordinal)
+ foreach($item in $Items) {
+  $key=switch($Kind) {
+   'platform' { [string]$item;break }
+   'source' { [string]$item.sourceKey;break }
+   'generation' { [string]$item.snapshotId;break }
+   'coverage' { [string]$item.console;break }
+   'proof' { Get-RmDtoKey @($item.console,$item.sourceKey,$item.rootKey,$item.domain);break }
+   'library' { [string]$item.libraryId;break }
+   default { throw 'CATDTO_SORT_KIND_UNSUPPORTED' }
+  }
+  if ($map.ContainsKey($key)) { throw ('CATDTO_SORT_COLLISION:'+$Kind) }
+  $map.Add($key,$item)
+ }
+ $ordered=New-Object 'System.Collections.Generic.List[object]'
+ foreach($item in $map.Values) { [void]$ordered.Add($item) }
+ return ,$ordered.ToArray()
+}
+function Get-RmDtoSortedRegistry {
+ param($Libraries)
+ $cards=New-Object 'System.Collections.Generic.List[object]'
+ foreach($lib in (Sort-RmDtoRecords -Items @($Libraries) -Kind 'library')) {
+  # A JSON deep copy prevents mutation of the producer's original objects.
+  $copy=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $lib -Depth 40 -Compress)
+  $copy.platforms=Sort-RmDtoRecords -Items @($copy.platforms) -Kind 'platform'
+  $copy.sources=Sort-RmDtoRecords -Items @($copy.sources) -Kind 'source'
+  foreach($source in $copy.sources) {
+   $source.domains=Sort-RmDtoRecords -Items @($source.domains) -Kind 'platform'
+  }
+  $copy.generations=Sort-RmDtoRecords -Items @($copy.generations) -Kind 'generation'
+  foreach($gen in $copy.generations) {
+   $gen.coverage=Sort-RmDtoRecords -Items @($gen.coverage) -Kind 'coverage'
+   $gen.coverageProof=Sort-RmDtoRecords -Items @($gen.coverageProof) -Kind 'proof'
+  }
+  [void]$cards.Add($copy)
+ }
+ return ,$cards.ToArray()
+}
 function Assert-RmCanonicalCatalogueDto {
  [CmdletBinding()]
  param([Parameter(Mandatory=$true)]$Dto)
@@ -284,7 +326,7 @@ function ConvertTo-RmCanonicalCatalogueDto {
  }
  $dto=[pscustomobject][ordered]@{
   schemaVersion='0.2.0-ui-catalogue-candidate';readOnly=$true
-  registry=[pscustomobject][ordered]@{schemaVersion='0.1.0-synthetic';readOnly=$true;libraries=@($Catalogue.libraries)}
+  registry=[pscustomobject][ordered]@{schemaVersion='0.1.0-synthetic';readOnly=$true;libraries=(Get-RmDtoSortedRegistry -Libraries @($Catalogue.libraries))}
   games=$games.ToArray();diagnostics=@($Catalogue.diagnostics)
   countKnown=[bool]$Catalogue.countKnown;gameCount=$Catalogue.gameCount
  }
