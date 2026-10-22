@@ -48,7 +48,9 @@ try {
         '^(contracts|schemas)/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json$',
         '^adapters/shared/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|ps1|psm1|json)$',
         '^tests/Invoke-Ci[A-Za-z]+\.ps1$', '^tests/Invoke-CiE1NegativeCanary\.ps1$', '^tests/Invoke-CiE1Integration\.ps1$',
-        '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/fixtures/(SyntheticLibrarySnapshots|UiProjectionVectors)\.ps1
+        '^tests/Unit/[A-Za-z0-9_.-]+\\.Tests\\.ps1$', '^tests/fixtures/(SyntheticLibrarySnapshots|UiProjectionVectors)\\.ps1$',
+        '^tests/(ci-export-sources|ci-preflight-sources)\\.json$',
+        '^tests/Export-Synthetic(UiProjection|Catalogue|CanonicalCatalogue)\\.ps1$'
     )
     $collisions = @{}
     foreach ($path in $paths) {
