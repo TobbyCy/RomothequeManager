@@ -12,7 +12,7 @@ function Get-RmCatProperty {
  if ($null -eq $p) { return $null }
  return $p.Value
 }
-function New-RmCatSet { return (New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)) }
+function New-RmCatSet { return ,(New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)) }
 function Sort-RmCatOrdinal {
  param([object[]]$Items,[string]$Property)
  $map=New-Object 'System.Collections.Generic.SortedDictionary[string,object]' ([StringComparer]::Ordinal)
