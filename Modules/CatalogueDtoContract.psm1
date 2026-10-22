@@ -59,35 +59,83 @@ function Assert-RmCanonicalCatalogueDto {
    $scan=Get-RmDtoField $gen 'scanStatus'
    $exhaustive=Get-RmDtoField $gen 'scopeIsExhaustive'
    Assert-RmDto ($proof -is [array] -and $coverage -is [array] -and $exhaustive -is [bool]) 'CATDTO_COVERAGE_FIELDS'
+   # Recompute platform coverage from exact declared source/root/domain partitions.
+   # A global "all covered" boolean is insufficient for mixed-platform snapshots.
+   Assert-RmDto (@('complete','partial','failed') -ccontains $scan) 'CATDTO_SCAN_STATUS_INVALID'
    $expected=New-RmDtoSet
+   $expectedByConsole=New-Object 'System.Collections.Generic.Dictionary[string,object]' ([StringComparer]::Ordinal)
+   $platformKeys=New-RmDtoSet
    foreach($platform in $platforms) {
-    foreach($source in $sources) {
-     foreach($domain in $source.domains) {
-      [void]$expected.Add((Get-RmDtoKey @($platform,$source.sourceKey,$source.rootKey,$domain)))
+    Assert-RmDtoId $platform 'CATDTO_PLATFORM_INVALID'
+    Assert-RmDto ($platformKeys.Add($platform)) 'CATDTO_DUPLICATE_PLATFORM'
+    $expectedByConsole.Add($platform,(New-RmDtoSet))
+   }
+   $sourceKeys=New-RmDtoSet
+   foreach($source in $sources) {
+    $sourceId=Get-RmDtoField $source 'sourceKey'
+    $rootId=Get-RmDtoField $source 'rootKey'
+    Assert-RmDtoId $sourceId 'CATDTO_SOURCE_ID'
+    Assert-RmDtoId $rootId 'CATDTO_ROOT_ID'
+    Assert-RmDto ($sourceKeys.Add($sourceId)) 'CATDTO_DUPLICATE_SOURCE'
+    $domains=Get-RmDtoField $source 'domains'
+    Assert-RmDto ($domains -is [array] -and $domains.Count -gt 0) 'CATDTO_SOURCE_DOMAINS'
+    $domainKeys=New-RmDtoSet
+    foreach($domain in $domains) {
+     Assert-RmDto (@('ROMS','MEDIAS') -ccontains $domain -and $domainKeys.Add($domain)) 'CATDTO_DOMAIN_INVALID'
+     foreach($platform in $platforms) {
+      $k=Get-RmDtoKey @($platform,$sourceId,$rootId,$domain)
+      [void]$expected.Add($k)
+      [void]$expectedByConsole[$platform].Add($k)
      }
     }
    }
+   Assert-RmDto ($platforms.Count -gt 0 -and $expected.Count -gt 0) 'CATDTO_EMPTY_DECLARED_SCOPE'
    $seen=New-RmDtoSet;$proven=New-RmDtoSet
+   $partialProof=New-RmDtoSet
    foreach($part in $proof) {
-    $key=Get-RmDtoKey @($part.console,$part.sourceKey,$part.rootKey,$part.domain)
-    Assert-RmDto ($expected.Contains($key) -and $seen.Add($key)) 'CATDTO_PROOF_PARTITION_INVALID'
-    if ($part.status -ceq 'complete') { [void]$proven.Add($key) }
+    $console=Get-RmDtoField $part 'console'
+    $sourceId=Get-RmDtoField $part 'sourceKey'
+    $rootId=Get-RmDtoField $part 'rootKey'
+    $domain=Get-RmDtoField $part 'domain'
+    $partStatus=Get-RmDtoField $part 'status'
+    Assert-RmDto (@('complete','partial','unobserved') -ccontains $partStatus) 'CATDTO_PROOF_STATUS_INVALID'
+    $k=Get-RmDtoKey @($console,$sourceId,$rootId,$domain)
+    Assert-RmDto ($expected.Contains($k) -and $seen.Add($k)) 'CATDTO_PROOF_PARTITION_INVALID'
+    if ($partStatus -ceq 'complete') { [void]$proven.Add($k) }
+    if ($partStatus -ceq 'partial') { [void]$partialProof.Add($k) }
    }
-   $complete=($scan -ceq 'complete' -and $exhaustive -and $expected.Count -eq $proven.Count)
+   $globallyComplete=($scan -ceq 'complete' -and $exhaustive -and $expected.Count -eq $proven.Count)
    $covKeys=New-RmDtoSet
    foreach($c in $coverage) {
-    Assert-RmDto ($platforms -ccontains $c.console -and $covKeys.Add($c.console)) 'CATDTO_COVERAGE_CONSOLE'
-    if ($c.status -ceq 'complete') {
-     Assert-RmDto $complete 'CATDTO_COMPLETE_UNPROVEN'
+    $console=Get-RmDtoField $c 'console'
+    $claimed=Get-RmDtoField $c 'status'
+    Assert-RmDto ($platformKeys.Contains($console) -and $covKeys.Add($console)) 'CATDTO_COVERAGE_CONSOLE'
+    Assert-RmDto (@('complete','partial','unobserved') -ccontains $claimed) 'CATDTO_COVERAGE_STATUS_INVALID'
+    $needed=$expectedByConsole[$console]
+    $allConsoleComplete=$true;$hasObserved=$false;$hasPartial=$false
+    foreach($k in $needed) {
+     if (-not $proven.Contains($k)) { $allConsoleComplete=$false }
+     if ($seen.Contains($k)) { $hasObserved=$true }
+     if ($partialProof.Contains($k)) { $hasPartial=$true }
     }
+    $calculated='unobserved'
+    if ($scan -ceq 'complete' -and $exhaustive -and $allConsoleComplete) { $calculated='complete' }
+    elseif ($hasPartial -or $hasObserved) { $calculated='partial' }
+    if ($claimed -ceq 'complete' -and $calculated -cne 'complete') { throw 'CATDTO_COMPLETE_UNPROVEN' }
+    if ($claimed -cne $calculated) { throw 'CATDTO_COVERAGE_STATUS_MISMATCH' }
    }
    Assert-RmDto ($covKeys.Count -eq @($platforms).Count) 'CATDTO_COVERAGE_CONSOLE_MISSING'
-   if ($complete) {
+   if ($globallyComplete) {
     Assert-RmDto (@($coverage | Where-Object { $_.status -cne 'complete' }).Count -eq 0) 'CATDTO_COMPLETE_COVERAGE_MISMATCH'
    }
    $countKnown=Get-RmDtoField $gen 'countKnown'
    $unitCount=Get-RmDtoField $gen 'observedUnitCount'
-   if (-not $index) { Assert-RmDto ($countKnown -ceq $false -and $null -eq $unitCount) 'CATDTO_INDEX_COUNT_FORGED' }
+   Assert-RmDto ($countKnown -is [bool]) 'CATDTO_GENERATION_COUNT_FLAG'
+   if (-not $index) {
+    Assert-RmDto (-not $countKnown -and $null -eq $unitCount) 'CATDTO_INDEX_COUNT_FORGED'
+   } else {
+    Assert-RmDto ($countKnown -and $unitCount -is [int] -and $unitCount -ge 0) 'CATDTO_GENERATION_COUNT_INVALID'
+   }
   }
  }
  $keys=New-RmDtoSet;$anyUnproven=$false
