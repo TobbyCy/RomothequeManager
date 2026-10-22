@@ -42,8 +42,8 @@ function inspectLibrary(lib) {
   const sid=text(gen.snapshotId,"SNAPSHOT"),gid=text(gen.generationId,"GENERATION"),at=dateUTC(gen.capturedAtUtc);
   if(bySnapshot.has(sid)||genIds.has(gid))fail("DUPLICATE_GENERATION");
   bySnapshot.set(sid,gen);genIds.add(gid);
-  if(!latest||ordinal(at,latest.capturedAtUtc)>0||
-     (at===latest.capturedAtUtc&&ordinal(sid,latest.snapshotId)>0))latest=gen;
+  if(!latest||Date.parse(at)>Date.parse(latest.capturedAtUtc)||
+     (Date.parse(at)===Date.parse(latest.capturedAtUtc)&&ordinal(sid,latest.snapshotId)>0))latest=gen;
   if(!["complete","partial","failed"].includes(gen.scanStatus)||typeof gen.scopeIsExhaustive!=="boolean")fail("SCAN");
   const proof=arr(gen.coverageProof,"PROOF"),seen=new Set(),completeProof=new Set(),partialProof=new Set();
   for(const part of proof){
