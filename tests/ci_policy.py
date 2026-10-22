@@ -259,13 +259,24 @@ def verify_public_ci_guard(root):
     require(re.search(r"(?m)^permissions:\n  contents: read\n", workflow)
             is not None, "PUBLIC_CI_PERMISSIONS_NOT_READONLY")
     for unsafe in ("pull_request_target:", "workflow_run:", "issue_comment:",
-                   "repository_dispatch:", "contents: write", "id-token: write",
+                   "repository_dispatch:", "permissions: write-all",
                    "continue-on-error:", "secrets."):
         require(unsafe not in workflow, "PUBLIC_CI_UNSAFE_DIRECTIVE:" + unsafe)
-    require(not re.search(r"\$\{\{\s*(?:github\.event\.|inputs\.)", workflow),
+    require(re.search(r"(?m)^\s+[a-z-]+:\s+write\s*$", workflow) is None,
+            "PUBLIC_CI_WRITE_PERMISSION")
+    events = re.search(r"(?ms)^on:\n(.*?)^permissions:", workflow)
+    require(events is not None and events.group(1) ==
+            "  pull_request:\n    branches: [main]\n"
+            "    types: [opened, reopened, synchronize, ready_for_review]\n"
+            "  push:\n    branches: [main]\n"
+            "  workflow_dispatch:\n\n",
+            "PUBLIC_CI_UNEXPECTED_TRIGGER")
+    require(not re.search(r"\$\{\{\s*(?:github\.event\.|github\.head_ref|github\.ref_name|inputs\.)", workflow),
             "PUBLIC_CI_UNTRUSTED_INTERPOLATION")
     actions = list(re.finditer(r"(?m)^        uses: ([^\s#]+)", workflow))
-    require(len(actions) >= 1, "PUBLIC_CI_PINNED_ACTION_MISSING")
+    all_uses = list(re.finditer(r"(?m)^\s*(?:-\s+)?uses:\s*([^\s#]+)", workflow))
+    require(len(actions) >= 1 and len(actions) == len(all_uses),
+            "PUBLIC_CI_UNSUPPORTED_ACTION_SHAPE")
     for action in actions:
         value = action.group(1)
         require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
