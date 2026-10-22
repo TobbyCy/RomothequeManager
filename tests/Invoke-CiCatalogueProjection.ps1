@@ -1,4 +1,4 @@
-# T1 synthetic-only positive and negative harness. PS5.1 execution pending.
+﻿# T1 synthetic-only positive and negative harness. PS5.1 execution pending.
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version 2.0
 $root=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -22,6 +22,7 @@ $registry=New-T1Registry
 $cat=New-RmCatalogueProjection -Registry $registry
 Require ($cat.gameCount -eq 1) 'ONE_GAME'
 Require ($cat.games[0].title -ceq 'Étoile') 'UNICODE_TITLE'
+Require ($cat.games[0].title -ceq (([char]0x00C9)+'toile')) 'UNICODE_CODEPOINT_U00C9'
 Require ($cat.games[0].provenance.snapshotId -ceq 'b') 'LATEST_SNAPSHOT'
 Require ((Search-RmCatalogue -Catalogue $cat -Text 'éTOILE').total -eq 1) 'UNICODE_CASE_SEARCH'
 Require ((Search-RmCatalogue -Catalogue $cat -LibraryId 'LIB-FIXTURE').total -eq 0) 'ORDINAL_LIBRARY_FILTER'
