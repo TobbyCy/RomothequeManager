@@ -1,5 +1,7 @@
 # État des fonctionnalités
 
+**Branche T3 expérimentale PR #29 (non intégrée) :** `Modules/CatalogueProjection.psm1` et `Modules/CatalogueDtoContract.psm1` fournissent projection synthétique, recherche, DTO candidat `0.2.0-ui-catalogue-candidate`, validateur indépendant et harness négatifs. PR #30 (T2) ne consomme pas encore ce schéma ; PS5.1/CI/Node **NOT_EXECUTED**. Voir `docs/architecture/catalogue-t3-canonical-candidate.md`. Aucune fonctionnalité nouvelle annoncée comme disponible sur main.
+
 Ce tableau distingue les capacités en cours de revue, les maquettes et les versions **effectivement disponibles**.
 
 | Domaine | État vérifiable | Limite |
