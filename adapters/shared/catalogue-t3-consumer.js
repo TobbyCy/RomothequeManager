@@ -7,6 +7,7 @@ const fail=code=>{throw Error("T3_CATALOGUE_"+code)};
 const text=(x,code)=>typeof x==="string"&&x.trim()?x:fail(code);
 const arr=(x,code)=>Array.isArray(x)?x:fail(code);
 const key=(...parts)=>JSON.stringify(parts);
+const ordinalKey=(...parts)=>parts.map(v=>String(v.length)+":"+v).join("");
 const ordinal=(a,b)=>a<b?-1:a>b?1:0;
 const dateUTC=(v)=>{
  text(v,"DATE");
@@ -162,7 +163,7 @@ function normalize(dto) {
      !integer(dto.gameCount)||dto.gameCount!==games.size)fail("COUNT_FORGED");
  }else if(dto.gameCount!==null)fail("COUNT_FORGED");
  return Object.freeze({schemaVersion:dto.schemaVersion,readOnly:true,
-  games:[...games.values()].sort((a,b)=>ordinal(key(a.libraryId,a.platform,a.gameId),key(b.libraryId,b.platform,b.gameId))),
+  games:[...games.values()].sort((a,b)=>ordinal(ordinalKey(a.libraryId,a.platform,a.gameId),ordinalKey(b.libraryId,b.platform,b.gameId))),
   registry:libs,countKnown:dto.countKnown,gameCount:dto.gameCount,diagnostics});
 }
 function query(model,filter={}) {
