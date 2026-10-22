@@ -18,7 +18,7 @@ try {
         param([scriptblock]$Action,[string]$Code)
         $message=''
         try { & $Action | Out-Null } catch { $message=$_.Exception.Message }
-        Assert-View ($message.Contains($Code)) ('refuse-'+$Code)
+        Assert-View ($message.Contains($Code)) ('refuse-'+$Code+';observed='+$message)
     }
     $old=New-RmSyntheticSnapshot -Id 'snap-a' -Generation 'gen-a' -At '2026-10-20T12:00:00Z' -Units @((New-RmSyntheticUnit 'unit-same'),(New-RmSyntheticUnit 'unit-gone'))
     $new=New-RmSyntheticSnapshot -Id 'snap-b' -Generation 'gen-b' -At '2026-10-21T12:00:00Z' -Units @((New-RmSyntheticUnit 'unit-same'),(New-RmSyntheticUnit 'unit-added'))

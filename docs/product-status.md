@@ -5,7 +5,7 @@ Ce tableau distingue les capacités en cours de revue, les maquettes et les vers
 | Domaine | État vérifiable | Limite |
 | --- | --- | --- |
 | Moteur PowerShell 5.1 / inventaire E1 | Sources techniques en PR d'intégration ; pas encore un composant de version publiée | Aucun scan sur données réelles autorisé |
-| CI GitHub publique — Issue #2 | Indentation Python corrigée ; 30 tests Python PASS sur le premier commit de PR, puis identification d'un faux négatif du canari de chemin CODEOWNERS | Nouveau canari `.github/CODEOWNERS.txt` non ignoré et interdit, à valider sur le HEAD exact ; Windows PS5.1/Pester/Node et `ci-policy-gate` restent soumis aux résultats Actions exacts |
+| CI GitHub publique — Issue #2 | Indentation Python corrigée ; 30 tests Python PASS sur le premier commit de PR, puis identification d'un faux négatif du canari de chemin CODEOWNERS | Canaris de chemins et préflight synthétique PASS, échec CI-0 sur une assertion de refus Bibliothèques ; diagnostic d'exception ajouté sans changer le verdict ; Pester/Node et `ci-policy-gate` restent à valider sur le HEAD exact |
 | Pester 4.10.1 et gardes CI | Suites à revalider au HEAD effectivement intégré dans ce dépôt | Les succès d'un autre commit ne sont pas transférables |
 | Dashboard, Collection, fiches | Prototype HTML/JS intégré : dashboard, catalogue, fiches, filtres et états OFFLINE/STALE/UNKNOWN sur fixtures fictives | Aucun installateur ni accès ROM réel ; Node/Edge et CI encore à vérifier |
 | Bibliothèques, Offline/Stale, snapshots | **Prototype UI #11 codé sur PR Draft #28** : 4 bibliothèques fictives, historique, sélecteur A/B, six résultats, filtres et détail | Projection JS synthétique uniquement ; aucune lecture de données réelles, parité PowerShell non validée |
