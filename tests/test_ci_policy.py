@@ -353,6 +353,22 @@ class DocumentTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
+
+    def test_stab03a_exact_path_allowlist(self):
+        # Real CI-0 allowlist, not an alternate permissive matcher.
+        import re
+        root = Path(__file__).resolve().parent.parent
+        rules, _ = p.path_rules(root)
+        permitted = ["tests/Export-SyntheticUiProjection.ps1","tests/fixtures/TEST_MATRIX_S3.md","tests/fixtures/SyntheticLibrarySnapshots.ps1"]
+        forbidden = ["tests/fixtures/unapproved.json","tests/Export-SyntheticUnverified.ps1"]
+        for path in permitted:
+            with self.subTest(permitted=path):
+                self.assertTrue(any(re.fullmatch(rule, path) for rule in rules), path)
+        for path in forbidden:
+            with self.subTest(forbidden=path):
+                self.assertFalse(any(re.fullmatch(rule, path) for rule in rules), path)
+
+
     def test_product_integrity_guard_has_locked_baseline(self):
         root = Path(__file__).resolve().parent.parent
         import hashlib
