@@ -101,6 +101,14 @@ function Assert-RmCanonicalCatalogueDto {
   $index=Get-RmDtoField $lib 'indexAccessible'
   Assert-RmDto ($index -is [bool]) 'CATDTO_INDEX_INVALID'
   if (-not $index) { $allProven=$false }
+  $availability=Get-RmDtoField $lib 'currentAvailability'
+  $freshness=Get-RmDtoField $lib 'freshness'
+  $availabilityDate=Get-RmDtoField $lib 'availabilityObservedAtUtc'
+  Assert-RmDto (@('ONLINE','OFFLINE','INACCESSIBLE','UNKNOWN') -ccontains $availability -and
+                @('FRESH','STALE','UNKNOWN') -ccontains $freshness) 'CATDTO_LIBRARY_STATE_INVALID'
+  if ($availability -ceq 'UNKNOWN') {
+   Assert-RmDto ($null -eq $availabilityDate) 'CATDTO_UNKNOWN_AVAILABILITY_HAS_DATE'
+  } else { Assert-RmDtoUtc $availabilityDate }
   $sources=Get-RmDtoField $lib 'sources'
   $platforms=Get-RmDtoField $lib 'platforms'
   $generations=Get-RmDtoField $lib 'generations'
@@ -112,6 +120,7 @@ function Assert-RmCanonicalCatalogueDto {
    $sid=Get-RmDtoField $gen 'snapshotId';$gid=Get-RmDtoField $gen 'generationId'
    Assert-RmDtoId $sid 'CATDTO_SNAPSHOT_ID';Assert-RmDtoId $gid 'CATDTO_GENERATION_ID'
    Assert-RmDto ($snapshotIds.Add($sid) -and $generationIds.Add($gid)) 'CATDTO_DUPLICATE_SNAPSHOT_GENERATION'
+   Assert-RmDto ($sid -cne $gid) 'CATDTO_IDENTITY_CONFLATED'
    $captured=Get-RmDtoField $gen 'capturedAtUtc'
    Assert-RmDtoUtc $captured
    $timestamp=[DateTimeOffset]::Parse($captured,[Globalization.CultureInfo]::InvariantCulture)
@@ -206,6 +215,14 @@ function Assert-RmCanonicalCatalogueDto {
     Assert-RmDto ($countKnown -and (Test-RmDtoInt $unitCount)) 'CATDTO_GENERATION_COUNT_INVALID'
    }
   }
+  $lastCompleteRef=Get-RmDtoField $lib 'lastVerifiedCompleteRef'
+  if ($null -ne $lastCompleteRef) {
+   Assert-RmDtoId $lastCompleteRef 'CATDTO_LAST_VERIFIED_INVALID'
+   $verified=@($generations | Where-Object { $_.snapshotId -ceq $lastCompleteRef })
+   Assert-RmDto ($verified.Count -eq 1) 'CATDTO_LAST_VERIFIED_ORPHAN'
+   Assert-RmDto ($verified[0].scanStatus -ceq 'complete' -and $verified[0].scopeIsExhaustive -and
+    @($verified[0].coverage | Where-Object { $_.status -cne 'complete' }).Count -eq 0) 'CATDTO_LAST_VERIFIED_UNPROVEN'
+  }
   if ($null -eq $latest) { $allProven=$false }
   else {
    $latestByLibrary.Add($lid,$latest)
@@ -249,7 +266,8 @@ function Assert-RmCanonicalCatalogueDto {
   Assert-RmDto ($status -ceq $(if($cover -ceq 'KNOWN'){'KNOWN'}else{'INCOMPLETE'})) 'CATDTO_STATUS_FORGED'
   if ($cover -cne 'KNOWN') { $anyUnproven=$true }
   if ($quality -ceq 'KNOWN') { Assert-RmDto ($cover -ceq 'KNOWN' -and $lib.freshness -ceq 'FRESH') 'CATDTO_QUALITY_FORGED' }
-  if ($quality -ceq 'STALE') { Assert-RmDto ($lib.freshness -ceq 'STALE') 'CATDTO_STALE_FORGED' }
+  if ($quality -ceq 'STALE') { Assert-RmDto ($lib.freshness -ceq 'STALE' -and $cover -ceq 'KNOWN') 'CATDTO_STALE_FORGED' }
+  if ($quality -ceq 'PARTIALLY_OBSERVED') { Assert-RmDto ($cover -ceq 'UNKNOWN') 'CATDTO_PARTIAL_QUALITY_FORGED' }
   if ($quality -ceq 'UNKNOWN') { Assert-RmDto ($lib.freshness -ceq 'UNKNOWN') 'CATDTO_UNKNOWN_QUALITY_FORGED' }
   $variantKeys=New-RmDtoSet
   foreach($v in $variants) {
