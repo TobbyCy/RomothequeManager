@@ -31,5 +31,5 @@ const tick=()=>new Promise(resolve=>setImmediate(resolve));
  let called=false;
  events.change({target:{id:"synthetic-catalogue-import",files:[{size:6*1024*1024,text:()=>{called=true;return Promise.resolve("{}")}}]}});
  assert.equal(called,false,"oversized input must not be read");
- console.log("STAB03B_SYNTHETIC_IMPORT_PASS checks=8 | Node simulated DOM | browser=NOT_EXECUTED | physical_data=NONE");
+ console.log("STAB03B_SYNTHETIC_IMPORT_PASS checks=9 | Node simulated DOM | browser=NOT_EXECUTED | physical_data=NONE");
 })().catch(e=>{console.error(e);process.exitCode=1});
