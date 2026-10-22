@@ -3,6 +3,7 @@ name: Adaptive CI
 on:
   pull_request:
     branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
   push:
     branches: [main]
   workflow_dispatch:
@@ -113,9 +114,55 @@ jobs:
             $env:RM_CANONICAL_EXPORT_JSON = $syntheticFile
             node .\tests\catalogue_t3_consumer.test.cjs
             if ($LASTEXITCODE -ne 0) { throw 'CATDTO_NODE_CANARIES_FAILED' }
+            # Dev 2's Unicode test consumes these exact producer bytes; it is
+            # never replaced by a handcrafted fixture or silently skipped.
+            $ui = Join-Path $PWD 'prototype\ui11'
+            if (Test-Path -LiteralPath (Join-Path $ui 't2-catalogue-model.js') -PathType Leaf) {
+              $unicodeTest = Join-Path $ui 'unicode-producer.test.cjs'
+              if (-not (Test-Path -LiteralPath $unicodeTest -PathType Leaf)) { throw 'UI_UNICODE_PRODUCER_TEST_MISSING' }
+              node $unicodeTest $syntheticFile
+              if ($LASTEXITCODE -ne 0) { throw 'UI_UNICODE_PRODUCER_FAILED' }
+            }
           } finally {
             Remove-Item Env:RM_CANONICAL_EXPORT_JSON -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $syntheticFile -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: UI prototype - complete Node smoke suite when prototype is present
+        shell: powershell
+        run: |
+          $ui = Join-Path $PWD 'prototype\ui11'
+          if (Test-Path -LiteralPath $ui -PathType Container) {
+            # Cross-branch textual adapter canary is meaningful only after #28
+            # supplies both JS sources. Do not silently skip incomplete UI trees.
+            $adapter = Join-Path $ui 'projection-adapter.js'
+            $data = Join-Path $ui 'projection-data.js'
+            if (-not (Test-Path -LiteralPath $adapter -PathType Leaf) -or
+                -not (Test-Path -LiteralPath $data -PathType Leaf)) { throw 'UI_ADAPTER_SOURCES_MISSING' }
+            & .\tests\Invoke-CiUiAdapterContract.ps1 -UiAdapterPath $adapter -UiDataPath $data
+            if ($LASTEXITCODE -ne 0) { throw 'UI_ADAPTER_TEXTUAL_CANARY_FAILED' }
+            node --version
+            if ($LASTEXITCODE -ne 0) { throw 'UI_NODE_REQUIRED' }
+            $expected = @('smoke.cjs','projection-smoke.cjs','integrated-smoke.cjs')
+            if (Test-Path -LiteralPath (Join-Path $ui 't2-catalogue-model.js') -PathType Leaf) {
+              $expected += @('t2-catalogue.test.cjs','t4-catalogue.test.cjs',
+                'synthetic-import.test.cjs','ui-journey.test.cjs','unicode-producer.test.cjs')
+            }
+            $actual = @(Get-ChildItem -LiteralPath $ui -Filter '*.cjs' -File | ForEach-Object { $_.Name })
+            $actualSorted = @( $actual | Sort-Object )
+            $expectedSorted = @( $expected | Sort-Object )
+            if (($actualSorted -join '|') -cne ($expectedSorted -join '|')) { throw 'UI_TEST_DISCOVERY_MISMATCH' }
+            foreach ($test in $expected) {
+              if ($test -ceq 'unicode-producer.test.cjs') {
+                # Executed once using real PS5.1 export in the preceding step.
+                # The discovery gate still requires this file to exist.
+                continue
+              }
+              node (Join-Path $ui $test)
+              if ($LASTEXITCODE -ne 0) { throw ('UI_SMOKE_FAILED:' + $test) }
+            }
+          } else {
+            Write-Host 'UI_NOT_APPLICABLE_NO_PROTOTYPE_IN_TREE'
           }
 
       - name: Documentation currency gate (PR and main)

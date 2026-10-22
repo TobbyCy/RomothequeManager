@@ -50,6 +50,12 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 - Tests UI supplémentaires versionnés ; V8 simulé historique ne certifie pas Node natif, Edge ni la chaîne PS5.1→JSON→JS sur cet arbre.
 - Aucune application autonome ni Release.
 
+## CI publique et sécurité de contribution — PR #31
+
+- Raccordement de huit suites Node du prototype à la CI, dont la vérification Unicode alimentée par le producteur PowerShell.
+- Vérification des événements et permissions minimales GitHub Actions, CODEOWNERS et gate final fail-closed.
+- Règles d'administration de `main` à configurer après PUBLIC. Exécution Actions sur cet arbre non vérifiée.
+
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.

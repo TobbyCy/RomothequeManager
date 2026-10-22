@@ -5,6 +5,7 @@ Ce tableau distingue les capacités en cours de revue, les maquettes et les vers
 | Domaine | État vérifiable | Limite |
 | --- | --- | --- |
 | Moteur PowerShell 5.1 / inventaire E1 | Sources techniques en PR d'intégration ; pas encore un composant de version publiée | Aucun scan sur données réelles autorisé |
+| CI GitHub publique — PR #31 | Workflow renforcé et préparation CODEOWNERS/contrôles Node synthétiques | Exécution effective et required check post-PUBLIC à confirmer |
 | Pester 4.10.1 et gardes CI | Suites à revalider au HEAD effectivement intégré dans ce dépôt | Les succès d'un autre commit ne sont pas transférables |
 | Dashboard, Collection, fiches | Prototype HTML/JS intégré : dashboard, catalogue, fiches, filtres et états OFFLINE/STALE/UNKNOWN sur fixtures fictives | Aucun installateur ni accès ROM réel ; Node/Edge et CI encore à vérifier |
 | Bibliothèques, Offline/Stale, snapshots | **Prototype UI #11 codé sur PR Draft #28** : 4 bibliothèques fictives, historique, sélecteur A/B, six résultats, filtres et détail | Projection JS synthétique uniquement ; aucune lecture de données réelles, parité PowerShell non validée |
