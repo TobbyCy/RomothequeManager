@@ -15,7 +15,8 @@ function partial(d){
  const l=d.registry.libraries[0],g=l.generations[0];
  g.scanStatus="partial";g.scopeIsExhaustive=false;
  g.coverage[0].status="partial";g.coverageProof[0].status="partial";
- g.countKnown=false;g.observedUnitCount=null;l.lastVerifiedCompleteRef=null;
+ // A partial scan can count observed units; it cannot prove exhaustive gameCount.
+ g.countKnown=true;g.observedUnitCount=2;l.lastVerifiedCompleteRef=null;
  d.games[0].quality="PARTIALLY_OBSERVED";d.games[0].status="INCOMPLETE";
  d.games[0].coverStatus="UNKNOWN";
  d.games[0].observations.forEach(o=>o.observationStatus="PARTIAL");
