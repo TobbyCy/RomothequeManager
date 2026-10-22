@@ -54,7 +54,9 @@ gameCount = 999                                -> CATDTO_COUNT_MISMATCH
 
 ## Consommateur candidat fourni à Dev 2
 
-`adapters/shared/catalogue-t3-consumer.js` expose `RM_T3_CATALOGUE.normalize(dto)` et `query(model,filters)` sans accès disque/réseau ; il accepte la version T3, conserve `title=null`, refuse les références orphelines, les fausses couvertures, les preuves de partition dupliquées et les compteurs incohérents. **Ce fichier est sur la branche #29, pas dans #30** : Dev 2 doit en auditer le comportement et décider s'il adapte son propre modèle, sans import silencieux. `tests/catalogue_t3_consumer.test.cjs` contient 13 assertions Node candidates : `node tests/catalogue_t3_consumer.test.cjs`. **NODE_NOT_EXECUTED**. Le contrôle JS ne remplace pas le validateur PowerShell indépendant ni l'attestation d'origine.
+`adapters/shared/catalogue-t3-consumer.js` expose `RM_T3_CATALOGUE.normalize(dto)` et `query(model,filters)` sans accès disque/réseau ; il accepte la version T3, conserve `title=null`, refuse les références orphelines, les fausses couvertures, les preuves de partition dupliquées et les compteurs incohérents. **Ce fichier est sur la branche #29, pas dans #30** : Dev 2 doit en auditer le comportement et décider s'il adapte son propre modèle, sans import silencieux. `tests/catalogue_t3_consumer.test.cjs` contient 14 assertions Node candidates : `node tests/catalogue_t3_consumer.test.cjs`. **NODE_NOT_EXECUTED**. Le contrôle JS ne remplace pas le validateur PowerShell indépendant ni l'attestation d'origine.
+
+**Fixture JSON partagée :** `tests/fixtures/CatalogueT3CanonicalSample.json` est un exemple synthétique explicite (bibliothèque OFFLINE, snapshot STALE, couverture prouvée, jeu à deux disques, provenance distincte snapshot/generation). Les deux harness `Invoke-CiCanonicalCatalogue.ps1` et `catalogue_t3_consumer.test.cjs` lisent **le même fichier** et le soumettent à leurs validateurs respectifs. **Exemple assemblé statiquement, pas produit par une exécution PS5.1** : il ne remplace pas le futur test de parité sur la sortie de `Export-SyntheticCanonicalCatalogue.ps1`.
 
 ## Compatibilité avec T2 #30 : divergences explicites
 
