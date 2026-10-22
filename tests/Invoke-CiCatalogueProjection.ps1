@@ -84,6 +84,11 @@ $bad.libraries[0].sources=@(
 )
 $multi=New-RmCatalogueProjection -Registry $bad
 Require ($multi.games[0].coverageStatus -ceq 'INCOMPLETE') 'MULTI_ROOT_UNPROVEN'
+$dated=New-T1Registry
+$dated.libraries[0].snapshots[0].capturedAtUtc='2026-10-21T12:00:00Z'
+$dated.libraries[0].snapshots[1].capturedAtUtc='2026-10-21T12:00:00.900Z'
+$latest=New-RmCatalogueProjection -Registry $dated
+Require ($latest.games[0].provenance.snapshotId -ceq 'b') 'FRACTIONAL_UTC_LATEST'
 $first=& (Join-Path $PSScriptRoot 'Export-SyntheticCatalogue.ps1')
 $second=& (Join-Path $PSScriptRoot 'Export-SyntheticCatalogue.ps1')
 Require ($first -ceq $second) 'DETERMINISTIC_JSON'
