@@ -51,9 +51,14 @@ function New-RmCatalogueProjection {
   $ordered=New-Object 'System.Collections.Generic.List[object]'
   foreach ($snap in $byId.Values) { $ordered.Add($snap) }
   $latest=$null
+  $latestStamp=[DateTimeOffset]::MinValue
   foreach ($snap in $ordered) {
-   if ($null -eq $latest -or [string]::CompareOrdinal($snap.capturedAtUtc,$latest.capturedAtUtc) -gt 0 -or
-       ($snap.capturedAtUtc -ceq $latest.capturedAtUtc -and [string]::CompareOrdinal($snap.snapshotId,$latest.snapshotId) -gt 0)) { $latest=$snap }
+   $stamp=[DateTimeOffset]::Parse($snap.capturedAtUtc,[Globalization.CultureInfo]::InvariantCulture)
+   if ($null -eq $latest -or $stamp -gt $latestStamp -or
+       ($stamp -eq $latestStamp -and [string]::CompareOrdinal($snap.snapshotId,$latest.snapshotId) -gt 0)) {
+    $latest=$snap
+    $latestStamp=$stamp
+   }
   }
   $generation=@($card.generations | Where-Object { $_.snapshotId -ceq $latest.snapshotId })[0]
   $fullyCovered=($latest.scanStatus -ceq 'complete' -and $latest.scopeIsExhaustive -and
