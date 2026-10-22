@@ -18,7 +18,7 @@ import ci_policy as p
 class ClassificationTests(unittest.TestCase):
     def test_routes(self):
         cases = {
-            "DOCS_ONLY": ["README.md", "docs/developer/workflow.md", "docs/decisions/0001-demo.md"],
+            "DOCS_ONLY": ["README.md", "BRANDING.md", "LEGAL.md", "docs/developer/workflow.md", "docs/decisions/0001-demo.md"],
             "PS_ONLY": ["Modules/Inventory.psm1", "tests/Unit/Demo.Tests.ps1", "Export/ExportE1.psm1"],
             "DOTNET_ONLY": ["src/RomothequeManager.V2/Main.cs", "tests/dotnet/RomothequeManager.V2.Tests/Unit.cs"],
             "SHARED_OR_MIXED": ["contracts/demo.json", "Modules/StateCodec.psm1", "adapters/shared/Demo.cs"],
@@ -291,13 +291,13 @@ class DocumentTests(unittest.TestCase):
     def test_policy_uses_existing_allowlist(self):
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
-        for path in ("LICENSE", "README.md", "tests/ci_policy.py", "tests/test_ci_policy.py", "tests/Invoke-CiE1PreflightSynthetic.ps1"):
+        for path in ("LICENSE", "BRANDING.md", "LEGAL.md", "README.md", "tests/ci_policy.py", "tests/test_ci_policy.py", "tests/Invoke-CiE1PreflightSynthetic.ps1"):
             self.assertTrue(any(__import__('re').fullmatch(r, path) for r in rules))
         license_text = (root / "LICENSE").read_text(encoding="utf-8")
         self.assertTrue(license_text.startswith("MIT License\n\nCopyright (c) 2026 Cyril Tobler\n\n"))
         self.assertTrue(license_text.endswith("OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"))
         self.assertEqual("INFRA_SECURITY_UNKNOWN", p.classify([("A", "LICENSE")]))
-        for path in (".github/workflows/unreviewed.yml", "tests/ci_policy_extra.py", "docs/secret.exe", "ROMS/demo.gba", "SECURITY.txt", "LICENSE.txt", "LICENSE.bak", "license", "tests/Invoke-CiE1PreflightSynthetic.ps1.bak", "tests/Invoke-CiE1PreflightSynthetic.ps1/extra"):
+        for path in (".github/workflows/unreviewed.yml", "tests/ci_policy_extra.py", "docs/secret.exe", "ROMS/demo.gba", "SECURITY.txt", "LICENSE.txt", "LICENSE.bak", "license", "BRANDING.md.bak", "LEGAL.txt", "LEGAL.md/evil", "tests/Invoke-CiE1PreflightSynthetic.ps1.bak", "tests/Invoke-CiE1PreflightSynthetic.ps1/extra"):
             self.assertFalse(any(__import__('re').fullmatch(r, path) for r in rules))
 
     def test_public_issue_form_allowlist_and_unexpected_paths_fail_closed(self):
