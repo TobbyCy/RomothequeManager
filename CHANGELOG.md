@@ -4,7 +4,7 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 ## Non publié — développement
 
-- Issue #2 : correction de l'indentation du commit conditionnel dans le test Python de routage CI (`tests/test_ci_policy.py`, lignes 555–556). Aucun changement aux jobs, permissions, chemins, canaris ou décisions du gate ; succès des suites à établir au SHA de la PR.
+- Issue #2 : correction de l'indentation du commit conditionnel dans le test Python de routage CI (`tests/test_ci_policy.py`, lignes 555–556) ; remplacement d'un canari négatif de chemin devenu obsolète (`.github/CODEOWNERS`, autorisé) par `.github/CODEOWNERS.bak` (toujours interdit). Huit chemins négatifs contrôlés sans assouplir l'allowlist ; tests et gate à vérifier sur le HEAD exact.
 
 - Guides du produit, de la contribution et de la sécurité, lexique et documentation d'architecture.
 - Parcours d'interface et critères d'acceptation décrits pour les travaux futurs.
