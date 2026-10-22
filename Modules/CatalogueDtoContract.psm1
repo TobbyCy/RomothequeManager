@@ -27,7 +27,7 @@ function Assert-RmDtoUtc {
   $date.Offset -eq [TimeSpan]::Zero) 'CATDTO_UTC_INVALID'
 }
 function New-RmDtoSet {
- return (New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal))
+ return ,(New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal))
 }
 function Get-RmDtoKey {
  param([string[]]$Parts)
