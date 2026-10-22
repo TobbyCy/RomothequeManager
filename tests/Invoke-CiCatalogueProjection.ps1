@@ -33,7 +33,7 @@ MustReject { New-RmCatalogueProjection -Registry $bad } 'CATALOG_DUPLICATE_ROM_I
 $bad=New-T1Registry
 $bad.libraries[0].snapshots[1].units[0].gameId=$null
 $amb=New-RmCatalogueProjection -Registry $bad
-Require ($amb.gameCount -eq 0 -and @($amb.diagnostics | Where-Object { $_.code -ceq 'CATALOG_IDENTITY_AMBIGUOUS' }).Count -eq 1) 'AMBIGUITY_NOT_GUESSED'
+Require ($null -eq $amb.gameCount -and -not $amb.countKnown -and @($amb.games).Count -eq 0 -and @($amb.diagnostics | Where-Object { $_.code -ceq 'CATALOG_IDENTITY_AMBIGUOUS' }).Count -eq 1) 'AMBIGUITY_NOT_GUESSED'
 $bad=New-T1Registry
 $bad.libraries[0].snapshots[1].scopeIsExhaustive=$false
 $bad.libraries[0].lastVerifiedCompleteRef='a'
