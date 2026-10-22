@@ -12,4 +12,4 @@
 
 ## Droits et disponibilité
 
-Les cinq fichiers graphiques historiques du projet ne sont **pas inclus** dans cet export Produit tant que les droits de diffusion ne sont pas établis. Ne pas les recréer de mémoire ou faire croire qu'un logo officiel est livré. L'utilisation publique, la licence et les attributions exigent une décision propriétaire avant toute Release.
+Les cinq ressources graphiques V2 de référence ne sont **pas incluses** dans ce dépôt Produit tant que leur provenance et les droits de redistribution ne sont pas établis. Ne pas les recréer de mémoire ni laisser croire qu'un logo officiel est livré. **La licence MIT du code et de la documentation originale n'accorde pas automatiquement les droits sur ces visuels.** Leur utilisation publique et leurs attributions nécessitent une vérification distincte du propriétaire ; l'absence de ces médias n'empêche pas la publication du code. Voir la [description officielle de l'identité graphique](../../BRANDING.md).

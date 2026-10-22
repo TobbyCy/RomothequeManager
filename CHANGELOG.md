@@ -1,7 +1,5 @@
 # Journal des changements
 
-- **STAB-03A #27 (Draft)** : corrections exécutables PowerShell/CI des ensembles vides, oracle lastVerified et allowlists fermées ; propagation à la branche descendante requise et retest Agent indépendant. **NOT_EXECUTED** sur nouveau HEAD, aucune fusion.
-
 Ce document décrit les évolutions **effectivement intégrées**. Les fonctionnalités proposées figurent dans la [roadmap](docs/roadmap.md) et ne sont pas annoncées comme livrées.
 
 ## Non publié — développement
@@ -9,45 +7,36 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 - Guides du produit, de la contribution et de la sécurité, lexique et documentation d'architecture.
 - Parcours d'interface et critères d'acceptation décrits pour les travaux futurs.
 - Préparation des contrôles du moteur PowerShell 5.1 sur données synthétiques.
+- Licence MIT adoptée pour les éléments originaux autorisés (`SPDX-License-Identifier: MIT`, copyright 2026 Cyril Tobler) ; garde CI à chemin exact pour `LICENSE` et admission du script préflight synthétique déjà suivi `tests/Invoke-CiE1PreflightSynthetic.ps1`. Aucun droit tiers ou média externe concédé.
 
 **Aucune application Windows, ZIP ni GitHub Release n'a encore été publiée.** Les PR non fusionnées ne constituent pas des fonctionnalités disponibles.
 
-## En préparation — Issue #9 (PR Draft non fusionnée)
+## En préparation — UI #11 (PR Draft #28, non fusionnée)
 
-- Contrat de snapshots v1 en mémoire : générations datées, bibliothèque logique, plateforme/couverture et états de capture distincts de la disponibilité Offline/Stale.
-- Composant PowerShell 5.1 de comparaison des identités persistantes `romUnitId` avec `gameId`/`variantId` ; `fileId` ne sert jamais d'identité inter-scans.
-- Corrections C1/C2 suite à contre-revue : intersection explicitement complète **dans A et B** (scan et plateforme) requise pour toute conclusion, y compris unité commune et ajout ; six classifications distinctes `ADDED`, `CHANGED`, `UNCHANGED`, `NOT_OBSERVED_IN_B_COVERED_SCOPE`, `UNKNOWN` (données insuffisantes) et `NOT_COMPARABLE` (périmètre non déclaré ou incompatibilité isolable).
-- Harness de fixtures synthétiques et canaris de refus raccordé à CI-0, sans modification des 33 sources historiques.
-- Le digest d'observation décrit seulement les champs d'observation sourcés ; `CHANGED`/`UNCHANGED` **n'attestent pas le changement ou l'identité des octets ROM**. Les fixtures C1/C2 et la répétabilité déterministe sont définies, mais ne sont pas exécutées.
+- Prototype **hors ligne HTML/CSS/JavaScript natifs**, situé dans `prototype/ui11/` : navigation Dashboard, Bibliothèques, Collection, Comparaison et inspecteur.
+- Quatre bibliothèques **fictives** et historique daté ; états ONLINE/OFFLINE/INACCESSIBLE/UNKNOWN, FRESH/STALE/UNKNOWN, dernier complet vérifié indépendant de la dernière tentative.
+- Sélection A/B, six classifications, filtres et détail ; couverture A/B toujours affichée, y compris en cas de liste vide sous scan partiel. Aucun libellé de suppression physique.
+- Miroir JavaScript du contrat de comparaison #26 **pour démonstration uniquement**, non une exécution PowerShell ni une preuve de parité avec Dev 1.
+- Test V8 à DOM simulé effectué en session ; smoke Node.js fourni mais **non exécuté**, pas de capture ni de test navigateur graphique, CI/Windows **NOT_EXECUTED**.
+- **Non livré** sur `main`, aucun exécutable Windows, ZIP ou Release, aucune lecture/écriture ROM.
 
-**Validation : NON EXÉCUTÉE** sur le HEAD Draft dans GitHub Actions (service privé bloqué) ; aucune affirmation de tests Pester, Windows, E1 réel ou Release réussis. L'intégration fonctionnelle et sa revue restent à effectuer.
 
-## En préparation — Sprint #10 Bibliothèques / snapshots (PR Draft empilée #27)
+- Sprint #13, **PR Draft #28 uniquement** : adaptateur de projection JSON synthétique `0.1.0-synthetic`, deux modes, contrôle des six comptes, de la couverture et refus sans paire précalculée. **Non fusionné, non publié** ; aucune parité PS5.1 revendiquée.
 
-- Registre de bibliothèques **synthétiques** en mémoire : `libraryId` persistant, nom, plateformes, sources/rootKey/domaines, disponibilité live datée, fraîcheur, index consultable, dernier snapshot complet référencé et historique de générations.
-- Adaptateur read-only `Get-RmLibraryComparisonView` utilisant **sans duplication** le comparateur #26, exposant refs A/B, couvertures par plateforme et partitions de provenance, six états, raisons, compteurs sur A∪B et limitations explicites, y compris **zéro unité avec couverture insuffisante**.
-- Fail-closed : couverture `complete` dérivée uniquement d'un manifeste de partitions complet et exhaustif, jamais de la disponibilité ONLINE ; multi-racines/domaines non prouvés → UNKNOWN / INCOMPLETE. Offline/Stale historique conservé lorsque l'index est accessible.
-- Fixtures synthétiques et canaris négatifs ajoutés à CI-0, allowlist limitée au chemin exact de fixture ; intégrité des 18 modules historiques conservée, deux modules de fonctionnalité explicitement approuvés. Aucune politique désactivée.
 
-**Validation Windows PowerShell 5.1/Pester/CI : NOT_EXECUTED.** PR #27 dépend de #26 non fusionnée ; pas de GUI, données réelles, application publiée ni Release.
+- **Sprint #15, PR Draft #28** : contrat candidat catalogue de jeux et fiche projetée, provenance datée, variantes, observations ROM séparées, navigation vers snapshots ; sample synthétique hors ligne et smoke Node ajouté (NOT_EXECUTED). Adaptateur registre aligné sur `countKnown`/compteur null. 9 contrôles V8 avec DOM simulé PASS, aucune parité PS5.1 ni recette navigateur.
 
-## En préparation — Sprint #16 Chaîne synthétique UI (#27)
+## Comparaison de snapshots synthétiques — Issue #9
 
-- Sept scénarios indépendants, dont ONLINE/STALE distinct de OFFLINE/STALE, exposés dans le JSON via `referenceVectors[]` avec identité de bibliothèque, snapshots A/B et résultats attendus.
-- Producteur renforcé : refus des IDs dupliqués, références de comparaison incohérentes, preuve de couverture absente et compteur incohérent ; harness JSON renforcé.
-- Contrôle statique optionnel `tests/Invoke-CiUiAdapterContract.ps1` pour les sources UI #28 externes, sans modifier la branche UI.
-- Procédure de reproduction Windows PS5.1 et plan de réalignement empilé documentés dans `docs/architecture/contrat-json-ui-projection.md`.
+- Module PowerShell de comparaison A/B avec six classifications et couverture prouvée des deux générations.
+- Identités `romUnitId` comparées ordinalement et sensibles à la casse ; canaris synthétiques associés.
+- Aucun effet sur les fichiers ROM ; tests PS5.1 et CI sur l'arbre consolidé **non vérifiés**.
 
-**PS51_NOT_EXECUTED**, aucune sortie JSON calculée en exécution, aucune fusion ou Release.
+## Projection synthétique des bibliothèques — Issue #10
 
-## En préparation — Sprint #14 Stabilisation noyau et export UI (#27)
-
-- Identités `libraryId/snapshotId/generationId/sourceKey/rootKey` traitées en ordinal sensible à la casse ; partitions `console/sourceKey/rootKey/domain` encodées par segments de longueur, sans collision de séparateur `|`.
-- Index inaccessible : `countKnown=false` et `observedUnitCount=null` ; aucune fausse bibliothèque vide. Scan failed ou preuve exhaustive absente → couverture non complète.
-- Producteur synthétique `tests/Export-SyntheticUiProjection.ps1` → `{registry,comparisons}` JSON `0.1.0-synthetic` et affectation JS optionnelle `window.RM_PROJECTION_DATA`, via le **vrai** comparateur #26 ; six scénarios de référence et harness de sérialisation.
-- Contrat `docs/architecture/contrat-json-ui-projection.md` pour Dev 2 #28 ; allowlist chemins précis et gate CI-0 de sérialisation ajoutés sans désactiver les protections.
-
-**Tests PowerShell 5.1 et Actions : NOT_EXECUTED.** Sortie JSON synthétique non générée en runtime dans cette session ; adaptation UI nullable à recevoir. PR Draft empilée sur #26 ; pas de fusion ni Release.
+- Registre de bibliothèques et générations, disponibilité et fraîcheur distinctes, couverture fiable ou déclarée inconnue.
+- Exporteur JSON synthétique pour interface hors ligne et canaris négatifs ; aucun effet physique sur ROM.
+- Tests PowerShell 5.1 et CI sur cette intégration : **non vérifiés**.
 
 ## Convention
 
