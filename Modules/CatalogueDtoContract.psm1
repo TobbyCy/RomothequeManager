@@ -102,7 +102,7 @@ function Assert-RmCanonicalCatalogueDto {
   Assert-RmDto ($null -eq $title -or ($title -is [string] -and -not [string]::IsNullOrWhiteSpace($title))) 'CATDTO_TITLE_INVALID'
   $quality=Get-RmDtoField $g 'quality';$status=Get-RmDtoField $g 'status'
   $cover=Get-RmDtoField $g 'coverStatus'
-  Assert-RmDto (@('KNOWN','STALE','PARTIALLY_OBSERVED','CONTRADICTORY') -ccontains $quality) 'CATDTO_QUALITY_INVALID'
+  Assert-RmDto (@('KNOWN','STALE','PARTIALLY_OBSERVED','CONTRADICTORY','UNKNOWN') -ccontains $quality) 'CATDTO_QUALITY_INVALID'
   Assert-RmDto (@('KNOWN','INCOMPLETE') -ccontains $status) 'CATDTO_STATUS_INVALID'
   Assert-RmDto (@('KNOWN','UNKNOWN') -ccontains $cover) 'CATDTO_COVER_INVALID'
   $provenance=Get-RmDtoField $g 'provenance'
@@ -122,6 +122,7 @@ function Assert-RmCanonicalCatalogueDto {
   if ($cover -cne 'KNOWN') { $anyUnproven=$true }
   if ($quality -ceq 'KNOWN') { Assert-RmDto ($cover -ceq 'KNOWN' -and $lib.freshness -ceq 'FRESH') 'CATDTO_QUALITY_FORGED' }
   if ($quality -ceq 'STALE') { Assert-RmDto ($lib.freshness -ceq 'STALE') 'CATDTO_STALE_FORGED' }
+  if ($quality -ceq 'UNKNOWN') { Assert-RmDto ($lib.freshness -ceq 'UNKNOWN') 'CATDTO_UNKNOWN_QUALITY_FORGED' }
   $variantKeys=New-RmDtoSet
   foreach($v in $variants) {
    Assert-RmDtoId (Get-RmDtoField $v 'variantId') 'CATDTO_VARIANT_ID'
