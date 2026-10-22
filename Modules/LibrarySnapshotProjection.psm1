@@ -198,8 +198,21 @@ function New-RmLibraryProjection {
                 observedUnitCount=$(if ($lib.indexAccessible) { @($snap.units).Count } else { $null })
             })
         }
+        # Never infer the latest observation from a culture-dependent textual
+        # sort: ".900Z" and "Z" do not sort in chronological order.
         $latest=$null
-        if ($gens.Count -gt 0) { $latest=$gens[$gens.Count-1].capturedAtUtc }
+        $latestStamp=[DateTimeOffset]::MinValue
+        $latestId=$null
+        foreach ($gen in $gens) {
+            $stamp=Assert-RmLibraryDate $gen.capturedAtUtc
+            if ($null -eq $latest -or $stamp -gt $latestStamp -or
+                ($stamp -eq $latestStamp -and
+                 [string]::CompareOrdinal($gen.snapshotId,$latestId) -gt 0)) {
+                $latest=$gen.capturedAtUtc
+                $latestStamp=$stamp
+                $latestId=$gen.snapshotId
+            }
+        }
         $cards.Add([pscustomobject]@{
             libraryId=$lib.libraryId;name=$lib.name;platforms=@($lib.platforms)
             sources=@($lib.sources);currentAvailability=$lib.currentAvailability
