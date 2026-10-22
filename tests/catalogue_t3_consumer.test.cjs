@@ -8,7 +8,7 @@ const clone=v=>JSON.parse(JSON.stringify(v));
 const proof={console:"GBA",sourceKey:"src",rootKey:"root",domain:"ROMS",status:"complete"};
 const snapshot={snapshotId:"snap",generationId:"gen",capturedAtUtc:"2026-10-21T12:00:00Z",scanStatus:"complete",scopeIsExhaustive:true,coverageProof:[proof],coverage:[{console:"GBA",status:"complete"}],countKnown:true,observedUnitCount:1};
 const dto={schemaVersion:"0.2.0-ui-catalogue-candidate",readOnly:true,
- registry:{schemaVersion:"0.1.0-synthetic",readOnly:true,libraries:[{libraryId:"lib",indexAccessible:true,currentAvailability:"OFFLINE",freshness:"FRESH",platforms:["GBA"],sources:[{sourceKey:"src",rootKey:"root",domains:["ROMS"]}],generations:[snapshot]}]},
+ registry:{schemaVersion:"0.1.0-synthetic",readOnly:true,libraries:[{libraryId:"lib",indexAccessible:true,currentAvailability:"OFFLINE",availabilityObservedAtUtc:"2026-10-21T10:00:00Z",lastVerifiedCompleteRef:"snap",freshness:"FRESH",platforms:["GBA"],sources:[{sourceKey:"src",rootKey:"root",domains:["ROMS"]}],generations:[snapshot]}]},
  games:[{libraryId:"lib",gameId:"game",platform:"GBA",title:null,quality:"KNOWN",status:"KNOWN",coverStatus:"KNOWN",availability:"OFFLINE",freshness:"FRESH",variants:[{variantId:"variant",label:"variant"}],provenance:[{libraryId:"lib",snapshotId:"snap",generationId:"gen",observedAtUtc:"2026-10-21T12:00:00Z",source:"SYNTHETIC_SNAPSHOT"}],observations:[{libraryId:"lib",snapshotId:"snap",generationId:"gen",romUnitId:"unit",variantId:"variant",observedTitle:null,observationStatus:"OBSERVED"}]}],
  diagnostics:[],countKnown:true,gameCount:1};
 let checks=0;
@@ -46,7 +46,7 @@ rejects("coordinated proof and claim forgery",d=>{
 ok("strict source identity casing",()=>assert.equal(model.query(model.normalize(dto),{libraryId:"LIB"}).total,0));
 ok("mixed GBA proven + PS1 unobserved keeps partial overall",()=>{
  const d=clone(dto),lib=d.registry.libraries[0],gen=lib.generations[0];
- lib.platforms.push("PS1");
+ lib.platforms.push("PS1");lib.lastVerifiedCompleteRef=null;
  gen.coverage.push({console:"PS1",status:"unobserved"});
  d.games[0].coverStatus="UNKNOWN";d.games[0].status="INCOMPLETE";
  d.games[0].quality="PARTIALLY_OBSERVED";d.games[0].observations[0].observationStatus="PARTIAL";
