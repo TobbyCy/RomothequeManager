@@ -354,6 +354,24 @@ class DocumentTests(unittest.TestCase):
 
 class WorkflowTests(unittest.TestCase):
 
+    def test_stab03a_ps51_unicode_sources_have_utf8_bom(self):
+        # GitHub-stored bytes: PS5.1 must never interpret UTF-8 literals as ACP.
+        root = Path(__file__).resolve().parent.parent
+        paths = (
+            "tests/Export-SyntheticCanonicalCatalogue.ps1",
+            "tests/Export-SyntheticCatalogue.ps1",
+            "tests/Invoke-CiCanonicalCatalogue.ps1",
+            "tests/Invoke-CiCatalogueProjection.ps1",
+        )
+        for name in paths:
+            with self.subTest(file=name):
+                raw = (root / name).read_bytes()
+                self.assertTrue(raw.startswith(bytes.fromhex("efbbbf")), name)
+                decoded = raw.decode("utf-8-sig", errors="strict")
+                self.assertNotIn("\u00c3\u2030", decoded)
+        canonical = (root / paths[0]).read_bytes().decode("utf-8-sig")
+        self.assertIn("\u00c9toile des disques", canonical)
+
     def test_stab03a_exact_path_allowlist(self):
         # Real CI-0 allowlist, not an alternate permissive matcher.
         import re
