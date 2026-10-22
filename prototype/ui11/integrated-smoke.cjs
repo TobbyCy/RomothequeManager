@@ -61,7 +61,7 @@ rejectRegistry("S4 duplicate snapshot identity",d=>{const g=d.libraries.find(x=>
 rejectRegistry("S4 complete partition without exhaustive scope",d=>{d.libraries.find(x=>x.libraryId==="lib-mixed").generations[0].scopeIsExhaustive=false},/PROJECTION_UNPROVEN_SCOPE/);
 rejectRegistry("S4 multi-root proof missing from complete partition",d=>{const l=d.libraries.find(x=>x.libraryId==="lib-mixed");l.sources.push({sourceKey:"second",rootKey:"root-2",domains:["ROMS"]})},/PROJECTION_UNPROVEN_SCOPE/);
 rejectRegistry("S4 unknown count cannot be physical zero",d=>{const g=d.libraries.find(x=>x.libraryId==="lib-closed").generations[0];g.observedUnitCount=0},/PROJECTION_UNKNOWN_COUNT_NOT_NULL/);
-rejectRegistry("S4 inaccessible index cannot claim known count",d=>{const g=d.libraries.find(x=>x.libraryId==="lib-closed").generations[0];g.countKnown=true;g.observedUnitCount=0},/PROJECTION_COUNT_INDEX_CONFLICT/);
+rejectRegistry("S4 inaccessible index cannot claim known count",d=>{const g=d.libraries.find(x=>x.libraryId==="lib-closed").generations[0];g.countKnown=true;g.observedUnitCount=0},/PROJECTION_INACCESSIBLE_COUNT/);
 rejectRegistry("S4 unsupported availability",d=>{d.libraries[0].currentAvailability="DISCONNECTED"},/PROJECTION_AVAILABILITY_ENUM/);
 rejectRegistry("S4 unsupported freshness",d=>{d.libraries[0].freshness="OLD"},/PROJECTION_FRESHNESS_ENUM/);
 test("S4 OFFLINE STALE and UNKNOWN remain distinct",()=>{const l=w.RM_PROJECTION.registry(source.registry);const off=l.find(x=>x.libraryId==="lib-demo"),unk=l.find(x=>x.libraryId==="lib-zero");assert.equal(off.availability,"OFFLINE");assert.equal(off.freshness,"STALE");assert.equal(unk.availability,"UNKNOWN")});
