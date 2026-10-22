@@ -111,6 +111,17 @@ Assert-Rejected $x 'CATDTO_OBSERVATION_COUNT_EXCEEDS_SNAPSHOT'
 $x=Clone-Dto $dto
 $x.registry.libraries[0].generations[1].observedUnitCount=99
 Assert-Rejected $x 'CATDTO_SNAPSHOT_OBSERVATION_COUNT_MISMATCH'
+# A complete GBA proof is legitimate even when PS1 is unobserved;
+# global COMPLETE remains forbidden and countKnown stays false.
+$reg=New-ScenarioRegistry
+$reg.libraries[0].platforms=@('GBA','PS1')
+$reg.libraries[0].lastVerifiedCompleteRef=$null
+$mixedCoverage=Project-Scenario $reg
+if ($mixedCoverage.games[0].coverStatus -cne 'UNKNOWN' -or
+ $mixedCoverage.countKnown -or
+ @($mixedCoverage.registry.libraries[0].generations[1].coverage | Where-Object { $_.console -ceq 'GBA' -and $_.status -ceq 'complete' }).Count -ne 1) {
+ throw 'CATDTO_MIXED_PLATFORM_COVERAGE_LOST'
+}
 $x=Clone-Dto $dto
 $x.games[0].availability='OFFLINE'
 Assert-Rejected $x 'CATDTO_LIBRARY_STATE_FORGED'
