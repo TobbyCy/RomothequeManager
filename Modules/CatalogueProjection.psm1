@@ -40,6 +40,7 @@ function New-RmCatalogueProjection {
    continue
   }
   if (@($raw.snapshots).Count -eq 0) {
+   $allIndicesAccessible=$false
    $diagnostics.Add([pscustomobject][ordered]@{code='CATALOG_NO_SNAPSHOT';libraryId=$card.libraryId;snapshotId=$null})
    continue
   }
@@ -87,7 +88,7 @@ function New-RmCatalogueProjection {
    $disc=Get-RmCatProperty $unit 'discNumber'
    if ($null -ne $disc -and ($disc -isnot [int] -or $disc -lt 1)) { throw 'CATALOG_DISC_INVALID' }
    $group.units.Add([pscustomobject][ordered]@{
-    romUnitId=$rom;variantId=$variant;discNumber=$disc
+    romUnitId=$rom;variantId=$variant;discNumber=$disc;observedTitle=$title
     provenance=[pscustomobject][ordered]@{libraryId=$card.libraryId;snapshotId=$latest.snapshotId;generationId=$latest.generationId;observedAtUtc=$latest.capturedAtUtc}
    })
   }
