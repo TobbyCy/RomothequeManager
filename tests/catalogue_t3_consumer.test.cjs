@@ -8,7 +8,7 @@ const clone=v=>JSON.parse(JSON.stringify(v));
 const proof={console:"GBA",sourceKey:"src",rootKey:"root",domain:"ROMS",status:"complete"};
 const snapshot={snapshotId:"snap",generationId:"gen",capturedAtUtc:"2026-10-21T12:00:00Z",scanStatus:"complete",scopeIsExhaustive:true,coverageProof:[proof],coverage:[{console:"GBA",status:"complete"}],countKnown:true,observedUnitCount:1};
 const dto={schemaVersion:"0.2.0-ui-catalogue-candidate",readOnly:true,
- registry:{schemaVersion:"0.1.0-synthetic",readOnly:true,libraries:[{libraryId:"lib",indexAccessible:true,freshness:"FRESH",platforms:["GBA"],sources:[{sourceKey:"src",rootKey:"root",domains:["ROMS"]}],generations:[snapshot]}]},
+ registry:{schemaVersion:"0.1.0-synthetic",readOnly:true,libraries:[{libraryId:"lib",indexAccessible:true,currentAvailability:"OFFLINE",freshness:"FRESH",platforms:["GBA"],sources:[{sourceKey:"src",rootKey:"root",domains:["ROMS"]}],generations:[snapshot]}]},
  games:[{libraryId:"lib",gameId:"game",platform:"GBA",title:null,quality:"KNOWN",status:"KNOWN",coverStatus:"KNOWN",availability:"OFFLINE",freshness:"FRESH",variants:[{variantId:"variant",label:"variant"}],provenance:[{libraryId:"lib",snapshotId:"snap",generationId:"gen",observedAtUtc:"2026-10-21T12:00:00Z",source:"SYNTHETIC_SNAPSHOT"}],observations:[{libraryId:"lib",snapshotId:"snap",generationId:"gen",romUnitId:"unit",variantId:"variant",observedTitle:null,observationStatus:"OBSERVED"}]}],
  diagnostics:[],countKnown:true,gameCount:1};
 let checks=0;
@@ -28,5 +28,21 @@ rejects("duplicate ROM",d=>d.games[0].observations.push({...d.games[0].observati
 rejects("orphan variant",d=>d.games[0].observations[0].variantId="ghost","OBSERVATION");
 rejects("forged count",d=>d.gameCount=999,"COUNT_FORGED");
 rejects("missing coverage with definitive count",d=>d.diagnostics.push({code:"CATALOG_COVERAGE_UNPROVEN"}),"COUNT_FORGED");
+rejects("forged current availability",d=>d.games[0].availability="ONLINE","LIBRARY_STATE");
+rejects("older snapshot masked as latest",d=>{
+ const old={...d.registry.libraries[0].generations[0],snapshotId:"old",generationId:"old-gen",capturedAtUtc:"2026-10-20T12:00:00Z"};
+ d.registry.libraries[0].generations.push(old);
+ d.games[0].provenance[0]={...d.games[0].provenance[0],snapshotId:"old",generationId:"old-gen",observedAtUtc:"2026-10-20T12:00:00Z"};
+ d.games[0].observations[0].snapshotId="old";d.games[0].observations[0].generationId="old-gen";
+},"HISTORICAL_SNAPSHOT");
+rejects("observed-count forged upward",d=>d.registry.libraries[0].generations[0].observedUnitCount=2,"SNAPSHOT_COUNT");
+rejects("bad disc",d=>d.games[0].observations[0].discNumber=0,"DISC");
+rejects("title falsely asserted",d=>d.games[0].title="Invented","TITLE_UNKNOWN");
+rejects("coordinated proof and claim forgery",d=>{
+ const g=d.registry.libraries[0].generations[0];
+ g.coverageProof=[];g.scanStatus="failed";g.scopeIsExhaustive=false;
+ g.coverage[0].status="complete";d.games[0].coverStatus="KNOWN";d.games[0].status="KNOWN";
+},"COVERAGE_FORGED");
+ok("strict source identity casing",()=>assert.equal(model.query(model.normalize(dto),{libraryId:"LIB"}).total,0));
 ok("pagination",()=>assert.equal(model.query(model.normalize(dto),{limit:1}).items.length,1));
 console.log("T3_CANDIDATE_CONSUMER_TESTS_PASS",checks);
