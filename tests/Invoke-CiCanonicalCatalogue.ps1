@@ -104,6 +104,81 @@ Assert-Rejected $x 'CATDTO_PROOF_PARTITION_INVALID'
 $x=Clone-Dto $dto
 $x.games[0].observations[0].PSObject.Properties.Remove('observedTitle')
 Assert-Rejected $x 'CATDTO_FIELD_MISSING:observedTitle'
+# T4-A — adversarial mutations must reach the independent DTO validator.
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].observedUnitCount=1
+Assert-Rejected $x 'CATDTO_OBSERVATION_COUNT_EXCEEDS_SNAPSHOT'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].observedUnitCount=99
+Assert-Rejected $x 'CATDTO_SNAPSHOT_OBSERVATION_COUNT_MISMATCH'
+$x=Clone-Dto $dto
+$x.games[0].availability='OFFLINE'
+Assert-Rejected $x 'CATDTO_LIBRARY_STATE_FORGED'
+$x=Clone-Dto $dto
+$x.games[0].freshness='STALE'
+Assert-Rejected $x 'CATDTO_LIBRARY_STATE_FORGED'
+$x=Clone-Dto $dto
+$x.games[0].observations[0].discNumber=0
+Assert-Rejected $x 'CATDTO_DISC_INVALID'
+$x=Clone-Dto $dto
+$x.games[0].observations[0].discNumber=2.5
+Assert-Rejected $x 'CATDTO_DISC_INVALID'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].capturedAtUtc='2026-10-21T12:00:00+01:00'
+Assert-Rejected $x 'CATDTO_UTC_REQUIRED'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].coverageProof[0].status='invalid'
+Assert-Rejected $x 'CATDTO_PROOF_STATUS_INVALID'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].sources+=@([pscustomobject]@{sourceKey='source-other';rootKey='root-other';domains=@('ROMS')})
+Assert-Rejected $x 'CATDTO_COMPLETE_UNPROVEN'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].platforms+=@('GBA')
+Assert-Rejected $x 'CATDTO_DUPLICATE_PLATFORM'
+$x=Clone-Dto $dto
+$x.games[0].quality='KNOWN'
+$x.games[0].provenance[0].snapshotId='snap-a'
+$x.games[0].provenance[0].generationId='gen-a'
+$x.games[0].provenance[0].observedAtUtc='2026-10-20T12:00:00Z'
+foreach($o in $x.games[0].observations) {
+ $o.snapshotId='snap-a';$o.generationId='gen-a'
+}
+Assert-Rejected $x 'CATDTO_HISTORICAL_SNAPSHOT_AS_LATEST'
+$x=Clone-Dto $dto
+$other=Clone-Dto $x.games[0]
+$other.gameId='game-forged-second'
+$x.games+=@($other)
+$x.gameCount=2
+Assert-Rejected $x 'CATDTO_CROSS_GAME_DUPLICATE_ROM'
+$x=Clone-Dto $dto
+# Simultaneous manipulation: remove proof, change scan, pretend complete everywhere.
+$x.registry.libraries[0].generations[1].coverageProof=@()
+$x.registry.libraries[0].generations[1].scanStatus='failed'
+$x.registry.libraries[0].generations[1].scopeIsExhaustive=$false
+$x.registry.libraries[0].generations[1].coverage[0].status='complete'
+$x.games[0].coverStatus='KNOWN';$x.games[0].status='KNOWN'
+Assert-Rejected $x 'CATDTO_COMPLETE_UNPROVEN'
+$malformedWasRejected=$false
+try { $null=ConvertFrom-Json -InputObject '{"schemaVersion":' -ErrorAction Stop } catch { $malformedWasRejected=$true }
+if (-not $malformedWasRejected) { throw 'CATDTO_MALFORMED_JSON_ACCEPTED' }
+
+# Two complete roots: changing enumeration order must not change canonical bytes.
+$reg=New-ScenarioRegistry
+$src2=[pscustomobject]@{sourceKey='source-2';rootKey='root-2';domains=@('ROMS')}
+$reg.libraries[0].sources+=@($src2)
+foreach($snap in $reg.libraries[0].snapshots) {
+ $snap.coverageProof+=@([pscustomobject]@{
+  console='GBA';sourceKey='source-2';rootKey='root-2';domain='ROMS';status='complete'
+ })
+}
+$original=ConvertTo-Json -InputObject (Project-Scenario $reg) -Depth 40 -Compress
+$reg.libraries[0].sources=@($reg.libraries[0].sources[1],$reg.libraries[0].sources[0])
+$reg.libraries[0].snapshots=@($reg.libraries[0].snapshots[1],$reg.libraries[0].snapshots[0])
+foreach($snap in $reg.libraries[0].snapshots) {
+ $snap.coverageProof=@($snap.coverageProof[1],$snap.coverageProof[0])
+}
+$reordered=ConvertTo-Json -InputObject (Project-Scenario $reg) -Depth 40 -Compress
+if ($original -cne $reordered) { throw 'CATDTO_INPUT_ORDER_CHANGED_JSON' }
 $again=& (Join-Path $PSScriptRoot 'Export-SyntheticCanonicalCatalogue.ps1')
 if ($raw -cne $again) { throw 'CATDTO_JSON_NOT_DETERMINISTIC' }
 Write-Output 'CATDTO_T3_SYNTHETIC_PASS'
