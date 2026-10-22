@@ -9,7 +9,7 @@ let checks=0;const test=(name,fn)=>{fn();checks++;console.log("PASS",name)};
 const reject=(name,mutate,pattern)=>test(name,()=>{const d=clone(w.RM_T2_FIXTURE);mutate(d);assert.throws(()=>parse(d),pattern)});
 test("T1 schema and five synthetic games",()=>{const m=parse();assert.equal(m.games.length,5);assert.equal(m.schemaVersion,"0.1.0-ui-catalogue-t1-candidate")});
 test("unknown total stays null",()=>{const m=parse();assert.equal(m.countKnown,false);assert.equal(m.gameCount,null)});
-test("combined search library platform",()=>assert.equal(w.RM_T2_CATALOGUE.query(parse(),{search:"Pocket",library:"lib-pocket",platform:"GBA"}).length,1));
+test("combined search library platform",()=>assert.equal(w.RM_T2_CATALOGUE.query(parse(),{search:"Adventures",library:"lib-pocket",platform:"GBA"}).length,1));
 test("sort deterministic",()=>{const m=parse();assert.equal(JSON.stringify(w.RM_T2_CATALOGUE.query(m,{sort:"title"})),JSON.stringify(w.RM_T2_CATALOGUE.query(m,{sort:"title"})))});
 test("multi-disc T1 shape accepted without merging units",()=>{const d=clone(w.RM_T2_FIXTURE);d.games[1].units.push({...clone(d.games[1].units[0]),romUnitId:"synthetic-disc-2",discNumber:2});const g=parse(d).games.find(g=>g.gameId==="game-orbit");assert.equal(g.units.length,2);assert.equal(g.units[1].discNumber,2);assert.equal(g.quality,"CONTRADICTORY")});
 test("offline stale",()=>{const g=parse().games.find(g=>g.gameId==="game-pocket-1");assert.equal(g.availability,"OFFLINE");assert.equal(g.freshness,"STALE")});
