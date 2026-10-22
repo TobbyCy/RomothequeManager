@@ -43,6 +43,7 @@ function normalizeT3(dto){
    provenance:{...p},variants:g.variants.map(v=>v.variantId),
    units:g.observations.map(o=>({romUnitId:o.romUnitId,variantId:o.variantId,
     discNumber:o.discNumber??null,observedTitle:o.observedTitle??null,
+    observationStatus:o.observationStatus,
     provenance:{libraryId:o.libraryId,snapshotId:o.snapshotId,
       generationId:o.generationId,observedAtUtc:p.observedAtUtc}}))});
  }
