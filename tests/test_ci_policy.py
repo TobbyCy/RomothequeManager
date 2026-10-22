@@ -451,7 +451,10 @@ class CliRoutingProofTests(unittest.TestCase):
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_text("# Synthetic CI test document\n", encoding="utf-8")
             p.git(root, "add", "--all")
-            p.git(root, "commit", "--quiet", "-m", "Synthetic baseline documents")
+            # Clone may already contain every required document. A clean index is
+            # a valid baseline, not a reason to ask Git for an empty commit.
+            if p.git(root, "status", "--porcelain").strip():
+                p.git(root, "commit", "--quiet", "-m", "Synthetic baseline documents")
             def save():
                 p.git(root, "add", "--all")
                 p.git(root, "commit", "--quiet", "-m", "Synthetic routing proof")
