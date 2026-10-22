@@ -7,7 +7,7 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 - Guides du produit, de la contribution et de la sécurité, lexique et documentation d'architecture.
 - Parcours d'interface et critères d'acceptation décrits pour les travaux futurs.
 - Préparation des contrôles du moteur PowerShell 5.1 sur données synthétiques.
-- Licence MIT adoptée pour les éléments originaux autorisés (`SPDX-License-Identifier: MIT`, copyright 2026 Cyril Tobler) ; garde CI à chemin exact pour `LICENSE`. Aucun droit tiers ou média externe concédé.
+- Licence MIT adoptée pour les éléments originaux autorisés (`SPDX-License-Identifier: MIT`, copyright 2026 Cyril Tobler) ; garde CI à chemin exact pour `LICENSE` et admission du script préflight synthétique déjà suivi `tests/Invoke-CiE1PreflightSynthetic.ps1`. Aucun droit tiers ou média externe concédé.
 
 **Aucune application Windows, ZIP ni GitHub Release n'a encore été publiée.** Les PR non fusionnées ne constituent pas des fonctionnalités disponibles.
 
