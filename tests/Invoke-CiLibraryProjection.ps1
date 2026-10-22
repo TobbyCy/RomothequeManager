@@ -18,7 +18,7 @@ try {
         param([scriptblock]$Action,[string]$Code)
         $message=''
         try { & $Action | Out-Null } catch { $message=$_.Exception.Message }
-        Assert-View ($message.Contains($Code)) ('refuse-'+$Code)
+        Assert-View ($message.Contains($Code)) ('refuse-'+$Code+';observed='+$message)
     }
     $old=New-RmSyntheticSnapshot -Id 'snap-a' -Generation 'gen-a' -At '2026-10-20T12:00:00Z' -Units @((New-RmSyntheticUnit 'unit-same'),(New-RmSyntheticUnit 'unit-gone'))
     $new=New-RmSyntheticSnapshot -Id 'snap-b' -Generation 'gen-b' -At '2026-10-21T12:00:00Z' -Units @((New-RmSyntheticUnit 'unit-same'),(New-RmSyntheticUnit 'unit-added'))
@@ -132,23 +132,34 @@ try {
     $noExhaustProjection=New-RmLibraryProjection -Registry (New-RmSyntheticRegistry -Snapshots @($noExhaust) -LastComplete $null)
     Assert-View ($noExhaustProjection.libraries[0].generations[0].coverage[0].status -cne 'complete') 'empty-proof-not-exhaustive'
     # S3: mutations must reach the actual registry/projection validators.
-    $caseCollision=New-RmSyntheticRegistry -Snapshots @($old,$new)
+    $collisionA=New-RmSyntheticSnapshot -Id 'snap-a' -Generation 'gen-a' -At '2026-10-20T12:00:00Z'
+    $collisionB=New-RmSyntheticSnapshot -Id 'snap-b' -Generation 'gen-b' -At '2026-10-21T12:00:00Z'
+    $caseCollision=New-RmSyntheticRegistry -Snapshots @($collisionA,$collisionB)
     $caseCollision.libraries[0].snapshots[1].snapshotId=$caseCollision.libraries[0].snapshots[0].snapshotId
     Assert-Refuses { New-RmLibraryProjection -Registry $caseCollision } 'LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION'
-    $generationCollision=New-RmSyntheticRegistry -Snapshots @($old,$new)
+    $generationA=New-RmSyntheticSnapshot -Id 'snap-a' -Generation 'gen-a' -At '2026-10-20T12:00:00Z'
+    $generationB=New-RmSyntheticSnapshot -Id 'snap-b' -Generation 'gen-b' -At '2026-10-21T12:00:00Z'
+    $generationCollision=New-RmSyntheticRegistry -Snapshots @($generationA,$generationB)
     $generationCollision.libraries[0].snapshots[1].generationId=$generationCollision.libraries[0].snapshots[0].generationId
     Assert-Refuses { New-RmLibraryProjection -Registry $generationCollision } 'LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION'
     $invalidLast=New-RmSyntheticRegistry -Snapshots @($old,$partial) -LastComplete 'snap-partial'
     Assert-Refuses { New-RmLibraryProjection -Registry $invalidLast } 'LIBRARY_LAST_VERIFIED_NOT_COMPLETE'
+    # Deliberate mutations above must not leak into the shared nominal pair.
+    Assert-View ($old.snapshotId -ceq 'snap-a' -and $old.generationId -ceq 'gen-a' -and
+        $new.snapshotId -ceq 'snap-b' -and $new.generationId -ceq 'gen-b') 'collision-fixtures-do-not-mutate-nominal-snapshots'
     $noIndex=New-RmSyntheticRegistry -Index $false -Snapshots @($old,$new)
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $noIndex -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b' } 'LIBRARY_INDEX_INACCESSIBLE'
-    $caseDuplicate=New-RmSyntheticRegistry -Snapshots @($old,$new) -LastComplete 'snap-a'
+    $caseOnlyA=New-RmSyntheticSnapshot -Id 'snap-a' -Generation 'gen-a' -At '2026-10-20T12:00:00Z'
+    $caseOnlyB=New-RmSyntheticSnapshot -Id 'snap-b' -Generation 'gen-b' -At '2026-10-21T12:00:00Z'
+    $caseDuplicate=New-RmSyntheticRegistry -Snapshots @($caseOnlyA,$caseOnlyB) -LastComplete 'snap-a'
     $caseDuplicate.libraries[0].snapshots[1].snapshotId='SNAP-A'
     Assert-View ((New-RmLibraryProjection -Registry $caseDuplicate).libraries[0].generations.Count -eq 2) 'ordinal-snapshot-case-only-distinct'
     $again=Get-RmLibraryComparisonView -Registry $reg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b'
     Assert-View ((ConvertTo-Json -InputObject $view -Depth 20 -Compress) -ceq (ConvertTo-Json -InputObject $again -Depth 20 -Compress)) 'deterministic-repeated-view'
     # STAB-03A: a proof on GBA must not promote an unobserved PS1 scope.
-    $twoPlatforms=New-RmSyntheticRegistry -Snapshots @($old,$new) -LastComplete $null
+    $platformA=New-RmSyntheticSnapshot -Id 'snap-a' -Generation 'gen-a' -At '2026-10-20T12:00:00Z'
+    $platformB=New-RmSyntheticSnapshot -Id 'snap-b' -Generation 'gen-b' -At '2026-10-21T12:00:00Z'
+    $twoPlatforms=New-RmSyntheticRegistry -Snapshots @($platformA,$platformB) -LastComplete $null
     $twoPlatforms.libraries[0].platforms=@('GBA','PS1')
     $twoPlatformCards=New-RmLibraryProjection -Registry $twoPlatforms
     $actualCoverage=@($twoPlatformCards.libraries[0].generations | Where-Object { $_.snapshotId -ceq 'snap-b' })[0].coverage
@@ -156,6 +167,7 @@ try {
     Assert-View (@($actualCoverage | Where-Object { $_.console -ceq 'PS1' -and $_.status -ceq 'unobserved' }).Count -eq 1) 'foreign-platform-proof-not-partial'
     $twoPlatforms.libraries[0].snapshots[1].coverageProof[0].status='partial'
     $partialPlatform=New-RmLibraryProjection -Registry $twoPlatforms
+    Assert-View ($new.coverageProof[0].status -ceq 'complete') 'platform-fixture-does-not-mutate-nominal-proof'
     $partialCov=@($partialPlatform.libraries[0].generations | Where-Object { $_.snapshotId -ceq 'snap-b' })[0].coverage
     Assert-View (@($partialCov | Where-Object { $_.console -ceq 'GBA' -and $_.status -ceq 'partial' }).Count -eq 1 -and
                  @($partialCov | Where-Object { $_.console -ceq 'PS1' -and $_.status -ceq 'unobserved' }).Count -eq 1) 'platform-local-partial-not-global'
