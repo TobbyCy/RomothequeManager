@@ -165,7 +165,19 @@ function Assert-RmLibraryRegistry {
             [void](Assert-RmLibraryDate $date)
             $units=Get-RmLibraryRequired $snap 'units' 'snapshot'
             Assert-RmLibraryArray $units 'snapshot.units'
-            if ($snapKeys.ContainsKey($snapId) -or -not $genKeys.Add($gen)) { throw 'LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION' }
+            $snapshotExists=$snapKeys.ContainsKey($snapId)
+            $generationAdded=$genKeys.Add($gen)
+            if ($snapshotExists -or -not $generationAdded) {
+                # P0/#37: collect exact validator state; never bypass this rejection.
+                $priorIds=@($snapKeys.Keys) -join '|'
+                $generationKeys=@($genKeys) -join '|'
+                $reference=[Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($snap)
+                throw ('LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION: snapshot='+$snapId+
+                    ';generation='+$gen+';snapAlreadySeen='+$snapshotExists+
+                    ';newGeneration='+$generationAdded+';priorSnapshots='+$priorIds+
+                    ';seenGenerations='+$generationKeys+';snapshotCount='+$snapshots.Count+
+                    ';snapshotObjectRef='+$reference)
+            }
             $snapKeys[$snapId]=$snap
             [void](Get-RmLibraryCoverage $lib $snap)
         }
