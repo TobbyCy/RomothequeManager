@@ -1,21 +1,23 @@
-**INT-03 / #26 (Draft, non intégré)** : durcissement des identités `romUnitId` en comparaison ordinale sensible à la casse et deux canaris synthétiques sur les collisions de casse. **PS5.1 et CI NON EXÉCUTÉS** sur ce HEAD ; validation indépendante obligatoire avant fusion.
-
-**STAB-03A / #26 (Draft, non intégré)** : corrections synthétiques des helpers/fixtures et des gardes CI signalées par AGENT-05. Les tests sur le nouveau HEAD, Windows PowerShell 5.1, Node et GitHub Actions sont **NOT_EXECUTED / READY_FOR_AGENT_RETEST** ; aucune fusion ni validation post-merge. Voir les commentaires de la PR Produit #26.
-
 # État des fonctionnalités
 
 Ce tableau distingue les capacités en cours de revue, les maquettes et les versions **effectivement disponibles**.
 
 | Domaine | État vérifiable | Limite |
 | --- | --- | --- |
-| Moteur PowerShell 5.1 / inventaire E1 | Sources historiques présentes sur le main Produit (intégration privée #24) ; pas de livraison applicative publiée | Exécution et tests métier non revérifiés sur le main intégré ; aucun scan réel autorisé |
+| Moteur PowerShell 5.1 / inventaire E1 | Sources techniques en PR d'intégration ; pas encore un composant de version publiée | Aucun scan sur données réelles autorisé |
 | Pester 4.10.1 et gardes CI | Suites à revalider au HEAD effectivement intégré dans ce dépôt | Les succès d'un autre commit ne sont pas transférables |
-| Dashboard, Collection, fiches | Conception documentée, **non implémentée** | Aucune interface graphique |
-| Bibliothèques, Offline/Stale, snapshots | Critères de conception, contrats/test à finaliser | Support Offline n'implique pas une collection supprimée |
+| Dashboard, Collection, fiches | **Prototype UI #11 codé sur PR Draft #28** : Dashboard, première Collection consultable, inspecteur synthétique | Pas d'application Windows finale, pas de fiche enrichie, tests navigateur/CI non exécutés |
+| Bibliothèques, Offline/Stale, snapshots | **Prototype UI #11 codé sur PR Draft #28** : 4 bibliothèques fictives, historique, sélecteur A/B, six résultats, filtres et détail | Projection JS synthétique uniquement ; aucune lecture de données réelles, parité PowerShell non validée |
+| Comparaison de snapshots — Issue #9 | Composant PowerShell de comparaison synthétique intégré ; six classifications et identité ordinale sensible à la casse | Tests PS5.1 du nouvel arbre non certifiés ; aucune suppression physique inférée |
 | Favoris et tags | Besoins étudiés, non implémentés | Aucun stockage personnel disponible |
-| Comparaison de snapshots — Issue #9 | Module PowerShell 5.1 autonome en PR Draft ; six états `ADDED`, `CHANGED`, `UNCHANGED`, `NOT_OBSERVED_IN_B_COVERED_SCOPE`, `UNKNOWN`, `NOT_COMPARABLE` ; **couverture complète A ET B** obligatoire pour conclure | Fixtures C1/C2 ajoutées, **NON EXÉCUTÉES / CI_SERVICE_BLOCKED** ; `observationDigest` prouve une observation, jamais un changement des octets ROM ; aucune suppression physique inférée |
 | Simulation/export et conversion | Études fonctionnelles, **opérations réelles non autorisées** | Aucun effet physique implicite, aucun E6 |
 | ZIP Windows / Release | **NON PUBLIÉ / NON TESTÉ** | Pas de programme à télécharger |
-| Licence et médias | Diffusion non décidée, cinq visuels soumis à vérification de droits | Aucune redistribution autorisée par défaut |
+| Licence et médias | [MIT](../LICENSE) / `SPDX-License-Identifier: MIT` adoptée pour le code et la documentation originaux dont le titulaire détient les droits | ROM, BIOS, composants tiers et éléments graphiques de provenance distincte exclus ; cinq visuels en attente de validation |
 
 Seules des preuves de tests exécutés sur un SHA exact permettent de déclarer un contrôle réussi. Les [changements](../CHANGELOG.md) documentent les versions intégrées ; la [roadmap](roadmap.md) décrit les objectifs futurs.
+
+
+**Sprint #13 (PR Draft #28, non fusionnée)** : ajout d'un adaptateur de DTO `0.1.0-synthetic` pour le registre et les comparaisons précalculées de #27. Deux modes explicitement séparés, sans moteur métier JS en mode projection. Aucune preuve de parité runtime PS5.1 ni navigateur réel.
+
+
+**Sprint #15 (PR #28 Draft, non fusionnée)** : Collection projetée et fiche de jeu synthétique candidate, filtre plateforme, provenance, variantes et observations ROM séparées, navigation vers snapshots. Adaptateur aligné sur `countKnown=false/observedUnitCount=null` de #27. Contrôles V8 simulés exécutés ; Node/navigateur/PS5.1 non exécutés. Catalogue non encore fourni par le noyau.

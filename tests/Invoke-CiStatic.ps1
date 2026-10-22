@@ -34,14 +34,21 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'git ls-files failed' }
     Require ($paths.Count -gt 0) 'No tracked files'
     $allowed = @(
-        '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$',
-        '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$',
-        '^\.gitattributes$', '^Initialize\.ps1$', '^Modules/[A-Za-z][A-Za-z0-9]*\.psm1$',
-        '^Export/(ExportE1\.psm1|Invoke-ExportE1InventoryReadOnly\.ps1|README\.md)$', '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$', '^docs/(product-status|roadmap)\.md$',
-        '^docs/(user|developer|architecture|decisions|ux)/[A-Za-z0-9_.-]+\.md$', '^\.github/workflows/ci\.yml$', '^\.github/pull_request_template\.md$',
-        '^\.github/ISSUE_TEMPLATE/(bug|config|docs|feature|question)\.yml$', '^tests/(ci_policy|test_ci_policy)\.py$', '^(src|app)/RomothequeManager\.V2/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|sln|axaml|resx|json|png|svg|ico)$',
-        '^tests/dotnet/RomothequeManager\.V2\.Tests/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|json)$', '^(contracts|schemas)/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json$', '^adapters/shared/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|ps1|psm1|json)$',
+        '^LICENSE$', '^BRANDING\.md$', '^LEGAL\.md$', '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
+        '^Modules/[A-Za-z][A-Za-z0-9]*\.psm1$',
+        '^Export/(ExportE1\.psm1|Invoke-ExportE1InventoryReadOnly\.ps1|README\.md)$',
+        '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$',
+        '^docs/(product-status|roadmap)\.md$',
+        '^docs/(user|developer|architecture|decisions|ux)/[A-Za-z0-9_.-]+\.md$',
+        '^\.github/workflows/ci\.yml$', '^\.github/pull_request_template\.md$',
+        '^\.github/ISSUE_TEMPLATE/(bug|config|docs|feature|question)\.yml$',
+        '^tests/(ci_policy|test_ci_policy)\.py$',
+        '^(src|app)/RomothequeManager\.V2/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|sln|axaml|resx|json|png|svg|ico)$',
+        '^tests/dotnet/RomothequeManager\.V2\.Tests/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|json)$',
+        '^(contracts|schemas)/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json$',
+        '^adapters/shared/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|ps1|psm1|json)$',
         '^tests/Invoke-Ci[A-Za-z]+\.ps1$', '^tests/Invoke-CiE1NegativeCanary\.ps1$', '^tests/Invoke-CiE1Integration\.ps1$',
+        '^prototype/ui11/(?:README\.md|app\.js|catalogue-adapter\.js|demo-integree\.html|fixtures\.js|index\.html|integrated-smoke\.cjs|projection-adapter\.js|projection-data\.js|projection-integrated\.js|projection-sample\.js|projection-smoke\.cjs|smoke\.cjs|styles\.css)$',
         '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/(ci-export-sources|ci-preflight-sources)\.json$', '^tests/Invoke-CiE1PreflightSynthetic\.ps1$'
     )
     $collisions = @{}
