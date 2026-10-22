@@ -44,5 +44,14 @@ rejects("coordinated proof and claim forgery",d=>{
  g.coverage[0].status="complete";d.games[0].coverStatus="KNOWN";d.games[0].status="KNOWN";
 },"COVERAGE_FORGED");
 ok("strict source identity casing",()=>assert.equal(model.query(model.normalize(dto),{libraryId:"LIB"}).total,0));
+ok("mixed GBA proven + PS1 unobserved keeps partial overall",()=>{
+ const d=clone(dto),lib=d.registry.libraries[0],gen=lib.generations[0];
+ lib.platforms.push("PS1");
+ gen.coverage.push({console:"PS1",status:"unobserved"});
+ d.games[0].coverStatus="UNKNOWN";d.games[0].status="INCOMPLETE";
+ d.games[0].quality="PARTIALLY_OBSERVED";d.games[0].observations[0].observationStatus="PARTIAL";
+ d.countKnown=false;d.gameCount=null;
+ assert.equal(model.normalize(d).games[0].coverStatus,"UNKNOWN");
+});
 ok("pagination",()=>assert.equal(model.query(model.normalize(dto),{limit:1}).items.length,1));
 console.log("T3_CANDIDATE_CONSUMER_TESTS_PASS",checks);
