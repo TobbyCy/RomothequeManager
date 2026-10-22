@@ -139,10 +139,10 @@ try {
     $generationCollision.libraries[0].snapshots[1].generationId=$generationCollision.libraries[0].snapshots[0].generationId
     Assert-Refuses { New-RmLibraryProjection -Registry $generationCollision } 'LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION'
     $invalidLast=New-RmSyntheticRegistry -Snapshots @($old,$partial) -LastComplete 'snap-partial'
-    Assert-Refuses { New-RmLibraryProjection -Registry $invalidLast } 'LIBRARY_LAST_VERIFIED_SCOPE_NOT_COMPLETE'
+    Assert-Refuses { New-RmLibraryProjection -Registry $invalidLast } 'LIBRARY_LAST_VERIFIED_NOT_COMPLETE'
     $noIndex=New-RmSyntheticRegistry -Index $false -Snapshots @($old,$new)
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $noIndex -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b' } 'LIBRARY_INDEX_INACCESSIBLE'
-    $caseDuplicate=New-RmSyntheticRegistry -Snapshots @($old,$new)
+    $caseDuplicate=New-RmSyntheticRegistry -Snapshots @($old,$new) -LastComplete 'snap-a'
     $caseDuplicate.libraries[0].snapshots[1].snapshotId='SNAP-A'
     Assert-View ((New-RmLibraryProjection -Registry $caseDuplicate).libraries[0].generations.Count -eq 2) 'ordinal-snapshot-case-only-distinct'
     $again=Get-RmLibraryComparisonView -Registry $reg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b'
