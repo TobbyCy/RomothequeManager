@@ -24,7 +24,8 @@ const coverage=array(g.coverage,"COVERAGE"),proof=array(g.coverageProof,"COVERAG
 const proven=new Map();for(const p of proof){text(p.console,"PROOF_CONSOLE");text(p.sourceKey,"PROOF_SOURCE");text(p.rootKey,"PROOF_ROOT");enumOf(p.domain,["ROMS","MEDIAS"],"PROOF_DOMAIN");enumOf(p.status,["complete","partial","unobserved"],"PROOF_STATUS");const k=JSON.stringify([p.console,p.sourceKey,p.rootKey,p.domain]);if(!expected.has(k))fail("UNDECLARED_PROOF_PARTITION");if(proven.has(k))fail("DUPLICATE_PROOF_PARTITION");proven.set(k,p.status)}
 for(const v of coverage){text(v.console,"COVERAGE_CONSOLE");enumOf(v.status,["complete","partial","unobserved"],"COVERAGE_STATUS");if(v.status==="complete"&&(scanStatus!=="complete"||!g.scopeIsExhaustive||![...expected].filter(k=>JSON.parse(k)[0]===v.console).every(k=>proven.get(k)==="complete")))fail("UNPROVEN_SCOPE")}
 if(typeof g.countKnown!=="boolean")fail("COUNT_KNOWN_FLAG");
-if(g.countKnown!==l.indexAccessible)fail("COUNT_INDEX_CONFLICT");
+// Accessible partial snapshots can have an UNKNOWN exhaustive count.
+// Reject a proved count against an inaccessible index, not the inverse.
 if(g.countKnown&& !l.indexAccessible)fail("INACCESSIBLE_COUNT");
 const observedUnitCount=g.countKnown?integer(g.observedUnitCount,"OBSERVED_UNITS"):(g.observedUnitCount===null?null:fail("UNKNOWN_COUNT_NOT_NULL"));
 return {snapshotId:g.snapshotId,generationId:g.generationId,capturedAtUtc:g.capturedAtUtc,scanStatus,coverage,coverageProof:proof,scopeIsExhaustive:g.scopeIsExhaustive,countKnown:g.countKnown,observedUnitCount};
