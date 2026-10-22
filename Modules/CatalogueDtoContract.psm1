@@ -14,6 +14,10 @@ function Assert-RmDtoId {
  param($Value,[string]$Code)
  Assert-RmDto ($Value -is [string] -and -not [string]::IsNullOrWhiteSpace($Value)) $Code
 }
+function Test-RmDtoInt {
+ param($Value)
+ return (($Value -is [int] -or $Value -is [long]) -and $Value -ge 0 -and $Value -le [int]::MaxValue)
+}
 function Assert-RmDtoUtc {
  param($Value)
  Assert-RmDto ($Value -is [string] -and $Value -cmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$') 'CATDTO_UTC_REQUIRED'
@@ -194,7 +198,7 @@ function Assert-RmCanonicalCatalogueDto {
    if (-not $index) {
     Assert-RmDto (-not $countKnown -and $null -eq $unitCount) 'CATDTO_INDEX_COUNT_FORGED'
    } else {
-    Assert-RmDto ($countKnown -and $unitCount -is [int] -and $unitCount -ge 0) 'CATDTO_GENERATION_COUNT_INVALID'
+    Assert-RmDto ($countKnown -and (Test-RmDtoInt $unitCount)) 'CATDTO_GENERATION_COUNT_INVALID'
    }
   }
   if ($null -eq $latest) { $allProven=$false }
@@ -258,7 +262,7 @@ function Assert-RmCanonicalCatalogueDto {
    Assert-RmDto ($observationScopeKeys.Add((Get-RmDtoKey @($lid,$p.snapshotId,$o.romUnitId)))) 'CATDTO_CROSS_GAME_DUPLICATE_ROM'
    $observationsByLibrary[$lid]=[int]$observationsByLibrary[$lid]+1
    $disc=Get-RmDtoField $o 'discNumber'
-   Assert-RmDto ($null -eq $disc -or ($disc -is [int] -and $disc -ge 1)) 'CATDTO_DISC_INVALID'
+   Assert-RmDto ($null -eq $disc -or ((Test-RmDtoInt $disc) -and $disc -ge 1)) 'CATDTO_DISC_INVALID'
    $observedTitle=Get-RmDtoField $o 'observedTitle'
    if ($null -ne $observedTitle) { Assert-RmDtoId $observedTitle 'CATDTO_OBSERVED_TITLE_INVALID';[void]$titleEvidence.Add($observedTitle) }
    Assert-RmDto ($o.observationStatus -ceq $(if($cover -ceq 'KNOWN'){'OBSERVED'}else{'PARTIAL'})) 'CATDTO_OBSERVATION_STATUS_FORGED'
@@ -290,7 +294,7 @@ function Assert-RmCanonicalCatalogueDto {
  if (-not $allProven -or $anyUnproven -or @($diagnostics | Where-Object { $_.code -ceq 'CATALOG_IDENTITY_AMBIGUOUS' }).Count -gt 0) {
   Assert-RmDto (-not $countKnown -and $null -eq $gameCount) 'CATDTO_COUNT_FORGED'
  } elseif ($countKnown) {
-  Assert-RmDto ($gameCount -is [int] -and $gameCount -eq $games.Count) 'CATDTO_COUNT_MISMATCH'
+  Assert-RmDto ((Test-RmDtoInt $gameCount) -and $gameCount -eq $games.Count) 'CATDTO_COUNT_MISMATCH'
  } else { Assert-RmDto ($null -eq $gameCount) 'CATDTO_COUNT_FORGED' }
  return $true
 }
