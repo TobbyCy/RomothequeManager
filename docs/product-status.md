@@ -1,3 +1,5 @@
+**STAB-03A / #27 (Draft, non intégré)** : corrections synthétiques des helpers/fixtures et des gardes CI signalées par AGENT-05. Les tests sur le nouveau HEAD, Windows PowerShell 5.1, Node et GitHub Actions sont **NOT_EXECUTED / READY_FOR_AGENT_RETEST** ; aucune fusion ni validation post-merge. Voir les commentaires de #27 et Pilotage #69.
+
 # État des fonctionnalités
 
 Ce tableau distingue les capacités en cours de revue, les maquettes et les versions **effectivement disponibles**.
