@@ -489,6 +489,17 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("UI_ADAPTER_SOURCES_MISSING", static_job)
         self.assertIn("UI_TEST_DISCOVERY_MISMATCH", static_job)
         self.assertIn("UI_SMOKE_FAILED:", static_job)
+        # Every suite shipped by Dev2 #30 must be discoverable; the Unicode
+        # producer suite runs with the real PS5.1 output, not as a no-arg smoke.
+        for suite in ("smoke.cjs", "projection-smoke.cjs", "integrated-smoke.cjs",
+                      "t2-catalogue.test.cjs", "t4-catalogue.test.cjs",
+                      "synthetic-import.test.cjs", "ui-journey.test.cjs",
+                      "unicode-producer.test.cjs"):
+            self.assertIn(suite, static_job)
+        self.assertIn("UI_TEST_DISCOVERY_MISMATCH", static_job)
+        self.assertIn("if ($test -ceq 'unicode-producer.test.cjs')", static_job)
+        self.assertIn("node $unicodeTest $syntheticFile", static_job)
+        self.assertIn("UI_UNICODE_PRODUCER_FAILED", static_job)
         final = block("ci-policy-gate")
         self.assertIn("always()", final)
         self.assertIn("toJSON(needs)", final)
