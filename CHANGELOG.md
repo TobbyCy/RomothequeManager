@@ -1,5 +1,7 @@
 # Journal des changements
 
+- **STAB-03A #27 (Draft)** : corrections exécutables PowerShell/CI des ensembles vides, oracle lastVerified et allowlists fermées ; propagation à la branche descendante requise et retest Agent indépendant. **NOT_EXECUTED** sur nouveau HEAD, aucune fusion.
+
 Ce document décrit les évolutions **effectivement intégrées**. Les fonctionnalités proposées figurent dans la [roadmap](docs/roadmap.md) et ne sont pas annoncées comme livrées.
 
 ## Non publié — développement
