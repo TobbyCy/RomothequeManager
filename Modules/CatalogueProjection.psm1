@@ -21,7 +21,9 @@ function Sort-RmCatOrdinal {
   if ($map.ContainsKey($key)) { throw 'CATALOG_SORT_KEY_COLLISION' }
   $map.Add($key,$item)
  }
- return ,@($map.Values)
+ $result=New-Object 'System.Collections.Generic.List[object]'
+ foreach ($value in $map.Values) { [void]$result.Add($value) }
+ return ,$result.ToArray()
 }
 function New-RmCatalogueProjection {
  [CmdletBinding()]
@@ -93,8 +95,12 @@ function New-RmCatalogueProjection {
    })
   }
   foreach ($group in $grouped.Values) {
-   $titles=[string[]]@($group.titles);[Array]::Sort($titles,[StringComparer]::Ordinal)
-   $variants=[string[]]@($group.variants);[Array]::Sort($variants,[StringComparer]::Ordinal)
+   $titleList=New-Object 'System.Collections.Generic.List[string]'
+   foreach ($t in $group.titles) { [void]$titleList.Add($t) }
+   $titles=$titleList.ToArray();[Array]::Sort($titles,[StringComparer]::Ordinal)
+   $variantList=New-Object 'System.Collections.Generic.List[string]'
+   foreach ($v in $group.variants) { [void]$variantList.Add($v) }
+   $variants=$variantList.ToArray();[Array]::Sort($variants,[StringComparer]::Ordinal)
    $units=Sort-RmCatOrdinal -Items @($group.units.ToArray()) -Property 'romUnitId'
    $quality=if (-not $fullyCovered) {'PARTIALLY_OBSERVED'} elseif ($card.freshness -ceq 'STALE') {'STALE'} elseif ($card.freshness -ceq 'FRESH') {'KNOWN'} else {'UNKNOWN'}
    if ($titles.Count -gt 1) { $quality='CONTRADICTORY';$diagnostics.Add([pscustomobject][ordered]@{code='CATALOG_TITLE_CONFLICT';libraryId=$card.libraryId;snapshotId=$latest.snapshotId}) }
@@ -114,9 +120,11 @@ function New-RmCatalogueProjection {
   $key=('{0}:{1}{2}:{3}{4}:{5}' -f $g.libraryId.Length,$g.libraryId,$g.platform.Length,$g.platform,$g.gameId.Length,$g.gameId)
   $gameMap.Add($key,$g)
  }
+ $orderedGames=New-Object 'System.Collections.Generic.List[object]'
+ foreach ($item in $gameMap.Values) { [void]$orderedGames.Add($item) }
  return [pscustomobject][ordered]@{
   schemaVersion='0.1.0-ui-catalogue-t1-candidate';readOnly=$true
-  libraries=@($libraries);games=@($gameMap.Values);diagnostics=@($diagnostics.ToArray())
+  libraries=@($libraries);games=$orderedGames.ToArray();diagnostics=$diagnostics.ToArray()
   countKnown=($allIndicesAccessible -and @($diagnostics | Where-Object { $_.code -ceq 'CATALOG_COVERAGE_UNPROVEN' -or $_.code -ceq 'CATALOG_IDENTITY_AMBIGUOUS' }).Count -eq 0)
   gameCount=$(if($allIndicesAccessible -and @($diagnostics | Where-Object { $_.code -ceq 'CATALOG_COVERAGE_UNPROVEN' -or $_.code -ceq 'CATALOG_IDENTITY_AMBIGUOUS' }).Count -eq 0){$gameMap.Count}else{$null})
   limitations=@('SYNTHETIC_ONLY','LATEST_SNAPSHOT_PER_LIBRARY','NOT_PHYSICAL_ROM_BYTES','NO_INFERRED_IDENTITY')
