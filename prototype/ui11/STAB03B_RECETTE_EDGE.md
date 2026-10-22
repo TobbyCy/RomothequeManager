@@ -1,4 +1,4 @@
-# STAB-03B — recette indépendante Node / Edge et compatibilité
+# STAB-03B — recette indépendante Node / Edge et compatibilité (INT-01)
 
 **Statut candidat : READY_FOR_AGENT_RETEST**, sans fusion. Version produit : PR Draft #30, au SHA exact communiqué dans le checkpoint final. L'Agent doit repartir de ce SHA puis vérifier que ses résultats concernent le checkout réel. Aucun test sur ROM, BIOS, disque personnel ou StateRoot.
 
@@ -12,9 +12,15 @@ node .\prototype\ui11\t2-catalogue.test.cjs
 node .\prototype\ui11\t4-catalogue.test.cjs
 ```
 
+**Contrôle transversal ajouté pour INT-01** : `node .\\prototype\\ui11\\ui-journey.test.cjs`. Il rejoue Dashboard → Bibliothèques → Comparaison → Collection → Fiche → filtres/recherche → retour, en **trois modes** (standard, projection intégrée 0.1, catalogue candidat T3). Résultat DEV 2 : **42/42 contrôles V8 simulés**, pas Node natif ni Edge réel. La comparaison T3 avec une seule génération doit refuser A/B, jamais inventer des résultats.
+
+**Fixture commune** : `tests/fixtures/CatalogueT3CanonicalSample.json` se trouve sur les branches Dev 1 #29 et Dev 2 #30 avec le **même blob Git** `1ffc52863ce86ab9a8b79d6b3b31ef5c7c9f8e37`. La démonstration `t4-catalogue-demo.js` reste un emballage JS local pour `file://`, contrôlé structurellement contre ce JSON par `t4-catalogue.test.cjs`. Le consommateur canonique `adapters/shared/catalogue-t3-consumer.js` reste identique entre les deux branches (blob `c43e60943014dc6e0f49cfed914d35697ea20c62`). Le modèle UI ne réimplémente plus les règles métier T3 ; il projette des DTO déjà validés et contrôle uniquement les références nécessaires à la présentation.
+
+**Dernière simulation DEV 2 sur le code modifié** : `smoke` **9**, `projection-smoke` **10**, `integrated-smoke` **42**, `t2-catalogue` **20**, `t4-catalogue` **34** = **115/115 contrôles V8**, et `ui-journey` **42/42**. Ces exécutions utilisaient un interpréteur V8 avec adaptations simulées de `fs/path/vm/assert`, **pas le binaire Node** ; les sorties internes « NODE_RUNTIME » ne sont donc pas recevables comme preuve Node pour cette recette. Nouvelle exécution native sous Node, code de sortie, Edge sur `file://`, PS5.1/UTF-8 et CI restent à établir.
+
 Contrôle additionnel du chargement de JSON synthétique dans la **Collection existante** : `node .\\prototype\\ui11\\synthetic-import.test.cjs` (9 assertions, DOM simulé). Il ne remplace ni Edge ni la parité PS5.1.
 
-En plus des cinq bilans finaux, contrôler le code de sortie **0** et l'absence d'exception involontaire ; relever version Node et SHA. Simulations V8 effectuées par DEV 2 au fil du mandat : 9 + 10 + 42 + 20 + 32 = **113 assertions PASS** ; elles ne sont pas une preuve d'exécution Node native. Vérifier en particulier les mutations de compteurs connus/inconnus et le vrai `discNumber` multidisque.
+En plus des cinq bilans finaux, contrôler le code de sortie **0** et l'absence d'exception involontaire ; relever version Node et SHA. Simulations V8 effectuées par DEV 2 au fil du mandat : 9 + 10 + 42 + 20 + 34 = **115 assertions PASS** ; elles ne sont pas une preuve d'exécution Node native. Vérifier en particulier les mutations de compteurs connus/inconnus et le vrai `discNumber` multidisque.
 
 ## Recette Edge 3 modes / interface partagée
 
