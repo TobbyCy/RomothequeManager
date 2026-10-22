@@ -1,44 +1,69 @@
-/* T2: read-only candidate catalogue presentation. No ROM inspection or business comparisons. */
+/* T3-B — strict read-only consumer of Dev1 T1 candidate, not a third catalogue DTO. */
 (function(global){"use strict";
-const fail=(code)=>{throw Error("T2_CATALOGUE_"+code)};
-const txt=(v,k)=>{if(typeof v!=="string"||!v.trim())fail(k);return v};
+const VERSION="0.1.0-ui-catalogue-t1-candidate";
+const fail=c=>{throw Error("T1_UI_"+c)};
+const str=(x,c)=>typeof x==="string"&&x.trim()?x:fail(c);
+const list=(x,c)=>Array.isArray(x)?x:fail(c);
+const state=(x,values,c)=>values.includes(x)?x:fail(c);
+const date=(x,c)=>{str(x,c);if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(x)||Number.isNaN(Date.parse(x)))fail(c);return x};
+const key=(...parts)=>JSON.stringify(parts);
 function normalize(dto,registry){
- if(!dto||dto.schemaVersion!=="0.1.0-ui-catalogue-candidate"||dto.readOnly!==true||!Array.isArray(dto.games)||!Array.isArray(registry))fail("CONTRACT");
- const libs=new Map(),games=new Set(),out=[];
- for(const l of registry){txt(l.libraryId,"LIBRARY");if(libs.has(l.libraryId))fail("DUPLICATE_LIBRARY");libs.set(l.libraryId,l)}
- for(const g of dto.games){
-  const id=txt(g.gameId,"GAME_ID"),platform=txt(g.platform,"PLATFORM"),title=txt(g.title,"TITLE"),key=JSON.stringify([id,platform]);
-  if(games.has(key))fail("DUPLICATE_GAME");games.add(key);
-  if(!["KNOWN","INCOMPLETE","INACCESSIBLE"].includes(g.status)||!Array.isArray(g.provenance)||!g.provenance.length||!Array.isArray(g.variants)||!Array.isArray(g.observations))fail("GAME_FIELDS");
-  const prov=new Set(),variants=new Set(),observations=new Set();
-  for(const p of g.provenance){
-   const l=libs.get(txt(p.libraryId,"SOURCE_LIBRARY"));if(!l||!l.indexAvailable)fail("SOURCE_INDEX");
-   const snapshotId=txt(p.snapshotId,"SOURCE_SNAPSHOT");
-   if(!l.snapshots.some(s=>s.snapshotId===snapshotId||s.generationId===snapshotId))fail("SOURCE_SNAPSHOT_UNKNOWN");
-   if(!/^\d{4}-\d{2}-\d{2}T/.test(p.observedAtUtc)||Number.isNaN(Date.parse(p.observedAtUtc)))fail("SOURCE_DATE");
-   txt(p.source,"SOURCE_TYPE");const pk=JSON.stringify([p.libraryId,snapshotId]);if(prov.has(pk))fail("DUPLICATE_PROVENANCE");prov.add(pk);
+ if(!dto||dto.schemaVersion!==VERSION||dto.readOnly!==true)fail("SCHEMA");
+ const libMap=new Map();
+ for(const l of list(registry,"REGISTRY")){str(l.libraryId,"LIB_ID");if(libMap.has(l.libraryId))fail("DUPLICATE_LIB");libMap.set(l.libraryId,l)}
+ const seen=new Set(),games=[];
+ for(const g of list(dto.games,"GAMES")){
+  const libraryId=str(g.libraryId,"GAME_LIBRARY"),platform=str(g.platform,"PLATFORM"),gameId=str(g.gameId,"GAME_ID"),id=key(libraryId,platform,gameId);
+  if(seen.has(id))fail("DUPLICATE_GAME");seen.add(id);
+  const lib=libMap.get(libraryId);if(!lib||!lib.indexAvailable)fail("INDEX_UNAVAILABLE");
+  if(!lib.platforms.includes(platform))fail("PLATFORM_UNDECLARED");
+  state(g.quality,["KNOWN","STALE","PARTIALLY_OBSERVED","CONTRADICTORY"],"QUALITY");
+  state(g.availability,["ONLINE","OFFLINE","INACCESSIBLE","UNKNOWN"],"AVAILABILITY");
+  state(g.freshness,["FRESH","STALE","UNKNOWN"],"FRESHNESS");
+  state(g.coverageStatus,["COMPLETE","INCOMPLETE"],"COVERAGE");
+  if(g.availability!==lib.availability||g.freshness!==lib.freshness)fail("LIBRARY_STATE_MISMATCH");
+  if(g.quality==="KNOWN"&&(g.coverageStatus!=="COMPLETE"||g.freshness==="STALE"))fail("KNOWN_UNPROVEN");
+  if(g.quality==="STALE"&&g.freshness!=="STALE")fail("STALE_MISMATCH");
+  if(g.quality==="PARTIALLY_OBSERVED"&&g.coverageStatus!=="INCOMPLETE")fail("PARTIAL_MISMATCH");
+  if(g.title!==null)str(g.title,"TITLE");
+  if(g.quality==="CONTRADICTORY"&&g.title!==null)fail("CONTRADICTORY_TITLE");
+  const p=g.provenance;if(!p||p.libraryId!==libraryId)fail("PROVENANCE_LIBRARY");
+  const snap=lib.snapshots.find(s=>s.snapshotId===p.snapshotId);
+  if(!snap||snap.generationId!==p.generationId||snap.capturedAtUtc!==date(p.observedAtUtc,"OBSERVED_AT"))fail("PROVENANCE_SNAPSHOT");
+  const variants=list(g.variants,"VARIANTS"),variantIds=new Set();
+  for(const v of variants){str(v,"VARIANT");if(variantIds.has(v))fail("DUPLICATE_VARIANT");variantIds.add(v)}
+  const unitIds=new Set(),units=list(g.units,"UNITS");
+  for(const u of units){
+   str(u.romUnitId,"ROM_ID");str(u.variantId,"UNIT_VARIANT");
+   if(unitIds.has(u.romUnitId)||!variantIds.has(u.variantId))fail("UNIT_IDENTITY");unitIds.add(u.romUnitId);
+   if(u.discNumber!==null&&u.discNumber!==undefined&&(!Number.isSafeInteger(u.discNumber)||u.discNumber<1))fail("DISC_NUMBER");
+   const up=u.provenance;if(!up||up.libraryId!==libraryId||up.snapshotId!==p.snapshotId||up.generationId!==p.generationId||up.observedAtUtc!==p.observedAtUtc)fail("UNIT_PROVENANCE");
   }
-  for(const v of g.variants){txt(v.variantId,"VARIANT_ID");txt(v.label,"VARIANT_LABEL");if(variants.has(v.variantId))fail("DUPLICATE_VARIANT");variants.add(v.variantId)}
-  for(const o of g.observations){
-   const k=JSON.stringify([txt(o.libraryId,"OBS_LIBRARY"),txt(o.snapshotId,"OBS_SNAPSHOT")]);
-   if(!prov.has(k)||!variants.has(txt(o.variantId,"OBS_VARIANT"))||!txt(o.romUnitId,"OBS_UNIT"))fail("OBS_REFERENCE");
-   if(!["OBSERVED","PARTIAL"].includes(o.observationStatus))fail("OBS_STATUS");
-   const ok=JSON.stringify([o.libraryId,o.snapshotId,o.romUnitId]);if(observations.has(ok))fail("DUPLICATE_OBSERVATION");observations.add(ok);
-  }
-  if(g.coverStatus!=="KNOWN"&&g.coverStatus!=="UNKNOWN")fail("COVER_STATUS");
-  out.push(g);
+  if(!units.length)fail("EMPTY_GAME");
+  games.push({...g,identity:id});
  }
- return Object.freeze({games:out,registry:libs,readOnly:true,mode:"SYNTHETIC_CANDIDATE"});
+ const diagnostics=list(dto.diagnostics,"DIAGNOSTICS"),limitations=list(dto.limitations,"LIMITATIONS");
+ for(const d of diagnostics){str(d.code,"DIAGNOSTIC_CODE");if(d.libraryId!==null&&d.libraryId!==undefined&&!libMap.has(d.libraryId))fail("DIAGNOSTIC_LIBRARY")}
+ for(const v of limitations)str(v,"LIMITATION");
+ if(typeof dto.countKnown!=="boolean")fail("COUNT_FLAG");
+ if(dto.countKnown){if(!Number.isSafeInteger(dto.gameCount)||dto.gameCount!==games.length||libMap.size!==list(dto.libraries,"DTO_LIBRARIES").length||[...libMap.values()].some(l=>!l.indexAvailable)||games.some(g=>g.coverageStatus!=="COMPLETE"))fail("COUNT_FALSE_PROOF")}
+ else if(dto.gameCount!==null)fail("UNKNOWN_COUNT_NOT_NULL");
+ const dtoIds=list(dto.libraries,"DTO_LIBRARIES").map(l=>str(l.libraryId,"DTO_LIBRARY"));
+ if(new Set(dtoIds).size!==dtoIds.length||dtoIds.some(id=>!libMap.has(id))||dtoIds.length!==libMap.size)fail("REGISTRY_MISMATCH");
+ return Object.freeze({games,diagnostics,limitations,countKnown:dto.countKnown,gameCount:dto.gameCount,registry:libMap,readOnly:true,schemaVersion:VERSION});
 }
-function query(model,filters){
- const f=filters||{},search=String(f.search||"").trim().toLocaleLowerCase("fr");
- const found=model.games.filter(g=>(!search||[g.title,g.gameId,g.platform,...g.variants.map(v=>v.label)].some(v=>v.toLocaleLowerCase("fr").includes(search)))&&
- (!f.platform||f.platform==="ALL"||g.platform===f.platform)&&
- (!f.status||f.status==="ALL"||g.status===f.status)&&
- (!f.library||f.library==="ALL"||g.provenance.some(p=>p.libraryId===f.library))&&
- (!f.coverage||f.coverage==="ALL"||g.coverStatus===f.coverage));
- const sort=["title","platform","status","observed"].includes(f.sort)?f.sort:"title";
- return found.slice().sort((a,b)=>{if(sort==="observed")return Math.max(...b.provenance.map(p=>Date.parse(p.observedAtUtc)))-Math.max(...a.provenance.map(p=>Date.parse(p.observedAtUtc)));return String(a[sort]).localeCompare(String(b[sort]),"fr",{sensitivity:"base"})||a.gameId.localeCompare(b.gameId)});
+function query(model,f={}){
+ const text=String(f.search||"").trim().toLocaleLowerCase("fr");
+ const arr=model.games.filter(g=>(f.library==="ALL"||!f.library||g.libraryId===f.library)&&
+ (f.platform==="ALL"||!f.platform||g.platform===f.platform)&&
+ (f.status==="ALL"||!f.status||g.quality===f.status)&&
+ (f.coverage==="ALL"||!f.coverage||g.coverageStatus===f.coverage)&&
+ (!text||[g.title||"",g.gameId,g.platform,...g.variants].some(v=>v.toLocaleLowerCase("fr").includes(text))));
+ const sort=["title","platform","quality","observed"].includes(f.sort)?f.sort:"title";
+ return arr.slice().sort((a,b)=>{
+ if(sort==="observed")return Date.parse(b.provenance.observedAtUtc)-Date.parse(a.provenance.observedAtUtc)||a.identity.localeCompare(b.identity);
+ return String(sort==="title"?a.title??"":a[sort]).localeCompare(String(sort==="title"?b.title??"":b[sort]),"fr")||a.identity.localeCompare(b.identity);
+ });
 }
-global.RM_T2_CATALOGUE=Object.freeze({normalize,query});
+global.RM_T2_CATALOGUE=Object.freeze({normalize,query,VERSION});
 })(typeof window!=="undefined"?window:globalThis);
