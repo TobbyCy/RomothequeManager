@@ -34,7 +34,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'git ls-files failed' }
     Require ($paths.Count -gt 0) 'No tracked files'
     $allowed = @(
-        '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
+        '^LICENSE$', '^BRANDING\.md$', '^LEGAL\.md$', '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
         '^Modules/[A-Za-z][A-Za-z0-9]*\.psm1$',
         '^Export/(ExportE1\.psm1|Invoke-ExportE1InventoryReadOnly\.ps1|README\.md)$',
         '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$',
@@ -48,7 +48,7 @@ try {
         '^(contracts|schemas)/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json$',
         '^adapters/shared/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|ps1|psm1|json)$',
         '^tests/Invoke-Ci[A-Za-z]+\.ps1$', '^tests/Invoke-CiE1NegativeCanary\.ps1$', '^tests/Invoke-CiE1Integration\.ps1$',
-        '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/(ci-export-sources|ci-preflight-sources)\.json$'
+        '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/(ci-export-sources|ci-preflight-sources)\.json$', '^tests/Invoke-CiE1PreflightSynthetic\.ps1$'
     )
     $collisions = @{}
     foreach ($path in $paths) {
