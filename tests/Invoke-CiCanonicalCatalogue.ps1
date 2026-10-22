@@ -17,6 +17,8 @@ $raw=& (Join-Path $PSScriptRoot 'Export-SyntheticCanonicalCatalogue.ps1')
 $dto=ConvertFrom-Json -InputObject $raw
 if (-not (Assert-RmCanonicalCatalogueDto -Dto $dto)) { throw 'CATDTO_VALID_NOT_ACCEPTED' }
 $x=Clone-Dto $dto;$x.schemaVersion='999';Assert-Rejected $x 'CATDTO_SCHEMA_UNSUPPORTED'
+$x=Clone-Dto $dto;$x.readOnly='True';Assert-Rejected $x 'CATDTO_READONLY_REQUIRED'
+$x=Clone-Dto $dto;$x.registry.readOnly='True';Assert-Rejected $x 'CATDTO_REGISTRY_READONLY'
 $x=Clone-Dto $dto;$x.games[0].provenance[0].snapshotId='ghost';Assert-Rejected $x 'CATDTO_ORPHAN_SNAPSHOT'
 $x=Clone-Dto $dto;$x.games[0].provenance[0].generationId='ghost';Assert-Rejected $x 'CATDTO_GENERATION_PROVENANCE_MISMATCH'
 $x=Clone-Dto $dto;$x.games[0].provenance[0].observedAtUtc='2026-01-01T00:00:00Z';Assert-Rejected $x 'CATDTO_GENERATION_PROVENANCE_MISMATCH'
