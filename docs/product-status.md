@@ -11,8 +11,6 @@ Ce tableau distingue les capacités en cours de revue, les maquettes et les vers
 | Favoris, tags, comparaison | Besoins étudiés | Aucun stockage personnel disponible |
 | Simulation/export et conversion | Études fonctionnelles, **opérations réelles non autorisées** | Aucun effet physique implicite, aucun E6 |
 | ZIP Windows / Release | **NON PUBLIÉ / NON TESTÉ** | Pas de programme à télécharger |
-| Licence et médias | **Licence MIT adoptée pour le code et la documentation originaux autorisés** ; cinq visuels V2 soumis à vérification de droits | Publication du dépôt encore privée ; les visuels, marques et œuvres tierces ne sont pas automatiquement couverts par MIT |
+| Licence et médias | Diffusion non décidée, cinq visuels soumis à vérification de droits | Aucune redistribution autorisée par défaut |
 
 Seules des preuves de tests exécutés sur un SHA exact permettent de déclarer un contrôle réussi. Les [changements](../CHANGELOG.md) documentent les versions intégrées ; la [roadmap](roadmap.md) décrit les objectifs futurs.
-
-**Cadre légal :** voir [la licence MIT](../LICENSE), [les limites d'utilisation des ROM et BIOS](../LEGAL.md) et [l'identité graphique](../BRANDING.md). La publication du dépôt et une éventuelle Release Windows restent des décisions distinctes ; aucune application autonome n'est disponible aujourd'hui.
