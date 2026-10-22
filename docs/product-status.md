@@ -1,5 +1,7 @@
 # État des fonctionnalités
 
+**Lot T4-A (PR #29 Draft, non intégré) :** producteur et validateur 0.2 candidats durcis (preuves par plateforme, snapshot le plus récent, unités et compteurs, sérialisation ordinale), tests négatifs PS5.1/Node branchés sur CI-0 mais **NOT_EXECUTED**, code JS de lecture défensive sur #29. Correctif préparatoire de deux helpers #27 porté uniquement par #29, à réconcilier avec la branche #27. Contrat T2 #30 en revue, adoption normative interdite sans décision. Voir `docs/architecture/catalogue-t4-parity-and-integration.md`.
+
 **Branche T3 expérimentale PR #29 (non intégrée) :** `Modules/CatalogueProjection.psm1` et `Modules/CatalogueDtoContract.psm1` fournissent projection synthétique, recherche, DTO candidat `0.2.0-ui-catalogue-candidate`, validateur indépendant et harness négatifs. PR #30 (T2) ne consomme pas encore ce schéma ; PS5.1/CI/Node **NOT_EXECUTED**. Voir `docs/architecture/catalogue-t3-canonical-candidate.md`. Aucune fonctionnalité nouvelle annoncée comme disponible sur main.
 
 Ce tableau distingue les capacités en cours de revue, les maquettes et les versions **effectivement disponibles**.
