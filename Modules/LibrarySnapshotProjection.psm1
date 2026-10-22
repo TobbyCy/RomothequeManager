@@ -156,15 +156,24 @@ function Assert-RmLibraryRegistry {
         if ($availability -ceq 'UNKNOWN' -and $null -ne $observed) { throw 'LIBRARY_UNKNOWN_AVAILABILITY_HAS_DATE' }
         if ($availability -cne 'UNKNOWN' -and $null -eq $observed) { throw 'LIBRARY_AVAILABILITY_DATE_MISSING' }
         $last=Get-RmLibraryRequired $lib 'lastVerifiedCompleteRef' 'library'
+        if (-not $index) {
+            Write-Host ('P0_VALIDATE_BEFORE '+(@($snapshots | ForEach-Object {
+                $_.snapshotId+'/'+$_.generationId+'@'+[Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($_)
+            }) -join '|'))
+        }
         $snapKeys=New-RmOrdinalMap; $genKeys=New-RmOrdinalSet
         foreach ($snap in $snapshots) {
+            if (-not $index) { Write-Host ('P0_VALIDATE_ITER '+$snap.snapshotId+'/'+$snap.generationId+'@'+[Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($snap)) }
             $snapId=Get-RmLibraryText $snap 'snapshotId' 'snapshot'
+            if (-not $index) { Write-Host ('P0_AFTER_SNAP_ID '+$snap.snapshotId+'/'+$snap.generationId) }
             [void](Get-RmLibraryText $snap 'scanId' 'snapshot')
             $gen=Get-RmLibraryText $snap 'generationId' 'snapshot'
+            if (-not $index) { Write-Host ('P0_AFTER_GENERATION '+$snap.snapshotId+'/'+$snap.generationId) }
             $date=Get-RmLibraryText $snap 'capturedAtUtc' 'snapshot'
             [void](Assert-RmLibraryDate $date)
             $units=Get-RmLibraryRequired $snap 'units' 'snapshot'
             Assert-RmLibraryArray $units 'snapshot.units'
+            if (-not $index) { Write-Host ('P0_AFTER_FIELDS '+$snap.snapshotId+'/'+$snap.generationId) }
             $snapshotExists=$snapKeys.ContainsKey($snapId)
             $generationAdded=$genKeys.Add($gen)
             if ($snapshotExists -or -not $generationAdded) {
@@ -182,7 +191,9 @@ function Assert-RmLibraryRegistry {
                     ';snapshotObjectRef='+$reference+';allSnapshotRefs='+$snapshotReferences)
             }
             $snapKeys[$snapId]=$snap
+            if (-not $index) { Write-Host ('P0_AFTER_STORE '+(@($snapshots | ForEach-Object { $_.snapshotId+'/'+$_.generationId }) -join '|')) }
             [void](Get-RmLibraryCoverage $lib $snap)
+            if (-not $index) { Write-Host ('P0_AFTER_COVERAGE '+(@($snapshots | ForEach-Object { $_.snapshotId+'/'+$_.generationId }) -join '|')) }
         }
         if ($null -ne $last) {
             if ($last -isnot [string] -or -not $snapKeys.ContainsKey($last)) { throw 'LIBRARY_LAST_VERIFIED_REF_INVALID' }
