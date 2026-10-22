@@ -118,3 +118,12 @@ Préconditions : checkout privé de la PR #28 au SHA indiqué dans le checkpoint
 **Tests préparatoires :** `node prototype/ui11/t2-catalogue.test.cjs` (19 cas positifs/négatifs, contrat T1). Recette navigateur : ouvrir `index.html` hors ligne, Dashboard → Bibliothèques → snapshot → Comparaison → Collection → fiche → snapshot, vérifier les filtres et retour, tester 320/375/768/1280 px, clavier Tab/Entrée/Espace, source OFFLINE/STALE, titre nul, contradiction, couverture incomplète, DTO invalide en mode projection. Consigner SHA, OS, navigateur, stdout et captures. **V8 simulé ≠ Node.js ≠ navigateur ≠ PS5.1**. Les résultats runtime PS5.1, navigateur et parité ne sont pas disponibles à ce stade.
 
 **Limites** : le DTO T1 est **candidat**, pas normatif. Le producteur T1 ne fournit aucune localisation physique par unité, seulement une provenance logique ; ne pas fabriquer `sourceKey/rootKey`. Les tests de parité nécessitent un JSON réellement exporté par PS5.1 et un registre synthétique de même provenance, avant toute réception d'intégration.
+
+
+## T4-B — Convergence du catalogue T3 0.2 (22.10.2026)
+
+Le modèle UI accepte explicitement le schéma candidat `0.2.0-ui-catalogue-candidate` de Dev 1, sans adopter ce contrat comme normatif. L'ancien schéma T1 candidat reste en place pour la non-régression historique. Le consommateur T3 de Dev 1 est temporairement référencé dans la même branche par `t4-catalogue-consumer.js`, avec des contrôles UI additionnels ; il devra être réconcilié avant fusion.
+
+Pour vérifier le **même parcours UI** avec le JSON T3 **synthétique statique** de la PR #29, ouvrir `demo-t4-catalogue.html`. Il s'agit de `index.html` avec une source de données différente, **pas** d'une seconde application. Le fichier `t4-catalogue-demo.js` est une copie déclarée de la fixture T3, non un résultat d'exécution PowerShell.
+
+Les nouveaux tests sont dans `t4-catalogue.test.cjs` : `node prototype/ui11/t4-catalogue.test.cjs` depuis un checkout autorisé. La matrice et les recettes restantes figurent dans [T4_CONVERGENCE_CATALOGUE.md](T4_CONVERGENCE_CATALOGUE.md). V8 ciblé 14/14 + V8 DOM simulé 9/9 ont été exécutés pour l'intégration initiale ; Node complet, navigateur réel, CI, PS5.1 et parité export runtime restent **NOT_EXECUTED**.
