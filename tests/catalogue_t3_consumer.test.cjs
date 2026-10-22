@@ -74,4 +74,26 @@ ok("length-prefixed Ordinal game sort equals PowerShell",()=>{
  assert.deepEqual(Array.from(model.normalize(d).games, g=>g.gameId),["z","game"]);
 });
 ok("pagination",()=>assert.equal(model.query(model.normalize(dto),{limit:1}).items.length,1));
+// When CI provides the real PS5.1 synthetic export, validate those exact bytes
+// in the same runtime and exercise Unicode search. Never infer that the hand-written
+// shared fixture proves PowerShell's source decoding.
+if(process.env.RM_CANONICAL_EXPORT_JSON){
+ ok("runtime PS5.1 JSON -> JS normalization + Unicode codepoints/search",()=>{
+  const p=path.resolve(process.env.RM_CANONICAL_EXPORT_JSON);
+  if(path.basename(p)!=="rm-t3-catalogue-synthetic.json")throw Error("UNEXPECTED_SYNTHETIC_EXPORT_PATH");
+  const raw=fs.readFileSync(p,"utf8");
+  const exported=JSON.parse(raw);
+  const expected=String.fromCodePoint(0x00C9)+"toile des disques";
+  assert.equal(exported.schemaVersion,"0.2.0-ui-catalogue-candidate");
+  assert.equal(exported.games.length,1);
+  assert.equal(exported.games[0].title,expected);
+  assert.equal(exported.games[0].title.codePointAt(0),0x00C9);
+  const normalized=model.normalize(exported);
+  assert.equal(normalized.gameCount,1);
+  assert.equal(normalized.games[0].observations.length,3);
+  assert.equal(normalized.games[0].variants.length,2);
+  assert.equal(model.query(normalized,{search:String.fromCodePoint(0x00C9)+"toile"}).total,1);
+  assert.equal(model.query(normalized,{search:"éTOILE"}).total,1);
+ });
+}
 console.log("T3_CANDIDATE_CONSUMER_TESTS_PASS",checks);
