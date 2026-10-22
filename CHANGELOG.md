@@ -1,12 +1,14 @@
 # Journal des changements
 
-- **STAB-03A #29 (Draft)** : corrections exécutables PowerShell/CI des ensembles vides, oracle lastVerified et allowlists fermées ; propagation à la branche descendante requise et retest Agent indépendant. **NOT_EXECUTED** sur nouveau HEAD, aucune fusion.
+- **STAB-03A #29 (Draft)** : corrections exécutables PowerShell/CI des ensembles vides, oracle lastVerified et allowlists fermées ; propagation source #27→#29 des correctifs P0 effectuée à contenu identique ; bases Git non réconciliées et retest Agent indépendant. **NOT_EXECUTED** sur nouveau HEAD, aucune fusion.
 
 Ce document décrit les évolutions **effectivement intégrées**. Les fonctionnalités proposées figurent dans la [roadmap](docs/roadmap.md) et ne sont pas annoncées comme livrées.
 
 ## Non publié — développement
 
-- **T4-A — consolidation catalogue (#29, Draft)** : correction des collections PowerShell, sélection chronologique UTC, preuve complète par partition et console, rejet des références historiques masquées, collisions ROM inter-jeux, cohérence état/source et compteurs ; validateur indépendant et consommateur JS renforcés. Nouveaux canaris de falsification simultanée, ordre d'énumération et couverture mixte ; tests PS5.1 et Node ajoutés à CI-0 sans supprimer les gates existants. Deux retours génériques hérités de #27 corrigés **uniquement sur la branche #29** (réconciliation amont obligatoire). **PS51/Node/CI/BROWSER_NOT_EXECUTED**, aucune adoption normative de 0.2, aucune fusion. Matrice : `docs/architecture/catalogue-t4-parity-and-integration.md`.
+- **STAB-03A → INT-01 (Draft, sans fusion)** : correction par plateforme de `Get-RmLibraryCoverage` (GBA prouvée ne transforme pas PS1 non observée en PARTIAL) et correction de `lastObservedAtUtc` par `DateTimeOffset` chronologique, avec canaris exécutant les véritables fonctions sur #27 et #29. Même contenu des deux fichiers métier/harness dans les deux branches ; dette Git de 7 commits de #26 et 12 commits de #27 à résoudre uniquement sous mandat. `docs/developer/stab03a-int01-preparation.md`. **PS5.1/Python/Node/CI NOT_EXECUTED**, aucun GO de fusion.
+
+- **T4-A — consolidation catalogue (#29, Draft)** : correction des collections PowerShell, sélection chronologique UTC, preuve complète par partition et console, rejet des références historiques masquées, collisions ROM inter-jeux, cohérence état/source et compteurs ; validateur indépendant et consommateur JS renforcés. Nouveaux canaris de falsification simultanée, ordre d'énumération et couverture mixte ; tests PS5.1 et Node ajoutés à CI-0 sans supprimer les gates existants. Helpers hérités de #27 corrigés à la source et propagés à #29 ; bases historiques toujours non réalignées. **PS51/Node/CI/BROWSER_NOT_EXECUTED**, aucune adoption normative de 0.2, aucune fusion. Matrice : `docs/architecture/catalogue-t4-parity-and-integration.md`.
 
 
 - **T3-A / PR #29 (Draft, branche expérimentale)** : proposition de DTO catalogue commun `0.2.0-ui-catalogue-candidate`, validateur PowerShell indépendant, producteur synthétique, canaris de références/couverture/comptage et extension explicite des gardes CI de 20 à 22 modules. Contrat non adopté par T2 #30, aucun merge, PS5.1/CI/Node **NOT_EXECUTED**. Documentation : `docs/architecture/catalogue-t3-canonical-candidate.md`.
