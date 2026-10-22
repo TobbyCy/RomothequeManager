@@ -17,7 +17,7 @@
 
 - Le DTO T3 est distingué par son **`schemaVersion`**. Aucune conversion automatique d'un DTO incompatible ou d'un état `null` en zéro.
 - La clé jeu est `JSON.stringify([libraryId,platform,gameId])`, sensible à la casse. `romUnitId` et `variantId` ne fusionnent pas les jeux.
-- Le validateur JS T3 copié de #29 valide schéma, provenance snapshot/génération, doublons, couverture et compteurs. Le modèle UI complète les contrôles sur les états de bibliothèque, le numéro de disque, le titre observé et les diagnostics. Il ne revendique ni authentification ni preuve physique.
+- Le consommateur JS T3 canonique partagé avec #29 valide schéma, disponibilité et fraîcheur par rapport au registre, provenance snapshot/génération, doublons, couvertures, compteurs, numéros de disque, variantes et preuves de titres inconnus ou contradictoires. Le modèle UI **ne revalide plus ces invariants métier** : il projette les données déjà acceptées, utilise les cartes de bibliothèque de présentation et vérifie les références de diagnostics utiles à l'affichage. Aucune authentification ni preuve physique n'est revendiquée.
 - Le `countKnown=false` d'une génération partielle reste possible avec index accessible ; `gameCount=null` pour un total global non prouvé. OFFLINE ne signifie pas index indisponible, STALE ne signifie pas observation actuelle.
 - Le registre et la comparaison demeurent des entrées **précalculées** du moteur. Aucune duplication du comparateur PowerShell n'est introduite par T4-B.
 - La fiche affiche les informations prouvées par le DTO : `title=null` reste inconnu, les observations n'inventent ni chemin physique ni média.
@@ -52,7 +52,7 @@ Navigateur : ouvrir `prototype/ui11/demo-t4-catalogue.html` en `file://`, vérif
 ## Points pour le Contrôleur et Dev 1
 
 1. Vérifier à chaque avancée de Dev 1 que `adapters/shared/catalogue-t3-consumer.js` est strictement identique aux deux HEAD ; ne jamais conserver deux validateurs JS divergents.
-2. Renforcer la validation T3 sur `availability/freshness` du jeu vs registre, `discNumber`, et preuves de titres contradictoires / absents. Le validateur PS et le consommateur JS ne couvrent pas aujourd'hui les mêmes invariants.
+2. Les contrôles `availability/freshness`, `discNumber` et titres contradictoires/absents ont été regroupés dans le consommateur JS partagé ; maintenir la vérification **d'équivalence PS ↔ JS sur l'export synthétique réellement produit** et ses falsifications, toujours NOT_EXECUTED en runtime ici. Ne pas déduire une équivalence PowerShell de cette inspection de code.
 3. Régler le chaînage des PR empilées et gates CI sans rebase ou merge implicites.
 4. Exiger export PS5.1 et tests navigateur réels avant verdict de parité/recette.
 
@@ -61,4 +61,4 @@ Navigateur : ouvrir `prototype/ui11/demo-t4-catalogue.html` en `file://`, vérif
 
 L'ancienne référence à une copie locale du consommateur T3 est historique et **n'est plus valable**. Les trois entrées HTML chargent désormais le chemin canonique partagé dans l'arbre de PR #30, à contenu strictement égal à la branche Dev 1 contrôlée. La Collection/Fiche est commune pour les DTO legacy, T1 et T3 ; le JSON de l'exporteur synthétique PS5.1 peut être importé depuis la Collection, après validation intégrale et sans créer de nouvelle page. Les comparaisons du DTO d'import ne sont pas reconstruites en JS.
 
-[Recette STAB-03B](STAB03B_RECETTE_EDGE.md) : suites 9 + 10 + 42 + 20 + 32 = 113 assertions PASS **sous V8 simulant Node** ; Node natif, Edge et export PS5.1 indépendants restent NOT_EXECUTED. Aucun élément de ce document n'adopte contractuellement la version 0.2 ni ne prouve un accès à des ROM.
+[Recette STAB-03B](STAB03B_RECETTE_EDGE.md) : suites 9 + 10 + 42 + 20 + 34 = 115 assertions PASS **sous V8 simulant Node** ; Le parcours supplémentaire `ui-journey.test.cjs` comporte 42 vérifications V8 simulées sur les trois modes ; `synthetic-import.test.cjs` est une suite distincte, non rejouée pendant INT-03. Node natif, Edge, parité Unicode de l'export PS5.1 et gates CI restent NOT_EXECUTED. Aucun élément de ce document n'adopte contractuellement la version 0.2 ni ne prouve un accès à des ROM.
