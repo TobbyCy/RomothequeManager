@@ -37,14 +37,14 @@ try {
         '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$',
         '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$',
         '^\.gitattributes$', '^Initialize\.ps1$', '^Modules/[A-Za-z][A-Za-z0-9]*\.psm1$',
-        '^Export/(ExportE1\.psm1|Invoke-ExportE1InventoryReadOnly\.ps1|README\.md)$', '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$', '^docs/(product-status|roadmap)\.md$',
+        '^Export/(ExportE1\.psm1|Invoke-ExportE1InventoryReadOnly\.ps1|README\.md)$', '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$', '^docs/(product-status|roadmap|PUB01B_PUBLIC_CONTENT_AUDIT)\.md$',
         '^docs/(user|developer|architecture|decisions|ux)/[A-Za-z0-9_.-]+\.md$', '^\.github/workflows/ci\.yml$', '^\.github/CODEOWNERS$', '^\.github/pull_request_template\.md$',
         '^\.github/ISSUE_TEMPLATE/(bug|config|docs|feature|question)\.yml$', '^tests/(ci_policy|test_ci_policy)\.py$', '^(src|app)/RomothequeManager\.V2/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|sln|axaml|resx|json|png|svg|ico)$',
         '^tests/dotnet/RomothequeManager\.V2\.Tests/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|json)$', '^(contracts|schemas)/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json$', '^adapters/shared/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|ps1|psm1|json)$',
         '^tests/Invoke-Ci[A-Za-z]+\.ps1$', '^tests/Invoke-CiE1NegativeCanary\.ps1$', '^tests/Invoke-CiE1Integration\.ps1$',
         '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/(ci-export-sources|ci-preflight-sources)\.json$', '^tests/Invoke-CiE1PreflightSynthetic\.ps1$',
         '^tests/Export-Synthetic(UiProjection|Catalogue|CanonicalCatalogue)\.ps1$', '^tests/fixtures/(SyntheticLibrarySnapshots|UiProjectionVectors)\.ps1$', '^tests/fixtures/(TEST_MATRIX_S3\.md|CatalogueT3CanonicalSample\.json)$',
-        '^adapters/shared/catalogue-t3-consumer\.js$', '^tests/catalogue_t3_consumer\.test\.cjs$', '^prototype/ui11/(README\.md|T4_CONVERGENCE_CATALOGUE\.md|app\.js|catalogue-adapter\.js|demo-integree\.html|demo-t4-catalogue\.html|fixtures\.js|index\.html|integrated-smoke\.cjs|projection-adapter\.js|projection-data\.js|projection-integrated\.js|projection-sample\.js|projection-smoke\.cjs|smoke\.cjs|styles\.css|t2-catalogue-fixture\.js|t2-catalogue-model\.js|t2-catalogue-ui\.js|t2-catalogue\.css|t2-catalogue\.html|t2-catalogue\.test\.cjs|t4-catalogue-demo\.js|t4-catalogue\.test\.cjs)$'
+        '^adapters/shared/catalogue-t3-consumer\.js$', '^tests/catalogue_t3_consumer\.test\.cjs$', '^prototype/ui11/(README\.md|T4_CONVERGENCE_CATALOGUE\.md|app\.js|catalogue-adapter\.js|demo-integree\.html|demo-t4-catalogue\.html|fixtures\.js|index\.html|integrated-smoke\.cjs|projection-adapter\.js|projection-data\.js|projection-integrated\.js|projection-sample\.js|projection-smoke\.cjs|smoke\.cjs|styles\.css|t2-catalogue-fixture\.js|t2-catalogue-model\.js|t2-catalogue-ui\.js|t2-catalogue\.css|t2-catalogue\.html|t2-catalogue\.test\.cjs|t4-catalogue-demo\.js|t4-catalogue\.test\.cjs|synthetic-import\.test\.cjs|ui-journey\.test\.cjs|unicode-producer\.test\.cjs|STAB03B_RECETTE_EDGE\.md)$'
     )
     $collisions = @{}
     foreach ($path in $paths) {
