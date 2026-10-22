@@ -6,7 +6,7 @@
 
 - Arbre Produit sur PR Draft #30 (SHA observé `b62a2c48f8e1e18f5cdab42fb6a15584c8d884a1`) : 110 blobs parcourus pour références explicites au dépôt privé, noms/données personnels évidents, courriels et chemins locaux typiques ; échantillons des guides et de la configuration GitHub lus.
 - `main` Produit : 85 blobs au moment du relevé, distinct de la PR #30. Les scripts et modules restent non destinés aux données réelles.
-- Métadonnées GitHub consultées : 21 Issues, 9 PR (dont 3 fermées) ; 94 commentaires de discussion GitHub au moment de la recherche, aucun commentaire inline retourné par l'endpoint consulté.
+- Métadonnées GitHub consultées : 21 Issues ouvertes et 9 PR (dont 3 fermées : deux non fusionnées, une fusionnée) ; 99 commentaires GitHub sur la première page REST (99/100), sans commentaire de revue inline sur cette page, aucun commentaire inline retourné par l'endpoint consulté.
 - Dans l'arbre scanné, aucune URL explicite vers le dépôt opérationnel privé n'a été détectée ; deux liens pointent seulement vers des PR du Produit. Ceci **n'efface pas les liens présents dans les textes historiques GitHub**.
 - Aucune ressource image/jaquette/logo binaire intégrée dans l'arbre vérifié ; aucun droit de redistribution sur les créations graphiques historiques n'est établi. Les pictogrammes de l'interface sont des placeholders typographiques, non des jaquettes.
 - Vérifications non effectuées : tous commits/branches/objets orphelins, pièces jointes historiques, caches, éventuels journaux Actions/artefacts, URL externes en HTTP effectif, contrôle GitHub en interface propriétaire et vérification légale des droits.
@@ -21,7 +21,7 @@
 
 ## Blocages avant toute mise en public
 
-**B0 — Historique GitHub hors arbre.** La description de la PR Produit #23 fermée et des commentaires d'anciennes PR contiennent des références au dépôt opérationnel privé ; au moins deux commentaires pointent explicitement vers celui-ci. Le propriétaire doit examiner, corriger/expurger là où les droits GitHub le permettent, et décider d'un traitement du reliquat historique. Une PR fermée, son fil, ses SHAs et ses métadonnées ne deviennent **pas invisibles** après ouverture du dépôt. Pour les IDs précis de commentaires et leur qualification, utiliser la remise privée au propriétaire, sans recopier ici les URL concernées.
+**B0 — Historique GitHub hors arbre.** Contrôle complémentaire ciblé des métadonnées : **deux descriptions de PR** (dont une fermée non fusionnée), **quatre commentaires de PR**, soit **sept URL explicites** renvoyant vers le dépôt opérationnel privé. Les identifiants précis des six objets distincts sont consignés exclusivement dans le checkpoint privé du propriétaire, pas dans ce document destiné à la publication. Le propriétaire doit examiner, corriger/expurger là où les droits GitHub le permettent, et décider d'un traitement du reliquat historique. Une PR fermée, son fil, ses SHAs et ses métadonnées ne deviennent **pas invisibles** après ouverture du dépôt. Pour les IDs précis de commentaires et leur qualification, utiliser la remise privée au propriétaire, sans recopier ici les URL concernées.
 
 **B1 — Historique complet, commentaires et métadonnées.** Valider l'ensemble des branches et références Git, l'auteur des commits, anciennes PR/Issues fermées, discussions/reviews, pièces jointes, Actions, journaux et artefacts. Ne pas promettre qu'une suppression de branche, un squash ou une modification de README efface les références historiques. Aucun nettoyage irréversible automatique.
 
