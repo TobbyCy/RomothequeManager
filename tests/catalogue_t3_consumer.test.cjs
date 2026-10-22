@@ -53,5 +53,12 @@ ok("mixed GBA proven + PS1 unobserved keeps partial overall",()=>{
  d.countKnown=false;d.gameCount=null;
  assert.equal(model.normalize(d).games[0].coverStatus,"UNKNOWN");
 });
+rejects("verified snapshot missing",d=>d.registry.libraries[0].lastVerifiedCompleteRef="ghost","LAST_VERIFIED_ORPHAN");
+rejects("snapshot and generation conflated",d=>d.registry.libraries[0].generations[0].snapshotId="gen","IDENTITY_CONFLATED");
+rejects("unknown availability with observed date",d=>d.registry.libraries[0].currentAvailability="UNKNOWN","LIBRARY_DATE");
+rejects("wrong last complete proof",d=>{
+ const g=d.registry.libraries[0].generations[0];g.scanStatus="failed";
+ g.coverage[0].status="partial";
+},"LAST_VERIFIED_UNPROVEN");
 ok("pagination",()=>assert.equal(model.query(model.normalize(dto),{limit:1}).items.length,1));
 console.log("T3_CANDIDATE_CONSUMER_TESTS_PASS",checks);
