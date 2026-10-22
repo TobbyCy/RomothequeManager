@@ -32,10 +32,11 @@ function normalize(dto) {
   if(!snap||p.libraryId!==lid||p.generationId!==snap.generationId||p.observedAtUtc!==snap.capturedAtUtc||p.source!=="SYNTHETIC_SNAPSHOT")fail("REFERENCE");
   const expected=new Set();
   for(const platformId of lib.platforms)for(const source of lib.sources)for(const domain of source.domains)expected.add(key(platformId,source.sourceKey,source.rootKey,domain));
-  const proven=new Set();
+  const proven=new Set(),seen=new Set();
   for(const part of arr(snap.coverageProof,"PROOF")){
    const pk=key(part.console,part.sourceKey,part.rootKey,part.domain);
-   if(!expected.has(pk)||proven.has(pk))fail("PROOF_PARTITION");
+   if(!expected.has(pk)||seen.has(pk))fail("PROOF_PARTITION");
+   seen.add(pk);
    if(part.status==="complete")proven.add(pk);
   }
   const covered=snap.scanStatus==="complete"&&snap.scopeIsExhaustive===true&&proven.size===expected.size&&
@@ -54,10 +55,11 @@ function normalize(dto) {
   if(!units.size)fail("EMPTY_GAME");
   games.set(k,game);
  }
+ const diagnostics=arr(dto.diagnostics,"DIAGNOSTICS");
  const countKnown=dto.countKnown;
  if(typeof countKnown!=="boolean")fail("COUNT_FLAG");
  if(countKnown) {
-  if(!Number.isInteger(dto.gameCount)||dto.gameCount!==games.size||[...libs.values()].some(l=>!l.indexAccessible)||[...games.values()].some(g=>g.coverStatus!=="KNOWN"))fail("COUNT_FORGED");
+  if(!Number.isInteger(dto.gameCount)||dto.gameCount!==games.size||[...libs.values()].some(l=>!l.indexAccessible)||[...games.values()].some(g=>g.coverStatus!=="KNOWN")||diagnostics.some(d=>["CATALOG_COVERAGE_UNPROVEN","CATALOG_IDENTITY_AMBIGUOUS","CATALOG_NO_SNAPSHOT"].includes(d.code)))fail("COUNT_FORGED");
  }else if(dto.gameCount!==null)fail("COUNT_FORGED");
  return Object.freeze({schemaVersion:dto.schemaVersion,readOnly:true,games:[...games.values()].sort((a,b)=>
   ordinal(key(a.libraryId,a.platform,a.gameId),key(b.libraryId,b.platform,b.gameId))),registry:libs,countKnown,gameCount:dto.gameCount});
