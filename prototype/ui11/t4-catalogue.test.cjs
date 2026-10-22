@@ -2,7 +2,7 @@
 // Run from repository root: node prototype/ui11/t4-catalogue.test.cjs
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
-const scripts=["fixtures.js","projection-adapter.js","t4-catalogue-consumer.js","t2-catalogue-model.js","t4-catalogue-demo.js"];
+const scripts=["fixtures.js","projection-adapter.js","../../adapters/shared/catalogue-t3-consumer.js","t2-catalogue-model.js","t4-catalogue-demo.js"];
 const w={},ctx=vm.createContext({window:w,globalThis:w});
 for(const name of scripts)vm.runInContext(fs.readFileSync(path.join(__dirname,name),"utf8"),ctx,{filename:name});
 const clone=x=>JSON.parse(JSON.stringify(x));
