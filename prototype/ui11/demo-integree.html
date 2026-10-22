@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>ROMothèque Manager — Démonstration intégrée #17</title>
+<link rel="stylesheet" href="./styles.css">
+<script src="./fixtures.js" defer></script>
+<script src="./projection-adapter.js" defer></script>
+<script src="./projection-integrated.js" defer></script>
+<script src="./catalogue-adapter.js" defer></script>
+<script src="../../adapters/shared/catalogue-t3-consumer.js" defer></script>
+<script src="./t2-catalogue-model.js" defer></script>
+<script src="./app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="brand"><span class="brand-mark" aria-hidden="true">▣</span><span><strong>ROMothèque</strong><small>MANAGER <i>·</i> UI LAB</small></span></div>
+  <div class="sidebar-label">ESPACE DE TRAVAIL</div>
+  <nav class="nav" aria-label="Navigation principale">
+    <button data-route="dashboard" class="nav-item active"><span aria-hidden="true">▦</span> Tableau de bord</button>
+    <button data-route="libraries" class="nav-item"><span aria-hidden="true">▤</span> Bibliothèques</button>
+    <button data-route="collection" class="nav-item"><span aria-hidden="true">▥</span> Collection</button>
+    <button data-route="compare" class="nav-item"><span aria-hidden="true">⇄</span> Comparaison</button>
+  </nav>
+  <div class="sidebar-foot"><span class="dot"></span> Projection synthétique candidate<br><small>Hors ligne · lecture seule · aucun scan</small></div>
+</aside>
+<div class="workspace">
+<header class="topbar"><div class="crumb">ROMOTHÈQUE <span>/</span> <span id="breadcrumb">Tableau de bord</span></div><div class="top-actions"><span class="tag tag-muted">PROJECTION HORS LIGNE</span><span class="avatar" aria-label="Projection synthétique candidate">S</span></div></header>
+<main id="view" tabindex="-1" aria-live="polite"><div class="loading">Chargement du prototype…</div></main>
+<footer class="footer">UI #17 · Projection candidate synthétique uniquement · Aucun fichier ROM consulté ou modifié</footer>
+</div>
+</div>
+<div id="toast" role="status" aria-live="polite" class="toast" hidden></div>
+</body>
+</html>

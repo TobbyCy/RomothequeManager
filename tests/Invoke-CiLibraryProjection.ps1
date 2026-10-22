@@ -147,6 +147,30 @@ try {
     Assert-View ((New-RmLibraryProjection -Registry $caseDuplicate).libraries[0].generations.Count -eq 2) 'ordinal-snapshot-case-only-distinct'
     $again=Get-RmLibraryComparisonView -Registry $reg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b'
     Assert-View ((ConvertTo-Json -InputObject $view -Depth 20 -Compress) -ceq (ConvertTo-Json -InputObject $again -Depth 20 -Compress)) 'deterministic-repeated-view'
+    # STAB-03A: a proof on GBA must not promote an unobserved PS1 scope.
+    $twoPlatforms=New-RmSyntheticRegistry -Snapshots @($old,$new) -LastComplete $null
+    $twoPlatforms.libraries[0].platforms=@('GBA','PS1')
+    $twoPlatformCards=New-RmLibraryProjection -Registry $twoPlatforms
+    $actualCoverage=@($twoPlatformCards.libraries[0].generations | Where-Object { $_.snapshotId -ceq 'snap-b' })[0].coverage
+    Assert-View (@($actualCoverage | Where-Object { $_.console -ceq 'GBA' -and $_.status -ceq 'complete' }).Count -eq 1) 'gba-proof-remains-complete'
+    Assert-View (@($actualCoverage | Where-Object { $_.console -ceq 'PS1' -and $_.status -ceq 'unobserved' }).Count -eq 1) 'foreign-platform-proof-not-partial'
+    $twoPlatforms.libraries[0].snapshots[1].coverageProof[0].status='partial'
+    $partialPlatform=New-RmLibraryProjection -Registry $twoPlatforms
+    $partialCov=@($partialPlatform.libraries[0].generations | Where-Object { $_.snapshotId -ceq 'snap-b' })[0].coverage
+    Assert-View (@($partialCov | Where-Object { $_.console -ceq 'GBA' -and $_.status -ceq 'partial' }).Count -eq 1 -and
+                 @($partialCov | Where-Object { $_.console -ceq 'PS1' -and $_.status -ceq 'unobserved' }).Count -eq 1) 'platform-local-partial-not-global'
+
+    # STAB-03A/INT-01: UTC fraction must win over the same second without
+    # a fractional component, regardless of input snapshot enumeration order.
+    $fractionEarly=New-RmSyntheticSnapshot -Id 'clock-a' -Generation 'clock-ga' -At '2026-10-21T12:00:00Z'
+    $fractionLate=New-RmSyntheticSnapshot -Id 'clock-b' -Generation 'clock-gb' -At '2026-10-21T12:00:00.900Z'
+    $clockRegistry=New-RmSyntheticRegistry -Snapshots @($fractionLate,$fractionEarly) -LastComplete 'clock-b'
+    $clockProjection=New-RmLibraryProjection -Registry $clockRegistry
+    Assert-View ($clockProjection.libraries[0].lastObservedAtUtc -ceq '2026-10-21T12:00:00.900Z') 'fractional-utc-chronological-latest'
+    $clockRegistry.libraries[0].snapshots=@($fractionEarly,$fractionLate)
+    Assert-View ((New-RmLibraryProjection -Registry $clockRegistry).libraries[0].lastObservedAtUtc -ceq
+                 $clockProjection.libraries[0].lastObservedAtUtc) 'fractional-utc-input-order-independent'
+
     Write-Host ('LIBRARY_SYNTHETIC_PASS | assertions='+$script:passed+' | synthetic=1 | real_io=0')
     exit 0
 } catch {
