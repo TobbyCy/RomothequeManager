@@ -12,6 +12,8 @@ node .\prototype\ui11\t2-catalogue.test.cjs
 node .\prototype\ui11\t4-catalogue.test.cjs
 ```
 
+Contrôle additionnel du chargement de JSON synthétique dans la **Collection existante** : `node .\\prototype\\ui11\\synthetic-import.test.cjs` (9 assertions, DOM simulé). Il ne remplace ni Edge ni la parité PS5.1.
+
 En plus des cinq bilans finaux, contrôler le code de sortie **0** et l'absence d'exception involontaire ; relever version Node et SHA. Simulations V8 effectuées par DEV 2 au fil du mandat : 9 + 10 + 42 + 20 + 32 = **113 assertions PASS** ; elles ne sont pas une preuve d'exécution Node native. Vérifier en particulier les mutations de compteurs connus/inconnus et le vrai `discNumber` multidisque.
 
 ## Recette Edge 3 modes / interface partagée
