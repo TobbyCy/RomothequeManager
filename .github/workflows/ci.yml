@@ -86,6 +86,28 @@ jobs:
           & .\tests\Invoke-CiUiProjectionSerialization.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: T1 catalogue projection - synthetic PowerShell 5.1 canaries
+        shell: powershell
+        run: |
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw 'CATALOG_PS51_REQUIRED' }
+          & .\tests\Invoke-CiCatalogueProjection.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: T3/T4 canonical catalogue - independent DTO validation and negative canaries
+        shell: powershell
+        run: |
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw 'CATDTO_PS51_REQUIRED' }
+          & .\tests\Invoke-CiCanonicalCatalogue.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: T3/T4 shared fixture - candidate JavaScript consumer canaries
+        shell: powershell
+        run: |
+          node --version
+          if ($LASTEXITCODE -ne 0) { throw 'CATDTO_NODE_UNAVAILABLE' }
+          node .\tests\catalogue_t3_consumer.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Documentation currency gate (PR and main)
         shell: powershell
         run: |
