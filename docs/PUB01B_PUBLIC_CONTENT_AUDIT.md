@@ -93,3 +93,17 @@ Contrôle REST actualisé : **21 Issues hors PR, 10 PR** (y compris la nouvelle 
 **Fonctions recevables pour une alpha de consultation une fois intégrées et testées** : Dashboard, bibliothèques, snapshots historiques, comparaison A/B précalculée, Collection/Fiche, filtres, recherche, provenance, variantes et multidisque, OFFLINE/STALE/UNKNOWN, import manuel de **JSON synthétique validé**. **Exclure** : ROM/BIOS, conversion, export E6 réel, enrichissement en ligne, jaquettes tierces, catalogue cloud, favoris persistants, sauvegarde réelle ou support matériel annoncé sans tests.
 
 **Gates avant tag/ZIP/publication** : arbre Git fusionnable contrôlé et main protégé selon droits, CI/Node/contrôles négatifs au SHA intégré, recette navigateur automatisée et Edge Windows indépendante, parité PowerShell 5.1 sur JSON synthétique réellement exporté (Unicode, identités, provenance et couverture), absence de secrets et contenu sensible dans les sources **et l'historique exposable**, licence/assets approuvés, reproductibilité ZIP/empreinte SHA-256 vérifiée depuis un autre environnement, notes détaillant les limitations, puis décision explicite de l'auteur. Le passage du dépôt en PUBLIC n'est pas équivalent à une Release.
+
+## INT-03 — statut de déclassement, delta depuis INT-02
+
+**Photographie des métadonnées : 22.10.2026, avant décision PUBLIC.** Aucun scan exhaustif des objets Git hors des branches actives n'est revendiqué. Le contrôle incrémental des nouveaux commentaires Produit depuis le checkpoint INT-02 a repéré cinq nouveaux commentaires, **sans nouveau lien direct** vers le dépôt privé. Le nombre de **cinq liens directs historiques** identifié dans la description d'une PR fermée et quatre commentaires demeure un blocage ; ne reproduire aucun de ces liens ici.
+
+| Classe demandée | Surface | Critère pour lever l'état |
+| --- | --- | --- |
+| `PUBLIC_BLOCKER` | Description de la PR Produit **#23 fermée** et quatre commentaires historiques des PR #24, #26, #27, #28 ; cinq liens directs privés | Le propriétaire doit corriger les objets qu'il est autorisé à modifier, consigner ceux non modifiables, puis vérifier leur exposition réelle avant changement de visibilité |
+| `PUBLIC_BLOCKER` | Historique des patches, anciennes références Git, artefacts Actions, pièces jointes et journaux ; sécurité de la CI pour les forks | Audit avec permissions adéquates et preuve d'absence d'élément non publiable ; branch protection/gate réellement opérationnels |
+| `OWNER_DECISION_REQUIRED` | Licence code/documentation et droits de redistribution des cinq assets privés ; canal de sécurité non public actuellement non vérifié ; GO PUBLIC | Choix et vérifications du propriétaire, aucune adoption ou import automatique |
+| `CORRECTION_NON_BLOQUANTE` | README anglais candidat #25 et action de traduction automatique externe | Revoir traduction, dépendance et autorisations avant intégration ; ne bloque pas une publication FR si cette branche reste exclue |
+| `CLEARED` (sur périmètre borné) | Description actuelle PR #29 nettoyée, sources README/CONTRIBUTING/SECURITY et HTML fictif sur #30 ; aucun visuel binaire ajouté au Produit | Maintenir cette propriété au HEAD intégré, sans confondre avec un contrôle des historiques ou une recette navigateur réelle |
+
+Les autres éléments sont décrits dans l'audit initial ci-dessus. **PUBLIC reste `HOLD_PUBLIC`** : une PR fermée, un commentaire ou une ancienne pièce jointe ne devient pas privé du seul fait de la fermeture. La cible PUBLIC est exclusivement le dépôt Produit existant.
