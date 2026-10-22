@@ -18,6 +18,9 @@ function inspectLibrary(lib) {
  const id=text(lib.libraryId,"LIBRARY_ID");
  if(typeof lib.indexAccessible!=="boolean")fail("INDEX");
  if(!["FRESH","STALE","UNKNOWN"].includes(lib.freshness)||!["ONLINE","OFFLINE","INACCESSIBLE","UNKNOWN"].includes(lib.currentAvailability))fail("LIBRARY_STATE");
+ if(lib.currentAvailability==="UNKNOWN"){
+  if(lib.availabilityObservedAtUtc!==null)fail("LIBRARY_DATE");
+ }else dateUTC(lib.availabilityObservedAtUtc);
  const platforms=arr(lib.platforms,"PLATFORMS"),sources=arr(lib.sources,"SOURCES"),generations=arr(lib.generations,"GENERATIONS");
  if(!platforms.length||!sources.length||new Set(platforms).size!==platforms.length)fail("PLATFORM_SCOPE");
  for(const p of platforms)text(p,"PLATFORM");
@@ -41,6 +44,7 @@ function inspectLibrary(lib) {
  for(const gen of generations){
   const sid=text(gen.snapshotId,"SNAPSHOT"),gid=text(gen.generationId,"GENERATION"),at=dateUTC(gen.capturedAtUtc);
   if(bySnapshot.has(sid)||genIds.has(gid))fail("DUPLICATE_GENERATION");
+  if(sid===gid)fail("IDENTITY_CONFLATED");
   bySnapshot.set(sid,gen);genIds.add(gid);
   if(!latest||Date.parse(at)>Date.parse(latest.capturedAtUtc)||
      (Date.parse(at)===Date.parse(latest.capturedAtUtc)&&ordinal(sid,latest.snapshotId)>0))latest=gen;
@@ -75,6 +79,12 @@ function inspectLibrary(lib) {
    if(!gen.countKnown||!integer(gen.observedUnitCount))fail("SNAPSHOT_COUNT");
   }else if(gen.countKnown||gen.observedUnitCount!==null)fail("INACCESSIBLE_COUNT");
  }
+ if(lib.lastVerifiedCompleteRef!==null){
+  const verified=bySnapshot.get(text(lib.lastVerifiedCompleteRef,"LAST_VERIFIED"));
+  if(!verified)fail("LAST_VERIFIED_ORPHAN");
+  if(verified.scanStatus!=="complete"||verified.scopeIsExhaustive!==true||
+     verified.coverage.length!==platforms.length||!verified.coverage.every(c=>c.status==="complete"))fail("LAST_VERIFIED_UNPROVEN");
+ }
  return {id,latest,bySnapshot,complete:!!latest&&latest.scanStatus==="complete"&&latest.scopeIsExhaustive===true&&
    latest.coverage.length===platforms.length&&latest.coverage.every(c=>c.status==="complete")};
 }
@@ -107,7 +117,8 @@ function normalize(dto) {
   const covered=li.complete;
   if(g.coverStatus!==(covered?"KNOWN":"UNKNOWN")||g.status!==(covered?"KNOWN":"INCOMPLETE"))fail("COVERAGE_FORGED");
   if(g.quality==="KNOWN"&&(!covered||lib.freshness!=="FRESH"))fail("QUALITY_FORGED");
-  if(g.quality==="STALE"&&lib.freshness!=="STALE")fail("QUALITY_FORGED");
+  if(g.quality==="STALE"&&(lib.freshness!=="STALE"||!covered))fail("QUALITY_FORGED");
+  if(g.quality==="PARTIALLY_OBSERVED"&&covered)fail("QUALITY_FORGED");
   if(g.quality==="UNKNOWN"&&lib.freshness!=="UNKNOWN")fail("QUALITY_FORGED");
   const variants=new Set();
   for(const v of arr(g.variants,"VARIANTS")){
