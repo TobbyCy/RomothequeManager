@@ -9,7 +9,7 @@ global.RM_T2_FIXTURE=Object.freeze({
  libraries:global.RM_FIXTURES.libraries.map(l=>({libraryId:l.libraryId})),
  games:[
  game("lib-arcade","GBA","game-mario","Super Plombier Advance","KNOWN","ONLINE","FRESH","COMPLETE",["var-eu"],[unit("unit-mario","var-eu",null,a)],a),
- game("lib-arcade","PS1","game-orbit",null,"CONTRADICTORY","ONLINE","FRESH","COMPLETE",["var-eu","var-us"],[unit("unit-conflict","var-us",1,a),unit("unit-orbit-disc2","var-us",2,a)],a),
+ game("lib-arcade","PS1","game-orbit",null,"CONTRADICTORY","ONLINE","FRESH","COMPLETE",["var-eu","var-us"],[unit("unit-conflict","var-us",1,a)],a),
  game("lib-arcade","GBA","game-zelda",null,"KNOWN","ONLINE","FRESH","COMPLETE",["var-eu"],[unit("unit-zelda","var-eu",null,a)],a),
  game("lib-pocket","GBA","game-pocket-1","Pocket Adventures","STALE","OFFLINE","STALE","COMPLETE",["var-eu"],[unit("pocket-01","var-eu",null,p)],p),
  game("lib-pocket","GBA","game-pocket-2","Star Circuit","PARTIALLY_OBSERVED","OFFLINE","STALE","INCOMPLETE",["var-jp"],[unit("pocket-02","var-jp",null,p)],p)
