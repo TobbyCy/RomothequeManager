@@ -81,10 +81,12 @@ function Assert-RmCanonicalCatalogueDto {
  [CmdletBinding()]
  param([Parameter(Mandatory=$true)]$Dto)
  Assert-RmDto ((Get-RmDtoField $Dto 'schemaVersion') -ceq '0.2.0-ui-catalogue-candidate') 'CATDTO_SCHEMA_UNSUPPORTED'
- Assert-RmDto ((Get-RmDtoField $Dto 'readOnly') -ceq $true) 'CATDTO_READONLY_REQUIRED'
+ $readOnly=Get-RmDtoField $Dto 'readOnly'
+ Assert-RmDto ($readOnly -is [bool] -and $readOnly) 'CATDTO_READONLY_REQUIRED'
  $registry=Get-RmDtoField $Dto 'registry'
  Assert-RmDto ((Get-RmDtoField $registry 'schemaVersion') -ceq '0.1.0-synthetic') 'CATDTO_REGISTRY_SCHEMA'
- Assert-RmDto ((Get-RmDtoField $registry 'readOnly') -ceq $true) 'CATDTO_REGISTRY_READONLY'
+ $registryReadOnly=Get-RmDtoField $registry 'readOnly'
+ Assert-RmDto ($registryReadOnly -is [bool] -and $registryReadOnly) 'CATDTO_REGISTRY_READONLY'
  $libraries=Get-RmDtoField $registry 'libraries'
  $games=Get-RmDtoField $Dto 'games'
  $diagnostics=Get-RmDtoField $Dto 'diagnostics'
