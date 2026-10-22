@@ -362,8 +362,8 @@ class WorkflowTests(unittest.TestCase):
         import re
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
-        permitted = ["tests/Invoke-CiE1PreflightSynthetic.ps1"]
-        forbidden = ["tests/Invoke-CiE1PreflightSynthetic.psm1","tests/fixtures/unapproved.json"]
+        permitted = ["tests/Invoke-CiE1PreflightSynthetic.ps1", "tests/Export-SyntheticUiProjection.ps1", "tests/fixtures/TEST_MATRIX_S3.md", "tests/fixtures/SyntheticLibrarySnapshots.ps1", "tests/fixtures/UiProjectionVectors.ps1"]
+        forbidden = ["tests/Invoke-CiE1PreflightSynthetic.psm1", "tests/fixtures/unapproved.json", "tests/Export-SyntheticUnverified.ps1"]
         for path in permitted:
             with self.subTest(permitted=path):
                 self.assertTrue(any(re.fullmatch(rule, path) for rule in rules), path)

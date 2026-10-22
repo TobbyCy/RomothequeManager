@@ -74,6 +74,18 @@ jobs:
           & .\tests\Invoke-CiSnapshotComparison.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Library and snapshot projection - synthetic PS5.1 fixtures
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiLibraryProjection.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Synthetic PowerShell to UI JSON serialization
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiUiProjectionSerialization.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Documentation currency gate (PR and main)
         shell: powershell
         run: |

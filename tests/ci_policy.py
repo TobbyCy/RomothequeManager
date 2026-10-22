@@ -297,9 +297,14 @@ def audit_baseline(root, static_text, entries):
         require(len(sources) == len(approved) and {s["path"] for s in sources} == approved, "SOURCE_MANIFEST_SCOPE")
         for s in sources:
             require(s["path"] in entries and hashlib.sha256(git(root, "cat-file", "blob", entries[s["path"]][2])).hexdigest() == s["sha256"], "SOURCE_HASH_CHANGED")
-    approved = {"Modules/" + name + ".psm1" for name in ("Utils","Canonical","Configuration","Inventory","Metadata","RomResolver","DecisionSchema","StateCodec","Identity","PersistentIdentity","MediaMatcher","MediaModel","Reconciliation","Proposals","Projection","Transactions","Catalogue","Associations","SnapshotComparison")}
-    actual = {p for p in entries if p.startswith("Modules/") and p.endswith(".psm1") and "/" not in p[len("Modules/"):]}
-    require(actual == approved, "EXPECTED_APPROVED_19_MODULES")
+    approved_extensions = {"Modules/SnapshotComparison.psm1", "Modules/LibrarySnapshotProjection.psm1"}
+    bootstrap = {"Modules/" + name + ".psm1" for name in (
+        "Utils", "Canonical", "Configuration", "Inventory", "Metadata", "RomResolver",
+        "DecisionSchema", "StateCodec", "Identity", "PersistentIdentity", "MediaMatcher",
+        "MediaModel", "Reconciliation", "Proposals", "Projection", "Transactions",
+        "Catalogue", "Associations")}
+    actual_modules = {p for p in entries if p.startswith("Modules/") and p.endswith(".psm1") and "/" not in p[len("Modules/"):]}
+    require(actual_modules == bootstrap | approved_extensions, "EXPECTED_APPROVED_20_MODULES")
 
 
 def check_links(root, paths, entries):

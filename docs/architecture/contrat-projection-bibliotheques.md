@@ -1,0 +1,25 @@
+# Contrat v0 — registre et projection de bibliothèques (Sprint #10)
+
+**Candidat privé, synthétique, lecture seule.** Dépendance explicite : [PR #26](https://github.com/TobbyCy/RomothequeManager/pull/26) et son `Compare-RmInventorySnapshots` (six classes, C1/C2). Cette branche est empilée sur `feat/inventory-snapshot-compare-9` ; après fusion de #26, rebaser/réaligner #10 sur `main` avec revue, **sans dupliquer** le comparateur. Pas de DTO V2 normatif ni de fichier persistant.
+
+## Entrée de `New-RmLibraryProjection`
+
+`-Registry` : objet en mémoire `@{ libraries=@(...) }`. Chaque bibliothèque a `libraryId` stable, `name`, `platforms` (consoles), `sources=@(@{sourceKey;rootKey;domains=@('ROMS',...)})`, `currentAvailability` (ONLINE/OFFLINE/INACCESSIBLE/UNKNOWN), `availabilityObservedAtUtc` (nullable si UNKNOWN), `freshness` (FRESH/STALE/UNKNOWN), `indexAccessible` booléen, `snapshots=@(...)` et `lastVerifiedCompleteRef` (nullable). Aucun chemin Windows, identifiant physique, lettre USB, scan ou I/O. Le registre est un **argument déjà chargé**.
+
+Chaque snapshot : `snapshotId` unique par bibliothèque, `scanId`, `generationId`, `capturedAtUtc` UTC, `schemaVersion='1.0.0'`, `scanStatus`, `units` synthétiques au format #26, `scopeIsExhaustive` booléen **prouvé par le producteur** et `coverageProof=@(@{console;sourceKey;rootKey;domain;status})` où `status=complete|partial|unobserved`. Une déclaration couvre une partition exacte, pas un disque entier. `scopeIsExhaustive` absent ou faux interdit de conclure à `complete`. Un statut `complete` ne peut être construit que si **chaque partition attendue** (plateforme × source déclarée × domaine déclaré) existe **une seule fois**, est complète, et si le scan est complet. Une déclaration supplémentaire, une source inconnue ou un doublon est refusé. **Aucune confiance dans une couverture console préremplie** : elle est calculée. Multi-root et ROMS/MEDIAS sont explicitement représentés, mais les `units` de #26 sont des unités ROM ; le présent MVP ne compare que les domaines déclarés, sans inventer de médias.
+
+## Sortie consommable par Dev 2
+
+`New-RmLibraryProjection -Registry $registry` produit `@{schemaVersion;readOnly=$true;libraries=@(...)}` avec `libraryId,name,platforms,sources,currentAvailability,availabilityObservedAtUtc,freshness,indexAccessible,lastVerifiedCompleteRef,lastObservedAtUtc,generations[]`. Chaque génération expose `snapshotId,scanId,generationId,capturedAtUtc,scanStatus,schemaVersion,coverage[]` (console et état **dérivé**), `coverageProof[]`, `scopeIsExhaustive`, `countKnown` (booléen), `observedUnitCount` (nombre **observé** seulement si `indexAccessible=true`, sinon `null` et `countKnown=false`). Si `indexAccessible=$false`, l'historique n'est pas consultable ; `0` ne signifie pas une bibliothèque vide.
+
+`Get-RmLibraryComparisonView -Registry $registry -LibraryId 'lib-1' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b'` renvoie `@{schemaVersion;readOnly;library;before;after;scopeCompared[];scopeNotComparable[];coverageStatus;counts;entries;limitations[];countDenominator}`. Les `before/after` incluent refs, date, provenance et coverage dérivée. Les six `counts` et `entries` sont **transmis** depuis le comparateur #26, sans duplication de sa logique. Les scopes et limitations restent visibles même si `entries.Count=0`. `coverageStatus=COMPLETE|INCOMPLETE` concerne uniquement les consoles déclarées, jamais le disque physique. `scopeNotComparable` donne les motifs (scan incomplet, preuve absente, partition partielle, etc.).
+
+## Refus et sécurité
+
+Refuser explicitement : bibliothèque/snapshot inexistant, index inaccessible, identités dupliquées, dates/générations incompatibles, version inconnue, scope non déclaré, provenance/source/partition inconnue, et tentative de déduire une complétude non prouvée. Un scan partiel valide peut être **consulté** mais le comparateur #26 doit classer prudemment `UNKNOWN` ou `NOT_COMPARABLE`. `lastVerifiedCompleteRef` est indépendant du dernier job partiel/failed ; OFFLINE/STALE sont des badges live/historiques indépendants. Pas de `DELETED`, aucun nombre de « fichiers supprimés ». Le nombre d'entrées est `A∪B` uniquement.
+
+**Tests :** `tests/Invoke-CiLibraryProjection.ps1` avec `tests/fixtures/SyntheticLibrarySnapshots.ps1` ; Windows PowerShell 5.1 requis. Jusqu'à preuve d'exécution : **NOT_EXECUTED**. Aucun accès à ROM/SSD/StateRoot/ES-DE, aucune Release.
+
+## Précisions Sprint #14
+
+Les identifiants sont comparés en **ordinal sensible à la casse** ; les clés de partitions sont construites avec des segments préfixés par longueur (aucune collision par `|`). Deux racines distinctes ne sont jamais fusionnées en preuve de complétude. Le contrat JSON UI indépendant est `docs/architecture/contrat-json-ui-projection.md` ; son exporteur synthétique n'a pas encore de preuve d'exécution Windows PowerShell 5.1.

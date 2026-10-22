@@ -32,6 +32,12 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 - Identités `romUnitId` comparées ordinalement et sensibles à la casse ; canaris synthétiques associés.
 - Aucun effet sur les fichiers ROM ; tests PS5.1 et CI sur l'arbre consolidé **non vérifiés**.
 
+## Projection synthétique des bibliothèques — Issue #10
+
+- Registre de bibliothèques et générations, disponibilité et fraîcheur distinctes, couverture fiable ou déclarée inconnue.
+- Exporteur JSON synthétique pour interface hors ligne et canaris négatifs ; aucun effet physique sur ROM.
+- Tests PowerShell 5.1 et CI sur cette intégration : **non vérifiés**.
+
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.
