@@ -24,6 +24,7 @@ reject("unproved count forged",d=>{d.countKnown=true;d.gameCount=5},/T1_UI_COUNT
 reject("unknown count forged as zero",d=>d.gameCount=0,/T1_UI_UNKNOWN_COUNT_NOT_NULL/);
 reject("library unavailable",d=>d.games[0].libraryId="lib-optical",/T1_UI_INDEX_UNAVAILABLE/);
 reject("partial as known",d=>{d.games[4].quality="KNOWN"},/T1_UI_KNOWN_UNPROVEN/);
-reject("invalid disc",d=>d.games[1].units[1].discNumber=0,/T1_UI_DISC_NUMBER/);
+reject("invalid disc in synthetic second unit reaches validator",d=>{const unit=clone(d.games[1].units[0]);unit.romUnitId="synthetic-disc-2";unit.discNumber=0;d.games[1].units.push(unit)},/T1_UI_DISC_NUMBER/);
+reject("invalid first disc reaches validator",d=>{d.games[1].units[0].discNumber=-1},/T1_UI_DISC_NUMBER/);
 reject("contradictory title presented as certain",d=>d.games[1].title="One",/T1_UI_CONTRADICTORY_TITLE/);
 console.log("T3B_T1_CANDIDATE_SMOKE_PASS checks="+checks+" | runtime=Node.js | no_real_rom=true");
