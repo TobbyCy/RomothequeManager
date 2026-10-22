@@ -83,12 +83,8 @@ try {
     $unproven=Get-RmLibraryComparisonView -Registry $unprovenReg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-unproven'
     Assert-View ($unproven.coverageStatus -ceq 'INCOMPLETE' -and $unproven.counts.UNKNOWN -eq 2) 'exhaustiveness-flag-not-inferred'
 
-    # Independent two-generation fixture avoids cross-case object reuse while
-    # preserving the requirement that inaccessible indexes refuse comparison.
-    $indexA=New-RmSyntheticSnapshot -Id 'index-a' -Generation 'index-gen-a' -At '2026-10-20T12:00:00Z'
-    $indexB=New-RmSyntheticSnapshot -Id 'index-b' -Generation 'index-gen-b' -At '2026-10-21T12:00:00Z'
-    $missingIndex=New-RmSyntheticRegistry -Index $false -Snapshots @($indexA,$indexB) -LastComplete 'index-b'
-    Assert-Refuses { Get-RmLibraryComparisonView -Registry $missingIndex -LibraryId 'lib-fixture' -BeforeSnapshotId 'index-a' -AfterSnapshotId 'index-b' } 'LIBRARY_INDEX_INACCESSIBLE'
+    $missingIndex=New-RmSyntheticRegistry -Index $false -Snapshots @($old,$new)
+    Assert-Refuses { Get-RmLibraryComparisonView -Registry $missingIndex -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b' } 'LIBRARY_INDEX_INACCESSIBLE'
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $reg -LibraryId 'other' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b' } 'LIBRARY_NOT_FOUND'
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $reg -LibraryId 'lib-fixture' -BeforeSnapshotId 'missing' -AfterSnapshotId 'snap-b' } 'LIBRARY_SNAPSHOT_NOT_FOUND'
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $reg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-b' -AfterSnapshotId 'snap-a' } 'SNAPSHOT_DATE_ORDER_INVALID'
