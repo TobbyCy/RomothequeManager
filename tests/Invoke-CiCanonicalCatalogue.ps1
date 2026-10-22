@@ -53,6 +53,10 @@ $reg.libraries[0].freshness='STALE'
 $stale=Project-Scenario $reg
 if ($stale.games[0].quality -cne 'STALE') { throw 'CATDTO_STALE_LOST' }
 $reg=New-ScenarioRegistry
+$reg.libraries[0].freshness='UNKNOWN'
+$unknownFreshness=Project-Scenario $reg
+if ($unknownFreshness.games[0].quality -cne 'UNKNOWN') { throw 'CATDTO_UNKNOWN_FRESHNESS_FORGED' }
+$reg=New-ScenarioRegistry
 $reg.libraries[0].snapshots[1].scopeIsExhaustive=$false
 $reg.libraries[0].lastVerifiedCompleteRef='scenario-a'
 $partial=Project-Scenario $reg
