@@ -21,4 +21,6 @@ Ces commandes inspectent seulement Git ; elles ne remplacent ni Pester ni la CI.
 
 Une PR ne fusionne qu'après les contrôles applicables et la revue du mainteneur autorisé. Les changements de code doivent mettre à jour [statut produit](docs/product-status.md) et [changelog](CHANGELOG.md) **dans leur même diff lorsque le gate le demande**. Les PR de forks ne doivent pas bénéficier de secrets ou privilèges CI élevés.
 
+**Contribution publique et licence :** la licence logicielle n'est pas encore choisie par le propriétaire. Avant toute acceptation externe, clarifier les droits de reproduction, de modification et de redistribution des contributions. Aucun consentement à une licence non décidée ni contrat de contribution particulier n'est présumé. Les PR doivent décrire leur origine et identifier les éventuels composants tiers.
+
 Pour les vulnérabilités, utilisez la [politique de sécurité](SECURITY.md), pas une Issue ordinaire. Ne joignez jamais logos, images ou code tiers sans avoir établi les droits de redistribution ; la licence du projet reste à décider.
