@@ -96,7 +96,7 @@ function New-RmCatalogueProjection {
    $titles=[string[]]@($group.titles);[Array]::Sort($titles,[StringComparer]::Ordinal)
    $variants=[string[]]@($group.variants);[Array]::Sort($variants,[StringComparer]::Ordinal)
    $units=Sort-RmCatOrdinal -Items @($group.units.ToArray()) -Property 'romUnitId'
-   $quality=if (-not $fullyCovered) {'PARTIALLY_OBSERVED'} elseif ($card.freshness -ceq 'STALE') {'STALE'} else {'KNOWN'}
+   $quality=if (-not $fullyCovered) {'PARTIALLY_OBSERVED'} elseif ($card.freshness -ceq 'STALE') {'STALE'} elseif ($card.freshness -ceq 'FRESH') {'KNOWN'} else {'UNKNOWN'}
    if ($titles.Count -gt 1) { $quality='CONTRADICTORY';$diagnostics.Add([pscustomobject][ordered]@{code='CATALOG_TITLE_CONFLICT';libraryId=$card.libraryId;snapshotId=$latest.snapshotId}) }
    if ($titles.Count -eq 0) { $diagnostics.Add([pscustomobject][ordered]@{code='CATALOG_TITLE_UNKNOWN';libraryId=$card.libraryId;snapshotId=$latest.snapshotId}) }
    $games.Add([pscustomobject][ordered]@{
