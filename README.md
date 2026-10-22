@@ -9,10 +9,12 @@ ROMothèque Manager est un projet de catalogue et d'inventaire local. Il disting
 | Fonction | État |
 | --- | --- |
 | Moteur Windows PowerShell 5.1, inventaire E1 en lecture seule | Code existant soumis à intégration et vérification technique ; **pas une application grand public disponible** |
-| Dashboard, Collection, fiches et bibliothèques | [Conception](docs/ux/README.md), **non implémentée** |
+| Dashboard, bibliothèques, comparaison, Collection et fiche | **Prototype HTML/JS hors ligne en PR Draft #28 et #30**, uniquement sur fixtures synthétiques ; pas d'application Windows livrée |
 | Opérations d'export, conversion, métadonnées en ligne | **Aucune opération réelle livrée ni autorisée** |
 | Application Windows portable | **Aucun ZIP, installateur ou GitHub Release disponible** |
 | Tests synthétiques | Résultats du dépôt final à vérifier ; une CI verte ne prouve pas un accès sûr à un disque réel |
+
+Une [démonstration HTML locale](prototype/ui11/README.md) est en cours de développement dans les PR Draft. Ses différents jeux de données de démonstration utilisent une interface commune ; la compatibilité PS5.1 et la recette Edge restent à vérifier indépendamment. Le contrat catalogue 0.2 est **candidat**, non adopté.
 
 Consultez l'[état des fonctionnalités](docs/product-status.md) et la [roadmap](docs/roadmap.md). Les prochaines étapes ne constituent ni dates promises ni fonctions livrées.
 
