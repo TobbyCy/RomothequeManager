@@ -1,3 +1,5 @@
+**STAB-03A / #29 (Draft, non intégré)** : corrections synthétiques des helpers/fixtures et des gardes CI signalées par AGENT-05. Les tests sur le nouveau HEAD, Windows PowerShell 5.1, Node et GitHub Actions sont **NOT_EXECUTED / READY_FOR_AGENT_RETEST** ; aucune fusion ni validation post-merge. Voir les commentaires de #29 et Pilotage #69.
+
 # État des fonctionnalités
 
 **Lot T4-A (PR #29 Draft, non intégré) :** producteur et validateur 0.2 candidats durcis (preuves par plateforme, snapshot le plus récent, unités et compteurs, sérialisation ordinale), tests négatifs PS5.1/Node branchés sur CI-0 mais **NOT_EXECUTED**, code JS de lecture défensive sur #29. Correctif préparatoire de deux helpers #27 porté uniquement par #29, à réconcilier avec la branche #27. Contrat T2 #30 en revue, adoption normative interdite sans décision. Voir `docs/architecture/catalogue-t4-parity-and-integration.md`.
