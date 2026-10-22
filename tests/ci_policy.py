@@ -20,7 +20,7 @@ PS_JOBS = ("ci0-static", "ci1-runtime", "ci2-pester", "ci3-e1-integration",
 NEEDS = {"policy", "ci-docs", "ci-dotnet", *PS_JOBS}
 REQUIRED_DOCS = {"README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md",
                  "docs/product-status.md", "docs/roadmap.md", "docs/developer/workflow.md"}
-DOC = r"(?:README|CHANGELOG|CONTRIBUTING)\.md|(?:docs|Docs)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.md|Export/README\.md|assets/branding/README\.md"
+DOC = r"(?:README|CHANGELOG|CONTRIBUTING|BRANDING|LEGAL)\.md|(?:docs|Docs)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.md|Export/README\.md|assets/branding/README\.md"
 NET = r"(?:src|app)/RomothequeManager\.V2/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|csproj|sln|axaml|resx|json|png|svg|ico)|tests/dotnet/RomothequeManager\.V2\.Tests/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|csproj|json)"
 SHARED = r"(?:contracts|schemas)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json|adapters/shared/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|ps1|psm1|json)|Modules/(?:Identity|PersistentIdentity|DecisionSchema|StateCodec)\.psm1"
 PS = r"Initialize\.ps1|Modules/[A-Za-z][A-Za-z0-9]*\.psm1|Export/[^/]+\.(?:ps1|psm1)|Preflight/[^/]+\.ps1|tests/Unit/[^/]+\.Tests\.ps1"
@@ -297,7 +297,14 @@ def audit_baseline(root, static_text, entries):
         require(len(sources) == len(approved) and {s["path"] for s in sources} == approved, "SOURCE_MANIFEST_SCOPE")
         for s in sources:
             require(s["path"] in entries and hashlib.sha256(git(root, "cat-file", "blob", entries[s["path"]][2])).hexdigest() == s["sha256"], "SOURCE_HASH_CHANGED")
-    require(len([p for p in entries if re.fullmatch(r"Modules/[^/]+\.psm1", p)]) == 18, "EXPECTED_18_MODULES")
+    approved_extensions = {"Modules/SnapshotComparison.psm1", "Modules/LibrarySnapshotProjection.psm1", "Modules/CatalogueProjection.psm1", "Modules/CatalogueDtoContract.psm1"}
+    bootstrap = {"Modules/" + name + ".psm1" for name in (
+        "Utils", "Canonical", "Configuration", "Inventory", "Metadata", "RomResolver",
+        "DecisionSchema", "StateCodec", "Identity", "PersistentIdentity", "MediaMatcher",
+        "MediaModel", "Reconciliation", "Proposals", "Projection", "Transactions",
+        "Catalogue", "Associations")}
+    actual_modules = {p for p in entries if p.startswith("Modules/") and p.endswith(".psm1") and "/" not in p[len("Modules/"):]}
+    require(actual_modules == bootstrap | approved_extensions, "EXPECTED_APPROVED_22_MODULES")
 
 
 def check_links(root, paths, entries):

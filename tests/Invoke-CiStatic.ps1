@@ -34,7 +34,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'git ls-files failed' }
     Require ($paths.Count -gt 0) 'No tracked files'
     $allowed = @(
-        '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
+        '^LICENSE$', '^BRANDING\.md$', '^LEGAL\.md$', '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
         '^Modules/[A-Za-z][A-Za-z0-9]*\.psm1$',
         '^Export/(ExportE1\.psm1|Invoke-ExportE1InventoryReadOnly\.ps1|README\.md)$',
         '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$',
@@ -48,7 +48,11 @@ try {
         '^(contracts|schemas)/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json$',
         '^adapters/shared/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|ps1|psm1|json)$',
         '^tests/Invoke-Ci[A-Za-z]+\.ps1$', '^tests/Invoke-CiE1NegativeCanary\.ps1$', '^tests/Invoke-CiE1Integration\.ps1$',
-        '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/(ci-export-sources|ci-preflight-sources)\.json$'
+        '^prototype/ui11/(?:README\.md|app\.js|catalogue-adapter\.js|demo-integree\.html|fixtures\.js|index\.html|integrated-smoke\.cjs|projection-adapter\.js|projection-data\.js|projection-integrated\.js|projection-sample\.js|projection-smoke\.cjs|smoke\.cjs|styles\.css)$',
+        '^tests/Export-SyntheticUiProjection\.ps1$', '^tests/fixtures/(SyntheticLibrarySnapshots|UiProjectionVectors)\.ps1$', '^tests/fixtures/TEST_MATRIX_S3\.md$',
+        '^(?:tests/Export-SyntheticCatalogue\.ps1|tests/Export-SyntheticCanonicalCatalogue\.ps1|tests/fixtures/CatalogueT3CanonicalSample\.json|tests/catalogue_t3_consumer\.test\.cjs|adapters/shared/catalogue-t3-consumer\.js|prototype/ui11/T4_CONVERGENCE_CATALOGUE\.md|prototype/ui11/demo-t4-catalogue\.html|prototype/ui11/t2-catalogue-fixture\.js|prototype/ui11/t2-catalogue-model\.js|prototype/ui11/t2-catalogue-ui\.js|prototype/ui11/t2-catalogue\.css|prototype/ui11/t2-catalogue\.html|prototype/ui11/t2-catalogue\.test\.cjs|prototype/ui11/t4-catalogue-demo\.js|prototype/ui11/t4-catalogue\.test\.cjs)$',
+        '^(?:docs/PUB01B_PUBLIC_CONTENT_AUDIT\.md|prototype/ui11/STAB03B_RECETTE_EDGE\.md|prototype/ui11/synthetic-import\.test\.cjs|prototype/ui11/ui-journey\.test\.cjs|prototype/ui11/unicode-producer\.test\.cjs)$',
+        '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/(ci-export-sources|ci-preflight-sources)\.json$', '^tests/Invoke-CiE1PreflightSynthetic\.ps1$'
     )
     $collisions = @{}
     foreach ($path in $paths) {
@@ -68,7 +72,14 @@ try {
     }
     $expectedModules = @('Utils','Canonical','Configuration','Inventory','Metadata','RomResolver','DecisionSchema','StateCodec','Identity','PersistentIdentity','MediaMatcher','MediaModel','Reconciliation','Proposals','Projection','Transactions','Catalogue','Associations')
     $modules = @(Get-ChildItem -LiteralPath (Join-Path $root 'Modules') -File -Filter '*.psm1')
-    Require ($modules.Count -eq 18) ('EXPECTED_18_MODULES actual=' + $modules.Count)
+    Require ($modules.Count -eq 22) ('EXPECTED_22_MODULES actual=' + $modules.Count)
+    $extensionModules = @('SnapshotComparison','LibrarySnapshotProjection','CatalogueProjection','CatalogueDtoContract')
+    foreach ($name in $extensionModules) {
+        Require (Test-Path (Join-Path $root ('Modules\' + $name + '.psm1')) -PathType Leaf) ('MISSING_APPROVED_EXTENSION_MODULE: ' + $name)
+    }
+    $actualModuleNames = @($modules | ForEach-Object { $_.BaseName } | Sort-Object)
+    $approvedModuleNames = @(($expectedModules + $extensionModules) | Sort-Object)
+    Require (($actualModuleNames -join '|') -ceq ($approvedModuleNames -join '|')) 'UNEXPECTED_EXTENSION_MODULE'
     $init = [IO.File]::ReadAllText((Join-Path $root 'Initialize.ps1'))
     $order = [regex]::Match($init,'(?s)\$moduleOrder\s*=\s*@\((.*?)\)')
     Require $order.Success 'BOOTSTRAP_ORDER_NOT_FOUND'

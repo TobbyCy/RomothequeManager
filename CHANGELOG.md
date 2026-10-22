@@ -7,6 +7,7 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 - Guides du produit, de la contribution et de la sécurité, lexique et documentation d'architecture.
 - Parcours d'interface et critères d'acceptation décrits pour les travaux futurs.
 - Préparation des contrôles du moteur PowerShell 5.1 sur données synthétiques.
+- Licence MIT adoptée pour les éléments originaux autorisés (`SPDX-License-Identifier: MIT`, copyright 2026 Cyril Tobler) ; garde CI à chemin exact pour `LICENSE` et admission du script préflight synthétique déjà suivi `tests/Invoke-CiE1PreflightSynthetic.ps1`. Aucun droit tiers ou média externe concédé.
 
 **Aucune application Windows, ZIP ni GitHub Release n'a encore été publiée.** Les PR non fusionnées ne constituent pas des fonctionnalités disponibles.
 
@@ -25,13 +26,29 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 - **Sprint #15, PR Draft #28** : contrat candidat catalogue de jeux et fiche projetée, provenance datée, variantes, observations ROM séparées, navigation vers snapshots ; sample synthétique hors ligne et smoke Node ajouté (NOT_EXECUTED). Adaptateur registre aligné sur `countKnown`/compteur null. 9 contrôles V8 avec DOM simulé PASS, aucune parité PS5.1 ni recette navigateur.
 
-## Préparation non publiée — STAB-03B (PR Draft #30)
+## Comparaison de snapshots synthétiques — Issue #9
 
-- Correctif de navigation Collection dans la projection intégrée, rendu commun de la Collection/Fiche pour les données 0.1 historiques, T1 et T3 candidate.
-- Correction des anciens oracles de comparaisons (carte de bibliothèque requise ; compteur inconnu ≠ zéro), canaris multidisques et consommateur partagé unique au chemin canonique.
-- Test facultatif ajouté pour ingérer **sans correction de caractères** le JSON UTF-8 réellement émis par l'exporteur synthétique PowerShell de Dev 1.
-- Sur le HEAD de la PR Draft, cinq suites ont terminé dans une **simulation V8 du contexte Node** (113 assertions PASS). **Node natif, navigateur Edge et export PS5.1 indépendant NOT_EXECUTED** : les rapports des suites ne constituent pas des preuves de ces runtimes.
-- Aucun code de la PR #30 fusionné dans main, aucune licence, Release ou application installable livrée.
+- Module PowerShell de comparaison A/B avec six classifications et couverture prouvée des deux générations.
+- Identités `romUnitId` comparées ordinalement et sensibles à la casse ; canaris synthétiques associés.
+- Aucun effet sur les fichiers ROM ; tests PS5.1 et CI sur l'arbre consolidé **non vérifiés**.
+
+## Projection synthétique des bibliothèques — Issue #10
+
+- Registre de bibliothèques et générations, disponibilité et fraîcheur distinctes, couverture fiable ou déclarée inconnue.
+- Exporteur JSON synthétique pour interface hors ligne et canaris négatifs ; aucun effet physique sur ROM.
+- Tests PowerShell 5.1 et CI sur cette intégration : **non vérifiés**.
+
+## Catalogue synthétique partagé — PR #29
+
+- Modules PowerShell de projection et validation du catalogue, contrat DTO candidat 0.2, consommateur JS canonique, provenance et compteurs fail-closed.
+- Tests et fixtures négatives versionnés ; contrat encore candidat, pas d'export réel de collection.
+- Tests Node/PS5.1 et CI de l'arbre consolidé **non vérifiés**.
+
+## Catalogue consultable et fiches — PR #30
+
+- Extension du prototype UI aux fiches, recherche et filtres sur données synthétiques, avec validation JS partagée et contrôles négatifs.
+- Tests UI supplémentaires versionnés ; V8 simulé historique ne certifie pas Node natif, Edge ni la chaîne PS5.1→JSON→JS sur cet arbre.
+- Aucune application autonome ni Release.
 
 ## Convention
 
