@@ -54,6 +54,7 @@ function New-RmCatalogueProjection {
   }
   $generation=@($card.generations | Where-Object { $_.snapshotId -ceq $latest.snapshotId })[0]
   $fullyCovered=($latest.scanStatus -ceq 'complete' -and $latest.scopeIsExhaustive -and
+    @($generation.coverage).Count -eq @($card.platforms).Count -and
     @($generation.coverage | Where-Object { $_.status -cne 'complete' }).Count -eq 0)
   if (-not $fullyCovered) {
    $diagnostics.Add([pscustomobject][ordered]@{code='CATALOG_COVERAGE_UNPROVEN';libraryId=$card.libraryId;snapshotId=$latest.snapshotId})
@@ -115,7 +116,8 @@ function New-RmCatalogueProjection {
  return [pscustomobject][ordered]@{
   schemaVersion='0.1.0-ui-catalogue-t1-candidate';readOnly=$true
   libraries=@($libraries);games=@($gameMap.Values);diagnostics=@($diagnostics.ToArray())
-  countKnown=$allIndicesAccessible;gameCount=$(if($allIndicesAccessible){$gameMap.Count}else{$null})
+  countKnown=($allIndicesAccessible -and @($diagnostics | Where-Object { $_.code -ceq 'CATALOG_COVERAGE_UNPROVEN' -or $_.code -ceq 'CATALOG_IDENTITY_AMBIGUOUS' }).Count -eq 0)
+  gameCount=$(if($allIndicesAccessible -and @($diagnostics | Where-Object { $_.code -ceq 'CATALOG_COVERAGE_UNPROVEN' -or $_.code -ceq 'CATALOG_IDENTITY_AMBIGUOUS' }).Count -eq 0){$gameMap.Count}else{$null})
   limitations=@('SYNTHETIC_ONLY','LATEST_SNAPSHOT_PER_LIBRARY','NOT_PHYSICAL_ROM_BYTES','NO_INFERRED_IDENTITY')
  }
 }
