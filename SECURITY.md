@@ -4,7 +4,11 @@
 
 ## Contacter le responsable
 
-Le dépôt est en préparation privée et **aucun canal de signalement intégré n'est déclaré activé ou vérifié**. La disponibilité d'un canal véritablement privé, accessible aux futurs utilisateurs, est un **prérequis bloquant** à confirmer par le propriétaire avant le passage public. Si GitHub affiche une option **Report a vulnerability** sur ce dépôt, utilisez-la uniquement après avoir vérifié qu'il s'agit d'un formulaire privé. Sinon, ouvrez au maximum une **demande de contact sans détail technique sensible** ; n'exposez pas les étapes d'exploitation. Attendez la confirmation d'un canal privé convenu avec le mainteneur avant de transmettre un dossier complet.
+Le dépôt source est désormais **public**. L'activation de **Private vulnerability reporting** a été signalée lors de la publication ; son accessibilité effective par un utilisateur extérieur **n'a pas été confirmée indépendamment dans cette revue**.
+
+Pour signaler une vulnérabilité, privilégiez dans l'onglet **Security → Advisories** l'action GitHub **Report a vulnerability**, lorsqu'elle est effectivement proposée avec un formulaire privé. Ne publiez **jamais** de preuve de vulnérabilité, code d'exploitation, secret, journal ou donnée réelle dans une Issue, une PR ou une Discussion publique.
+
+Si cette option privée n'est pas accessible, utilisez au maximum une Issue **sans détail technique sensible** pour demander au mainteneur un moyen de contact privé. N'y joignez aucune information exploitable ; transmettez le dossier complet uniquement après confirmation d'un canal confidentiel.
 
 Un signalement de sécurité ne doit pas être classé comme bug public reproductible. Ni les Issues ni les PR ne constituent un coffre-fort.
 
@@ -14,4 +18,4 @@ Les seules données destinées aux tests de ce dépôt sont synthétiques. Ne jo
 
 ## Publication et correctifs
 
-Le mainteneur coordonnera la réponse, la revue, le correctif, les tests et une publication adaptée lorsqu'ils seront réellement disponibles. **Aucune garantie de délai de réponse n'est donnée ici.** Le canal privé, les versions supportées et l'activation de GitHub Security Advisories devront être recontrôlés avant un éventuel passage PUBLIC.
+Le mainteneur coordonnera la réponse, la revue, le correctif, les tests et une publication adaptée lorsqu'ils seront réellement disponibles. **Aucune garantie de délai de réponse n'est donnée ici.** L'accessibilité du canal privé à un contributeur extérieur, les versions supportées et la configuration effective de GitHub Security Advisories restent à vérifier par le mainteneur. La publication du code n'est pas une garantie de sécurité ni de support.

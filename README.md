@@ -8,7 +8,7 @@ ROMothèque Manager est un projet de catalogue et d'inventaire local. Il disting
 
 | Fonction | État |
 | --- | --- |
-| Moteur Windows PowerShell 5.1, inventaire E1 en lecture seule | Code existant soumis à intégration et vérification technique ; **pas une application grand public disponible** |
+| Moteur Windows PowerShell 5.1, inventaire E1 en lecture seule | Sources intégrées au dépôt ; validation technique complète sur l'arbre publié non acquise. **Pas d'application grand public disponible** |
 | Dashboard, bibliothèques, comparaison, Collection et fiches | Prototype HTML/CSS/JavaScript hors ligne intégré ; données exclusivement synthétiques, contrat catalogue 0.2 candidat |
 | Opérations d'export, conversion, métadonnées en ligne | **Aucune opération réelle livrée ni autorisée** |
 | Application Windows portable | **Aucun ZIP, installateur ou GitHub Release disponible** |
@@ -20,7 +20,7 @@ Consultez l'[état des fonctionnalités](docs/product-status.md) et la [roadmap]
 
 ## Utilisation et téléchargement
 
-**Il n'existe actuellement aucun téléchargement à installer ou lancer.** Les scripts techniques ne doivent pas être essayés sur une collection personnelle. Une future préversion devra fournir un ZIP Windows autonome, son SHA-256, des notes de version et une vérification sur une machine externe sans runtime .NET séparé. Cet objectif n'est pas encore atteint.
+**Le code source public et le prototype HTML local sont consultables, mais aucun installateur, ZIP Windows autonome ou Release téléchargeable n'est disponible.** La démonstration utilise des fixtures fictives ; les scripts techniques ne doivent pas être essayés sur une collection personnelle. Une future préversion devra fournir un ZIP Windows autonome, son SHA-256, des notes de version et une vérification sur une machine externe sans runtime .NET séparé. Cet objectif n'est pas encore atteint.
 
 Pour comprendre les futures vues : [parcours UX](docs/ux/README.md), [lexique](docs/user/lexique.md), [sécurité et limites](docs/user/securite-et-limites.md).
 
@@ -47,4 +47,4 @@ Pour un signalement sensible, lisez [SECURITY](SECURITY.md) et ne divulguez pas 
 
 Aucune ROM, aucun BIOS, XML ES-DE réel, chemin privé, StateRoot ou sauvegarde utilisateur ne doit être déposé ici. Les visuels soumis à vérification de droits sont exclus ; les droits sur ces visuels sont distincts de la licence MIT du logiciel.
 
-**Le dépôt reste privé tant que sa mise à disposition publique n'a pas été autorisée.** Aucune Release n'est publiée.
+**Le dépôt GitHub du code source est public.** Cette visibilité n'est ni une attestation de tests sur des données réelles, ni une autorisation de distribuer des ROM/BIOS, ni une Release. **Aucune Release de l'application n'est publiée.**

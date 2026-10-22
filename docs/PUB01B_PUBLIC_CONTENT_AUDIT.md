@@ -1,4 +1,29 @@
-# PUB01B_PUBLIC_CONTENT_AUDIT — préparation, pas autorisation de publication
+# PUB01B_PUBLIC_CONTENT_AUDIT — historique et suivi après PUBLIC
+
+> **Lecture obligatoire :** les sections **antérieures** à « État post-PUBLIC » ci-dessous sont des **checkpoints historiques de préparation au 22.10.2026**. Toutes leurs mentions `HOLD_PUBLIC`, `BLOQUANT AVANT PUBLIC`, « licence non choisie », « PR Draft » ou « autorisation de publication à obtenir » décrivent **l'état à leur date** et ne constituent **pas** une description de la visibilité, de la licence ou des fusions actuelles. Elles sont conservées pour l'audit ; ne pas confondre un ancien signalement de risque avec un contrôle post-publication réussi.
+
+## État post-PUBLIC — contrôle du 22 octobre 2026
+
+**Statut vérifié : `PRODUCT_PUBLIC / HISTORICAL_RISK_REVIEW_OPEN / NO_RELEASE`.** Le dépôt Produit existant est **PUBLIC**. Le contrôle de publication initial portait sur `main=fc53aa54cb916b89db84580c90707bee87b7842a` ; après la fusion de **#34**, le `main` de référence est `f3f13ac5596422b3550c2054318950f6f4fc398f`. Les PR **#26 à #34 sont MERGED** ; **#25 est CLOSED/NOT_MERGED**. La correction documentaire **#36 n'est pas encore fusionnée**. Le fichier racine [LICENSE](../LICENSE) est **MIT** avec Copyright (c) 2026 Cyril Tobler. [LEGAL](../LEGAL.md) et [BRANDING](../BRANDING.md) sont intégrés. Les cinq fichiers graphiques V2 réservés n'ont pas été importés : les droits du nom et des visuels ne sont pas automatiquement concédés par MIT.
+
+**Code disponible ≠ distribution ni validation fonctionnelle.** Le prototype HTML/JS fictif est intégré, mais aucune application Windows portable, ZIP autonome ou GitHub Release n'est publiée. Le DTO 0.2 demeure **candidat non adopté définitivement**, sans preuve complète de parité PS5.1 → JSON → JavaScript → navigateur sur cet arbre public. La [première CI post-PUBLIC (run 39807003399)](https://github.com/TobbyCy/RomothequeManager/actions/runs/39807003399) était **FAILURE** sur le premier SHA public. Après correctifs de Dev 1 et fusion de #34, la [CI de sa PR #39828359155](https://github.com/TobbyCy/RomothequeManager/actions/runs/39828359155) est **SUCCESS** (fixtures synthétiques, 42 Pester PASS, CI-0 à CI-4 applicables). Le [run `push main` #39829504202](https://github.com/TobbyCy/RomothequeManager/actions/runs/39829504202) était encore en cours lors de cette réconciliation ; le run de #36 doit être vérifié sur son propre HEAD. Aucun test de collection réelle ou navigateur Edge graphique n'est déduit de ces résultats.
+
+| Classe post-publication | Objet / preuve | Action de suivi |
+| --- | --- | --- |
+| `CLEARED_ON_CURRENT_TREE` | `LICENSE` MIT, notices `LEGAL`/`BRANDING`, contenu de démonstration fictif, aucune Release déclarée | Conserver ces limites dans les guides ; vérifier chaque nouvel artefact et licence tierce avant diffusion |
+| `POST_PUBLIC_REVIEW_REQUIRED` | L'inventaire historique INT-02/INT-03 signalait cinq références directes vers un dépôt de pilotage privé dans des descriptions/commentaires GitHub, **dont la PR Produit #23 fermée** | Vérifier l'exposition **actuelle** des objets et d'éventuelles traces/caches avec le propriétaire ; leur disparition **n'a pas été prouvée** par ce correctif documentaire. Ne reproduire aucune URL privée |
+| `POST_PUBLIC_REVIEW_REQUIRED` | Anciens objets Git, patches, artefacts Actions, discussions, captures, métadonnées, données sensibles éventuelles | Maintenir l'audit des surfaces déjà publiées sans réécriture destructrice de l'historique |
+| `CONFIGURATION_VERIFICATION_REQUIRED` | Private vulnerability reporting signalé activé lors de PUB-03, mais disponibilité pour un utilisateur externe **non vérifiée indépendamment** dans cette revue | Vérifier le parcours **Security → Advisories → Report a vulnerability** depuis une session extérieure ; éviter toute vulnérabilité détaillée dans une Issue publique |
+| `HISTORICAL_CI_FAILURE / NEW_HEAD_TO_VERIFY` | Run initial `39807003399` **FAILURE** ; PR #34 fusionnée après run `39828359155` **SUCCESS** | Contrôler le run `push main` #39829504202 et le gate final sur le HEAD intégré de #36, sans reporter les PASS d'un ancien commit |
+| `OWNER_DECISION_REQUIRED` | Droits/provenance des cinq ressources V2 et éventuels usages publics officiels | Garder les fichiers non distribués jusqu'à autorisation ; leur absence ne remet pas en cause la publication du code seul |
+| `SUPERSEDED` | README anglais et traducteur automatique candidats de la PR #25 | PR fermée **sans fusion**, workflow non intégré ; aucune traduction tierce présumée active |
+
+**Conséquence de la publication :** les anciens `HOLD_PUBLIC` sont **clôturés en tant que décision de visibilité**, pas automatiquement comme preuves d'assainissement. Les risques historiques encore ouverts se traitent par remédiation et vérification de l'exposition publique ; on ne les efface pas en renommant le statut. Cette section est le statut opérationnel actuel de PUB-01B ; le reste du document constitue la trace conservée de ses contrôles antérieurs.
+
+---
+
+## Checkpoints historiques pré-PUBLIC (archivés, non normatifs pour l'état présent)
+
 
 **État : HOLD_PUBLIC / OWNER_ACTION_REQUIRED.** Audit candidat DEV 2 du 22 octobre 2026. Ce rapport est destiné à rester publiable : il ne reproduit aucun lien, détail ni contenu du dépôt opérationnel privé. Il ne constitue ni un scan exhaustif de l'historique Git ni une attestation juridique.
 
