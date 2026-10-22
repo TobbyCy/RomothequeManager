@@ -9,8 +9,7 @@ const date=(x,c)=>{str(x,c);if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z
 const key=(...parts)=>JSON.stringify(parts);
 
 const T3_VERSION="0.2.0-ui-catalogue-candidate";
-/* Independently enforce the source-state, title and disc invariants of the
-   PowerShell validator before binding candidate data to the existing UI. */
+/* T3 presentation bridge: one canonical shared validator and no duplicate rules. */
 function normalizeT3(dto){
  if(!global.RM_T3_CATALOGUE||!global.RM_PROJECTION)fail("T3_DEPENDENCY_MISSING");
  const base=global.RM_T3_CATALOGUE.normalize(dto);
@@ -19,24 +18,11 @@ function normalizeT3(dto){
  const normalized=[];
  for(const g of base.games){
   const l=refs.get(g.libraryId);
-  if(!l||g.availability!==l.availability||g.freshness!==l.freshness)fail("T3_LIBRARY_STATE");
-  if(g.quality==="STALE"&&g.freshness!=="STALE")fail("T3_STALE_QUALITY");
-  if(g.quality==="UNKNOWN"&&g.freshness!=="UNKNOWN")fail("T3_UNKNOWN_QUALITY");
-  if(g.quality==="PARTIALLY_OBSERVED"&&g.coverStatus!=="UNKNOWN")fail("T3_PARTIAL_QUALITY");
-  if(g.quality==="CONTRADICTORY"&&g.title!==null)fail("T3_CONTRADICTORY_TITLE");
-  const variants=new Set();
-  for(const v of g.variants){
-   str(v.variantId,"T3_VARIANT_ID");str(v.label,"T3_VARIANT_LABEL");
-   if(variants.has(v.variantId))fail("T3_DUPLICATE_VARIANT");variants.add(v.variantId);
-  }
-  const names=new Set();
-  for(const o of g.observations){
-   if(o.discNumber!==undefined&&o.discNumber!==null&&(!Number.isSafeInteger(o.discNumber)||o.discNumber<1))fail("T3_DISC_NUMBER");
-   if(o.observedTitle!==null&&o.observedTitle!==undefined)names.add(str(o.observedTitle,"T3_OBSERVED_TITLE"));
-  }
-  if(names.size>1&&(g.quality!=="CONTRADICTORY"||g.title!==null))fail("T3_TITLE_CONFLICT");
-  if(names.size===0&&g.title!==null)fail("T3_TITLE_UNKNOWN");
-  if(names.size===1&&(!names.has(g.title)||g.quality==="CONTRADICTORY"))fail("T3_TITLE_EVIDENCE");
+  // The canonical shared reader is the *sole* T3 DTO validator:
+  // source state, titles, variants, disc numbers, proofs and counts are
+  // checked by RM_T3_CATALOGUE.normalize above. Never clone that logic here.
+  // This layer only binds an already validated record to presentation cards.
+  if(!l)fail("T3_PRESENTATION_LIBRARY_MISSING");
   const p=g.provenance[0];
   normalized.push({...g,identity:key(g.libraryId,g.platform,g.gameId),
    coverageStatus:g.coverStatus==="KNOWN"?"COMPLETE":"INCOMPLETE",
