@@ -25,7 +25,7 @@ const proven=new Map();for(const p of proof){text(p.console,"PROOF_CONSOLE");tex
 for(const v of coverage){text(v.console,"COVERAGE_CONSOLE");enumOf(v.status,["complete","partial","unobserved"],"COVERAGE_STATUS");if(v.status==="complete"&&(scanStatus!=="complete"||!g.scopeIsExhaustive||![...expected].filter(k=>JSON.parse(k)[0]===v.console).every(k=>proven.get(k)==="complete")))fail("UNPROVEN_SCOPE")}
 if(typeof g.countKnown!=="boolean")fail("COUNT_KNOWN_FLAG");
 // Accessible partial snapshots can have an UNKNOWN exhaustive count.
-
+// Reject a proved count against an inaccessible index, not the inverse.
 if(g.countKnown&& !l.indexAccessible)fail("INACCESSIBLE_COUNT");
 const observedUnitCount=g.countKnown?integer(g.observedUnitCount,"OBSERVED_UNITS"):(g.observedUnitCount===null?null:fail("UNKNOWN_COUNT_NOT_NULL"));
 return {snapshotId:g.snapshotId,generationId:g.generationId,capturedAtUtc:g.capturedAtUtc,scanStatus,coverage,coverageProof:proof,scopeIsExhaustive:g.scopeIsExhaustive,countKnown:g.countKnown,observedUnitCount};
