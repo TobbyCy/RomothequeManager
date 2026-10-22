@@ -100,13 +100,23 @@ jobs:
           & .\tests\Invoke-CiCanonicalCatalogue.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: T3/T4 shared fixture - candidate JavaScript consumer canaries
+      - name: T3/T4 real PS5.1 synthetic export to Node consumer and negative canaries
         shell: powershell
         run: |
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw 'CATDTO_PS51_REQUIRED' }
           node --version
           if ($LASTEXITCODE -ne 0) { throw 'CATDTO_NODE_UNAVAILABLE' }
-          node .\tests\catalogue_t3_consumer.test.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $syntheticFile = Join-Path $env:RUNNER_TEMP 'rm-t3-catalogue-synthetic.json'
+          try {
+            & .\tests\Export-SyntheticCanonicalCatalogue.ps1 -OutputJson $syntheticFile | Out-Null
+            if (-not (Test-Path -LiteralPath $syntheticFile -PathType Leaf)) { throw 'CATDTO_SYNTHETIC_EXPORT_MISSING' }
+            $env:RM_CANONICAL_EXPORT_JSON = $syntheticFile
+            node .\tests\catalogue_t3_consumer.test.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'CATDTO_NODE_CANARIES_FAILED' }
+          } finally {
+            Remove-Item Env:RM_CANONICAL_EXPORT_JSON -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $syntheticFile -Force -ErrorAction SilentlyContinue
+          }
 
       - name: Documentation currency gate (PR and main)
         shell: powershell
