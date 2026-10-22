@@ -50,6 +50,7 @@ try {
         '^tests/Invoke-Ci[A-Za-z]+\.ps1$', '^tests/Invoke-CiE1NegativeCanary\.ps1$', '^tests/Invoke-CiE1Integration\.ps1$',
         '^prototype/ui11/(?:README\.md|app\.js|catalogue-adapter\.js|demo-integree\.html|fixtures\.js|index\.html|integrated-smoke\.cjs|projection-adapter\.js|projection-data\.js|projection-integrated\.js|projection-sample\.js|projection-smoke\.cjs|smoke\.cjs|styles\.css)$',
         '^tests/Export-SyntheticUiProjection\.ps1$', '^tests/fixtures/(SyntheticLibrarySnapshots|UiProjectionVectors)\.ps1$', '^tests/fixtures/TEST_MATRIX_S3\.md$',
+        '^(?:tests/Export-SyntheticCatalogue\.ps1|tests/Export-SyntheticCanonicalCatalogue\.ps1|tests/fixtures/CatalogueT3CanonicalSample\.json|tests/catalogue_t3_consumer\.test\.cjs|adapters/shared/catalogue-t3-consumer\.js|prototype/ui11/T4_CONVERGENCE_CATALOGUE\.md|prototype/ui11/demo-t4-catalogue\.html|prototype/ui11/t2-catalogue-fixture\.js|prototype/ui11/t2-catalogue-model\.js|prototype/ui11/t2-catalogue-ui\.js|prototype/ui11/t2-catalogue\.css|prototype/ui11/t2-catalogue\.html|prototype/ui11/t2-catalogue\.test\.cjs|prototype/ui11/t4-catalogue-demo\.js|prototype/ui11/t4-catalogue\.test\.cjs)$',
         '^tests/Unit/[A-Za-z0-9_.-]+\.Tests\.ps1$', '^tests/(ci-export-sources|ci-preflight-sources)\.json$', '^tests/Invoke-CiE1PreflightSynthetic\.ps1$'
     )
     $collisions = @{}
@@ -70,8 +71,8 @@ try {
     }
     $expectedModules = @('Utils','Canonical','Configuration','Inventory','Metadata','RomResolver','DecisionSchema','StateCodec','Identity','PersistentIdentity','MediaMatcher','MediaModel','Reconciliation','Proposals','Projection','Transactions','Catalogue','Associations')
     $modules = @(Get-ChildItem -LiteralPath (Join-Path $root 'Modules') -File -Filter '*.psm1')
-    Require ($modules.Count -eq 20) ('EXPECTED_20_MODULES actual=' + $modules.Count)
-    $extensionModules = @('SnapshotComparison','LibrarySnapshotProjection')
+    Require ($modules.Count -eq 22) ('EXPECTED_22_MODULES actual=' + $modules.Count)
+    $extensionModules = @('SnapshotComparison','LibrarySnapshotProjection','CatalogueProjection','CatalogueDtoContract')
     foreach ($name in $extensionModules) {
         Require (Test-Path (Join-Path $root ('Modules\' + $name + '.psm1')) -PathType Leaf) ('MISSING_APPROVED_EXTENSION_MODULE: ' + $name)
     }

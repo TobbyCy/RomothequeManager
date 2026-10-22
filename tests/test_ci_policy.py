@@ -357,13 +357,31 @@ class DocumentTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_stab03a_ps51_unicode_sources_have_utf8_bom(self):
+        # GitHub-stored bytes: PS5.1 must never interpret UTF-8 literals as ACP.
+        root = Path(__file__).resolve().parent.parent
+        paths = (
+            "tests/Export-SyntheticCanonicalCatalogue.ps1",
+            "tests/Export-SyntheticCatalogue.ps1",
+            "tests/Invoke-CiCanonicalCatalogue.ps1",
+            "tests/Invoke-CiCatalogueProjection.ps1",
+        )
+        for name in paths:
+            with self.subTest(file=name):
+                raw = (root / name).read_bytes()
+                self.assertTrue(raw.startswith(bytes.fromhex("efbbbf")), name)
+                decoded = raw.decode("utf-8-sig", errors="strict")
+                self.assertNotIn("\u00c3\u2030", decoded)
+        canonical = (root / paths[0]).read_bytes().decode("utf-8-sig")
+        self.assertIn("\u00c9toile des disques", canonical)
+
     def test_stab03a_exact_path_allowlist(self):
         # Real CI-0 allowlist, not an alternate permissive matcher.
         import re
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
-        permitted = ["tests/Invoke-CiE1PreflightSynthetic.ps1", "tests/Export-SyntheticUiProjection.ps1", "tests/fixtures/TEST_MATRIX_S3.md", "tests/fixtures/SyntheticLibrarySnapshots.ps1", "tests/fixtures/UiProjectionVectors.ps1"]
-        forbidden = ["tests/Invoke-CiE1PreflightSynthetic.psm1", "tests/fixtures/unapproved.json", "tests/Export-SyntheticUnverified.ps1"]
+        permitted = ["tests/Invoke-CiE1PreflightSynthetic.ps1", "tests/Export-SyntheticUiProjection.ps1", "tests/fixtures/TEST_MATRIX_S3.md", "tests/fixtures/SyntheticLibrarySnapshots.ps1", "tests/fixtures/UiProjectionVectors.ps1", "tests/fixtures/CatalogueT3CanonicalSample.json", "tests/Export-SyntheticCanonicalCatalogue.ps1", "tests/catalogue_t3_consumer.test.cjs", "adapters/shared/catalogue-t3-consumer.js", "prototype/ui11/t4-catalogue.test.cjs"]
+        forbidden = ["tests/Invoke-CiE1PreflightSynthetic.psm1", "tests/fixtures/unapproved.json", "tests/Export-SyntheticUnverified.ps1", "tests/untrusted.test.cjs", "adapters/shared/unapproved.js", "prototype/ui11/unapproved.html"]
         for path in permitted:
             with self.subTest(permitted=path):
                 self.assertTrue(any(re.fullmatch(rule, path) for rule in rules), path)

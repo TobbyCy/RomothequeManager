@@ -38,6 +38,12 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 - Exporteur JSON synthétique pour interface hors ligne et canaris négatifs ; aucun effet physique sur ROM.
 - Tests PowerShell 5.1 et CI sur cette intégration : **non vérifiés**.
 
+## Catalogue synthétique partagé — PR #29
+
+- Modules PowerShell de projection et validation du catalogue, contrat DTO candidat 0.2, consommateur JS canonique, provenance et compteurs fail-closed.
+- Tests et fixtures négatives versionnés ; contrat encore candidat, pas d'export réel de collection.
+- Tests Node/PS5.1 et CI de l'arbre consolidé **non vérifiés**.
+
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.
