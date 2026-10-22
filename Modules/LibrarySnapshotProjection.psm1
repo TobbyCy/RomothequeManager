@@ -37,8 +37,8 @@ function Assert-RmLibraryArray {
     if ($Value -isnot [array]) { throw ('LIBRARY_ARRAY_REQUIRED:'+$Context) }
 }
 # Identifiers are case-sensitive ordinal strings; no delimiter-based composite keys.
-function New-RmOrdinalSet { return (New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)) }
-function New-RmOrdinalMap { return (New-Object 'System.Collections.Generic.Dictionary[string,object]' ([StringComparer]::Ordinal)) }
+function New-RmOrdinalSet { return ,(New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)) }
+function New-RmOrdinalMap { return ,(New-Object 'System.Collections.Generic.Dictionary[string,object]' ([StringComparer]::Ordinal)) }
 function Get-RmPartitionKey {
     param([string]$Console,[string]$SourceKey,[string]$RootKey,[string]$Domain)
     # Length-prefix each segment so embedded separators never collide.
