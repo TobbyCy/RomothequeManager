@@ -28,7 +28,7 @@ function normalize(dto,registry){
   if(g.title!==null)str(g.title,"TITLE");
   if(g.quality==="CONTRADICTORY"&&g.title!==null)fail("CONTRADICTORY_TITLE");
   const p=g.provenance;if(!p||p.libraryId!==libraryId)fail("PROVENANCE_LIBRARY");
-  const snap=lib.snapshots.find(s=>s.snapshotId===p.snapshotId);
+  const snap=lib.snapshots.find(s=>(s.snapshotId??s.generationId)===p.snapshotId);
   if(!snap||snap.generationId!==p.generationId||snap.capturedAtUtc!==date(p.observedAtUtc,"OBSERVED_AT"))fail("PROVENANCE_SNAPSHOT");
   const variants=list(g.variants,"VARIANTS"),variantIds=new Set();
   for(const v of variants){str(v,"VARIANT");if(variantIds.has(v))fail("DUPLICATE_VARIANT");variantIds.add(v)}
