@@ -4,7 +4,7 @@
 
 ## Contacter le responsable
 
-Le dépôt est en préparation privée et **aucun canal de signalement intégré n'est déclaré activé ou vérifié**. Si GitHub affiche une option **Report a vulnerability** sur ce dépôt, utilisez-la uniquement après avoir vérifié qu'il s'agit d'un formulaire privé. Sinon, ouvrez au maximum une **demande de contact sans détail technique sensible** ; n'exposez pas les étapes d'exploitation. Attendez la confirmation d'un canal privé convenu avec le mainteneur avant de transmettre un dossier complet.
+Le dépôt est en préparation privée et **aucun canal de signalement intégré n'est déclaré activé ou vérifié**. La disponibilité d'un canal véritablement privé, accessible aux futurs utilisateurs, est un **prérequis bloquant** à confirmer par le propriétaire avant le passage public. Si GitHub affiche une option **Report a vulnerability** sur ce dépôt, utilisez-la uniquement après avoir vérifié qu'il s'agit d'un formulaire privé. Sinon, ouvrez au maximum une **demande de contact sans détail technique sensible** ; n'exposez pas les étapes d'exploitation. Attendez la confirmation d'un canal privé convenu avec le mainteneur avant de transmettre un dossier complet.
 
 Un signalement de sécurité ne doit pas être classé comme bug public reproductible. Ni les Issues ni les PR ne constituent un coffre-fort.
 
