@@ -65,7 +65,7 @@ ok("length-prefixed Ordinal game sort equals PowerShell",()=>{
  g.gameId="z";g.observations[0].romUnitId="unit-two";
  d.games.push(g);d.gameCount=2;
  d.registry.libraries[0].generations[0].observedUnitCount=2;
- assert.deepEqual(model.normalize(d).games.map(g=>g.gameId),["z","game"]);
+ assert.deepEqual(Array.from(model.normalize(d).games, g=>g.gameId),["z","game"]);
 });
 ok("pagination",()=>assert.equal(model.query(model.normalize(dto),{limit:1}).items.length,1));
 console.log("T3_CANDIDATE_CONSUMER_TESTS_PASS",checks);
