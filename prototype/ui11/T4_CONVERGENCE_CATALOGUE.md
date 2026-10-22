@@ -8,7 +8,7 @@
 | Contrat DTO | `Modules/CatalogueDtoContract.psm1` (#29), `0.2.0-ui-catalogue-candidate` | `registry + games + diagnostics + countKnown + gameCount` | Candidat, non adopté |
 | Validateur PowerShell | `Assert-RmCanonicalCatalogueDto` (#29) | Validation indépendante du producteur | Code présent ; PS5.1 NOT_EXECUTED |
 | Échantillon partagé | `tests/fixtures/CatalogueT3CanonicalSample.json` (#29) | Copie explicitement étiquetée dans `t4-catalogue-demo.js` (#30) | Fichier de démonstration statique, non export runtime |
-| Consommateur T3 | `adapters/shared/catalogue-t3-consumer.js` (#29) | Copie avec blob source tracé `t4-catalogue-consumer.js` (#30) | Référence temporaire à réconcilier après adoption |
+| Consommateur T3 | `adapters/shared/catalogue-t3-consumer.js` (#29) | Même chemin canonique dans #30 ; blob identique à Dev 1 (aucune deuxième implémentation) | Contrat candidat, synchronisation à maintenir |
 | Contrôle du registre | `registry 0.1.0-synthetic` | `projection-adapter.js` (#30) | Corrige l'index accessible avec `countKnown=false` sous couverture partielle |
 | Modèle de présentation | `t2-catalogue-model.js` (#30) | Transforme explicitement observations → unités UI, variantes objet → IDs d'affichage, provenance tableau → référence d'affichage | Compatible T3 candidate, préserve le consommateur T1 pour tests anciens |
 | Vue principale | `index.html` + `app.js` (#30) | Collection/Fiche, recherche, filtres, tri, diagnostics, OFFLINE/STALE, couverture, disque et liens snapshot | V8 simulé ciblé PASS ; navigateur NOT_EXECUTED |
@@ -51,7 +51,14 @@ Navigateur : ouvrir `prototype/ui11/demo-t4-catalogue.html` en `file://`, vérif
 
 ## Points pour le Contrôleur et Dev 1
 
-1. Réconcilier la copie candidate `t4-catalogue-consumer.js` avec sa source #29 (ou transfert de propriété) lors de l'adoption du contrat. Éviter deux validateurs JS permanents.
+1. Vérifier à chaque avancée de Dev 1 que `adapters/shared/catalogue-t3-consumer.js` est strictement identique aux deux HEAD ; ne jamais conserver deux validateurs JS divergents.
 2. Renforcer la validation T3 sur `availability/freshness` du jeu vs registre, `discNumber`, et preuves de titres contradictoires / absents. Le validateur PS et le consommateur JS ne couvrent pas aujourd'hui les mêmes invariants.
 3. Régler le chaînage des PR empilées et gates CI sans rebase ou merge implicites.
 4. Exiger export PS5.1 et tests navigateur réels avant verdict de parité/recette.
+
+
+## Addendum STAB-03B — correction des régressions
+
+L'ancienne référence à une copie locale du consommateur T3 est historique et **n'est plus valable**. Les trois entrées HTML chargent désormais le chemin canonique partagé dans l'arbre de PR #30, à contenu strictement égal à la branche Dev 1 contrôlée. La Collection/Fiche est commune pour les DTO legacy, T1 et T3 ; le JSON de l'exporteur synthétique PS5.1 peut être importé depuis la Collection, après validation intégrale et sans créer de nouvelle page. Les comparaisons du DTO d'import ne sont pas reconstruites en JS.
+
+[Recette STAB-03B](STAB03B_RECETTE_EDGE.md) : suites 9 + 10 + 42 + 20 + 32 = 113 assertions PASS **sous V8 simulant Node** ; Node natif, Edge et export PS5.1 indépendants restent NOT_EXECUTED. Aucun élément de ce document n'adopte contractuellement la version 0.2 ni ne prouve un accès à des ROM.
