@@ -169,6 +169,20 @@ $x.registry.libraries[0].generations[1].scopeIsExhaustive=$false
 $x.registry.libraries[0].generations[1].coverage[0].status='complete'
 $x.games[0].coverStatus='KNOWN';$x.games[0].status='KNOWN'
 Assert-Rejected $x 'CATDTO_COMPLETE_UNPROVEN'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].lastVerifiedCompleteRef='ghost'
+Assert-Rejected $x 'CATDTO_LAST_VERIFIED_ORPHAN'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].snapshotId='gen-b'
+Assert-Rejected $x 'CATDTO_IDENTITY_CONFLATED'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].currentAvailability='UNKNOWN'
+Assert-Rejected $x 'CATDTO_UNKNOWN_AVAILABILITY_HAS_DATE'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].scanStatus='partial'
+$x.registry.libraries[0].generations[1].coverage[0].status='partial'
+$x.registry.libraries[0].lastVerifiedCompleteRef='snap-b'
+Assert-Rejected $x 'CATDTO_LAST_VERIFIED_UNPROVEN'
 $malformedWasRejected=$false
 try { $null=ConvertFrom-Json -InputObject '{"schemaVersion":' -ErrorAction Stop } catch { $malformedWasRejected=$true }
 if (-not $malformedWasRejected) { throw 'CATDTO_MALFORMED_JSON_ACCEPTED' }
