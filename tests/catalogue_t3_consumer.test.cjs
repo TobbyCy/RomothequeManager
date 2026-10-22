@@ -60,5 +60,12 @@ rejects("wrong last complete proof",d=>{
  const g=d.registry.libraries[0].generations[0];g.scanStatus="failed";
  g.coverage[0].status="partial";
 },"LAST_VERIFIED_UNPROVEN");
+ok("length-prefixed Ordinal game sort equals PowerShell",()=>{
+ const d=clone(dto),g=clone(d.games[0]);
+ g.gameId="z";g.observations[0].romUnitId="unit-two";
+ d.games.push(g);d.gameCount=2;
+ d.registry.libraries[0].generations[0].observedUnitCount=2;
+ assert.deepEqual(model.normalize(d).games.map(g=>g.gameId),["z","game"]);
+});
 ok("pagination",()=>assert.equal(model.query(model.normalize(dto),{limit:1}).items.length,1));
 console.log("T3_CANDIDATE_CONSUMER_TESTS_PASS",checks);
