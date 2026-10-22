@@ -468,7 +468,8 @@ class WorkflowTests(unittest.TestCase):
             return match[1]
         scripts = {
             "ci0-static": ["Invoke-CiStatic.ps1", "Invoke-CiNegativeCanary.ps1",
-                           "Invoke-CiDocsSync.ps1", "Invoke-CiDocsCanary.ps1"],
+                           "Invoke-CiDocsSync.ps1", "Invoke-CiDocsCanary.ps1",
+                           "Invoke-CiUiAdapterContract.ps1"],
             "ci1-runtime": ["Invoke-CiSmoke.ps1"],
             "ci2-pester": ["Invoke-CiPesterDiscovery.ps1", "Invoke-CiPester.ps1",
                            "Invoke-CiPesterExecutionCanary.ps1", "Invoke-CiPesterCoverage.ps1",
@@ -482,6 +483,12 @@ class WorkflowTests(unittest.TestCase):
             self.assertIn("needs.policy.outputs.ps == 'true'", contents)
             for name in names:
                 self.assertEqual(1, contents.count(name), (job, name))
+        # Once the UI tree is present, the workflow must execute its existing
+        # adapter harness and reject any missing/new Node smoke file.
+        static_job = block("ci0-static")
+        self.assertIn("UI_ADAPTER_SOURCES_MISSING", static_job)
+        self.assertIn("UI_TEST_DISCOVERY_MISMATCH", static_job)
+        self.assertIn("UI_SMOKE_FAILED:", static_job)
         final = block("ci-policy-gate")
         self.assertIn("always()", final)
         self.assertIn("toJSON(needs)", final)
