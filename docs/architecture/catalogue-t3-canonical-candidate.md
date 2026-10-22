@@ -52,6 +52,10 @@ gameCount = 999                                -> CATDTO_COUNT_MISMATCH
 | Déterminisme | deux exports | JSON identique | égalité stricte |
 | Régression #26/#27 | harness existants | comparateur et couverture | à exécuter PS5.1 |
 
+## Consommateur candidat fourni à Dev 2
+
+`adapters/shared/catalogue-t3-consumer.js` expose `RM_T3_CATALOGUE.normalize(dto)` et `query(model,filters)` sans accès disque/réseau ; il accepte la version T3, conserve `title=null`, refuse les références orphelines, les fausses couvertures, les preuves de partition dupliquées et les compteurs incohérents. **Ce fichier est sur la branche #29, pas dans #30** : Dev 2 doit en auditer le comportement et décider s'il adapte son propre modèle, sans import silencieux. `tests/catalogue_t3_consumer.test.cjs` contient 13 assertions Node candidates : `node tests/catalogue_t3_consumer.test.cjs`. **NODE_NOT_EXECUTED**. Le contrôle JS ne remplace pas le validateur PowerShell indépendant ni l'attestation d'origine.
+
 ## Compatibilité avec T2 #30 : divergences explicites
 
 T2 actuel **rejette** ce DTO : sa version est `0.1.0-ui-catalogue-candidate`, son `normalize(dto,registry)` exige un titre non vide, n'accepte pas le triplet bibliothèque/plateforme/jeu, assimile `generationId` et `snapshotId` dans une recherche de snapshot, et n'accepte pas `generationId` dans sa preuve de provenance. La conversion canonique T3 fournit désormais `status`, `coverStatus`, `observations`, `variants[]` et `provenance[]`, mais **la parité du consommateur n'est pas acquise** : Dev 2 doit proposer un adaptateur explicitement versionné, des tests de consommation de l'export réel et une politique UI pour `title=null`, `countKnown=false`, `PARTIALLY_OBSERVED`.
