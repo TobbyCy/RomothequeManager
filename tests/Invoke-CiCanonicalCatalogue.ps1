@@ -87,6 +87,10 @@ if ($multiple.games.Count -ne 2 -or $multiple.gameCount -ne 2 -or
  @($multiple.games | Where-Object { $_.platform -ceq 'PS1' }).Count -ne 1) { throw 'CATDTO_MULTILIB_PLATFORM_LOST' }
 $x=Clone-Dto $multiple
 $x.games[1].provenance[0].libraryId='ghost'
+Assert-Rejected $x 'CATDTO_PROVENANCE_INVALID'
+# An actual orphan library reference must reject at game/library resolution.
+$x=Clone-Dto $multiple
+$x.games[1].libraryId='ghost'
 Assert-Rejected $x 'CATDTO_ORPHAN_LIBRARY'
 $x=Clone-Dto $dto
 foreach($observation in $x.games[0].observations) { $observation.observedTitle='Titre falsifié' }
