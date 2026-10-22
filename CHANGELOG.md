@@ -26,6 +26,12 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 - **Sprint #15, PR Draft #28** : contrat candidat catalogue de jeux et fiche projetée, provenance datée, variantes, observations ROM séparées, navigation vers snapshots ; sample synthétique hors ligne et smoke Node ajouté (NOT_EXECUTED). Adaptateur registre aligné sur `countKnown`/compteur null. 9 contrôles V8 avec DOM simulé PASS, aucune parité PS5.1 ni recette navigateur.
 
+## Comparaison de snapshots synthétiques — Issue #9
+
+- Module PowerShell de comparaison A/B avec six classifications et couverture prouvée des deux générations.
+- Identités `romUnitId` comparées ordinalement et sensibles à la casse ; canaris synthétiques associés.
+- Aucun effet sur les fichiers ROM ; tests PS5.1 et CI sur l'arbre consolidé **non vérifiés**.
+
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.

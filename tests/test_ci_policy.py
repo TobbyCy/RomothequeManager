@@ -357,6 +357,21 @@ class DocumentTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_stab03a_exact_path_allowlist(self):
+        # Real CI-0 allowlist, not an alternate permissive matcher.
+        import re
+        root = Path(__file__).resolve().parent.parent
+        rules, _ = p.path_rules(root)
+        permitted = ["tests/Invoke-CiE1PreflightSynthetic.ps1"]
+        forbidden = ["tests/Invoke-CiE1PreflightSynthetic.psm1","tests/fixtures/unapproved.json"]
+        for path in permitted:
+            with self.subTest(permitted=path):
+                self.assertTrue(any(re.fullmatch(rule, path) for rule in rules), path)
+        for path in forbidden:
+            with self.subTest(forbidden=path):
+                self.assertFalse(any(re.fullmatch(rule, path) for rule in rules), path)
+
+
     def test_product_integrity_guard_has_locked_baseline(self):
         root = Path(__file__).resolve().parent.parent
         import hashlib
@@ -455,6 +470,7 @@ class CliRoutingProofTests(unittest.TestCase):
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_text("# Synthetic CI test document\n", encoding="utf-8")
             p.git(root, "add", "--all")
+            if p.git(root, "status", "--porcelain").strip():
             p.git(root, "commit", "--quiet", "-m", "Synthetic baseline documents")
             def save():
                 p.git(root, "add", "--all")

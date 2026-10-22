@@ -8,6 +8,7 @@ Ce tableau distingue les capacités en cours de revue, les maquettes et les vers
 | Pester 4.10.1 et gardes CI | Suites à revalider au HEAD effectivement intégré dans ce dépôt | Les succès d'un autre commit ne sont pas transférables |
 | Dashboard, Collection, fiches | **Prototype UI #11 codé sur PR Draft #28** : Dashboard, première Collection consultable, inspecteur synthétique | Pas d'application Windows finale, pas de fiche enrichie, tests navigateur/CI non exécutés |
 | Bibliothèques, Offline/Stale, snapshots | **Prototype UI #11 codé sur PR Draft #28** : 4 bibliothèques fictives, historique, sélecteur A/B, six résultats, filtres et détail | Projection JS synthétique uniquement ; aucune lecture de données réelles, parité PowerShell non validée |
+| Comparaison de snapshots — Issue #9 | Composant PowerShell de comparaison synthétique intégré ; six classifications et identité ordinale sensible à la casse | Tests PS5.1 du nouvel arbre non certifiés ; aucune suppression physique inférée |
 | Favoris et tags | Besoins étudiés, non implémentés | Aucun stockage personnel disponible |
 | Simulation/export et conversion | Études fonctionnelles, **opérations réelles non autorisées** | Aucun effet physique implicite, aucun E6 |
 | ZIP Windows / Release | **NON PUBLIÉ / NON TESTÉ** | Pas de programme à télécharger |

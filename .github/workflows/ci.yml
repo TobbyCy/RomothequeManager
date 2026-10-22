@@ -68,6 +68,12 @@ jobs:
           & .\tests\Invoke-CiNegativeCanary.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Snapshot comparison - synthetic PS5.1 fixtures and refusal canaries
+        shell: powershell
+        run: |
+          & .\tests\Invoke-CiSnapshotComparison.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Documentation currency gate (PR and main)
         shell: powershell
         run: |
