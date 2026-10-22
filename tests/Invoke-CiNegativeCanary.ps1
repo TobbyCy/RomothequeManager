@@ -48,7 +48,7 @@ try {
             '.github/ISSUE_TEMPLATE/BUG-extra.yml',
             '.github/ISSUE_TEMPLATE/incident-securite.yml',
             '.github/workflows/triage.yml',
-            '.github/CODEOWNERS.bak',
+            '.github/CODEOWNERS.txt',
             'SECURITY.txt'
         )
         $checked = 0
