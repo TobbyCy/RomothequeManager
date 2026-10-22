@@ -107,14 +107,19 @@ function Assert-RmCanonicalCatalogueDto {
   Assert-RmDto ($sources -is [array] -and $platforms -is [array] -and $generations -is [array]) 'CATDTO_REGISTRY_ARRAY'
   $snapshotIds=New-RmDtoSet;$generationIds=New-RmDtoSet
   $latest=$null
+  $latestStamp=[DateTimeOffset]::MinValue
   foreach($gen in $generations) {
    $sid=Get-RmDtoField $gen 'snapshotId';$gid=Get-RmDtoField $gen 'generationId'
    Assert-RmDtoId $sid 'CATDTO_SNAPSHOT_ID';Assert-RmDtoId $gid 'CATDTO_GENERATION_ID'
    Assert-RmDto ($snapshotIds.Add($sid) -and $generationIds.Add($gid)) 'CATDTO_DUPLICATE_SNAPSHOT_GENERATION'
    $captured=Get-RmDtoField $gen 'capturedAtUtc'
    Assert-RmDtoUtc $captured
-   if ($null -eq $latest -or [string]::CompareOrdinal($captured,$latest.capturedAtUtc) -gt 0 -or
-      ($captured -ceq $latest.capturedAtUtc -and [string]::CompareOrdinal($sid,$latest.snapshotId) -gt 0)) { $latest=$gen }
+   $timestamp=[DateTimeOffset]::Parse($captured,[Globalization.CultureInfo]::InvariantCulture)
+   if ($null -eq $latest -or $timestamp -gt $latestStamp -or
+      ($timestamp -eq $latestStamp -and [string]::CompareOrdinal($sid,$latest.snapshotId) -gt 0)) {
+    $latest=$gen
+    $latestStamp=$timestamp
+   }
    $proof=Get-RmDtoField $gen 'coverageProof'
    $coverage=Get-RmDtoField $gen 'coverage'
    $scan=Get-RmDtoField $gen 'scanStatus'
