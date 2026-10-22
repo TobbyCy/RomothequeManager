@@ -14,6 +14,8 @@ const dto={schemaVersion:"0.2.0-ui-catalogue-candidate",readOnly:true,
 let checks=0;
 function ok(name,fn){fn();checks++;process.stdout.write("PASS "+name+"\n")}
 function rejects(name,change,code){ok(name,()=>{const d=clone(dto);change(d);assert.throws(()=>model.normalize(d),new RegExp("T3_CATALOGUE_"+code))})}
+const sharedSample=JSON.parse(fs.readFileSync(path.join(__dirname,"fixtures/CatalogueT3CanonicalSample.json"),"utf8"));
+ok("shared JSON reference fixture accepted",()=>{const v=model.normalize(sharedSample);assert.equal(v.games[0].quality,"STALE");assert.equal(v.games[0].observations.length,2);assert.equal(v.games[0].availability,"OFFLINE")});
 ok("valid nullable title and offline historical source",()=>assert.equal(model.normalize(dto).games.length,1));
 ok("ordinal identity and search",()=>{const x=model.normalize(dto);assert.equal(model.query(x,{libraryId:"LIB"}).total,0);assert.equal(model.query(x,{search:"GAME"}).total,1)});
 rejects("wrong schema",d=>d.schemaVersion="wrong","SCHEMA");
