@@ -33,6 +33,19 @@
 
 **B5 — Véracité produit.** Aucun installateur/ZIP/Release Windows fourni, ni inventaire réel validé, ni export/copie/convertisseur en service. Les PR #28/#30 ne livrent qu'une démonstration hors ligne. Le contrat 0.2 est candidat ; pas de parité complète établie entre exporteur PS5.1, JSON et Edge.
 
+## Éléments concrets soumis au propriétaire — licence et identité visuelle
+
+Sans recommander de licence à adopter automatiquement :
+
+| Option indicative | Arbitrage nécessaire |
+| --- | --- |
+| MIT | Redistribution permissive, obligations de conserver l'avis de licence ; protection explicite de brevet moins détaillée qu'Apache-2.0. |
+| Apache-2.0 | Redistribution permissive avec dispositions expresses sur les brevets, avis et NOTICE ; obligations documentaires supplémentaires. |
+| GPL-3.0 | Copyleft applicable aux redistributions dérivées ; obligations de mise à disposition du code source correspondant ; compatibilité des dépendances à vérifier. |
+| Publication différée sans licence choisie | Consultation du code possible si le dépôt devient public, mais **pas d'autorisation implicite** de redistribution/réutilisation par des tiers ; situation délicate pour accepter des contributions. |
+
+Questions ouvertes : la même licence couvrira-t-elle scripts PS, JS, tests et documentation ? Quels noms/logos seront des marques réservées ? Les images historiques sont-elles originales, sous licence tierce ou sans preuve de droits ? Quel traitement pour les futures contributions externes et leurs licences ? Aucune création graphique exclue n'est autorisée à entrer dans le dépôt du seul fait du choix d'une licence logicielle.
+
 ## Décision à solliciter
 
 Le propriétaire valide après remise privée de l'audit des objets GitHub : (1) traitement des historiques exposables, (2) licence/droits des visuels et des contributions, (3) canal sécurité et règles GitHub, (4) tests indépendants, puis (5) une autorisation **explicite et distincte** de rendre PUBLIC le seul dépôt Produit. Aucun de ces points n'est accordé implicitement par ce document.
