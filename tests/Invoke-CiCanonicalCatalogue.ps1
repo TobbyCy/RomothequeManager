@@ -11,6 +11,8 @@ function Assert-Rejected {
  if ($null -eq $actual -or -not $actual.Contains($Code)) { throw ('CATDTO_CANARY_NOT_REJECTED:'+$Code+':'+$actual) }
 }
 function Clone-Dto($dto) { return (ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $dto -Depth 40 -Compress)) }
+$shared=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'fixtures\CatalogueT3CanonicalSample.json')))
+if (-not (Assert-RmCanonicalCatalogueDto -Dto $shared)) { throw 'CATDTO_SHARED_SAMPLE_INVALID' }
 $raw=& (Join-Path $PSScriptRoot 'Export-SyntheticCanonicalCatalogue.ps1')
 $dto=ConvertFrom-Json -InputObject $raw
 if (-not (Assert-RmCanonicalCatalogueDto -Dto $dto)) { throw 'CATDTO_VALID_NOT_ACCEPTED' }
