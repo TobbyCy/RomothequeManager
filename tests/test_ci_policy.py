@@ -380,8 +380,8 @@ class WorkflowTests(unittest.TestCase):
         import re
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
-        permitted = ["tests/Invoke-CiE1PreflightSynthetic.ps1", "tests/Export-SyntheticUiProjection.ps1", "tests/fixtures/TEST_MATRIX_S3.md", "tests/fixtures/SyntheticLibrarySnapshots.ps1", "tests/fixtures/UiProjectionVectors.ps1", "tests/fixtures/CatalogueT3CanonicalSample.json", "tests/Export-SyntheticCanonicalCatalogue.ps1", "tests/catalogue_t3_consumer.test.cjs", "adapters/shared/catalogue-t3-consumer.js", "prototype/ui11/t4-catalogue.test.cjs"]
-        forbidden = ["tests/Invoke-CiE1PreflightSynthetic.psm1", "tests/fixtures/unapproved.json", "tests/Export-SyntheticUnverified.ps1", "tests/untrusted.test.cjs", "adapters/shared/unapproved.js", "prototype/ui11/unapproved.html"]
+        permitted = ["tests/Invoke-CiE1PreflightSynthetic.ps1", "tests/edge-browser-smoke.cjs", "tests/Export-SyntheticUiProjection.ps1", "tests/fixtures/TEST_MATRIX_S3.md", "tests/fixtures/SyntheticLibrarySnapshots.ps1", "tests/fixtures/UiProjectionVectors.ps1", "tests/fixtures/CatalogueT3CanonicalSample.json", "tests/Export-SyntheticCanonicalCatalogue.ps1", "tests/catalogue_t3_consumer.test.cjs", "adapters/shared/catalogue-t3-consumer.js", "prototype/ui11/t4-catalogue.test.cjs"]
+        forbidden = ["tests/Invoke-CiE1PreflightSynthetic.psm1", "tests/edge-browser-smoke.cjs.bak", "tests/EDGE-browser-smoke.cjs", "tests/fixtures/unapproved.json", "tests/Export-SyntheticUnverified.ps1", "tests/untrusted.test.cjs", "adapters/shared/unapproved.js", "prototype/ui11/unapproved.html"]
         for path in permitted:
             with self.subTest(permitted=path):
                 self.assertTrue(any(re.fullmatch(rule, path) for rule in rules), path)
@@ -389,6 +389,19 @@ class WorkflowTests(unittest.TestCase):
             with self.subTest(forbidden=path):
                 self.assertFalse(any(re.fullmatch(rule, path) for rule in rules), path)
 
+
+    def test_val01_edge_is_required_and_fail_closed(self):
+        root = Path(__file__).resolve().parent.parent
+        workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        script = (root / "tests/edge-browser-smoke.cjs").read_text(encoding="utf-8")
+        self.assertIn("VAL-01 real Microsoft Edge headless browser", workflow)
+        self.assertIn(r"node .\tests\edge-browser-smoke.cjs", workflow)
+        self.assertIn("if ($LASTEXITCODE -ne 0) { throw 'EDGE_BROWSER_SMOKE_FAILED' }", workflow)
+        self.assertIn("BROWSER_REAL_FAIL", script)
+        self.assertIn("BROWSER_REAL_PASS", script)
+        self.assertIn("Browser.getVersion", script)
+        self.assertIn("Input.dispatchMouseEvent", script)
+        self.assertIn("Network.setBlockedURLs", script)
 
     def test_product_integrity_guard_has_locked_baseline(self):
         root = Path(__file__).resolve().parent.parent
