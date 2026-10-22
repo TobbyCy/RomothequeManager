@@ -124,6 +124,14 @@ jobs:
         run: |
           $ui = Join-Path $PWD 'prototype\ui11'
           if (Test-Path -LiteralPath $ui -PathType Container) {
+            # Cross-branch textual adapter canary is meaningful only after #28
+            # supplies both JS sources. Do not silently skip incomplete UI trees.
+            $adapter = Join-Path $ui 'projection-adapter.js'
+            $data = Join-Path $ui 'projection-data.js'
+            if (-not (Test-Path -LiteralPath $adapter -PathType Leaf) -or
+                -not (Test-Path -LiteralPath $data -PathType Leaf)) { throw 'UI_ADAPTER_SOURCES_MISSING' }
+            & .\tests\Invoke-CiUiAdapterContract.ps1 -UiAdapterPath $adapter -UiDataPath $data
+            if ($LASTEXITCODE -ne 0) { throw 'UI_ADAPTER_TEXTUAL_CANARY_FAILED' }
             node --version
             if ($LASTEXITCODE -ne 0) { throw 'UI_NODE_REQUIRED' }
             $expected = @('smoke.cjs','projection-smoke.cjs','integrated-smoke.cjs')
