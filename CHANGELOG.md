@@ -6,6 +6,8 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 ## Non publié — développement
 
+- **PUB-01A (préparation dépôt PUBLIC, PR Draft séparée)** : `.github/CODEOWNERS` candidat, garde de sécurité Python pour workflows/actions/événements/permissions, canaris de falsification, autorisation nominative du fichier, future découverte et exécution des smokes Node #28/#30 si le prototype est réellement présent, documentation de protection de `main` et recette post-visibilité. **Garde seulement candidate, NON_ACTIVE sur main ; PS/Node/CI NOT_EXECUTED ; aucune publication.**
+
 - **T4-A — consolidation catalogue (#29, Draft)** : correction des collections PowerShell, sélection chronologique UTC, preuve complète par partition et console, rejet des références historiques masquées, collisions ROM inter-jeux, cohérence état/source et compteurs ; validateur indépendant et consommateur JS renforcés. Nouveaux canaris de falsification simultanée, ordre d'énumération et couverture mixte ; tests PS5.1 et Node ajoutés à CI-0 sans supprimer les gates existants. Deux retours génériques hérités de #27 corrigés **uniquement sur la branche #29** (réconciliation amont obligatoire). **PS51/Node/CI/BROWSER_NOT_EXECUTED**, aucune adoption normative de 0.2, aucune fusion. Matrice : `docs/architecture/catalogue-t4-parity-and-integration.md`.
 
 
