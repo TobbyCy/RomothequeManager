@@ -80,6 +80,24 @@ if ($multiple.games.Count -ne 2 -or $multiple.gameCount -ne 2 -or
 $x=Clone-Dto $multiple
 $x.games[1].provenance[0].libraryId='ghost'
 Assert-Rejected $x 'CATDTO_ORPHAN_LIBRARY'
+$x=Clone-Dto $dto
+$x.games[0].observations[0].observedTitle='Titre falsifié'
+Assert-Rejected $x 'CATDTO_TITLE_PROVENANCE_MISMATCH'
+$x=Clone-Dto $dto
+$x.games[0].quality='CONTRADICTORY'
+Assert-Rejected $x 'CATDTO_TITLE_CONFLICT_FORGED'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].snapshotId='snap-a'
+Assert-Rejected $x 'CATDTO_DUPLICATE_SNAPSHOT_GENERATION'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].coverage[0].status='partial'
+Assert-Rejected $x 'CATDTO_COMPLETE_COVERAGE_MISMATCH'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].coverageProof[0].rootKey='forged-root'
+Assert-Rejected $x 'CATDTO_PROOF_PARTITION_INVALID'
+$x=Clone-Dto $dto
+$x.games[0].observations[0].PSObject.Properties.Remove('observedTitle')
+Assert-Rejected $x 'CATDTO_FIELD_MISSING:observedTitle'
 $again=& (Join-Path $PSScriptRoot 'Export-SyntheticCanonicalCatalogue.ps1')
 if ($raw -cne $again) { throw 'CATDTO_JSON_NOT_DETERMINISTIC' }
 Write-Output 'CATDTO_T3_SYNTHETIC_PASS'
