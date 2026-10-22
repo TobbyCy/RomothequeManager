@@ -4,6 +4,9 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 ## Non publié — développement
 
+- **T4-A — consolidation catalogue (#29, Draft)** : correction des collections PowerShell, sélection chronologique UTC, preuve complète par partition et console, rejet des références historiques masquées, collisions ROM inter-jeux, cohérence état/source et compteurs ; validateur indépendant et consommateur JS renforcés. Nouveaux canaris de falsification simultanée, ordre d'énumération et couverture mixte ; tests PS5.1 et Node ajoutés à CI-0 sans supprimer les gates existants. Deux retours génériques hérités de #27 corrigés **uniquement sur la branche #29** (réconciliation amont obligatoire). **PS51/Node/CI/BROWSER_NOT_EXECUTED**, aucune adoption normative de 0.2, aucune fusion. Matrice : `docs/architecture/catalogue-t4-parity-and-integration.md`.
+
+
 - **T3-A / PR #29 (Draft, branche expérimentale)** : proposition de DTO catalogue commun `0.2.0-ui-catalogue-candidate`, validateur PowerShell indépendant, producteur synthétique, canaris de références/couverture/comptage et extension explicite des gardes CI de 20 à 22 modules. Contrat non adopté par T2 #30, aucun merge, PS5.1/CI/Node **NOT_EXECUTED**. Documentation : `docs/architecture/catalogue-t3-canonical-candidate.md`.
 
 - Guides du produit, de la contribution et de la sécurité, lexique et documentation d'architecture.
