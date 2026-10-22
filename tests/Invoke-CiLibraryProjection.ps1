@@ -83,7 +83,14 @@ try {
     $unproven=Get-RmLibraryComparisonView -Registry $unprovenReg -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-unproven'
     Assert-View ($unproven.coverageStatus -ceq 'INCOMPLETE' -and $unproven.counts.UNKNOWN -eq 2) 'exhaustiveness-flag-not-inferred'
 
+    Write-Host ('P0_INDEX_INPUT old='+$old.snapshotId+'/'+$old.generationId+
+        '@'+[Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($old)+
+        ';new='+$new.snapshotId+'/'+$new.generationId+
+        '@'+[Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($new))
     $missingIndex=New-RmSyntheticRegistry -Index $false -Snapshots @($old,$new)
+    Write-Host ('P0_INDEX_REGISTER '+(@($missingIndex.libraries[0].snapshots | ForEach-Object {
+        $_.snapshotId+'/'+$_.generationId+'@'+[Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($_)
+    }) -join '|'))
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $missingIndex -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b' } 'LIBRARY_INDEX_INACCESSIBLE'
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $reg -LibraryId 'other' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b' } 'LIBRARY_NOT_FOUND'
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $reg -LibraryId 'lib-fixture' -BeforeSnapshotId 'missing' -AfterSnapshotId 'snap-b' } 'LIBRARY_SNAPSHOT_NOT_FOUND'

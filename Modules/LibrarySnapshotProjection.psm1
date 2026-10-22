@@ -172,11 +172,14 @@ function Assert-RmLibraryRegistry {
                 $priorIds=@($snapKeys.Keys) -join '|'
                 $generationKeys=@($genKeys) -join '|'
                 $reference=[Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($snap)
+                $snapshotReferences=@($snapshots | ForEach-Object {
+                    $_.snapshotId+'/'+$_.generationId+'@'+[Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($_)
+                }) -join '|'
                 throw ('LIBRARY_DUPLICATE_SNAPSHOT_OR_GENERATION: snapshot='+$snapId+
                     ';generation='+$gen+';snapAlreadySeen='+$snapshotExists+
                     ';newGeneration='+$generationAdded+';priorSnapshots='+$priorIds+
                     ';seenGenerations='+$generationKeys+';snapshotCount='+$snapshots.Count+
-                    ';snapshotObjectRef='+$reference)
+                    ';snapshotObjectRef='+$reference+';allSnapshotRefs='+$snapshotReferences)
             }
             $snapKeys[$snapId]=$snap
             [void](Get-RmLibraryCoverage $lib $snap)
