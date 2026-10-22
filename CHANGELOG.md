@@ -4,6 +4,8 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 ## Non publié — développement
 
+- Issue #2 : correction de l'indentation du commit conditionnel dans le test Python de routage CI (`tests/test_ci_policy.py`, lignes 555–556). Aucun changement aux jobs, permissions, chemins, canaris ou décisions du gate ; succès des suites à établir au SHA de la PR.
+
 - Guides du produit, de la contribution et de la sécurité, lexique et documentation d'architecture.
 - Parcours d'interface et critères d'acceptation décrits pour les travaux futurs.
 - Préparation des contrôles du moteur PowerShell 5.1 sur données synthétiques.

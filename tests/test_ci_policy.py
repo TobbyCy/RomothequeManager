@@ -553,7 +553,7 @@ class CliRoutingProofTests(unittest.TestCase):
                     target.write_text("# Synthetic CI test document\n", encoding="utf-8")
             p.git(root, "add", "--all")
             if p.git(root, "status", "--porcelain").strip():
-            p.git(root, "commit", "--quiet", "-m", "Synthetic baseline documents")
+                p.git(root, "commit", "--quiet", "-m", "Synthetic baseline documents")
             def save():
                 p.git(root, "add", "--all")
                 p.git(root, "commit", "--quiet", "-m", "Synthetic routing proof")
