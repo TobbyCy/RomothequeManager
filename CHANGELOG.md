@@ -25,6 +25,14 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 - **Sprint #15, PR Draft #28** : contrat candidat catalogue de jeux et fiche projetée, provenance datée, variantes, observations ROM séparées, navigation vers snapshots ; sample synthétique hors ligne et smoke Node ajouté (NOT_EXECUTED). Adaptateur registre aligné sur `countKnown`/compteur null. 9 contrôles V8 avec DOM simulé PASS, aucune parité PS5.1 ni recette navigateur.
 
+## Préparation non publiée — STAB-03B (PR Draft #30)
+
+- Correctif de navigation Collection dans la projection intégrée, rendu commun de la Collection/Fiche pour les données 0.1 historiques, T1 et T3 candidate.
+- Correction des anciens oracles de comparaisons (carte de bibliothèque requise ; compteur inconnu ≠ zéro), canaris multidisques et consommateur partagé unique au chemin canonique.
+- Test facultatif ajouté pour ingérer **sans correction de caractères** le JSON UTF-8 réellement émis par l'exporteur synthétique PowerShell de Dev 1.
+- Sur le HEAD de la PR Draft, cinq suites ont terminé dans une **simulation V8 du contexte Node** (113 assertions PASS). **Node natif, navigateur Edge et export PS5.1 indépendant NOT_EXECUTED** : les rapports des suites ne constituent pas des preuves de ces runtimes.
+- Aucun code de la PR #30 fusionné dans main, aucune licence, Release ou application installable livrée.
+
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.
