@@ -1,4 +1,6 @@
-**STAB-03A / #29 (Draft, non intégré)** : corrections synthétiques des helpers/fixtures et des gardes CI signalées par AGENT-05. Les tests sur le nouveau HEAD, Windows PowerShell 5.1, Node et GitHub Actions sont **NOT_EXECUTED / READY_FOR_AGENT_RETEST** ; aucune fusion ni validation post-merge. Voir les commentaires de #29 et Pilotage #69.
+**PUB-01A / Préparation CI publique (branche Draft non intégrée)** : proposition CODEOWNERS propriétaire, politique de sécurité des PR/forks (permissions read-only, checkout SHA, événements et dispatch main), tests de refus et découverte fail-closed de la future suite Node du prototype. Documentation : `docs/developer/pub01a-public-ci-readiness.md`. **PAS de publication, pas de protection `main` activée ni de run distant vérifié** ; `CHANGES_REQUIRED_FOR_PUBLICATION` tant que paramètres GitHub, gates et contenu public n'ont pas été réceptionnés.
+
+**STAB-03A / #29 (Draft, non intégré)** : corrections synthétiques des helpers/fixtures et des gardes CI signalées par AGENT-05. Les tests sur le nouveau HEAD, Windows PowerShell 5.1, Node et GitHub Actions sont **NOT_EXECUTED / READY_FOR_AGENT_RETEST** ; aucune fusion ni validation post-merge. Voir les commentaires Produit et la traçabilité de gouvernance non publique.
 
 # État des fonctionnalités
 
