@@ -7,7 +7,7 @@ function boot(sample=true){
 const nodes={view:{innerHTML:""},breadcrumb:{textContent:""}},events={};
 const document={getElementById:k=>nodes[k]||(nodes[k]={innerHTML:"",textContent:""}),querySelectorAll:()=>[],addEventListener:(k,f)=>events[k]=f};
 const window={};const context=vm.createContext({window,document,Intl,Date,Map,Set,Object,Array,String,Number,RegExp,Error,console});
-for(const file of ["fixtures.js","projection-adapter.js","catalogue-adapter.js",...(sample?["projection-sample.js"]:[]),"app.js"])
+for(const file of ["fixtures.js","projection-adapter.js","catalogue-adapter.js","t2-catalogue-model.js",...(sample?["projection-sample.js"]:[]),"app.js"])
 vm.runInContext(fs.readFileSync(path.join(root,file),"utf8"),context,{filename:file});
 const click=(type,value)=>events.click({target:{closest:k=>k===type?{dataset:value}:null}});
 const change=(id,value)=>events.change({target:{id,value}});
@@ -16,8 +16,8 @@ return {window,nodes,events,click,change};
 let n=0;function check(name,fn){fn();console.log("PASS",name);n++}
 const {window:w,nodes,click,change}=boot();
 check("offline precomputed dashboard",()=>assert.match(nodes.view.innerHTML,/Votre collection/));
-check("catalogue game and provenance",()=>{click("[data-route]",{route:"collection"});assert.match(nodes.view.innerHTML,/Explorateurs imaginaires/);click("[data-action]",{action:"catalogue-game:game-demo|GBA"});assert.match(nodes.view.innerHTML,/Variantes connues/);assert.match(nodes.view.innerHTML,/Catalogue synthétique manuel/)});
-check("filter retained on open/close",()=>{change("collection-platform","GBA");click("[data-action]",{action:"close-game"});assert.match(nodes.view.innerHTML,/option value="GBA" selected/);click("[data-action]",{action:"catalogue-game:game-demo|GBA"});assert.match(nodes.view.innerHTML,/option value="GBA" selected/)});
+check("catalogue game and provenance",()=>{click("[data-route]",{route:"collection"});assert.match(nodes.view.innerHTML,/Explorateurs imaginaires/);click("[data-action]",{action:"catalogue-game:"+JSON.stringify(["lib-demo","GBA","game-demo"])+""});assert.match(nodes.view.innerHTML,/Variantes/);assert.match(nodes.view.innerHTML,/snap-b/)});
+check("filter retained on open/close",()=>{change("collection-platform","GBA");click("[data-action]",{action:"close-game"});assert.match(nodes.view.innerHTML,/option value="GBA" selected/);click("[data-action]",{action:"catalogue-game:"+JSON.stringify(["lib-demo","GBA","game-demo"])+""});assert.match(nodes.view.innerHTML,/option value="GBA" selected/)});
 check("snapshot link and precomputed comparison",()=>{click("[data-action]",{action:"snapshot:lib-demo:snap-b"});assert.match(nodes.view.innerHTML,/Comparer deux générations/);click("[data-action]",{action:"run-compare"});assert.match(nodes.view.innerHTML,/Observation identique/)});
 check("six counters and no business fallback",()=>{const d=w.RM_PROJECTION_DATA.comparisons[0],lib=w.RM_PROJECTION.registry(w.RM_PROJECTION_DATA.registry).find(x=>x.libraryId==="lib-demo"),v=w.RM_PROJECTION.comparison(d,"lib-demo",lib);assert.equal(v.counts.UNCHANGED,1);assert.equal(v.entries.length,1);assert.equal(v.complete,true);assert.equal(v.projectionMode,true)});
 check("tampered count is refused",()=>{const d=JSON.parse(JSON.stringify(w.RM_PROJECTION_DATA.comparisons[0]));d.counts.ADDED=1;assert.throws(()=>w.RM_PROJECTION.comparison(d,"lib-demo",w.RM_PROJECTION.registry(w.RM_PROJECTION_DATA.registry)[0]),/PROJECTION_COUNT_MISMATCH_ADDED/)});
