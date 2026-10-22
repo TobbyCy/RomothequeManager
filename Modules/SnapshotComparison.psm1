@@ -60,7 +60,8 @@ function ConvertTo-RmComparisonSnapshot {
     if ($rawCoverage -isnot [array] -or $rawUnits -isnot [array]) {
         throw 'SNAPSHOT_ARRAY_REQUIRED'
     }
-    $coverage = @{}
+    # Preserve ordinal, case-sensitive IDs: PowerShell literal hashtables ignore case.
+    $coverage = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
     foreach ($scope in $rawCoverage) {
         $console = Get-RmSnapshotText $scope 'console' 'coverage'
         $status = Get-RmSnapshotText $scope 'status' 'coverage'
@@ -70,7 +71,8 @@ function ConvertTo-RmComparisonSnapshot {
         $coverage[$console] = $status
     }
 
-    $units = @{}
+    # Preserve ordinal, case-sensitive IDs: PowerShell literal hashtables ignore case.
+    $units = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
     foreach ($record in $rawUnits) {
         $id = Get-RmSnapshotText $record 'romUnitId' 'unit'
         $gameId = Get-RmSnapshotText $record 'gameId' 'unit'
@@ -130,7 +132,8 @@ function Compare-RmInventorySnapshots {
     if ($old.generationId -ceq $new.generationId) { throw 'SNAPSHOT_GENERATION_REUSED' }
     if ($new.date -lt $old.date) { throw 'SNAPSHOT_DATE_ORDER_INVALID' }
 
-    $all = @{}
+    # Preserve ordinal, case-sensitive IDs: PowerShell literal hashtables ignore case.
+    $all = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
     foreach ($id in $old.units.Keys) { $all[$id] = $true }
     foreach ($id in $new.units.Keys) { $all[$id] = $true }
     [string[]]$ids = @($all.Keys)

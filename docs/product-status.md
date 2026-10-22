@@ -1,4 +1,6 @@
-**STAB-03A / #26 (Draft, non intégré)** : corrections synthétiques des helpers/fixtures et des gardes CI signalées par AGENT-05. Les tests sur le nouveau HEAD, Windows PowerShell 5.1, Node et GitHub Actions sont **NOT_EXECUTED / READY_FOR_AGENT_RETEST** ; aucune fusion ni validation post-merge. Voir les commentaires de #26 et Pilotage #69.
+**INT-03 / #26 (Draft, non intégré)** : durcissement des identités `romUnitId` en comparaison ordinale sensible à la casse et deux canaris synthétiques sur les collisions de casse. **PS5.1 et CI NON EXÉCUTÉS** sur ce HEAD ; validation indépendante obligatoire avant fusion.
+
+**STAB-03A / #26 (Draft, non intégré)** : corrections synthétiques des helpers/fixtures et des gardes CI signalées par AGENT-05. Les tests sur le nouveau HEAD, Windows PowerShell 5.1, Node et GitHub Actions sont **NOT_EXECUTED / READY_FOR_AGENT_RETEST** ; aucune fusion ni validation post-merge. Voir les commentaires de la PR Produit #26.
 
 # État des fonctionnalités
 

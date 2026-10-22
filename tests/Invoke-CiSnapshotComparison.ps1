@@ -76,6 +76,25 @@ try {
     $ids = @($result.entries | ForEach-Object { $_.romUnitId })
     Assert-Synthetic (($ids -join ',') -ceq (@($ids | Sort-Object) -join ',')) 'deterministic-identity-order'
 
+    # INT-03: romUnitId is ordinal. Case-distinct identities must never collapse.
+    $caseBefore = New-FixtureSnapshot -Generation 'case-before' -Units @(
+        (New-FixtureUnit 'Unit-A' $a), (New-FixtureUnit 'unit-a' $b)
+    )
+    $caseAfter = New-FixtureSnapshot -Generation 'case-after' -At '2026-10-21T12:00:00Z' -Units @(
+        (New-FixtureUnit 'Unit-A' $a), (New-FixtureUnit 'unit-a' $b)
+    )
+    $caseResult = Compare-RmInventorySnapshots $caseBefore $caseAfter
+    Assert-Synthetic ($caseResult.entries.Count -eq 2 -and $caseResult.counts.UNCHANGED -eq 2 -and
+        (Get-Classification $caseResult 'Unit-A') -ceq 'UNCHANGED' -and
+        (Get-Classification $caseResult 'unit-a') -ceq 'UNCHANGED') 'ordinal-case-distinct-identities'
+    $caseOnlyBefore = New-FixtureSnapshot -Generation 'upper-only' -Units @((New-FixtureUnit 'Unit-A' $a))
+    $caseOnlyAfter = New-FixtureSnapshot -Generation 'lower-only' -At '2026-10-21T12:00:00Z' -Units @((New-FixtureUnit 'unit-a' $a))
+    $caseDiff = Compare-RmInventorySnapshots $caseOnlyBefore $caseOnlyAfter
+    Assert-Synthetic ($caseDiff.entries.Count -eq 2 -and $caseDiff.counts.ADDED -eq 1 -and
+        $caseDiff.counts.NOT_OBSERVED_IN_B_COVERED_SCOPE -eq 1 -and
+        (Get-Classification $caseDiff 'Unit-A') -ceq 'NOT_OBSERVED_IN_B_COVERED_SCOPE' -and
+        (Get-Classification $caseDiff 'unit-a') -ceq 'ADDED') 'ordinal-case-not-false-match'
+
     $empty = New-FixtureSnapshot -Generation 'empty'
     $later = New-FixtureSnapshot -Generation 'later' -At '2026-10-21T12:00:00Z'
     $emptyResult = Compare-RmInventorySnapshots $empty $later

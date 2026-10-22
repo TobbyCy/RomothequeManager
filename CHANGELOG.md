@@ -16,6 +16,7 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 - Composant PowerShell 5.1 de comparaison des identités persistantes `romUnitId` avec `gameId`/`variantId` ; `fileId` ne sert jamais d'identité inter-scans.
 - Corrections C1/C2 suite à contre-revue : intersection explicitement complète **dans A et B** (scan et plateforme) requise pour toute conclusion, y compris unité commune et ajout ; six classifications distinctes `ADDED`, `CHANGED`, `UNCHANGED`, `NOT_OBSERVED_IN_B_COVERED_SCOPE`, `UNKNOWN` (données insuffisantes) et `NOT_COMPARABLE` (périmètre non déclaré ou incompatibilité isolable).
 - Harness de fixtures synthétiques et canaris de refus raccordé à CI-0, sans modification des 33 sources historiques.
+- INT-03 : tables des identifiants `romUnitId` et de leur union ordinale sensibles à la casse, avec deux canaris anti-collision (`Unit-A` / `unit-a`), tests encore non exécutés.
 - Le digest d'observation décrit seulement les champs d'observation sourcés ; `CHANGED`/`UNCHANGED` **n'attestent pas le changement ou l'identité des octets ROM**. Les fixtures C1/C2 et la répétabilité déterministe sont définies, mais ne sont pas exécutées.
 
 **Validation : NON EXÉCUTÉE** sur le HEAD Draft dans GitHub Actions (service privé bloqué) ; aucune affirmation de tests Pester, Windows, E1 réel ou Release réussis. L'intégration fonctionnelle et sa revue restent à effectuer.
