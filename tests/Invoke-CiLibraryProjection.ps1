@@ -84,6 +84,9 @@ try {
     Assert-View ($unproven.coverageStatus -ceq 'INCOMPLETE' -and $unproven.counts.UNKNOWN -eq 2) 'exhaustiveness-flag-not-inferred'
 
     $missingIndex=New-RmSyntheticRegistry -Index $false -Snapshots @($old,$new)
+    # Diagnostic is synthetic only; the refusal assertion below remains mandatory.
+    $missingIndexRefs=@($missingIndex.libraries[0].snapshots | ForEach-Object { $_.snapshotId + '/' + $_.generationId })
+    Write-Host ('LIBRARY_INDEX_FIXTURE index='+$missingIndex.libraries[0].indexAccessible+' refs='+($missingIndexRefs -join '|'))
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $missingIndex -LibraryId 'lib-fixture' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b' } 'LIBRARY_INDEX_INACCESSIBLE'
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $reg -LibraryId 'other' -BeforeSnapshotId 'snap-a' -AfterSnapshotId 'snap-b' } 'LIBRARY_NOT_FOUND'
     Assert-Refuses { Get-RmLibraryComparisonView -Registry $reg -LibraryId 'lib-fixture' -BeforeSnapshotId 'missing' -AfterSnapshotId 'snap-b' } 'LIBRARY_SNAPSHOT_NOT_FOUND'
