@@ -160,6 +160,17 @@ try {
     Assert-View (@($partialCov | Where-Object { $_.console -ceq 'GBA' -and $_.status -ceq 'partial' }).Count -eq 1 -and
                  @($partialCov | Where-Object { $_.console -ceq 'PS1' -and $_.status -ceq 'unobserved' }).Count -eq 1) 'platform-local-partial-not-global'
 
+    # STAB-03A/INT-01: UTC fraction must win over the same second without
+    # a fractional component, regardless of input snapshot enumeration order.
+    $fractionEarly=New-RmSyntheticSnapshot -Id 'clock-a' -Generation 'clock-ga' -At '2026-10-21T12:00:00Z'
+    $fractionLate=New-RmSyntheticSnapshot -Id 'clock-b' -Generation 'clock-gb' -At '2026-10-21T12:00:00.900Z'
+    $clockRegistry=New-RmSyntheticRegistry -Snapshots @($fractionLate,$fractionEarly) -LastComplete 'clock-b'
+    $clockProjection=New-RmLibraryProjection -Registry $clockRegistry
+    Assert-View ($clockProjection.libraries[0].lastObservedAtUtc -ceq '2026-10-21T12:00:00.900Z') 'fractional-utc-chronological-latest'
+    $clockRegistry.libraries[0].snapshots=@($fractionEarly,$fractionLate)
+    Assert-View ((New-RmLibraryProjection -Registry $clockRegistry).libraries[0].lastObservedAtUtc -ceq
+                 $clockProjection.libraries[0].lastObservedAtUtc) 'fractional-utc-input-order-independent'
+
     Write-Host ('LIBRARY_SYNTHETIC_PASS | assertions='+$script:passed+' | synthetic=1 | real_io=0')
     exit 0
 } catch {
