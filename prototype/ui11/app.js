@@ -1,7 +1,7 @@
 /* UI #11 — no framework, no network, no PowerShell runtime. Read-only synthetic projection. */
 (function(){
 "use strict";
-const payload=window.RM_PROJECTION_DATA;const projectionMode=!!payload;let projectionError=null;let LIBS=window.RM_FIXTURES.libraries;if(projectionMode){try{LIBS=window.RM_PROJECTION.registry(payload.registry)}catch(e){projectionError=e.message;LIBS=[]}}
+let payload=window.RM_PROJECTION_DATA;let projectionMode=!!payload;let projectionError=null;let LIBS=window.RM_FIXTURES.libraries;if(projectionMode){try{LIBS=window.RM_PROJECTION.registry(payload.registry)}catch(e){projectionError=e.message;LIBS=[]}}
 const CLASSIFICATIONS=[
 ["ADDED","Ajout observé","added"],
 ["CHANGED","Observation différente","changed"],
@@ -165,7 +165,8 @@ function t1Collection(){
  const filter='<section class="panel panel-pad"><div class="filter-row"><input id="collection-search" class="input" type="search" aria-label="Rechercher un jeu" placeholder="Titre, identité, variante…" value="'+safe(s.collectionSearch)+'"><select id="collection-library" class="select" aria-label="Bibliothèque"><option value="ALL">Toutes bibliothèques</option>'+LIBS.map(l=>'<option value="'+safe(l.libraryId)+'" '+(s.collectionLibrary===l.libraryId?'selected':'')+'>'+safe(l.name)+'</option>').join("")+'</select><select id="collection-platform" class="select" aria-label="Plateforme"><option value="ALL">Toutes plateformes</option>'+options(unique(model.games.map(g=>g.platform)),s.collectionPlatform)+'</select><select id="collection-status" class="select" aria-label="Qualité"><option value="ALL">Toutes qualités</option>'+options(["KNOWN","STALE","PARTIALLY_OBSERVED","CONTRADICTORY","UNKNOWN"],s.collectionStatus||"ALL")+'</select><select id="collection-coverage" class="select" aria-label="Couverture"><option value="ALL">Toutes couvertures</option>'+options(["COMPLETE","INCOMPLETE"],s.collectionCoverage||"ALL")+'</select><select id="collection-sort" class="select" aria-label="Trier par"><option value="title">Titre</option><option value="platform" '+(s.collectionSort==="platform"?'selected':'')+'>Plateforme</option><option value="quality" '+(s.collectionSort==="quality"?'selected':'')+'>Qualité</option><option value="observed" '+(s.collectionSort==="observed"?'selected':'')+'>Observation</option></select></div><p class="small muted">'+filtered.length+' fiche(s) observée(s) dans ce filtre · Total global : '+(model.countKnown?model.gameCount:'inconnu — couverture non prouvée')+'.</p></section>';
  const cards=filtered.length?'<div class="'+(s.collectionMode==="list"?'stack':'collection-grid')+'">'+filtered.map(g=>'<button class="game-card" data-action="catalogue-game:'+safe(g.identity)+'" aria-pressed="'+(selected===g)+'"><div class="cover" aria-hidden="true">▣</div><strong>'+safe(g.title??'Titre inconnu ou contradictoire')+'</strong><small>'+safe(g.platform)+' · '+safe(g.quality)+' · '+safe(LIBS.find(l=>l.libraryId===g.libraryId)?.name||g.libraryId)+'</small></button>').join("")+'</div>':'<div class="panel empty"><strong>Aucun résultat dans ce filtre</strong>La couverture du catalogue n’est pas nécessairement exhaustive ; ne pas interpréter comme zéro jeu physique.</div>';
  const detail=selected?'<div class="panel-pad"><div class="row between"><h2>'+safe(selected.title??'Titre non établi')+'</h2>'+button("Fermer la fiche","close-game")+'</div><div class="cover" aria-label="Média non disponible">▣</div><p class="small muted">Fiche de jeu · '+safe(selected.gameId)+' · '+safe(selected.platform)+'</p><div class="row">'+tag(selected.availability)+tag(selected.freshness)+tag(selected.quality==="KNOWN"?'Connu':selected.quality,'partial')+tag(selected.coverageStatus==="COMPLETE"?'Couverture prouvée par le registre':'Couverture non prouvée','partial')+'</div><p class="small muted">Qualité et couverture déclarées par le producteur candidat ; aucune vérification physique dans le navigateur.</p><h3>Variantes</h3><p>'+selected.variants.map(safe).join(' · ')+'</p><h3>Provenance</h3><p class="small">'+safe(selected.libraryId)+' · snapshot '+safe(selected.provenance.snapshotId)+' · génération '+safe(selected.provenance.generationId)+' · '+safe(fmt(selected.provenance.observedAtUtc))+(selected.provenance.source?' · '+safe(selected.provenance.source):'')+'</p>'+button("Voir le snapshot","snapshot:"+selected.libraryId+":"+selected.provenance.snapshotId,"btn-sm")+'<h3>Unités ROM observées</h3><p class="small muted">Ces unités ne constituent pas d’autres jeux. Aucun chemin physique n’est exposé.</p><div class="stack">'+selected.units.map(u=>'<div class="small">'+safe(u.romUnitId)+' · variante '+safe(u.variantId)+' · '+(u.discNumber===null?'Disque non renseigné':'Disque '+safe(u.discNumber))+(u.observationStatus?' · '+safe(u.observationStatus):'')+(u.observedTitle?' · '+safe(u.observedTitle):'')+'</div>').join("")+'</div></div>':'<div class="empty"><strong>Sélectionnez un jeu</strong>Les variantes et la provenance apparaîtront ici.</div>';
- return heading("Collection","Catalogue des jeux","Consommateur "+safe(model.schemaVersion)+" · lecture seule · "+(projectionMode?'projection candidate fournie':'fixture synthétique manuelle'))+
+ const importer=window.RM_T3_CATALOGUE?'<section class="panel panel-pad" style="margin-bottom:14px"><label class="small" for="synthetic-catalogue-import">Charger un JSON UTF-8 issu de l’exporteur <strong>synthétique</strong> PS5.1 (démonstration uniquement)</label><input class="input" id="synthetic-catalogue-import" type="file" accept=".json,application/json" aria-label="Sélectionner un export JSON synthétique"><p class="tiny muted">Lecture locale sur sélection explicite, aucun réseau, aucune donnée réelle. Une comparaison précalculée n’est pas inventée.</p></section>':'';
+ return heading("Collection","Catalogue des jeux","Consommateur "+safe(model.schemaVersion)+" · lecture seule · "+(projectionMode?'projection candidate fournie':'fixture synthétique manuelle'))+importer+
  '<div class="notice info" style="margin-bottom:18px">Les bibliothèques hors ligne conservent leur historique. Index inaccessible : aucun jeu inféré. ' +model.diagnostics.length+' diagnostic(s) : '+(model.diagnostics.map(d=>safe(d.code)).join(', ')||'aucun')+' · '+model.limitations.map(safe).join(', ')+'</div>'+filter+'<div class="split" style="margin-top:16px"><div>'+cards+'</div><section class="panel"><div class="panel-header"><h2>Fiche de jeu</h2></div>'+detail+'</section></div>';
 }
 function chooseLibrary(id){s.libraryId=id;const l=lib();s.before=l.snapshots[0]?.generationId||"";s.after=l.snapshots[1]?.generationId||"";s.result=null;s.selectedUnit=null;s.filter="ALL";s.console="ALL";s.search=""}
@@ -199,8 +200,32 @@ else if(act==="close-game"){s.collectionUnit=null;render()}
 else if(act==="snapshot"){const parts=id.split(":");chooseLibrary(parts[0]);const target=getSnap(lib(),parts[1]);if(target){s.after=target.generationId;s.before=lib().snapshots.find(x=>x.snapshotId!==target.snapshotId)?.generationId||s.before}route("compare")}
 });
 document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("tr[data-action]")){e.preventDefault();e.target.click()}});
+function importSyntheticCatalogue(file){
+ const msg=$("toast"),report=message=>{if(msg){msg.textContent=message;msg.hidden=false}};
+ if(!file)return;
+ if(file.size>5*1024*1024){report("Import refusé : JSON synthétique supérieur à 5 Mio.");return}
+ // Read only the explicitly selected local synthetic PS export; no network or writes.
+ file.text().then(raw=>{
+  if(raw.charCodeAt(0)===0xFEFF)raw=raw.slice(1); // UTF-8 BOM only, no text repair.
+  if(raw.includes("\uFFFD"))throw Error("UNICODE_REPLACEMENT_CHARACTER");
+  const dto=JSON.parse(raw);
+  if(dto.schemaVersion!=="0.2.0-ui-catalogue-candidate")throw Error("UNSUPPORTED_SYNTHETIC_CATALOGUE_VERSION");
+  if(!window.RM_T3_CATALOGUE||!window.RM_T2_CATALOGUE||!window.RM_PROJECTION)throw Error("CATALOGUE_DEPENDENCY_MISSING");
+  const model=window.RM_T2_CATALOGUE.normalize(dto,[]);
+  const cards=window.RM_PROJECTION.registry(dto.registry);
+  if(!cards.length)throw Error("SYNTHETIC_REGISTRY_EMPTY");
+  // Mutate view state only after complete fail-closed contract validation.
+  payload={registry:dto.registry,catalogue:dto,comparisons:[]};window.RM_PROJECTION_DATA=payload;
+  projectionMode=true;projectionError=null;LIBS=cards;routeHistory.length=0;
+  s.route="collection";s.libraryId=cards[0].libraryId;s.before=cards[0].snapshots[0]?.generationId||"";
+  s.after=cards[0].snapshots[1]?.generationId||"";s.result=null;s.selectedUnit=null;s.collectionUnit=null;
+  s.collectionLibrary="ALL";s.collectionPlatform="ALL";s.collectionStatus="ALL";s.collectionCoverage="ALL";s.collectionSearch="";
+  render();report("JSON synthétique accepté : "+model.games.length+" jeu(x) observé(s). Aucun accès à des ROM.");
+ }).catch(err=>report("Import refusé : "+String(err.message||err)));
+}
 document.addEventListener("change",e=>{
 const id=e.target.id,v=e.target.value;
+if(id==="synthetic-catalogue-import"){importSyntheticCatalogue(e.target.files?.[0]);return}
 if(id==="lib-select"){chooseLibrary(v);render()}
 else if(id==="before-select"){s.before=v;s.result=null;render()}
 else if(id==="after-select"){s.after=v;s.result=null;render()}
