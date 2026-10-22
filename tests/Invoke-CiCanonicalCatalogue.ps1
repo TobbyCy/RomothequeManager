@@ -177,6 +177,15 @@ $x.registry.libraries[0].generations[1].scopeIsExhaustive=$false
 $x.registry.libraries[0].generations[1].coverage[0].status='complete'
 $x.games[0].coverStatus='KNOWN';$x.games[0].status='KNOWN'
 Assert-Rejected $x 'CATDTO_COMPLETE_UNPROVEN'
+# D5: foreign proof-console and certain count without any generation.
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations[1].coverageProof[0].console='PS1'
+Assert-Rejected $x 'CATDTO_PROOF_PARTITION_INVALID'
+$x=Clone-Dto $dto
+$x.registry.libraries[0].generations=@()
+$x.registry.libraries[0].lastVerifiedCompleteRef=$null
+$x.games=@();$x.countKnown=$true;$x.gameCount=0
+Assert-Rejected $x 'CATDTO_COUNT_FORGED'
 $x=Clone-Dto $dto
 $x.registry.libraries[0].lastVerifiedCompleteRef='ghost'
 Assert-Rejected $x 'CATDTO_LAST_VERIFIED_ORPHAN'
