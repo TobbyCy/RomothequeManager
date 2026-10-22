@@ -407,10 +407,56 @@ class WorkflowTests(unittest.TestCase):
         for path in ("docs/product-status.md", "docs/roadmap.md",
                      "docs/developer/workflow.md", ".github/ISSUE_TEMPLATE/feature.yml"):
             self.assertTrue(matches(path), path)
-        for path in ("docs/CHAT_HANDOFF.md", "docs/RECOVERY_V2_DEV1.md",
+        for path in ("docs/INTERNAL_HANDOFF_NOT_ALLOWED.md", "docs/INTERNAL_RECOVERY_NOT_ALLOWED.md",
                      "assets/branding/RM_V2_Favicon.ico",
                      ".github/ISSUE_TEMPLATE/tache-technique.yml"):
             self.assertFalse(matches(path), path)
+
+    def test_pub01a_public_workflow_guard_and_negative_canaries(self):
+        # Exercise the real portable verifier over disposable workflow/owner files.
+        source = Path(__file__).resolve().parent.parent
+        workflow = (source / ".github/workflows/ci.yml").read_text(encoding="utf-8-sig")
+        owners = (source / ".github/CODEOWNERS").read_text(encoding="utf-8-sig")
+        with tempfile.TemporaryDirectory(prefix="rm-pub01a-policy-") as tmp:
+            root = Path(tmp)
+            target = root / ".github/workflows/ci.yml"
+            target.parent.mkdir(parents=True)
+            target.write_text(workflow, encoding="utf-8")
+            owners_path = root / ".github/CODEOWNERS"
+            owners_path.write_text(owners, encoding="utf-8")
+            self.assertTrue(p.verify_public_ci_guard(root))
+            bad_workflows = {
+                "unprivileged_event": workflow.replace("  pull_request:", "  pull_request_target:"),
+                "write_token": workflow.replace("  contents: read", "  contents: write", 1),
+                "unpinned_action": workflow.replace("actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09", "actions/checkout@v5"),
+                "checkout_credential": workflow.replace("persist-credentials: false", "persist-credentials: true", 1),
+                "script_policy_bypass": workflow.replace("    if: ${{ always() }}", "    if: ${{ success() }}", 1),
+                "untrusted_shell": workflow + "\n        run: echo ${{ github.event.pull_request.title }}\n",
+            }
+            for name, text_value in bad_workflows.items():
+                with self.subTest(case=name):
+                    target.write_text(text_value, encoding="utf-8")
+                    with self.assertRaises(p.PolicyError):
+                        p.verify_public_ci_guard(root)
+            target.write_text(workflow, encoding="utf-8")
+            owners_path.write_text(owners.replace("/.github/ @TobbyCy", ""), encoding="utf-8")
+            with self.assertRaisesRegex(p.PolicyError, "PUBLIC_CI_CODEOWNERS_MISSING"):
+                p.verify_public_ci_guard(root)
+
+    def test_pub01a_main_only_manual_dispatch(self):
+        # A manually dispatched workflow on a feature branch must not qualify.
+        with tempfile.TemporaryDirectory(prefix="rm-pub01a-dispatch-") as tmp:
+            root = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(["git", "-C", str(root), "config", "user.email", "ci@example.invalid"], check=True)
+            subprocess.run(["git", "-C", str(root), "config", "user.name", "CI synthetic"], check=True)
+            (root / "README.md").write_text("synthetic only\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "--all"], check=True)
+            subprocess.run(["git", "-C", str(root), "commit", "-qm", "test"], check=True)
+            head = p.git(root, "rev-parse", "HEAD").decode().strip()
+            env = {"GITHUB_SHA": head, "GITHUB_REF": "refs/heads/feature"}
+            self.assertEqual("DISPATCH_MAIN_ONLY",
+                p.make_plan(root, "workflow_dispatch", {}, env)["error"])
 
     def test_final_workflow_dependencies_are_not_optional(self):
         import re
