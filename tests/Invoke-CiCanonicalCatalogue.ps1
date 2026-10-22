@@ -81,7 +81,7 @@ $x=Clone-Dto $multiple
 $x.games[1].provenance[0].libraryId='ghost'
 Assert-Rejected $x 'CATDTO_ORPHAN_LIBRARY'
 $x=Clone-Dto $dto
-$x.games[0].observations[0].observedTitle='Titre falsifié'
+foreach($observation in $x.games[0].observations) { $observation.observedTitle='Titre falsifié' }
 Assert-Rejected $x 'CATDTO_TITLE_PROVENANCE_MISMATCH'
 $x=Clone-Dto $dto
 $x.games[0].quality='CONTRADICTORY'
