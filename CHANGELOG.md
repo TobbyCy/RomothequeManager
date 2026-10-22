@@ -44,6 +44,12 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 - Tests et fixtures négatives versionnés ; contrat encore candidat, pas d'export réel de collection.
 - Tests Node/PS5.1 et CI de l'arbre consolidé **non vérifiés**.
 
+## Catalogue consultable et fiches — PR #30
+
+- Extension du prototype UI aux fiches, recherche et filtres sur données synthétiques, avec validation JS partagée et contrôles négatifs.
+- Tests UI supplémentaires versionnés ; V8 simulé historique ne certifie pas Node natif, Edge ni la chaîne PS5.1→JSON→JS sur cet arbre.
+- Aucune application autonome ni Release.
+
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.

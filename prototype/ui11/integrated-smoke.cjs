@@ -3,7 +3,7 @@
  * Simulated DOM: NOT a real browser accessibility/responsive recipe. */
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm"),assert=require("node:assert/strict");
-const files=["fixtures.js","projection-adapter.js","catalogue-adapter.js","projection-integrated.js","app.js"];
+const files=["fixtures.js","projection-adapter.js","catalogue-adapter.js","t2-catalogue-model.js","projection-integrated.js","app.js"];
 function boot(){
 const nodes={view:{innerHTML:""},breadcrumb:{textContent:""}},handlers={},window={};
 const document={getElementById:id=>nodes[id]||(nodes[id]={innerHTML:"",textContent:""}),querySelectorAll:()=>[],addEventListener:(type,fn)=>handlers[type]=fn};
@@ -27,8 +27,8 @@ test("unknown count forged as zero is rejected",()=>{const dto=clone(source.regi
 test("no game invented from inaccessible index",()=>{const dto=clone(source.catalogue);dto.games[0].provenance[0].libraryId="lib-closed";const r=w.RM_PROJECTION.registry(source.registry);assert.throws(()=>w.RM_CATALOGUE.parse(dto,r),/CATALOGUE_INACCESSIBLE_INDEX_HAS_GAME/)});
 test("dashboard to library and direct snapshot",()=>{click("go:libraries");assert.match(nodes.view.innerHTML,/Bibliothèque multi-états/);click("library:lib-mixed");assert.match(nodes.view.innerHTML,/mixed-gen-b/);click("snapshot-select:lib-mixed:mixed-b");assert.match(nodes.view.innerHTML,/Comparer deux générations/)});
 test("precomputed six-class result, denominator and limitations",()=>{w.RM_COMPARE=()=>{throw Error("BUSINESS_RECALC_FORBIDDEN")};click("run-compare");assert.match(nodes.view.innerHTML,/Information insuffisante/);assert.match(nodes.view.innerHTML,/Comparaison impossible/);assert.match(nodes.view.innerHTML,/Dénominateur observé : 6/);assert.match(nodes.view.innerHTML,/SCOPE_INTERSECTION_NOT_FULLY_PROVEN/)});
-test("collection, game distinct from ROM observations",()=>{click("go:collection");assert.match(nodes.view.innerHTML,/Mystère synthétique/);click("catalogue-game:game-unknown|PS1");assert.match(nodes.view.innerHTML,/Fiche de jeu/);assert.match(nodes.view.innerHTML,/Observations des unités ROM/);assert.match(nodes.view.innerHTML,/unit-unknown/)});
-test("platform filter survives game close and reopen",()=>{change("collection-platform","PS1");click("close-game");assert.match(nodes.view.innerHTML,/option value="PS1" selected/);click("catalogue-game:game-unknown|PS1");assert.match(nodes.view.innerHTML,/option value="PS1" selected/)});
+test("collection, game distinct from ROM observations",()=>{click("go:collection");assert.match(nodes.view.innerHTML,/Mystère synthétique/);click("catalogue-game:"+JSON.stringify(["lib-mixed","PS1","game-unknown"]));assert.match(nodes.view.innerHTML,/Fiche de jeu/);assert.match(nodes.view.innerHTML,/Unités ROM observées/);assert.match(nodes.view.innerHTML,/unit-unknown/)});
+test("platform filter survives game close and reopen",()=>{change("collection-platform","PS1");click("close-game");assert.match(nodes.view.innerHTML,/option value="PS1" selected/);click("catalogue-game:"+JSON.stringify(["lib-mixed","PS1","game-unknown"]));assert.match(nodes.view.innerHTML,/Fermer la fiche/);assert.match(nodes.view.innerHTML,/option value="PS1" selected/)});
 test("back navigation returns to comparison",()=>{click("back");assert.match(nodes.view.innerHTML,/Comparer deux générations/)});
 test("zero without proof is never reported as empty collection",()=>{click("library:lib-zero");click("go:compare");click("run-compare");assert.match(nodes.view.innerHTML,/ZERO_OBSERVED_UNITS_NOT_PROOF_OF_EMPTY_LIBRARY/);assert.match(nodes.view.innerHTML,/Couverture incomplète/)});
 test("inaccessible index refuses comparison",()=>{click("library:lib-closed");click("go:compare");assert.match(nodes.view.innerHTML,/aucun index historique accessible/)});

@@ -1,7 +1,7 @@
 /* UI #11 — no framework, no network, no PowerShell runtime. Read-only synthetic projection. */
 (function(){
 "use strict";
-const payload=window.RM_PROJECTION_DATA;const projectionMode=!!payload;let projectionError=null;let LIBS=window.RM_FIXTURES.libraries;if(projectionMode){try{LIBS=window.RM_PROJECTION.registry(payload.registry)}catch(e){projectionError=e.message;LIBS=[]}}
+let payload=window.RM_PROJECTION_DATA;let projectionMode=!!payload;let projectionError=null;let LIBS=window.RM_FIXTURES.libraries;if(projectionMode){try{LIBS=window.RM_PROJECTION.registry(payload.registry)}catch(e){projectionError=e.message;LIBS=[]}}
 const CLASSIFICATIONS=[
 ["ADDED","Ajout observé","added"],
 ["CHANGED","Observation différente","changed"],
@@ -113,7 +113,9 @@ return header+chooser+'<section class="panel" style="margin-top:18px"><div class
 +'<section class="panel"><div class="panel-header"><h2>Détail de l’unité</h2></div>'+(item?'<div class="panel-pad"><div class="row">'+tag(cls(item.classification)[1],cls(item.classification)[2])+'</div><h3>'+safe(item.title||item.romUnitId||"Unité sans titre")+'</h3><p class="muted small">'+safe(reasonLabels[item.reason]||item.reason)+'</p><dl class="detail-grid"><div><dt>Identité ROM</dt><dd>'+safe(item.romUnitId)+'</dd></div><div><dt>Plateforme</dt><dd>'+safe(item.console)+'</dd></div><div><dt>Jeu</dt><dd>'+safe(item.gameId)+'</dd></div><div><dt>Variante</dt><dd>'+safe(item.variantId)+'</dd></div><div><dt>Génération A</dt><dd>'+safe(item.sourceRefs.beforeGenerationId)+'</dd></div><div><dt>Génération B</dt><dd>'+safe(item.sourceRefs.afterGenerationId)+'</dd></div></dl><hr class="divider"><p class="small muted">Observation A : '+safe(item.beforeDigest?item.beforeDigest.slice(0,12)+"…":"Inconnue ou absente")+'</p><p class="small muted">Observation B : '+safe(item.afterDigest?item.afterDigest.slice(0,12)+"…":"Inconnue ou absente")+'</p><p class="tiny muted">Code de preuve : '+safe(item.reason)+' · observation uniquement, aucune vérification du contenu binaire.</p></div>':'<div class="empty"><strong>Sélectionnez une unité</strong>Les motifs et preuves disponibles s’affichent ici.</div>')+'</section></div>';
 }
 function collection(){
-if(projectionMode)return projectedCollection();
+if(projectionMode&&payload.catalogue&&(window.RM_T2_CATALOGUE||window.RM_CATALOGUE))return t1Collection();
+if(!projectionMode&&window.RM_T2_CATALOGUE&&window.RM_T2_FIXTURE)return t1Collection();
+// Catalogue absent: preserve the historical snapshot-only fallback instead of raising a missing-view exception.
 const items=LIBS.filter(l=>l.indexAvailable&&(s.collectionLibrary==="ALL"||s.collectionLibrary===l.libraryId)).flatMap(l=>{const snap=getSnap(l,l.lastVerifiedCompleteRef);return snap&&Array.isArray(snap.units)?snap.units.map(u=>({...u,library:l})):[]});
 const filtered=items.filter(u=>(s.collectionLibrary==="ALL"||u.library.libraryId===s.collectionLibrary)&&(s.collectionPlatform==="ALL"||u.console===s.collectionPlatform)&&(!s.collectionSearch||[u.title,u.romUnitId,u.gameId].some(x=>String(x).toLocaleLowerCase().includes(s.collectionSearch.toLocaleLowerCase()))));
 const selected=items.find(x=>x.romUnitId===s.collectionUnit);
@@ -122,18 +124,50 @@ return heading("Collection","Explorer la collection","Consultation fictive basé
 +'<section class="panel panel-pad"><div class="filter-row"><input class="input" id="collection-search" type="search" placeholder="Rechercher un titre…" aria-label="Rechercher un titre" value="'+safe(s.collectionSearch)+'"><select class="select" id="collection-library" aria-label="Filtrer par bibliothèque"><option value="ALL">Toutes les bibliothèques</option>'+LIBS.map(l=>'<option value="'+safe(l.libraryId)+'" '+(s.collectionLibrary===l.libraryId?"selected":"")+'>'+safe(l.name)+'</option>').join("")+'</select><select class="select" id="collection-platform" aria-label="Filtrer par plateforme"><option value="ALL">Toutes les plateformes</option>'+unique(items.map(x=>x.console)).map(p=>'<option value="'+safe(p)+'" '+(s.collectionPlatform===p?"selected":"")+'>'+safe(p)+'</option>').join("")+'</select><select class="select" id="collection-mode" aria-label="Mode d’affichage"><option value="grid" '+(s.collectionMode==="grid"?"selected":"")+'>Grille</option><option value="list" '+(s.collectionMode==="list"?"selected":"")+'>Liste</option></select></div><p class="small muted">'+filtered.length+' unité(s) issues des inventaires connus · aucune fusion automatique de variantes</p></section>'
 +'<div class="split" style="margin-top:16px"><div>'+(filtered.length?'<div class="'+(s.collectionMode==="grid"?"collection-grid":"stack")+'">'+filtered.map(u=>'<button class="game-card" data-action="game:'+safe(u.romUnitId)+'">'+(s.collectionMode==="grid"?'<div class="cover" aria-hidden="true">▣</div>':'')+'<strong>'+safe(u.title)+'</strong><small>'+safe(u.console)+' · '+safe(u.variantId)+'<br>'+safe(u.library.name)+'</small></button>').join("")+'</div>':'<div class="panel empty"><strong>Aucune unité dans ce filtre</strong>Les données inconnues ou inaccessibles ne sont pas comptées comme zéro.</div>')+'</div><section class="panel"><div class="panel-header"><h2>Inspecteur</h2></div>'+(selected?'<div class="panel-pad"><div class="cover" aria-label="Jaquette non disponible">▣</div><h2>'+safe(selected.title)+'</h2><div class="row">'+tag(selected.library.availability)+tag(selected.library.freshness)+'</div><dl class="detail-grid" style="margin-top:18px"><div><dt>Plateforme</dt><dd>'+safe(selected.console)+'</dd></div><div><dt>Bibliothèque</dt><dd>'+safe(selected.library.name)+'</dd></div><div><dt>Identité ROM</dt><dd>'+safe(selected.romUnitId)+'</dd></div><div><dt>Variante</dt><dd>'+safe(selected.variantId)+'</dd></div></dl><p class="small muted">Jaquette indisponible · aucune fiche enrichie ni édition à ce stade.</p>'+button("Voir ses snapshots","library:"+selected.library.libraryId)+'</div>':'<div class="empty"><strong>Choisissez un jeu</strong>Les détails connus apparaîtront ici.</div>')+'</section></div>';
 }
-function projectedCollection(){
-let catalogue;
-try{catalogue=window.RM_CATALOGUE.parse(payload.catalogue,LIBS)}
-catch(e){return heading("Collection","Catalogue non disponible","Aucune fiche ne peut être déduite des compteurs de snapshots.")+'<div class="notice danger">Catalogue synthétique absent ou refusé : '+safe(e.message)+'. Les jeux ne sont pas supposés absents.</div>'}
-const games=catalogue.games;
-const filtered=games.filter(g=>(s.collectionPlatform==="ALL"||g.platform===s.collectionPlatform)&&(s.collectionLibrary==="ALL"||g.provenance.some(p=>p.libraryId===s.collectionLibrary))&&(!s.collectionSearch||[g.title,g.gameId,g.platform].some(v=>v.toLocaleLowerCase().includes(s.collectionSearch.toLocaleLowerCase()))));
-const selected=games.find(g=>g.gameId+"|"+g.platform===s.collectionUnit);
-const unavailable=LIBS.filter(l=>!l.indexAvailable);
-const filter='<section class="panel panel-pad"><div class="filter-row"><input class="input" id="collection-search" type="search" placeholder="Rechercher un jeu…" aria-label="Rechercher un jeu" value="'+safe(s.collectionSearch)+'"><select id="collection-library" class="select" aria-label="Bibliothèque"><option value="ALL">Toutes bibliothèques</option>'+LIBS.map(l=>'<option value="'+safe(l.libraryId)+'" '+(s.collectionLibrary===l.libraryId?"selected":"")+'>'+safe(l.name)+'</option>').join("")+'</select><select id="collection-platform" class="select" aria-label="Plateforme"><option value="ALL">Toutes plateformes</option>'+unique(games.map(g=>g.platform)).map(p=>'<option value="'+safe(p)+'" '+(s.collectionPlatform===p?"selected":"")+'>'+safe(p)+'</option>').join("")+'</select><select id="collection-mode" class="select" aria-label="Affichage"><option value="grid" '+(s.collectionMode==="grid"?"selected":"")+'>Grille</option><option value="list" '+(s.collectionMode==="list"?"selected":"")+'>Liste</option></select></div><p class="small muted">'+filtered.length+' jeu(x) connu(s) dans le filtre · '+unavailable.length+' bibliothèque(s) à index indisponible, non comptées comme vides.</p></section>';
-const cards=filtered.length?'<div class="'+(s.collectionMode==="grid"?"collection-grid":"stack")+'">'+filtered.map(g=>'<button class="game-card" data-action="catalogue-game:'+safe(g.gameId+"|"+g.platform)+'" aria-pressed="'+(selected===g)+'">'+(s.collectionMode==="grid"?'<div class="cover" aria-hidden="true">▣</div>':'')+'<strong>'+safe(g.title)+'</strong><small>'+safe(g.platform)+' · '+safe(g.status==="KNOWN"?"Connu":g.status==="INCOMPLETE"?"Incomplet":"Inaccessible")+'</small></button>').join("")+'</div>':'<div class="panel empty"><strong>Aucun jeu connu pour ce filtre</strong>La couverture peut être incomplète. Une source inaccessible ne prouve pas une collection vide.</div>';
-const detail=selected?'<div class="panel-pad"><div class="row between"><h2>'+safe(selected.title)+'</h2>'+button("Fermer la fiche","close-game")+'</div><div class="cover" aria-label="Jaquette non disponible">▣</div><p class="small muted">Fiche de jeu · '+safe(selected.gameId)+' · '+safe(selected.platform)+' · '+safe(selected.status)+'</p><h3>Variantes connues</h3><div class="stack">'+selected.variants.map(v=>'<div>'+safe(v.label)+' · <code>'+safe(v.variantId)+'</code></div>').join("")+'</div><h3>Provenance des informations</h3><div class="stack">'+selected.provenance.map(p=>'<div class="small">'+safe(LIBS.find(l=>l.libraryId===p.libraryId)?.name||p.libraryId)+' · '+safe(p.source)+' · '+safe(fmt(p.observedAtUtc))+' '+button("Voir le snapshot","snapshot:"+p.libraryId+":"+p.snapshotId,"btn-sm")+'</div>').join("")+'</div><h3>Observations des unités ROM</h3><p class="small muted">Ces unités sont des observations distinctes de l’identité du jeu.</p><div class="stack">'+(selected.observations.length?selected.observations.map(o=>'<div class="small">'+safe(o.romUnitId)+' · '+safe(o.variantId)+' · '+safe(o.observationStatus)+'</div>').join(""):'<div class="notice">Aucune unité documentée : couverture non déduite.</div>')+'</div></div>':'<div class="empty"><strong>Sélectionnez un jeu</strong>Sa fiche, ses variantes et ses preuves de provenance apparaîtront ici.</div>';
-return heading("Collection","Catalogue des jeux","Fiches issues d’un DTO synthétique en lecture seule, indépendantes des observations ROM.")+'<div class="notice info" style="margin-bottom:18px">Mode projection : aucun jeu n’est inventé à partir d’un index inaccessible. Les médias restent des placeholders.</div>'+filter+'<div class="split" style="margin-top:16px"><div>'+cards+'</div><section class="panel"><div class="panel-header"><h2>Fiche de jeu</h2></div>'+detail+'</section></div>';
+/* Compatibility with the older #17 candidate DTO: validate with its original
+   adapter, then present it through the SAME Collection/Fiche renderer.
+   Never infer games from inaccessible indexes or synthesize disc evidence. */
+function legacyProjectionCatalogue(dto){
+ if(!window.RM_CATALOGUE||!window.RM_T2_CATALOGUE)throw Error("LEGACY_CATALOGUE_DEPENDENCY_MISSING");
+ const source=window.RM_CATALOGUE.parse(dto,LIBS),byId=new Map(LIBS.map(l=>[l.libraryId,l])),games=[],seen=new Set();
+ for(const g of source.games)for(const p of g.provenance){
+  const library=byId.get(p.libraryId),snapshot=library?.snapshots.find(x=>x.snapshotId===p.snapshotId);
+  if(!library||!library.indexAvailable||!snapshot)throw Error("LEGACY_CATALOGUE_ORPHAN_REFERENCE");
+  const identity=JSON.stringify([p.libraryId,g.platform,g.gameId]);
+  if(seen.has(identity))throw Error("LEGACY_CATALOGUE_COMPOUND_COLLISION");seen.add(identity);
+  const coverageStatus=snapshot.scanStatus==="complete"&&snapshot.scopeIsExhaustive&&
+   snapshot.coverage.length===library.platforms.length&&
+   snapshot.coverage.every(c=>c.status==="complete")?"COMPLETE":"INCOMPLETE";
+  const quality=g.status==="INCOMPLETE"?"PARTIALLY_OBSERVED":
+   library.freshness==="STALE"?"STALE":library.freshness==="UNKNOWN"?"UNKNOWN":
+   coverageStatus==="COMPLETE"?"KNOWN":"PARTIALLY_OBSERVED";
+  games.push({identity,gameId:g.gameId,libraryId:p.libraryId,platform:g.platform,
+   title:g.title,quality,coverageStatus,availability:library.availability,freshness:library.freshness,
+   variants:g.variants.map(v=>v.variantId),
+   provenance:{libraryId:p.libraryId,snapshotId:p.snapshotId,generationId:snapshot.generationId,observedAtUtc:p.observedAtUtc,source:p.source},
+   units:g.observations.filter(o=>o.libraryId===p.libraryId&&o.snapshotId===p.snapshotId)
+    .map(o=>({romUnitId:o.romUnitId,variantId:o.variantId,discNumber:null,observationStatus:o.observationStatus,observedTitle:null}))});
+ }
+ return {schemaVersion:dto.schemaVersion,games,diagnostics:[],
+  limitations:["LEGACY_PROJECTION_HAND_AUTHORED","NO_ROM_BYTES_VERIFIED"],
+  countKnown:false,gameCount:null};
+}
+function t1Collection(){
+ let model;
+ try{
+  const dto=projectionMode?payload.catalogue:window.RM_T2_FIXTURE;
+  if(!dto)throw Error("T1_UI_CATALOGUE_MISSING");
+  model=dto.schemaVersion==="0.1.0-ui-catalogue-candidate"?legacyProjectionCatalogue(dto):window.RM_T2_CATALOGUE.normalize(dto,LIBS);
+ }catch(e){return heading("Collection","Catalogue indisponible","Le contrat catalogue n'a pas été accepté.")+'<div class="notice danger" role="alert">Projection refusée : '+safe(e.message)+'. Aucun jeu ne peut être déduit de cet échec.</div>'}
+ const filtered=window.RM_T2_CATALOGUE.query(model,{search:s.collectionSearch,platform:s.collectionPlatform,library:s.collectionLibrary,status:s.collectionStatus||"ALL",coverage:s.collectionCoverage||"ALL",sort:s.collectionSort||"title"});
+ const selected=model.games.find(g=>g.identity===s.collectionUnit);
+ const options=(values,selected)=>values.map(v=>'<option value="'+safe(v)+'" '+(selected===v?'selected':'')+'>'+safe(v)+'</option>').join("");
+ const filter='<section class="panel panel-pad"><div class="filter-row"><input id="collection-search" class="input" type="search" aria-label="Rechercher un jeu" placeholder="Titre, identité, variante…" value="'+safe(s.collectionSearch)+'"><select id="collection-library" class="select" aria-label="Bibliothèque"><option value="ALL">Toutes bibliothèques</option>'+LIBS.map(l=>'<option value="'+safe(l.libraryId)+'" '+(s.collectionLibrary===l.libraryId?'selected':'')+'>'+safe(l.name)+'</option>').join("")+'</select><select id="collection-platform" class="select" aria-label="Plateforme"><option value="ALL">Toutes plateformes</option>'+options(unique(model.games.map(g=>g.platform)),s.collectionPlatform)+'</select><select id="collection-status" class="select" aria-label="Qualité"><option value="ALL">Toutes qualités</option>'+options(["KNOWN","STALE","PARTIALLY_OBSERVED","CONTRADICTORY","UNKNOWN"],s.collectionStatus||"ALL")+'</select><select id="collection-coverage" class="select" aria-label="Couverture"><option value="ALL">Toutes couvertures</option>'+options(["COMPLETE","INCOMPLETE"],s.collectionCoverage||"ALL")+'</select><select id="collection-sort" class="select" aria-label="Trier par"><option value="title">Titre</option><option value="platform" '+(s.collectionSort==="platform"?'selected':'')+'>Plateforme</option><option value="quality" '+(s.collectionSort==="quality"?'selected':'')+'>Qualité</option><option value="observed" '+(s.collectionSort==="observed"?'selected':'')+'>Observation</option></select></div><p class="small muted">'+filtered.length+' fiche(s) observée(s) dans ce filtre · Total global : '+(model.countKnown?model.gameCount:'inconnu — couverture non prouvée')+'.</p></section>';
+ const cards=filtered.length?'<div class="'+(s.collectionMode==="list"?'stack':'collection-grid')+'">'+filtered.map(g=>'<button class="game-card" data-action="catalogue-game:'+safe(g.identity)+'" aria-pressed="'+(selected===g)+'"><div class="cover" aria-hidden="true">▣</div><strong>'+safe(g.title??'Titre inconnu ou contradictoire')+'</strong><small>'+safe(g.platform)+' · '+safe(g.quality)+' · '+safe(LIBS.find(l=>l.libraryId===g.libraryId)?.name||g.libraryId)+'</small></button>').join("")+'</div>':'<div class="panel empty"><strong>Aucun résultat dans ce filtre</strong>La couverture du catalogue n’est pas nécessairement exhaustive ; ne pas interpréter comme zéro jeu physique.</div>';
+ const detail=selected?'<div class="panel-pad"><div class="row between"><h2>'+safe(selected.title??'Titre non établi')+'</h2>'+button("Fermer la fiche","close-game")+'</div><div class="cover" aria-label="Média non disponible">▣</div><p class="small muted">Fiche de jeu · '+safe(selected.gameId)+' · '+safe(selected.platform)+'</p><div class="row">'+tag(selected.availability)+tag(selected.freshness)+tag(selected.quality==="KNOWN"?'Connu':selected.quality,'partial')+tag(selected.coverageStatus==="COMPLETE"?'Couverture prouvée par le registre':'Couverture non prouvée','partial')+'</div><p class="small muted">Qualité et couverture déclarées par le producteur candidat ; aucune vérification physique dans le navigateur.</p><h3>Variantes</h3><p>'+selected.variants.map(safe).join(' · ')+'</p><h3>Provenance</h3><p class="small">'+safe(selected.libraryId)+' · snapshot '+safe(selected.provenance.snapshotId)+' · génération '+safe(selected.provenance.generationId)+' · '+safe(fmt(selected.provenance.observedAtUtc))+(selected.provenance.source?' · '+safe(selected.provenance.source):'')+'</p>'+button("Voir le snapshot","snapshot:"+selected.libraryId+":"+selected.provenance.snapshotId,"btn-sm")+'<h3>Unités ROM observées</h3><p class="small muted">Ces unités ne constituent pas d’autres jeux. Aucun chemin physique n’est exposé.</p><div class="stack">'+selected.units.map(u=>'<div class="small">'+safe(u.romUnitId)+' · variante '+safe(u.variantId)+' · '+(u.discNumber===null?'Disque non renseigné':'Disque '+safe(u.discNumber))+(u.observationStatus?' · '+safe(u.observationStatus):'')+(u.observedTitle?' · '+safe(u.observedTitle):'')+'</div>').join("")+'</div></div>':'<div class="empty"><strong>Sélectionnez un jeu</strong>Les variantes et la provenance apparaîtront ici.</div>';
+ const importer=window.RM_T3_CATALOGUE?'<section class="panel panel-pad" style="margin-bottom:14px"><label class="small" for="synthetic-catalogue-import">Charger un JSON UTF-8 issu de l’exporteur <strong>synthétique</strong> PS5.1 (démonstration uniquement)</label><input class="input" id="synthetic-catalogue-import" type="file" accept=".json,application/json" aria-label="Sélectionner un export JSON synthétique"><p class="tiny muted">Lecture locale sur sélection explicite, aucun réseau, aucune donnée réelle. Une comparaison précalculée n’est pas inventée.</p></section>':'';
+ return heading("Collection","Catalogue des jeux","Consommateur "+safe(model.schemaVersion)+" · lecture seule · "+(projectionMode?'projection candidate fournie':'fixture synthétique manuelle'))+importer+
+ '<div class="notice info" style="margin-bottom:18px">Les bibliothèques hors ligne conservent leur historique. Index inaccessible : aucun jeu inféré. ' +model.diagnostics.length+' diagnostic(s) : '+(model.diagnostics.map(d=>safe(d.code)).join(', ')||'aucun')+' · '+model.limitations.map(safe).join(', ')+'</div>'+filter+'<div class="split" style="margin-top:16px"><div>'+cards+'</div><section class="panel"><div class="panel-header"><h2>Fiche de jeu</h2></div>'+detail+'</section></div>';
 }
 function chooseLibrary(id){s.libraryId=id;const l=lib();s.before=l.snapshots[0]?.generationId||"";s.after=l.snapshots[1]?.generationId||"";s.result=null;s.selectedUnit=null;s.filter="ALL";s.console="ALL";s.search=""}
 function route(to){if(s.route!==to)routeHistory.push(s.route);s.route=to;render();if(typeof $("view").focus==="function")$("view").focus({preventScroll:true})}
@@ -166,8 +200,32 @@ else if(act==="close-game"){s.collectionUnit=null;render()}
 else if(act==="snapshot"){const parts=id.split(":");chooseLibrary(parts[0]);const target=getSnap(lib(),parts[1]);if(target){s.after=target.generationId;s.before=lib().snapshots.find(x=>x.snapshotId!==target.snapshotId)?.generationId||s.before}route("compare")}
 });
 document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("tr[data-action]")){e.preventDefault();e.target.click()}});
+function importSyntheticCatalogue(file){
+ const msg=$("toast"),report=message=>{if(msg){msg.textContent=message;msg.hidden=false}};
+ if(!file)return;
+ if(file.size>5*1024*1024){report("Import refusé : JSON synthétique supérieur à 5 Mio.");return}
+ // Read only the explicitly selected local synthetic PS export; no network or writes.
+ file.text().then(raw=>{
+  if(raw.charCodeAt(0)===0xFEFF)raw=raw.slice(1); // UTF-8 BOM only, no text repair.
+  if(raw.includes("\uFFFD"))throw Error("UNICODE_REPLACEMENT_CHARACTER");
+  const dto=JSON.parse(raw);
+  if(dto.schemaVersion!=="0.2.0-ui-catalogue-candidate")throw Error("UNSUPPORTED_SYNTHETIC_CATALOGUE_VERSION");
+  if(!window.RM_T3_CATALOGUE||!window.RM_T2_CATALOGUE||!window.RM_PROJECTION)throw Error("CATALOGUE_DEPENDENCY_MISSING");
+  const model=window.RM_T2_CATALOGUE.normalize(dto,[]);
+  const cards=window.RM_PROJECTION.registry(dto.registry);
+  if(!cards.length)throw Error("SYNTHETIC_REGISTRY_EMPTY");
+  // Mutate view state only after complete fail-closed contract validation.
+  payload={registry:dto.registry,catalogue:dto,comparisons:[]};window.RM_PROJECTION_DATA=payload;
+  projectionMode=true;projectionError=null;LIBS=cards;routeHistory.length=0;
+  s.route="collection";s.libraryId=cards[0].libraryId;s.before=cards[0].snapshots[0]?.generationId||"";
+  s.after=cards[0].snapshots[1]?.generationId||"";s.result=null;s.selectedUnit=null;s.collectionUnit=null;
+  s.collectionLibrary="ALL";s.collectionPlatform="ALL";s.collectionStatus="ALL";s.collectionCoverage="ALL";s.collectionSearch="";
+  render();report("JSON synthétique accepté : "+model.games.length+" jeu(x) observé(s). Aucun accès à des ROM.");
+ }).catch(err=>report("Import refusé : "+String(err.message||err)));
+}
 document.addEventListener("change",e=>{
 const id=e.target.id,v=e.target.value;
+if(id==="synthetic-catalogue-import"){importSyntheticCatalogue(e.target.files?.[0]);return}
 if(id==="lib-select"){chooseLibrary(v);render()}
 else if(id==="before-select"){s.before=v;s.result=null;render()}
 else if(id==="after-select"){s.after=v;s.result=null;render()}
@@ -176,6 +234,9 @@ else if(id==="filter-console"){s.console=v;s.selectedUnit=null;render()}
 else if(id==="collection-library"){s.collectionLibrary=v;s.collectionUnit=null;render()}
 else if(id==="collection-mode"){s.collectionMode=v;render()}
 else if(id==="collection-platform"){s.collectionPlatform=v;s.collectionUnit=null;render()}
+else if(id==="collection-status"){s.collectionStatus=v;s.collectionUnit=null;render()}
+else if(id==="collection-coverage"){s.collectionCoverage=v;s.collectionUnit=null;render()}
+else if(id==="collection-sort"){s.collectionSort=v;render()}
 });
 document.addEventListener("input",e=>{
 if(e.target.id==="filter-search"){const v=e.target.value;s.search=v;const pos=e.target.selectionStart;render();const next=$("filter-search");next.focus();next.setSelectionRange(pos,pos)}

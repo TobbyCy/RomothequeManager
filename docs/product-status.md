@@ -6,7 +6,7 @@ Ce tableau distingue les capacités en cours de revue, les maquettes et les vers
 | --- | --- | --- |
 | Moteur PowerShell 5.1 / inventaire E1 | Sources techniques en PR d'intégration ; pas encore un composant de version publiée | Aucun scan sur données réelles autorisé |
 | Pester 4.10.1 et gardes CI | Suites à revalider au HEAD effectivement intégré dans ce dépôt | Les succès d'un autre commit ne sont pas transférables |
-| Dashboard, Collection, fiches | **Prototype UI #11 codé sur PR Draft #28** : Dashboard, première Collection consultable, inspecteur synthétique | Pas d'application Windows finale, pas de fiche enrichie, tests navigateur/CI non exécutés |
+| Dashboard, Collection, fiches | Prototype HTML/JS intégré : dashboard, catalogue, fiches, filtres et états OFFLINE/STALE/UNKNOWN sur fixtures fictives | Aucun installateur ni accès ROM réel ; Node/Edge et CI encore à vérifier |
 | Bibliothèques, Offline/Stale, snapshots | **Prototype UI #11 codé sur PR Draft #28** : 4 bibliothèques fictives, historique, sélecteur A/B, six résultats, filtres et détail | Projection JS synthétique uniquement ; aucune lecture de données réelles, parité PowerShell non validée |
 | Catalogue synthétique partagé — PR #29 | Modules PS de projection/validation et consommateur JS/DTO 0.2 candidat intégrés | Parité PS5.1→JSON→JS non certifiée sur cet arbre, pas de distribution applicative |
 | Projection de bibliothèques — Issue #10 | Module PowerShell et export JSON synthétique intégrés ; comparaisons et historique lisible même hors ligne | PS5.1 et export end-to-end non vérifiés sur cet arbre ; aucune déduction de suppression |
