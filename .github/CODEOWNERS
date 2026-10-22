@@ -1,0 +1,16 @@
+# PUB-01A — public contribution ownership (candidate; effective only on protected base branch)
+# Repository owner confirmed from GitHub metadata on 2026-10-22.
+# Requires branch protection: "Require review from Code Owners".
+# Do not treat this file alone as an active merge restriction.
+
+* @TobbyCy
+
+# Protect the policy and its own ownership rules explicitly.
+/.github/ @TobbyCy
+/tests/ci_policy.py @TobbyCy
+/tests/test_ci_policy.py @TobbyCy
+/tests/Invoke-CiStatic.ps1 @TobbyCy
+/Modules/ @TobbyCy
+/Export/ @TobbyCy
+/Preflight/ @TobbyCy
+/adapters/ @TobbyCy
