@@ -61,3 +61,35 @@ Le propriétaire valide après remise privée de l'audit des objets GitHub : (1)
 - **Licences / contribution / sécurité** : toujours sans licence autorisée ; décisions propriétaire requises pour code, documentation, noms et médias. Le signalement privé des vulnérabilités et les protections PR/forks/CI doivent être confirmés en conditions réelles, pas uniquement documentés.
 
 **Réception attendue** : traitement de l'exposition historique par le propriétaire (une PR fermée reste visible), contrôle du graphe Git et des assets, licence choisie, canal sécurité et gouvernance Actions/Forks vérifiés, validation technique indépendante, puis **décision explicite de publication** du seul dépôt Produit. Ce complément ne vaut aucune autorisation PUBLIC.
+
+## INT-02 / PUB01B_CONTENT_STATUS — classement de déclassement (22.10.2026)
+
+**Statut : `HOLD_PUBLIC` — le Produit existant reste la seule cible envisagée.** Ce relevé actualise les inventaires ci-dessus, qui correspondent à des photographies antérieures et ne doivent pas être additionnées aux nouveaux chiffres.
+
+### Métadonnées GitHub et antécédents exposables
+
+Contrôle REST actualisé : **21 Issues hors PR, 10 PR** (y compris la nouvelle PR Draft #31 PUB-01A, ainsi que #22/#23 fermées non fusionnées et #24 fusionnée), **106 commentaires** de discussion (deux pages) et **0 commentaire inline** retourné par le point d'accès interrogé. Scan des **312 commits distincts** retrouvés dans l'historique atteignable des **neuf branches actuelles du Produit** : aucun lien textuel explicite vers le dépôt Pilotage dans les messages, aucune empreinte de jeton réelle trouvée par les motifs sélectionnés et aucune adresse d'auteur/committer extérieure aux adresses de non-réponse et de test reconnues. **Ce résultat ne prouve pas** l'absence de renseignements internes dans les diffs anciens, objets Git abandonnés, commentaires masqués, liens résolus par redirection, images, pièces jointes ou artefacts.
+
+**Évolution depuis le précédent audit** : la description de la PR Produit #29 a été nettoyée de ses deux liens directs vers Pilotage ; son statut passe à `ALREADY_CORRECTED` pour **le corps actuel**, pas une garantie d'effacement des caches/historiques. **Cinq URL directes subsistent dans cinq objets Produit** : la description de la PR **#23 fermée**, un commentaire de la PR **#24 fusionnée**, et des commentaires des PR **#26**, **#27**, **#28** ouvertes. Inventaire des IDs de commentaires remis exclusivement dans l'Issue privée du Pilotage ; ce document public ne reproduit aucun lien interne.
+
+| Classe | Élément | Action et autorité |
+| --- | --- | --- |
+| **BLOQUANT AVANT PUBLIC** | Les cinq références directes à Pilotage dans la description et les discussions GitHub historiques, notamment la PR #23 fermée et #24 fusionnée | Corriger ou expurger les surfaces modifiables via l'interface autorisée ; documenter l'impossibilité technique pour les commentaires d'autres auteurs. Le propriétaire décide comment traiter le reliquat ; une clôture de PR ne l'efface pas |
+| **BLOQUANT AVANT PUBLIC** | Audit exhaustif des commits/diffs anciens, anciennes branches, caches, pièces jointes, artefacts GitHub Actions, données utilisateur éventuelles | Approfondir avec droits d'administration ou outils d'audit appropriés, sans force-push/suppression irréversible improvisée |
+| **BLOQUANT AVANT PUBLIC** | Canal de signalement privé, permissions Actions et forks, tests réellement bloquants, vérification des règles de protection disponibles | Vérification propriétaire sur le dépôt final et revue Dev 1 de la PR #31 PUB-01A, sans désactiver CI-0 |
+| **DÉCISION PROPRIÉTAIRE** | Licence(s) code/docs, noms, images, éventuelles marques, contributions extérieures | Aucun `LICENSE` sans choix explicite et revue des composants tiers ; éviter les cinq visuels historiques non autorisés |
+| **SOUHAITABLE NON BLOQUANT** | README anglais et traduction automatisée proposés en PR Draft #25 | Avant réception : aligner l'anglais sur l'état réel des prototypes et revoir la dépendance de traduction externe ; ne pas activer silencieusement cette automation |
+| **DÉJÀ CORRIGÉ** | Liens directs de la description actuelle de la PR #29 ; contenus destinés à publication sur la branche #30 | Vérification de la description et scan de l'arbre actuel, sans préjuger du graphe Git historique |
+| **DÉJÀ CORRIGÉ SUR BRANCHE, NON INTÉGRÉ** | README FR, CONTRIBUTING, SECURITY, CHANGELOG, statut produit et disclaimer fonctions non disponibles sur #30 | Revalider après integration ordonnée, contrôler les liens effectifs sur `main` |
+| **DÉCISION PROPRIÉTAIRE** | Date/GO de visibilité PUBLIC et communication | Autorisation de publication séparée, après les gates indépendants et le tri historique |
+
+### Première préversion expérimentale — proposition, pas engagement de Release
+
+**Nom de travail proposé : `0.1.0-alpha.1`**, sans tag ni adoption. Deux niveaux doivent rester **distincts** :
+
+- **Prévisualisation de source UI (si le Contrôleur souhaite un jalon interne préalable)** : fichiers statiques HTML/CSS/JS, fixtures totalement fictives et README de recette ; requiert un navigateur récent et ne constitue **ni une application Windows portable autonome, ni un moteur d'export opérationnel**. Ne pas appeler son ZIP « installateur » ni « application ».
+- **Future préversion Windows portable** : proposer, seulement **après décision de stack et intégration reçue**, un ZIP autonome versionné contenant l'exécutable/lanceur, les dépendances redistribuables permises, documentation, politique sécurité, licences/avis tiers, fixtures de démonstration, `SHA256SUMS.txt`, notes de version, numéro et commit source précis. Aucun prérequis .NET séparé à promettre sans preuve de packaging ; préciser OS/architecture réellement validés, mémoire/disque nécessaires et restrictions de permissions. Définir un comportement fail-closed, sans import réel implicite, conversion/écriture/copie automatique ni accès à des chemins privés.
+
+**Fonctions recevables pour une alpha de consultation une fois intégrées et testées** : Dashboard, bibliothèques, snapshots historiques, comparaison A/B précalculée, Collection/Fiche, filtres, recherche, provenance, variantes et multidisque, OFFLINE/STALE/UNKNOWN, import manuel de **JSON synthétique validé**. **Exclure** : ROM/BIOS, conversion, export E6 réel, enrichissement en ligne, jaquettes tierces, catalogue cloud, favoris persistants, sauvegarde réelle ou support matériel annoncé sans tests.
+
+**Gates avant tag/ZIP/publication** : arbre Git fusionnable contrôlé et main protégé selon droits, CI/Node/contrôles négatifs au SHA intégré, recette navigateur automatisée et Edge Windows indépendante, parité PowerShell 5.1 sur JSON synthétique réellement exporté (Unicode, identités, provenance et couverture), absence de secrets et contenu sensible dans les sources **et l'historique exposable**, licence/assets approuvés, reproductibilité ZIP/empreinte SHA-256 vérifiée depuis un autre environnement, notes détaillant les limitations, puis décision explicite de l'auteur. Le passage du dépôt en PUBLIC n'est pas équivalent à une Release.
