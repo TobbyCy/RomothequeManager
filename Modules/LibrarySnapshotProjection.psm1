@@ -78,21 +78,28 @@ function Get-RmLibraryCoverage {
     }
     $coverage=New-Object 'System.Collections.Generic.List[object]'
     foreach ($platform in @($Library.platforms | Sort-Object -CaseSensitive)) {
-        $allComplete=$true; $anyMissing=$false; $anyPartial=$false
+        $allComplete=$true; $anyMissing=$false; $anyPartial=$false; $anyObserved=$false
         foreach ($source in $Library.sources) {
             foreach ($domain in $source.domains) {
                 $key=Get-RmPartitionKey $platform $source.sourceKey $source.rootKey $domain
                 if (-not $seen.ContainsKey($key)) { $allComplete=$false; $anyMissing=$true }
-                elseif ($seen[$key] -cne 'complete') {
-                    $allComplete=$false
-                    if ($seen[$key] -ceq 'partial') { $anyPartial=$true }
-                    else { $anyMissing=$true }
+                else {
+                    # Only this console's partitions count as observations.
+                    # Proofs for another platform cannot make this console PARTIAL.
+                    if ($seen[$key] -ceq 'complete' -or $seen[$key] -ceq 'partial') {
+                        $anyObserved=$true
+                    }
+                    if ($seen[$key] -cne 'complete') {
+                        $allComplete=$false
+                        if ($seen[$key] -ceq 'partial') { $anyPartial=$true }
+                        else { $anyMissing=$true }
+                    }
                 }
             }
         }
         $status='unobserved'
         if ($exhaustive -and $scan -ceq 'complete' -and $allComplete) { $status='complete' }
-        elseif ($anyPartial -or ($seen.Count -gt 0)) { $status='partial' }
+        elseif ($anyPartial -or $anyObserved) { $status='partial' }
         $coverage.Add([pscustomobject]@{
             console=$platform;status=$status
             reason=$(if ($status -ceq 'complete') {'ALL_DECLARED_PARTITIONS_PROVEN'}
