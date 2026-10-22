@@ -183,6 +183,14 @@ $x.registry.libraries[0].generations[1].scanStatus='partial'
 $x.registry.libraries[0].generations[1].coverage[0].status='partial'
 $x.registry.libraries[0].lastVerifiedCompleteRef='snap-b'
 Assert-Rejected $x 'CATDTO_LAST_VERIFIED_UNPROVEN'
+$reg=New-ScenarioRegistry
+$secondUnit=New-RmSyntheticUnit -Id 'second-short-game'
+$secondUnit.gameId='z'
+$secondUnit | Add-Member -NotePropertyName title -NotePropertyValue 'Petit jeu fictif'
+$reg.libraries[0].snapshots[1].units+=@($secondUnit)
+$twoGames=Project-Scenario $reg
+if ($twoGames.games.Count -ne 2 -or $twoGames.games[0].gameId -cne 'z' -or
+ $twoGames.games[1].gameId -cne 'game-1') { throw 'CATDTO_ORDINAL_ID_ORDER_LOST' }
 $malformedWasRejected=$false
 try { $null=ConvertFrom-Json -InputObject '{"schemaVersion":' -ErrorAction Stop } catch { $malformedWasRejected=$true }
 if (-not $malformedWasRejected) { throw 'CATDTO_MALFORMED_JSON_ACCEPTED' }
