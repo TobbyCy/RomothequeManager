@@ -11,6 +11,29 @@ const parse=d=>w.RM_T2_CATALOGUE.normalize(d,[]);
 let checks=0;
 function test(name,fn){fn();checks++;console.log("PASS",name)}
 function reject(name,mutate){test(name,()=>{const d=clone(base);mutate(d);assert.throws(()=>parse(d))})}
+// Shared fixture is synchronized at the exact canonical path of Dev1 PR #29.
+const canonical=JSON.parse(fs.readFileSync(path.join(__dirname,"../../tests/fixtures/CatalogueT3CanonicalSample.json"),"utf8"));
+test("Dev1 shared canonical fixture and UI demo are structurally identical",()=>{
+ assert.equal(JSON.stringify(canonical),JSON.stringify(base),"T3_CANONICAL_DEMO_DRIFT");
+ assert.equal(w.RM_T3_CATALOGUE.normalize(canonical).games.length,1);
+});
+test("canonical validator and presentation bridge agree on invalid DTO mutations",()=>{
+ const candidates=[
+  d=>d.schemaVersion="wrong",
+  d=>d.games[0].availability="ONLINE",
+  d=>d.games[0].observations[1].discNumber=0,
+  d=>d.games[0].title="Invented",
+  d=>d.games[0].variants[0].label=null,
+  d=>d.games[0].provenance[0].snapshotId="orphan",
+  d=>d.registry.libraries[0].generations[0].coverageProof=[],
+  d=>d.gameCount=999
+ ];
+ for(const mutate of candidates){
+  const d=clone(canonical);mutate(d);
+  assert.throws(()=>w.RM_T3_CATALOGUE.normalize(d));
+  assert.throws(()=>parse(d));
+ }
+});
 function partial(d){
  const l=d.registry.libraries[0],g=l.generations[0];
  g.scanStatus="partial";g.scopeIsExhaustive=false;
