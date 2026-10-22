@@ -129,12 +129,23 @@ function Assert-RmCanonicalCatalogueDto {
    [void](Get-RmDtoField $v 'label')
   }
   $unitKeys=New-RmDtoSet
+  $titleEvidence=New-RmDtoSet
   foreach($o in $observations) {
    Assert-RmDto ($o.libraryId -ceq $lid -and $o.snapshotId -ceq $p.snapshotId -and $o.generationId -ceq $p.generationId) 'CATDTO_OBSERVATION_PROVENANCE'
    Assert-RmDto ($variantKeys.Contains($o.variantId)) 'CATDTO_ORPHAN_VARIANT'
    Assert-RmDtoId $o.romUnitId 'CATDTO_ROM_UNIT_ID'
    Assert-RmDto ($unitKeys.Add($o.romUnitId)) 'CATDTO_DUPLICATE_OBSERVATION'
+   $observedTitle=Get-RmDtoField $o 'observedTitle'
+   if ($null -ne $observedTitle) { Assert-RmDtoId $observedTitle 'CATDTO_OBSERVED_TITLE_INVALID';[void]$titleEvidence.Add($observedTitle) }
    Assert-RmDto ($o.observationStatus -ceq $(if($cover -ceq 'KNOWN'){'OBSERVED'}else{'PARTIAL'})) 'CATDTO_OBSERVATION_STATUS_FORGED'
+  }
+  if ($titleEvidence.Count -gt 1) {
+   Assert-RmDto ($quality -ceq 'CONTRADICTORY' -and $null -eq $title) 'CATDTO_TITLE_CONFLICT_FORGED'
+  } elseif ($titleEvidence.Count -eq 0) {
+   Assert-RmDto ($null -eq $title) 'CATDTO_TITLE_UNKNOWN_FORGED'
+  } else {
+   Assert-RmDto ($titleEvidence.Contains($title)) 'CATDTO_TITLE_PROVENANCE_MISMATCH'
+   Assert-RmDto ($quality -cne 'CONTRADICTORY') 'CATDTO_TITLE_CONFLICT_FORGED'
   }
  }
  $countKnown=Get-RmDtoField $Dto 'countKnown'
@@ -159,7 +170,7 @@ function ConvertTo-RmCanonicalCatalogueDto {
   foreach($u in $g.units) {
    $obs.Add([pscustomobject][ordered]@{
     libraryId=$g.libraryId;snapshotId=$u.provenance.snapshotId;generationId=$u.provenance.generationId
-    romUnitId=$u.romUnitId;variantId=$u.variantId;discNumber=$u.discNumber
+    romUnitId=$u.romUnitId;variantId=$u.variantId;discNumber=$u.discNumber;observedTitle=$u.observedTitle
     observationStatus=$(if($g.coverageStatus -ceq 'COMPLETE'){'OBSERVED'}else{'PARTIAL'})
    })
   }
