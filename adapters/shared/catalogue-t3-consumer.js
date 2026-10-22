@@ -125,7 +125,7 @@ function normalize(dto) {
    if(romScope.has(scope))fail("CROSS_GAME_DUPLICATE_ROM");
    romScope.add(scope);
    if(o.observationStatus!==(covered?"OBSERVED":"PARTIAL"))fail("OBS_STATUS");
-   if(o.discNumber!==null&&(!integer(o.discNumber)||o.discNumber===0))fail("DISC");
+   if(o.discNumber!==undefined&&o.discNumber!==null&&(!integer(o.discNumber)||o.discNumber===0))fail("DISC");
    if(o.observedTitle!==null)titles.add(text(o.observedTitle,"OBSERVED_TITLE"));
    observedByLib.set(lid,observedByLib.get(lid)+1);
   }
@@ -136,10 +136,9 @@ function normalize(dto) {
   games.set(gameKey,g);
  }
  const diagnostics=arr(dto.diagnostics,"DIAGNOSTICS");
- let allProven=true;
+ const allProven=[...libs.entries()].every(([id,lib])=>lib.indexAccessible&&info.get(id).complete);
  for(const [id,lib] of libs){
   const l=info.get(id);
-  if(!lib.indexAccessible||!l.complete)allProven=false;
   if(lib.indexAccessible&&l.latest){
    const n=observedByLib.get(id);
    if(n>l.latest.observedUnitCount)fail("SNAPSHOT_COUNT");
