@@ -115,15 +115,24 @@ Préconditions : checkout privé de la PR #28 au SHA indiqué dans le checkpoint
 - **Compteurs** : `countKnown=false` impose `gameCount=null` ; la liste filtrée compte seulement les **fiches observées**, pas les jeux physiques, ni un total global. Index inaccessible : aucun jeu extrapolé. Une couverture partielle n'implique ni suppression ni zéro jeu.
 - **Recherche/tri** : recherche titre/ID/plateforme/variantes ; filtres bibliothèque, plateforme, qualité, couverture et tri titre/plateforme/qualité/dernière observation. Filtres conservés pendant l'ouverture et fermeture d'une fiche ; lien vers le snapshot associé.
 
-**Tests préparatoires :** `node prototype/ui11/t2-catalogue.test.cjs` (19 cas positifs/négatifs, contrat T1). Recette navigateur : ouvrir `index.html` hors ligne, Dashboard → Bibliothèques → snapshot → Comparaison → Collection → fiche → snapshot, vérifier les filtres et retour, tester 320/375/768/1280 px, clavier Tab/Entrée/Espace, source OFFLINE/STALE, titre nul, contradiction, couverture incomplète, DTO invalide en mode projection. Consigner SHA, OS, navigateur, stdout et captures. **V8 simulé ≠ Node.js ≠ navigateur ≠ PS5.1**. Les résultats runtime PS5.1, navigateur et parité ne sont pas disponibles à ce stade.
+**Tests préparatoires :** `node prototype/ui11/t2-catalogue.test.cjs` (20 cas positifs/négatifs, contrat T1). Recette navigateur : ouvrir `index.html` hors ligne, Dashboard → Bibliothèques → snapshot → Comparaison → Collection → fiche → snapshot, vérifier les filtres et retour, tester 320/375/768/1280 px, clavier Tab/Entrée/Espace, source OFFLINE/STALE, titre nul, contradiction, couverture incomplète, DTO invalide en mode projection. Consigner SHA, OS, navigateur, stdout et captures. **V8 simulé ≠ Node.js ≠ navigateur ≠ PS5.1**. Les résultats runtime PS5.1, navigateur et parité ne sont pas disponibles à ce stade.
 
 **Limites** : le DTO T1 est **candidat**, pas normatif. Le producteur T1 ne fournit aucune localisation physique par unité, seulement une provenance logique ; ne pas fabriquer `sourceKey/rootKey`. Les tests de parité nécessitent un JSON réellement exporté par PS5.1 et un registre synthétique de même provenance, avant toute réception d'intégration.
 
 
 ## T4-B — Convergence du catalogue T3 0.2 (22.10.2026)
 
-Le modèle UI accepte explicitement le schéma candidat `0.2.0-ui-catalogue-candidate` de Dev 1, sans adopter ce contrat comme normatif. L'ancien schéma T1 candidat reste en place pour la non-régression historique. Le consommateur T3 de Dev 1 est temporairement référencé dans la même branche par `t4-catalogue-consumer.js`, avec des contrôles UI additionnels ; il devra être réconcilié avant fusion.
+Le modèle UI accepte explicitement le schéma candidat `0.2.0-ui-catalogue-candidate` de Dev 1, sans adopter ce contrat comme normatif. L'ancien schéma T1 candidat reste en place pour la non-régression historique. Le consommateur T3 est chargé depuis le chemin canonique `../../adapters/shared/catalogue-t3-consumer.js`, dont le contenu est **identique au blob partagé Dev 1** ; l'ancienne copie locale divergente `t4-catalogue-consumer.js` a été supprimée. Toute nouvelle mise à jour de Dev 1 impose une synchronisation exacte avant merge.
 
 Pour vérifier le **même parcours UI** avec le JSON T3 **synthétique statique** de la PR #29, ouvrir `demo-t4-catalogue.html`. Il s'agit de `index.html` avec une source de données différente, **pas** d'une seconde application. Le fichier `t4-catalogue-demo.js` est une copie déclarée de la fixture T3, non un résultat d'exécution PowerShell.
 
 Les nouveaux tests sont dans `t4-catalogue.test.cjs` : `node prototype/ui11/t4-catalogue.test.cjs` depuis un checkout autorisé. La matrice et les recettes restantes figurent dans [T4_CONVERGENCE_CATALOGUE.md](T4_CONVERGENCE_CATALOGUE.md). V8 ciblé 14/14 + V8 DOM simulé 9/9 ont été exécutés pour l'intégration initiale ; Node complet, navigateur réel, CI, PS5.1 et parité export runtime restent **NOT_EXECUTED**.
+
+
+## STAB-03B — état actuel de la branche #30 (22 octobre 2026)
+
+Les trois entrées **existantes** `index.html`, `demo-integree.html` et `demo-t4-catalogue.html` utilisent désormais le **même** `app.js` et le rendu Collection/Fiche commun. La démo intégrée 0.1 passe par `RM_CATALOGUE.parse` puis adaptation explicite à la vue commune ; les producteurs T1 et T3 demeurent distincts, tous candidats. Un index inaccessible ne fabrique jamais de jeu.
+
+Dans la Collection, un champ permet de choisir explicitement un JSON de l'**exporteur synthétique PowerShell** ; lecture locale en mémoire, validations avant changement de vue, aucun réseau ni écriture. Le mode d'emploi [STAB-03B / recette Edge](STAB03B_RECETTE_EDGE.md) décrit les cinq suites Node, l'import de l'export réel, les contrôles clavier et le test [Unicode](unicode-producer.test.cjs) de `Étoile des disques`. Aucun texte corrompu n'est réparé côté UI.
+
+**Bilan DEV 2** : 113 assertions des cinq suites passées avec V8 et DOM/FS simulés (9 + 10 + 42 + 20 + 32). **Exécution Node native, navigateur Edge, export PS5.1 et parité runtime NON EXÉCUTÉS dans cet environnement** ; revue indépendante obligatoire. Pas de merge, release ou test sur données réelles.
