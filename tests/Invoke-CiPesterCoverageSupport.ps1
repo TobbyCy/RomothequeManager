@@ -109,9 +109,23 @@ function Assert-RmCoverageRejection {
 
 function Invoke-RmBusinessCoverage {
     param([string]$Root, $PesterModule)
-    $targets = @(Get-ChildItem -LiteralPath (Join-Path $Root 'Modules') -Filter '*.psm1' -File |
-        Sort-Object Name | ForEach-Object { $_.FullName })
-    if ($targets.Count -ne 18) { throw 'COVERAGE_MODULE_SCOPE_CHANGED' }
+    # Coverage of the immutable historical engine (18 modules + E1) is
+    # separate from CI-0 tests of the four approved new modules.
+    $historicalNames = @('Utils','Canonical','Configuration','Inventory','Metadata',
+        'RomResolver','DecisionSchema','StateCodec','Identity','PersistentIdentity',
+        'MediaMatcher','MediaModel','Reconciliation','Proposals','Projection',
+        'Transactions','Catalogue','Associations')
+    $extensionNames = @('SnapshotComparison','LibrarySnapshotProjection',
+        'CatalogueProjection','CatalogueDtoContract')
+    $moduleFiles = @(Get-ChildItem -LiteralPath (Join-Path $Root 'Modules') -Filter '*.psm1' -File)
+    $observed = @( $moduleFiles | ForEach-Object { $_.BaseName } | Sort-Object -CaseSensitive )
+    $expected = @( ($historicalNames + $extensionNames) | Sort-Object -CaseSensitive )
+    if ($moduleFiles.Count -ne 22 -or ($observed -join '|') -cne ($expected -join '|')) {
+        throw 'COVERAGE_MODULE_SCOPE_CHANGED'
+    }
+    $targets = @( $moduleFiles | Where-Object { $historicalNames -ccontains $_.BaseName } |
+        Sort-Object Name | ForEach-Object { $_.FullName } )
+    if ($targets.Count -ne 18) { throw 'COVERAGE_HISTORICAL_MODULE_SCOPE_CHANGED' }
     $targets += Join-Path $Root 'Export\ExportE1.psm1'
     $suites = @((Join-Path $Root 'tests\Unit\Engine.Tests.ps1'), (Join-Path $Root 'tests\Unit\ExportE1.Tests.ps1'))
     $protected = @($targets) + @($suites) + @((Join-Path $Root 'Initialize.ps1'))

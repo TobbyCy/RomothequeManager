@@ -83,6 +83,9 @@ $bad.libraries[0].sources=@(
  [pscustomobject]@{sourceKey='source-1';rootKey='root-1';domains=@('ROMS')},
  [pscustomobject]@{sourceKey='source-2';rootKey='root-2';domains=@('ROMS')}
 )
+# This intentionally unproven multi-source fixture must not claim that 'b'
+# was verified across both roots; keep the real completeness validator strict.
+$bad.libraries[0].lastVerifiedCompleteRef=$null
 $multi=New-RmCatalogueProjection -Registry $bad
 Require ($multi.games[0].coverageStatus -ceq 'INCOMPLETE') 'MULTI_ROOT_UNPROVEN'
 $dated=New-T1Registry
