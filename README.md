@@ -1,50 +1,121 @@
 # ROMothèque Manager
 
-**Organiser sa collection de jeux rétro en conservant des informations fiables sur les jeux, leurs variantes et les supports.**
+**Inventorier, comprendre et organiser ses bibliothèques de jeux rétro — sans perdre de vue la provenance des fichiers ni l'état réel des supports.**
 
-ROMothèque Manager est un projet de catalogue et d'inventaire local. Il distingue les métadonnées EmulationStation Desktop Edition (ES-DE), les observations d'un inventaire et la disponibilité actuelle des supports. Un disque hors ligne ne signifie pas que ses jeux sont supprimés.
+ROMothèque Manager est un projet logiciel **indépendant et open source pour son code original**, consacré à la gestion de collections **locales** de jeux vidéo rétro. Il distingue les jeux, leurs variantes, les unités de fichiers, les métadonnées **EmulationStation Desktop Edition (ES-DE)** et les observations enregistrées au fil des inventaires.
 
-## Disponibilité actuelle
+> **Aujourd'hui : code source public et prototype interactif hors ligne sur données entièrement fictives. Aucune application Windows prête à installer, aucun ZIP autonome et aucune GitHub Release.**
+>
+> **Aucune ROM, aucun BIOS ni jeu commercial n'est fourni ou proposé au téléchargement.**
 
-| Fonction | État |
+<!-- Bandeau officiel V2 envisagé : RM_V2_Horizontal_Fond_Sombre.png.
+     NE PAS inclure de lien/image avant vérification de la provenance, de la permission
+     de redistribution publique, des droits tiers et de l'allowlist CI ciblée.
+     Voir BRANDING.md et l'Issue Produit #35. -->
+
+## Pourquoi ROMothèque Manager ?
+
+Une bibliothèque rétro n'est pas simplement une liste de fichiers. Un même jeu peut posséder plusieurs versions, disques ou formats ; des fiches ES-DE peuvent regrouper ou décrire ces éléments de manière différente ; et les supports ou leurs index ne sont pas toujours accessibles.
+
+Le projet cherche à répondre à quatre questions sans les confondre :
+
+- **Qu'est-ce que je possède dans mon catalogue ?** Un jeu, ses variantes et les unités de fichiers qui lui sont associées ne désignent pas la même chose.
+- **Qu'a-t-on réellement observé ?** Un inventaire ou un snapshot décrit un état daté, avec sa source, son niveau de couverture et ses éventuelles limites.
+- **Qu'est-ce qui reste consultable ?** Une bibliothèque `OFFLINE`, `STALE`, `UNKNOWN` ou dont l'index est inaccessible ne prouve pas que ses jeux ont disparu.
+- **Que pourra-t-on exporter en sécurité ?** Les ambiguïtés, dépendances et conflits doivent être visibles et résolus avant toute opération physique.
+
+**Principe central : absence d'observation ≠ suppression du fichier.** ROMothèque Manager privilégie la lisibilité, les preuves et la préservation des sources plutôt qu'une action automatique difficile à annuler.
+
+## En un coup d'œil
+
+| Domaine | Ce qui existe aujourd'hui | Ce qui reste à faire |
+| --- | --- | --- |
+| **Moteur et inventaire E1** | Sources Windows PowerShell 5.1 intégrées ; tests et préflights sur données synthétiques | Qualification avant tout usage sur une collection réelle |
+| **Tableau de bord et bibliothèques** | Prototype HTML/CSS/JavaScript consultable localement ; états de disponibilité et de fraîcheur fictifs | Persistance et raccordement à de véritables bibliothèques autorisées |
+| **Snapshots et comparaison A/B** | Historique fictif, choix de deux snapshots, six classifications et couverture explicite | Validation fonctionnelle et ergonomique d'une future application distribuée |
+| **Collection et fiches de jeux** | Recherche, filtres, variantes, provenance et observations dans les démonstrations synthétiques | Enrichissement et gestion durable des données utilisateur |
+| **Catalogue partagé PS → JSON → JS** | Producteur et consommateur intégrés ; **DTO 0.2 encore candidat**, tests synthétiques | Adoption du contrat et recette navigateur complète |
+| **Export E2 à E6, conversion, copie** | Concepts, contrats et garde-fous documentés | Fonctionnalités non livrées ; **aucune opération réelle autorisée** |
+| **Application Windows portable** | Objectif produit décrit dans la roadmap | **Pas d'exécutable, d'installateur ni de Release disponible** |
+
+**Lire l'[état détaillé des fonctionnalités](docs/product-status.md)** pour distinguer code intégré, prototypes, tests réalisés et capacités futures. La [roadmap](docs/roadmap.md) expose les orientations sans annoncer de date de livraison.
+
+## Découvrir le prototype interactif
+
+Le prototype se consulte **sans installer Node.js ni lancer PowerShell**. Ses bibliothèques, jeux, fichiers et observations sont fictifs ; il n'effectue aucun scan, transfert, export, effacement ou connexion à une collection réelle.
+
+**Pour l'ouvrir :**
+
+1. Récupérer les **sources du dépôt** avec Git ou via **Code → Download ZIP** sur GitHub (il s'agit du code source, **pas** d'un ZIP applicatif Windows).
+2. Conserver ensemble les fichiers du dossier `prototype/ui11/`.
+3. Ouvrir `prototype/ui11/index.html` par double-clic dans un navigateur moderne, en `file://`. C'est la **démonstration historique** fondée sur des fixtures et un comparateur JavaScript synthétique.
+4. Pour le parcours plus complet **Dashboard → Bibliothèques → Comparaison → Collection → Fiche**, ouvrir plutôt `prototype/ui11/demo-integree.html`. Cette démonstration distincte utilise des projections et un catalogue **construits manuellement sur des données fictives**, et non un export PowerShell réel.
+
+Les deux démonstrations sont locales, sans serveur, CDN ni compte à créer. Le détail des modes et de leurs limites figure dans le [guide du prototype](prototype/ui11/README.md).
+
+### Ce que montrent les écrans
+
+| Vue | À observer dans la démonstration |
 | --- | --- |
-| Moteur Windows PowerShell 5.1, inventaire E1 en lecture seule | Sources intégrées au dépôt ; validation technique complète sur l'arbre publié non acquise. **Pas d'application grand public disponible** |
-| Dashboard, bibliothèques, comparaison, Collection et fiches | Prototype HTML/CSS/JavaScript hors ligne intégré ; données exclusivement synthétiques, contrat catalogue 0.2 candidat |
-| Opérations d'export, conversion, métadonnées en ligne | **Aucune opération réelle livrée ni autorisée** |
-| Application Windows portable | **Aucun ZIP, installateur ou GitHub Release disponible** |
-| Tests synthétiques | Résultats du dépôt final à vérifier ; une CI verte ne prouve pas un accès sûr à un disque réel |
+| **Dashboard** | Vue d'ensemble des bibliothèques, plateformes et états connus ou inconnus |
+| **Bibliothèques** | Disponibilité, fraîcheur, index accessible ou non, dernier snapshot et dernier inventaire complet vérifié |
+| **Comparaison** | Sélection de générations A/B, filtres, six classifications et limites de couverture ; « non retrouvé » ne signifie jamais « supprimé » |
+| **Collection et fiches** | Titres fictifs, filtres, variantes, provenance datée et observations d'unités, sans modification possible |
 
-La [démonstration HTML locale](prototype/ui11/README.md) permet d'explorer les vues sur des fixtures fictives. Elle n'est ni une application Windows autonome ni une Release ; PS5.1/Node/Edge de bout en bout restent à valider.
+Les **captures d'écran officielles** seront insérées après recette du prototype dans un navigateur réel et contrôle des données représentées. Aucune image de bibliothèque privée, jaquette tierce ni maquette conceptuelle présentée comme un écran fonctionnel n'est publiée dans cette version.
 
-Consultez l'[état des fonctionnalités](docs/product-status.md) et la [roadmap](docs/roadmap.md). Les prochaines étapes ne constituent ni dates promises ni fonctions livrées.
+## Préserver avant d'exporter : E1 → E6
 
-## Utilisation et téléchargement
+Le projet sépare volontairement l'observation d'une collection de toute action sur ses fichiers.
 
-**Le code source public et le prototype HTML local sont consultables, mais aucun installateur, ZIP Windows autonome ou Release téléchargeable n'est disponible.** La démonstration utilise des fixtures fictives ; les scripts techniques ne doivent pas être essayés sur une collection personnelle. Une future préversion devra fournir un ZIP Windows autonome, son SHA-256, des notes de version et une vérification sur une machine externe sans runtime .NET séparé. Cet objectif n'est pas encore atteint.
+| Étape | Intention | Disponibilité |
+| --- | --- | --- |
+| **E1 — Inventorier** | Lire et décrire une source, ses identités et ses métadonnées, sans la modifier | Code technique et tests synthétiques présents ; **pas d'utilisation réelle autorisée** |
+| **E2 — Sélectionner** | Choisir de manière explicite jeu, variante et unité | Conception en cours, parcours utilisateur non livré |
+| **E3 — Rassembler les dépendances** | Identifier disques, fichiers associés et médias | Prévu |
+| **E4 — Vérifier** | Signaler collisions, ambiguïtés, chemins dangereux et incohérences | Prévu |
+| **E5 — Simuler** | Préparer un plan contrôlable avant une copie | Prévu |
+| **E6 — Copier** | Exécuter un export physique après validation explicite | **Non implémenté pour un usage public et non autorisé** |
 
-Pour comprendre les futures vues : [parcours UX](docs/ux/README.md), [lexique](docs/user/lexique.md), [sécurité et limites](docs/user/securite-et-limites.md).
+L'intégrité de la collection d'origine et la capacité d'expliquer les décisions restent prioritaires. Une fonction décrite, un test synthétique réussi ou une PR fusionnée **ne constituent pas une autorisation d'agir sur un disque personnel**.
 
-## Respect des droits d'auteur
+## Code, qualité et limites de validation
 
-ROMothèque Manager permet de gérer des collections locales de jeux vidéo rétro. Le projet **ne fournit ni ROM, ni BIOS, ni jeux commerciaux, ni lien de téléchargement vers des contenus protégés**. Les utilisateurs sont responsables des droits et autorisations applicables aux fichiers qu'ils utilisent. ROMothèque Manager est **indépendant des fabricants et éditeurs de jeux vidéo**.
+Le dépôt contient un moteur historique **Windows PowerShell 5.1**, des modules de projection de données et un prototype web **HTML/CSS/JavaScript natifs**. Les tests automatisés utilisent des fixtures fictives. Ils vérifient notamment le rejet de données invalides, les contrôles de chemins et des parcours d'interface en environnement simulé.
 
-La possession d'un jeu original n'autorise pas automatiquement le téléchargement d'une ROM ; inversement, certains contenus peuvent être librement utilisables, autorisés ou relever du domaine public. Leur statut dépend des droits, des fichiers et de la juridiction : voir la [notice légale](LEGAL.md).
+La [CI GitHub Actions](https://github.com/TobbyCy/RomothequeManager/actions) exécute les contrôles applicables selon la nature des changements, avec un **gate final obligatoire**. Le résultat de chaque run doit être consulté sur son **commit exact** : une CI verte n'atteste ni un test sur une bibliothèque réelle, ni une recette graphique sous Edge, ni la disponibilité d'une application Windows.
 
-## Licence et identité du projet
+La configuration future de l'application autonome, les contrats de données définitifs, la persistance et le packaging restent soumis à décisions et vérifications spécifiques. **Aucune compatibilité SteamOS ou expérience d'installation finale n'est revendiquée.**
 
-**Licence du code et de la documentation originale autorisée : MIT.**  
-**Copyright (c) 2026 Cyril Tobler.** Mainteneur : **TobbyCy**.
+## Repères dans le dépôt
 
-La licence logicielle ne s'applique pas automatiquement aux ROM, BIOS, jaquettes, marques, logos et œuvres appartenant à des tiers. Les éléments officiels d'identité visuelle et les droits sur le nom sont traités séparément ; les cinq visuels V2 ne sont pas redistribués dans ce dépôt à ce stade.
+| Chemin | Contenu |
+| --- | --- |
+| `Modules/`, `Export/`, `Preflight/` | Noyau PowerShell, inventaire E1 et contrôles préalables |
+| `prototype/ui11/` | Interface et démonstrations sur fixtures fictives |
+| `tests/` | Tests, canaris de refus et outils de validation synthétique |
+| [`docs/product-status.md`](docs/product-status.md) | État réel du produit et limites des preuves |
+| [`docs/roadmap.md`](docs/roadmap.md) | Fonctionnalités futures et critères de sortie |
+| [`docs/ux/README.md`](docs/ux/README.md) | Parcours et intentions d'interface |
+| [`docs/user/lexique.md`](docs/user/lexique.md) | Vocabulaire des collections et des états |
+| [`docs/user/securite-et-limites.md`](docs/user/securite-et-limites.md) | Règles de prudence et cas non autorisés |
+| [`docs/developer/README.md`](docs/developer/README.md) | Démarrage développeur et références techniques |
+| [`CHANGELOG.md`](CHANGELOG.md) | Historique des changements de code, distinct des versions distribuées |
 
-Références : [LICENSE](LICENSE) · [LEGAL.md](LEGAL.md) · [BRANDING.md](BRANDING.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md).
+## Contribuer et signaler un problème
 
-## Contribuer
+Les contributions au **code, aux tests et à la documentation** sont bienvenues : consulter [CONTRIBUTING.md](CONTRIBUTING.md), ouvrir une [Issue](https://github.com/TobbyCy/RomothequeManager/issues) et préciser comportement attendu, résultat observé et contrôles réellement exécutés. Les reproductions et captures doivent utiliser **exclusivement des données inventées**.
 
-Les contributions humaines sont organisées par Issues et pull requests : décrivez le besoin, des critères vérifiables, une reproduction sur fixtures **entièrement fictives** et les tests réellement exécutés. Consultez [CONTRIBUTING](CONTRIBUTING.md) et le [guide développeur](docs/developer/README.md).
+Pour une question générale, lire [SUPPORT.md](SUPPORT.md). Pour une vulnérabilité, consulter [SECURITY.md](SECURITY.md) et n'utiliser le formulaire privé de GitHub **que s'il est effectivement disponible**. Ne jamais publier d'exploit, de secret, de chemin personnel ni de collection réelle dans une Issue ou une PR.
 
-Pour un signalement sensible, lisez [SECURITY](SECURITY.md) et ne divulguez pas de vulnérabilité dans une Issue. Pour toute question, voir [SUPPORT](SUPPORT.md).
+## Licence, marque et contenus de jeux
 
-Aucune ROM, aucun BIOS, XML ES-DE réel, chemin privé, StateRoot ou sauvegarde utilisateur ne doit être déposé ici. Les visuels soumis à vérification de droits sont exclus ; les droits sur ces visuels sont distincts de la licence MIT du logiciel.
+Le **code original** et la **documentation originale dont la diffusion est autorisée** sont proposés sous **licence MIT** : [LICENSE](LICENSE) — **Copyright (c) 2026 Cyril Tobler**. Le projet est maintenu par [TobbyCy](https://github.com/TobbyCy).
 
-**Le dépôt GitHub du code source est public.** Cette visibilité n'est ni une attestation de tests sur des données réelles, ni une autorisation de distribuer des ROM/BIOS, ni une Release. **Aucune Release de l'application n'est publiée.**
+L'identité ROMothèque Manager (nom, cartouche rétro stylisée, étagère et flèche rouge) est présentée dans [BRANDING.md](BRANDING.md). **Les logos et icônes officiels ont des droits distincts de la licence MIT du code.** Le bandeau graphique V2 n'est pas inclus ici tant que ses droits de redistribution publique et les contrôles de sécurité des fichiers ne sont pas validés.
+
+ROMothèque Manager **ne fournit, n'héberge ni ne distribue de ROM, BIOS, firmware propriétaire ou jeu commercial**, ni de liens de téléchargement de jeux protégés. L'utilisateur doit disposer des autorisations applicables à ses contenus ; détenir un jeu original ne donne pas automatiquement le droit de télécharger une ROM depuis une source tierce. Le projet est indépendant des fabricants et éditeurs de jeux. Pour les nuances juridiques, voir [LEGAL.md](LEGAL.md).
+
+---
+
+**ROMothèque Manager est actuellement un projet de développement public et une démonstration synthétique consultable — pas encore une application de gestion de ROM prête à être distribuée.**
