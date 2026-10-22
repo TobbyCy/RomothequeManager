@@ -4,6 +4,8 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 ## Non publié — développement
 
+- **T3-A / PR #29 (Draft, branche expérimentale)** : proposition de DTO catalogue commun `0.2.0-ui-catalogue-candidate`, validateur PowerShell indépendant, producteur synthétique, canaris de références/couverture/comptage et extension explicite des gardes CI de 20 à 22 modules. Contrat non adopté par T2 #30, aucun merge, PS5.1/CI/Node **NOT_EXECUTED**. Documentation : `docs/architecture/catalogue-t3-canonical-candidate.md`.
+
 - Guides du produit, de la contribution et de la sécurité, lexique et documentation d'architecture.
 - Parcours d'interface et critères d'acceptation décrits pour les travaux futurs.
 - Préparation des contrôles du moteur PowerShell 5.1 sur données synthétiques.
