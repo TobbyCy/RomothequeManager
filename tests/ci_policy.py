@@ -106,6 +106,7 @@ def event_range(root, event, payload, env):
         require(str(repo.get("id", "")) == env.get("GITHUB_REPOSITORY_ID"),
                 "EVENT_REPOSITORY_ID_MISMATCH")
     if event == "workflow_dispatch":
+        require(env.get("GITHUB_REF") == "refs/heads/main", "DISPATCH_MAIN_ONLY")
         return {"event": event, "checkout": checkout, "base": checkout,
                 "source": checkout, "from": checkout, "changes": [], "root_push": False}
     if event == "pull_request":
@@ -243,6 +244,52 @@ def check_currency(changes, entries):
     print("DOCS_SYNC_PORTABLE_PASS " + json.dumps({"changed": len(changes), "code": len(code), "testsAndCI": len(infra)}))
 
 
+def verify_public_ci_guard(root):
+    """Fail closed on unsafe public-PR workflow changes and ownership omissions.
+
+    This checks the committed workflow and base-branch ownership proposal; it is
+    not a substitute for enforcing required status checks and approvals in GitHub.
+    """
+    workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8-sig")
+    owners = (root / ".github/CODEOWNERS").read_text(encoding="utf-8-sig")
+    require(re.search(r"(?m)^on:\n  pull_request:\n    branches: \[main\]\n"
+                      r"    types: \[opened, reopened, synchronize, ready_for_review\]\n"
+                      r"  push:\n    branches: \[main\]\n  workflow_dispatch:\n", workflow)
+            is not None, "PUBLIC_CI_EVENTS_INVALID")
+    require(re.search(r"(?m)^permissions:\n  contents: read\n", workflow)
+            is not None, "PUBLIC_CI_PERMISSIONS_NOT_READONLY")
+    for unsafe in ("pull_request_target:", "workflow_run:", "issue_comment:",
+                   "repository_dispatch:", "contents: write", "id-token: write",
+                   "continue-on-error:", "secrets."):
+        require(unsafe not in workflow, "PUBLIC_CI_UNSAFE_DIRECTIVE:" + unsafe)
+    require(not re.search(r"\$\{\{\s*(?:github\.event\.|inputs\.)", workflow),
+            "PUBLIC_CI_UNTRUSTED_INTERPOLATION")
+    actions = list(re.finditer(r"(?m)^        uses: ([^\s#]+)", workflow))
+    require(len(actions) >= 1, "PUBLIC_CI_PINNED_ACTION_MISSING")
+    for action in actions:
+        value = action.group(1)
+        require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
+                "PUBLIC_CI_UNAPPROVED_ACTION:" + value)
+        # Every checkout action must explicitly avoid storing its credential.
+        following = workflow[action.end():]
+        boundary = re.search(r"(?m)^      - name: |^  [a-z0-9-]+:\n", following)
+        step = following[:boundary.start()] if boundary else following
+        require(re.search(r"(?m)^          persist-credentials: false\s*$", step)
+                is not None, "PUBLIC_CI_CHECKOUT_CREDENTIALS")
+    expected = {"* @TobbyCy", "/.github/ @TobbyCy",
+                "/tests/ci_policy.py @TobbyCy",
+                "/tests/Invoke-CiStatic.ps1 @TobbyCy"}
+    actual = {line.strip() for line in owners.splitlines()
+              if line.strip() and not line.lstrip().startswith("#")}
+    require(expected <= actual, "PUBLIC_CI_CODEOWNERS_MISSING")
+    require("ci-policy-gate:" in workflow and
+            re.search(r"(?m)^  ci-policy-gate:\n    name: ci-policy-gate\n"
+                      r"    if: \$\{\{ always\(\) \}\}", workflow) is not None and
+            "CI_NEEDS_JSON: ${{ toJSON(needs) }}" in workflow,
+            "PUBLIC_CI_FINAL_GATE_NOT_ALWAYS")
+    return True
+
+
 def path_rules(root):
     text = (root / "tests/Invoke-CiStatic.ps1").read_text(encoding="utf-8-sig")
     block = re.search(r"\$allowed = @\((.*?)\n    \)", text, re.S)
@@ -341,6 +388,7 @@ def documents(root, plan):
     require(not plan["error"], "CLASSIFICATION_SCOPE_UNPROVEN")
     entries = tree(root)
     rules, static = path_rules(root)
+    verify_public_ci_guard(root)
     audit_entries(root, entries, rules)
     audit_baseline(root, static, entries)
     check_currency(plan["context"]["changes"], entries)
