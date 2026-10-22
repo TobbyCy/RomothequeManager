@@ -1,4 +1,4 @@
-# T3 contract harness: mutations are passed to the independent validator.
+﻿# T3 contract harness: mutations are passed to the independent validator.
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version 2.0
 $root=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -15,6 +15,8 @@ $shared=ConvertFrom-Json -InputObject ([IO.File]::ReadAllText((Join-Path $PSScri
 if (-not (Assert-RmCanonicalCatalogueDto -Dto $shared)) { throw 'CATDTO_SHARED_SAMPLE_INVALID' }
 $raw=& (Join-Path $PSScriptRoot 'Export-SyntheticCanonicalCatalogue.ps1')
 $dto=ConvertFrom-Json -InputObject $raw
+if ($dto.games[0].title -cne (([char]0x00C9)+'toile des disques') -or
+ [int][char]$dto.games[0].title[0] -ne 0x00C9) { throw 'CATDTO_UNICODE_RUNTIME_FAILED' }
 if (-not (Assert-RmCanonicalCatalogueDto -Dto $dto)) { throw 'CATDTO_VALID_NOT_ACCEPTED' }
 $x=Clone-Dto $dto;$x.schemaVersion='999';Assert-Rejected $x 'CATDTO_SCHEMA_UNSUPPORTED'
 $x=Clone-Dto $dto;$x.readOnly='True';Assert-Rejected $x 'CATDTO_READONLY_REQUIRED'
