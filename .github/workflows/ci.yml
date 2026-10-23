@@ -296,6 +296,25 @@ jobs:
       - name: Require actual projects, locked restore, build and executed tests
         shell: cmd
         run: python -B tests/ci_policy.py dotnet
+      # Temporary diagnostic step: this follows a FAILED strict restore, retains the
+      # job FAILURE and never changes branch contents or CI gates.
+      - name: Print NuGet lockfile proposals after failed strict restore
+        if: ${{ failure() }}
+        shell: pwsh
+        run: |
+          dotnet --list-sdks
+          foreach ($project in @('src/RomothequeManager.V2/RomothequeManager.V2.csproj', 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj')) {
+            dotnet restore $project --force-evaluate --use-lock-file
+            if ($LASTEXITCODE -ne 0) { throw "NUGET_LOCK_PROPOSAL_RESTORE_FAILED $project" }
+            $lock = Join-Path (Split-Path $project -Parent) 'packages.lock.json'
+            $inputBytes = [IO.File]::ReadAllBytes($lock)
+            $buffer = New-Object IO.MemoryStream
+            $gz = New-Object IO.Compression.GzipStream($buffer, [IO.Compression.CompressionMode]::Compress)
+            try { $gz.Write($inputBytes, 0, $inputBytes.Length) } finally { $gz.Dispose() }
+            Write-Host ('NUGET_LOCK_PROPOSAL_BEGIN ' + $lock)
+            Write-Host ('NUGET_LOCK_GZIP_B64 ' + [Convert]::ToBase64String($buffer.ToArray()))
+            Write-Host ('NUGET_LOCK_PROPOSAL_END ' + $lock)
+          }
 
   ci-policy-gate:
     name: ci-policy-gate

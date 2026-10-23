@@ -1,5 +1,8 @@
 # État des fonctionnalités
 
+> V2-01A / Issue #41 : POC desktop .NET 10 + Avalonia 12.1.4 **en développement sur branche courte**, synthétique seulement. Aucune Release ni adoption définitive ; locks, tests, ZIP et lancement hors runtime restent à prouver. La CI de `main` reste indépendante de cette branche.
+
+
 Ce tableau distingue les **sources intégrées dans le dépôt public**, les prototypes consultables et les versions **effectivement distribuées**. Code présent ne signifie ni validation d'exécution réelle ni adoption des contrats candidats.
 
 ## État GitHub au 22 octobre 2026

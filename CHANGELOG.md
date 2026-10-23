@@ -4,6 +4,9 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 ## Non publié — développement
 
+- V2-01A / Issue #41 (PR candidate) : premiers sources desktop C#/.NET 10 + Avalonia 12.1.4, Dashboard/Collection/fiche sur six jeux fictifs. Tests .NET, verrouillage NuGet et ZIP autonome **non validés à ce stade** ; aucun runtime téléchargé côté utilisateur, lecture seule et aucune ROM réelle.
+
+
 - VAL-01 / Issue #39 : smoke **Microsoft Edge réel sous Windows**, en mode headless sur les deux pages HTML `file://` et données fictives. Pilotage CDP par Node natif sans dépendance téléchargée ; gestes souris, navigation, fiches, comparaison, index inaccessible, OFFLINE/STALE/UNKNOWN, exceptions JavaScript et requêtes réseau non autorisées. Contrôle obligatoire dans CI-0 ; preuve Edge et gate à vérifier sur SHA exact, aucun navigateur humain ni Release présumés.
 
 - Issue #2 : correction de l'indentation du commit conditionnel dans le test Python de routage CI (`tests/test_ci_policy.py`, lignes 555–556) ; remplacement d'un canari négatif de chemin devenu obsolète (`.github/CODEOWNERS`, autorisé) par `.github/CODEOWNERS.txt` (toujours interdit et non ignoré par Git). Huit chemins négatifs contrôlés sans assouplir l'allowlist. Une assertion PS5.1 Bibliothèques découvert après déblocage de Python conserve son critère strict et affiche désormais l'exception observée en cas de refus incorrect ; gate complet à revalider.
