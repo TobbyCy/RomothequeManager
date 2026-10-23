@@ -18,9 +18,9 @@ if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP) -or [string]::IsNullOrWhiteSp
 }
 
 $repo = (Resolve-Path -LiteralPath '.').Path
-$noticeSource = Join-Path $repo 'docs/legal/THIRD-PARTY-NOTICES.txt'
-$inventorySource = Join-Path $repo 'docs/legal/THIRD-PARTY-INVENTORY.md'
-foreach ($requiredSource in @($noticeSource, $inventorySource, (Join-Path $repo 'LICENSE'), (Join-Path $repo 'LEGAL.md'))) {
+$noticeSource = Join-Path $repo 'packaging/THIRD-PARTY-NOTICES.txt'
+$inventorySource = Join-Path $repo 'docs/developer/lic-zip-01-inventory.md'
+foreach ($requiredSource in @($noticeSource, $inventorySource, (Join-Path $repo 'LICENSE'), (Join-Path $repo 'LEGAL.md'), (Join-Path $repo 'BRANDING.md'))) {
   if (-not (Test-Path -LiteralPath $requiredSource -PathType Leaf)) {
     throw ('DIST_REQUIRED_NOTICE_OR_LEGAL_FILE_MISSING:' + $requiredSource)
   }
@@ -34,6 +34,9 @@ foreach ($name in @('Avalonia', 'SkiaSharp', 'HarfBuzz', 'Microsoft', 'MIT')) {
 if ($notices -match '(?i)\[(?:TODO|PENDING|TBD)\]' -or $inventory -match '(?i)\[(?:TODO|PENDING|TBD)\]') {
   throw 'DIST_NOTICES_UNRESOLVED_PLACEHOLDER'
 }
+if ($inventory -cnotmatch '(?m)^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED$') {
+  throw 'DIST_LICENCE_VALIDATION_HOLD'
+}
 
 $stage = Join-Path $env:RUNNER_TEMP ('dist-zip-01-' + $SourceSha.Substring(0, 12))
 $publish = Join-Path $stage 'app'
@@ -45,8 +48,77 @@ if ($LASTEXITCODE -ne 0) { throw 'DIST_LOCKED_RESTORE_FAILED' }
 dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:ContinuousIntegrationBuild=true -p:TreatWarningsAsErrors=true -o $publish
 if ($LASTEXITCODE -ne 0) { throw 'DIST_PUBLISH_FAILED' }
 
+# Canonical LIC-ZIP-01 source files come from DEV 2, not memory or placeholders.
+$licensesSource = Join-Path $repo 'packaging/licenses'
+$requiredLicenseNames = @(
+  'ANGLE-LICENSE.txt', 'Avalonia-LICENSE.txt', 'Avalonia-NOTICE.txt',
+  'HarfBuzz-COPYING.txt', 'MicroCom-LICENSE.txt', 'Skia-LICENSE.txt',
+  'SkiaSharp-LICENSE.txt', 'Tmds.DBus-COPYING.txt'
+)
+foreach ($name in $requiredLicenseNames) {
+  $source = Join-Path $licensesSource $name
+  if (-not (Test-Path -LiteralPath $source -PathType Leaf) -or (Get-Item -LiteralPath $source).Length -lt 100) {
+    throw ('DIST_REQUIRED_FULL_LICENSE_MISSING:' + $name)
+  }
+}
+$licenseDestination = Join-Path $publish 'licenses'
+New-Item -ItemType Directory -Force -Path $licenseDestination | Out-Null
+foreach ($name in $requiredLicenseNames) {
+  Copy-Item -LiteralPath (Join-Path $licensesSource $name) -Destination (Join-Path $licenseDestination $name) -Force
+}
+# The Windows .NET product runtime has its OWN binary license, not merely MIT.
+$runtimePackId = 'Microsoft.NETCore.App.Runtime.win-x64'
+$runtimePackVersion = '10.0.12'
+$fxrVersion = (Get-Item -LiteralPath (Join-Path $publish 'hostfxr.dll')).VersionInfo.ProductVersion
+if (-not $fxrVersion.StartsWith($runtimePackVersion)) { throw ('DIST_RUNTIME_PACK_VERSION_MISMATCH:' + $fxrVersion) }
+$nugetRoot = if (-not [string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) {
+  $env:NUGET_PACKAGES
+} else {
+  Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages'
+}
+$runtimeCandidates = @((Join-Path $nugetRoot ('microsoft.netcore.app.runtime.win-x64/' + $runtimePackVersion)))
+if (-not [string]::IsNullOrWhiteSpace($env:DOTNET_ROOT)) {
+  $runtimeCandidates += (Join-Path $env:DOTNET_ROOT ('packs/Microsoft.NETCore.App.Runtime.win-x64/' + $runtimePackVersion))
+}
+$runtimeLicense = $null
+$runtimeNotices = $null
+$runtimePackSource = $null
+foreach ($candidate in $runtimeCandidates) {
+  if (-not (Test-Path -LiteralPath $candidate -PathType Container)) { continue }
+  $lic = @(Get-ChildItem -LiteralPath $candidate -Recurse -File | Where-Object { $_.Name -ceq 'LICENSE.TXT' })
+  $not = @(Get-ChildItem -LiteralPath $candidate -Recurse -File | Where-Object { $_.Name -ceq 'THIRD-PARTY-NOTICES.TXT' })
+  if ($lic.Count -eq 1 -and $not.Count -eq 1) {
+    $runtimeLicense = $lic[0]
+    $runtimeNotices = $not[0]
+    $runtimePackSource = $candidate
+    break
+  }
+}
+if ($null -eq $runtimeLicense -or $null -eq $runtimeNotices) {
+  throw 'DIST_EXACT_WINDOWS_RUNTIME_LEGAL_ASSETS_MISSING'
+}
+if ($runtimeLicense.Length -lt 500 -or $runtimeNotices.Length -lt 500) {
+  throw 'DIST_RUNTIME_LEGAL_ASSETS_INCOMPLETE'
+}
+$runtimeLegalDestination = Join-Path $licenseDestination 'dotnet-runtime'
+New-Item -ItemType Directory -Force -Path $runtimeLegalDestination | Out-Null
+Copy-Item -LiteralPath $runtimeLicense.FullName -Destination (Join-Path $runtimeLegalDestination 'LICENSE.TXT') -Force
+Copy-Item -LiteralPath $runtimeNotices.FullName -Destination (Join-Path $runtimeLegalDestination 'THIRD-PARTY-NOTICES.TXT') -Force
+$runtimeLicenseSha = (Get-FileHash -LiteralPath $runtimeLicense.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+$runtimeNoticesSha = (Get-FileHash -LiteralPath $runtimeNotices.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+$runtimeProvenance = [ordered]@{
+  package = $runtimePackId
+  version = $runtimePackVersion
+  hostfxrProductVersion = $fxrVersion
+  licenseSha256 = $runtimeLicenseSha
+  thirdPartyNoticesSha256 = $runtimeNoticesSha
+}
+[IO.File]::WriteAllText((Join-Path $runtimeLegalDestination 'PROVENANCE.json'), (($runtimeProvenance | ConvertTo-Json -Depth 4) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
+Write-Host ('DIST_RUNTIME_LEGAL_ASSETS_VERIFIED package=' + $runtimePackId + ' version=' + $runtimePackVersion + ' licenseSha256=' + $runtimeLicenseSha + ' noticesSha256=' + $runtimeNoticesSha + ' source=' + $runtimePackSource)
+
 Copy-Item -LiteralPath (Join-Path $repo 'LICENSE') -Destination (Join-Path $publish 'LICENSE') -Force
 Copy-Item -LiteralPath (Join-Path $repo 'LEGAL.md') -Destination (Join-Path $publish 'LEGAL.md') -Force
+Copy-Item -LiteralPath (Join-Path $repo 'BRANDING.md') -Destination (Join-Path $publish 'BRANDING.md') -Force
 Copy-Item -LiteralPath $noticeSource -Destination (Join-Path $publish 'THIRD-PARTY-NOTICES.txt') -Force
 Copy-Item -LiteralPath $inventorySource -Destination (Join-Path $publish 'THIRD-PARTY-INVENTORY.md') -Force
 $notice = @(
@@ -69,10 +141,11 @@ $manifest = [ordered]@{
   libraryFixtures = 3
   views = @('Dashboard', 'Collection', 'GameDetail', 'Libraries')
   distribution = 'POC_TEST_ONLY_OWNER_CONTROLLED'
+  runtimePack = 'Microsoft.NETCore.App.Runtime.win-x64/10.0.12'
 }
 [IO.File]::WriteAllText((Join-Path $publish 'POC-MANIFEST.json'), (($manifest | ConvertTo-Json -Depth 4) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
 
-foreach ($required in @('RomothequeManager.V2.exe', 'coreclr.dll', 'hostfxr.dll', 'LICENSE', 'LEGAL.md', 'POC-NOTICE.txt', 'POC-MANIFEST.json', 'THIRD-PARTY-NOTICES.txt', 'THIRD-PARTY-INVENTORY.md')) {
+foreach ($required in @('RomothequeManager.V2.exe', 'coreclr.dll', 'hostfxr.dll', 'LICENSE', 'LEGAL.md', 'BRANDING.md', 'POC-NOTICE.txt', 'POC-MANIFEST.json', 'THIRD-PARTY-NOTICES.txt', 'THIRD-PARTY-INVENTORY.md', 'licenses/dotnet-runtime/LICENSE.TXT', 'licenses/dotnet-runtime/THIRD-PARTY-NOTICES.TXT', 'licenses/dotnet-runtime/PROVENANCE.json')) {
   if (-not (Test-Path -LiteralPath (Join-Path $publish $required) -PathType Leaf)) {
     throw ('DIST_PUBLISH_FILE_MISSING:' + $required)
   }
@@ -150,7 +223,7 @@ foreach ($file in $published) {
   }
 }
 $checkedManifest = Get-Content -LiteralPath (Join-Path $extract 'POC-MANIFEST.json') -Raw | ConvertFrom-Json
-if ($checkedManifest.sourceCommit -cne $SourceSha -or $checkedManifest.runtimeIdentifier -cne 'win-x64' -or -not $checkedManifest.selfContained -or -not $checkedManifest.syntheticOnly -or $checkedManifest.gameFixtures -ne 6 -or $checkedManifest.libraryFixtures -ne 3 -or ($checkedManifest.views -join ',') -cne 'Dashboard,Collection,GameDetail,Libraries' -or $checkedManifest.distribution -cne 'POC_TEST_ONLY_OWNER_CONTROLLED') {
+if ($checkedManifest.sourceCommit -cne $SourceSha -or $checkedManifest.runtimeIdentifier -cne 'win-x64' -or -not $checkedManifest.selfContained -or -not $checkedManifest.syntheticOnly -or $checkedManifest.gameFixtures -ne 6 -or $checkedManifest.libraryFixtures -ne 3 -or ($checkedManifest.views -join ',') -cne 'Dashboard,Collection,GameDetail,Libraries' -or $checkedManifest.distribution -cne 'POC_TEST_ONLY_OWNER_CONTROLLED' -or $checkedManifest.runtimePack -cne 'Microsoft.NETCore.App.Runtime.win-x64/10.0.12') {
   throw 'DIST_MANIFEST_INVALID'
 }
 $start = New-Object Diagnostics.ProcessStartInfo

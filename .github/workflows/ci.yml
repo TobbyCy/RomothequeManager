@@ -354,6 +354,27 @@ jobs:
             Write-Host ('PUBLISH_FILE_JSON ' + ($record | ConvertTo-Json -Compress))
           }
           Write-Host ('PUBLISH_FILE_MANIFEST_END source=' + $env:GITHUB_SHA + ' count=' + $publishFiles.Count)
+          # LIC-ZIP-01: locate publisher-supplied .NET Windows runtime legal assets.
+          $fxrVersion = (Get-Item -LiteralPath (Join-Path $publish 'hostfxr.dll')).VersionInfo.ProductVersion
+          $runtimeVersion = '10.0.12'
+          $nugetRoot = if (-not [string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) { $env:NUGET_PACKAGES } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages' }
+          $runtimeRoots = @((Join-Path $nugetRoot ('microsoft.netcore.app.runtime.win-x64/' + $runtimeVersion)))
+          if (-not [string]::IsNullOrWhiteSpace($env:DOTNET_ROOT)) { $runtimeRoots += (Join-Path $env:DOTNET_ROOT ('packs/Microsoft.NETCore.App.Runtime.win-x64/' + $runtimeVersion)) }
+          Write-Host ('DOTNET_RUNTIME_LEGAL_DISCOVERY_BEGIN version=' + $runtimeVersion + ' hostfxr=' + $fxrVersion)
+          $found = $false
+          foreach ($runtimeRoot in $runtimeRoots) {
+            if (-not (Test-Path -LiteralPath $runtimeRoot -PathType Container)) { continue }
+            $licenseFiles = @(Get-ChildItem -LiteralPath $runtimeRoot -Recurse -File | Where-Object { $_.Name -ceq 'LICENSE.TXT' })
+            $noticeFiles = @(Get-ChildItem -LiteralPath $runtimeRoot -Recurse -File | Where-Object { $_.Name -ceq 'THIRD-PARTY-NOTICES.TXT' })
+            if ($licenseFiles.Count -ne 1 -or $noticeFiles.Count -ne 1) { continue }
+            foreach ($file in @($licenseFiles[0], $noticeFiles[0])) {
+              Write-Host ('DOTNET_RUNTIME_LEGAL_FILE name=' + $file.Name + ' bytes=' + $file.Length + ' sha256=' + (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant() + ' source=' + $file.FullName)
+            }
+            $found = $true
+            break
+          }
+          if (-not $found) { Write-Host 'DOTNET_RUNTIME_LEGAL_DISCOVERY_NOT_FOUND — release remains HOLD' }
+
           Copy-Item -LiteralPath 'LICENSE' -Destination (Join-Path $publish 'LICENSE') -Force
           $notice = @(
             'ROMothèque Manager V2-01C — POC SYNTHÉTIQUE, lecture seule.'

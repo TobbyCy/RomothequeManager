@@ -14,7 +14,7 @@ Cette CI n'atteste pas encore un démarrage sur un Windows x64 propre sans runti
 
 Après fusion de la [PR #53](https://github.com/TobbyCy/RomothequeManager/pull/53) sur `main=31579350033c22cd3c55e156d29a4da7f18ad822`, Tobby a donné **GO_PREPARE_TEST_DISTRIBUTION**, pas le GO final d'upload. Une voie manuelle `workflow_dispatch` est préparée : `validate` (ZIP et SHA-256 éphémères, contrôlés depuis extraction) puis `publish` (pré-release de test uniquement après hash/commit/tag et variables d'approbation exacts). Aucune exécution PR/push n'autorise un upload.
 
-**Gates encore ouverts :** `THIRD-PARTY-NOTICES.txt` et inventaire validés par DEV 2, contrôle Agent du paquet exact, concordance inter-runs du SHA-256, autorisation finale du Contrôleur/Tobby, puis essai UXZIP-01–12 sur Windows externe. Le workflow doit échouer si les notices sont absentes ; **aucun ZIP n'est actuellement téléchargeable**. Voir [guide packaging et distribution](developer/v2-01c-packaging.md).
+**Gates encore ouverts :** `packaging/THIRD-PARTY-NOTICES.txt`, les huit licences complètes, le runtime .NET Windows et l'inventaire validés par DEV 2, contrôle Agent du paquet exact, concordance inter-runs du SHA-256, autorisation finale du Contrôleur/Tobby, puis essai UXZIP-01–12 sur Windows externe. Le workflow doit échouer si les notices sont absentes ; **aucun ZIP n'est actuellement téléchargeable**. Voir [guide packaging et distribution](developer/v2-01c-packaging.md).
 
 ## V2-01B intégré — Bibliothèques et snapshots
 

@@ -39,7 +39,7 @@ try {
         '^Modules/[A-Za-z][A-Za-z0-9]*\.psm1$',
         '^Export/(ExportE1\.psm1|Invoke-ExportE1InventoryReadOnly\.ps1|README\.md)$',
         '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$', '^scripts/Build-DistZip\.ps1$',
-        '^docs/(product-status|roadmap)\.md$', '^docs/legal/THIRD-PARTY-NOTICES\.txt$', '^docs/legal/THIRD-PARTY-INVENTORY\.md$',
+        '^docs/(product-status|roadmap)\.md$', '^packaging/THIRD-PARTY-NOTICES\.txt$', '^packaging/licenses/[A-Za-z0-9_.-]+\.txt$',
         '^docs/(user|developer|architecture|decisions|ux)/[A-Za-z0-9_.-]+\.md$',
         '^\.github/workflows/ci\.yml$', '^\.github/workflows/dist-zip\.yml$', '^\.github/CODEOWNERS$', '^\.github/pull_request_template\.md$',
         '^\.github/ISSUE_TEMPLATE/(bug|config|docs|feature|question)\.yml$',
