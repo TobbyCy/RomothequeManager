@@ -463,11 +463,24 @@ class WorkflowTests(unittest.TestCase):
                     p.verify_sdk_pin(root)
             target.unlink()
 
-    def test_v2_01a_distribution_hold_required(self):
+    def test_v2_01c_zip_is_verified_and_distribution_stays_blocked(self):
         root = Path(__file__).resolve().parent.parent
         workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn("POC_ZIP_QUARANTINED_NOT_UPLOADED", workflow)
+        for required in (
+            "RomothequeManager-V2-01C-win-x64.zip",
+            "Get-FileHash -LiteralPath $zip -Algorithm SHA256",
+            "Expand-Archive -LiteralPath $zip",
+            "V2C_ARCHIVE_FILE_SET_MISMATCH",
+            "V2C_FORBIDDEN_PACKAGE_FILE",
+            "V2C_EXTRACTED_WINDOW_FAILED",
+            "views=Dashboard,Collection,GameDetail,Libraries fixtures=6 synthetic=1",
+            "V2C_ZIP_VERIFIED_PASS",
+            "POC_ZIP_QUARANTINED_NOT_UPLOADED",
+            "HOLD_OWNER_GO",
+        ):
+            self.assertIn(required, workflow)
         self.assertNotIn("actions/upload-artifact@", workflow)
+        self.assertNotIn("gh release", workflow)
         self.assertNotIn("v2-01a-win-x64-candidate", workflow)
 
     def test_val01_edge_is_required_and_fail_closed(self):
