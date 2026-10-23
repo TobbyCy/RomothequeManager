@@ -1,5 +1,9 @@
 # ROMothèque Manager
 
+<p align="center">
+  <img src="assets/branding/RM_V2_Horizontal_Fond_Sombre.png" alt="ROMothèque Manager — cartouche rétro stylisée avec étagère et flèche rouge" width="640">
+</p>
+
 **Inventorier, comprendre et organiser ses bibliothèques de jeux rétro — sans perdre de vue la provenance des fichiers ni l'état réel des supports.**
 
 ROMothèque Manager est un projet logiciel **indépendant et open source pour son code original**, consacré à la gestion de collections **locales** de jeux vidéo rétro. Il distingue les jeux, leurs variantes, les unités de fichiers, les métadonnées **EmulationStation Desktop Edition (ES-DE)** et les observations enregistrées au fil des inventaires.
@@ -7,11 +11,8 @@ ROMothèque Manager est un projet logiciel **indépendant et open source pour so
 > **Aujourd'hui :** code source public, démonstrations web hors ligne et **POC Windows .NET 10 / Avalonia intégré au code source**, limité à trois vues et six jeux fictifs. **Aucune application distribuée, aucun ZIP Windows téléchargeable et aucune GitHub Release.**
 >
 > **Aucune ROM, aucun BIOS ni jeu commercial n'est fourni ou proposé au téléchargement.**
-
-<!-- Bandeau officiel V2 envisagé : RM_V2_Horizontal_Fond_Sombre.png.
-     NE PAS inclure de lien/image avant vérification de la provenance, de la permission
-     de redistribution publique, des droits tiers et de l'allowlist CI ciblée.
-     Voir BRANDING.md et l'Issue Produit #35. -->
+>
+> **Bandeau officiel V2 :** identité créée pour le projet avec ChatGPT à la demande du propriétaire, reproduite ici avec son autorisation. Les [droits graphiques](BRANDING.md) sont distincts de la licence MIT du code.
 
 ## Pourquoi ROMothèque Manager ?
 
