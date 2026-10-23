@@ -1,0 +1,58 @@
+ROMOTHEQUE MANAGER — THIRD-PARTY NOTICES (source inventory, LIC-ZIP-01)
+=====================================================================
+
+This file is an index of third-party legal notices prepared for the Windows x64
+self-contained ZIP. It is not, by itself, proof that the final ZIP is complete.
+The distribution process MUST package this file and all applicable full-text
+files under licenses/, together with the exact .NET runtime-pack license assets.
+
+AVALONIA 12.1.4 (Avalonia, Desktop, Themes.Fluent, Win32, Skia, HarfBuzz,
+FreeDesktop, AtSpi, Native, X11, Remote.Protocol as actually shipped)
+  License: MIT. Full text: licenses/Avalonia-LICENSE.txt
+  Publisher's third-party notice: licenses/Avalonia-NOTICE.txt
+  Source: https://github.com/AvaloniaUI/Avalonia/tree/12.1.4
+
+ANGLE WINDOWS NATIVES 2.1.27548.20260419 (if native DLL redistributed)
+  License: BSD-style redistribution terms. Full text: licenses/ANGLE-LICENSE.txt
+  Source: https://www.nuget.org/packages/Avalonia.Angle.Windows.Natives/2.1.27548.20260419/License
+
+SKIASHARP 3.119.4 / HARFBUZZSHARP 8.3.1.3 (managed wrapper as shipped)
+  License: MIT. Full text: licenses/SkiaSharp-LICENSE.txt
+  Source: https://github.com/mono/SkiaSharp/blob/v3.119.4/LICENSE.md
+
+SKIA NATIVE (if libSkiaSharp / linked native code redistributed)
+  License: BSD-style. Full text: licenses/Skia-LICENSE.txt
+  Source: https://github.com/google/skia/blob/main/LICENSE
+  Additional third-party notices built into the exact native binary must be
+  determined from its producer distribution, not inferred solely from this file.
+
+HARFBUZZ NATIVE 8.3.1 (if libHarfBuzzSharp / linked native code redistributed)
+  License: Old MIT. Full text: licenses/HarfBuzz-COPYING.txt
+  Source: https://github.com/harfbuzz/harfbuzz/blob/8.3.1/COPYING
+  Additional component-specific COPYING files must be verified against the
+  exact native package contents.
+
+MICROCOM.RUNTIME 0.11.6 (if assembly redistributed)
+  License: MIT. Full text: licenses/MicroCom-LICENSE.txt
+  Source: https://github.com/kekekeks/MicroCom/blob/master/LICENSE
+
+TMDS.DBUS.PROTOCOL 0.94.1 (if assembly redistributed)
+  License: MIT. Full text: licenses/Tmds.DBus-COPYING.txt
+  Source: https://github.com/tmds/Tmds.DBus/blob/main/COPYING
+
+MICROSOFT .NET 10 WINDOWS SELF-CONTAINED RUNTIME (runtime files redistributed)
+  The ZIP MUST contain the complete, unmodified LICENSE.TXT and
+  THIRD-PARTY-NOTICES.TXT from the precise Microsoft.NETCore.App.Runtime.win-x64
+  runtime pack used by dotnet publish. Preserve their exact names, hashes,
+  version and provenance under licenses/dotnet-runtime/.
+  Source rule: https://github.com/dotnet/runtime/blob/main/docs/project/licensing-assets.md
+
+ROMOTHEQUE MANAGER PROJECT LICENSE / BRAND RIGHTS
+  Project MIT LICENSE is separate and must accompany the distribution.
+  Project-brand assets have their own restrictions (see BRANDING.md); they are
+  not automatically relicensed as MIT by this notice.
+
+RELEASE GATE
+  The legal inventory must be reconciled with the actual publish-file manifest,
+  runtime pack, native binary notices and exact ZIP hash. Until then, do NOT
+  distribute this source index as proof of completed license compliance.
