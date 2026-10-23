@@ -2,7 +2,7 @@
 
 **Inventorier, comprendre et organiser ses bibliothèques de jeux rétro — sans perdre de vue la provenance des fichiers ni l'état réel des supports.**
 
-ROMothèque Manager est un projet logiciel **indépendant et open source pour son code original**, consacré à la gestion de collections **locales** de jeux vidéo rétro. Il distingue les jeux, leurs variantes, les unités de fichiers, les métadonnées **EmulationStation Desktop Edition (ES-DE)** et les observations enregistrées au fil des inventaires.
+ROMothèque Manager est un projet logiciel **indépendant et open source pour son code original**, consacré à la gestion de collections **locales** de jeux vidéo rétro. Il distingue les jeux, leurs variantes, les unités de fichiers, les **métadonnées issues de sources importées** (dont **EmulationStation Desktop Edition — ES-DE**, source historique initiale) et les observations enregistrées au fil des inventaires. **À terme**, l'objectif est de conserver un catalogue interne indépendant des XML importés ; cette persistance autonome n'est pas encore livrée.
 
 > **Aujourd'hui :** code source public, démonstrations web hors ligne et **POC Windows .NET 10 / Avalonia intégré au code source**, limité à trois vues et six jeux fictifs. **Aucune application distribuée, aucun ZIP Windows téléchargeable et aucune GitHub Release.**
 >
@@ -15,7 +15,7 @@ ROMothèque Manager est un projet logiciel **indépendant et open source pour so
 
 ## Pourquoi ROMothèque Manager ?
 
-Une bibliothèque rétro n'est pas simplement une liste de fichiers. Un même jeu peut posséder plusieurs versions, disques ou formats ; des fiches ES-DE peuvent regrouper ou décrire ces éléments de manière différente ; et les supports ou leurs index ne sont pas toujours accessibles.
+Une bibliothèque rétro n'est pas simplement une liste de fichiers. Un même jeu peut posséder plusieurs versions, disques ou formats ; des métadonnées importées, notamment depuis ES-DE, peuvent regrouper ou décrire ces éléments de manière différente ; et les supports ou leurs index ne sont pas toujours accessibles.
 
 Le projet cherche à répondre à quatre questions sans les confondre :
 
