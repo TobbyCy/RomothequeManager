@@ -4,35 +4,49 @@ Source figée : `src/RomothequeManager.V2/packages.lock.json` du `main` après P
 
 ## Portée et méthode
 
-La restauration NuGet ne prouve **pas** que les fichiers sont publiés. Les 25 paquets ci-dessous sont les dépendances résolues de `net10.0`; une entrée du bloc RID `net10.0/win-x64` n'est **pas** non plus une preuve de contenu ZIP. L'inventaire de sources est établi ; la colonne de présence réelle reste à renseigner à partir du manifeste de `dotnet publish` fourni par DEV 1. Les composants natifs statiquement intégrés demandent aussi des avis spécifiques.
+La restauration NuGet ne prouve **pas** que les fichiers sont publiés. Les 25 paquets ci-dessous sont les dépendances résolues de `net10.0`; une entrée du bloc RID `net10.0/win-x64` n'est **pas** non plus une preuve de contenu ZIP. Le manifeste **du publish candidat** fourni par DEV 1 sur [PR #55 / Adaptive CI #174](https://github.com/TobbyCy/RomothequeManager/actions/runs/39958695887) contient **223 fichiers** (`PUBLISH_FILE_JSON`, merge SHA `053100390487f7bc0dee653f594bc5cb3cff9442`) et permet la confrontation de la colonne finale. Ce n'est **pas** encore le manifeste du ZIP final : toute modification de dépendances, suppression ou ajout impose un nouveau rapprochement. Les composants natifs statiquement intégrés demandent aussi des avis spécifiques.
 
-| Paquet NuGet | Version verrouillée | Licence / famille | Notice source candidate pour le ZIP | Statut de présence à valider |
+| Paquet NuGet | Version verrouillée | Licence / famille | Notice source candidate pour le ZIP | Présence prouvée dans le publish candidat de #55 |
 |---|---|---|---|---|
-| `Avalonia` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.Angle.Windows.Natives` | `2.1.27548.20260419` | ANGLE BSD-style | licenses/ANGLE-LICENSE.txt | Windows natif candidat; vérifier DLL exacte |
-| `Avalonia.BuildServices` | `11.3.2` | À relever du paquet; build uniquement attendu | — si absent | Exclure du ZIP seulement après preuve de manifeste |
-| `Avalonia.Desktop` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.FreeDesktop` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.FreeDesktop.AtSpi` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.HarfBuzz` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.Native` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.Remote.Protocol` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.Skia` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.Themes.Fluent` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.Win32` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `Avalonia.X11` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | Assembly candidat; confronter au publish |
-| `HarfBuzzSharp` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz si natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | Assembly managé candidat; prouver présence native |
-| `HarfBuzzSharp.NativeAssets.Linux` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | RID non Windows; exclusion à prouver |
-| `HarfBuzzSharp.NativeAssets.macOS` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | RID non Windows; exclusion à prouver |
-| `HarfBuzzSharp.NativeAssets.WebAssembly` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | RID non Windows; exclusion à prouver |
-| `HarfBuzzSharp.NativeAssets.Win32` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | DLL native Win32 candidate; vérifier licence exacte |
-| `MicroCom.Runtime` | `0.11.6` | MIT | licenses/MicroCom-LICENSE.txt | Assembly managé candidat |
-| `SkiaSharp` | `3.119.4` | MIT wrapper + BSD Skia si natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | Assembly managé candidat; prouver présence native |
-| `SkiaSharp.NativeAssets.Linux` | `3.119.4` | MIT wrapper + BSD Skia natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | RID non Windows; exclusion à prouver |
-| `SkiaSharp.NativeAssets.macOS` | `3.119.4` | MIT wrapper + BSD Skia natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | RID non Windows; exclusion à prouver |
-| `SkiaSharp.NativeAssets.WebAssembly` | `3.119.4` | MIT wrapper + BSD Skia natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | RID non Windows; exclusion à prouver |
-| `SkiaSharp.NativeAssets.Win32` | `3.119.4` | MIT wrapper + BSD Skia natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | DLL native Win32 candidate; vérifier licence embarquée et avis statiques |
-| `Tmds.DBus.Protocol` | `0.94.1` | MIT | licenses/Tmds.DBus-COPYING.txt | Assembly Linux/D-Bus potentiellement exclue, à prouver |
+| `Avalonia` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.dll`, `Avalonia.Base.dll`, `Avalonia.Controls.dll` (entre autres) |
+| `Avalonia.Angle.Windows.Natives` | `2.1.27548.20260419` | ANGLE BSD-style | licenses/ANGLE-LICENSE.txt | `PRESENT_CANDIDAT` : `av_libglesv2.dll` |
+| `Avalonia.BuildServices` | `11.3.2` | À relever du paquet; build uniquement attendu | — si absent | `ABSENT_CANDIDAT` : aucun binaire `Avalonia.BuildServices` |
+| `Avalonia.Desktop` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.Desktop.dll` |
+| `Avalonia.FreeDesktop` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.FreeDesktop.dll` |
+| `Avalonia.FreeDesktop.AtSpi` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.FreeDesktop.AtSpi.dll` |
+| `Avalonia.HarfBuzz` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.HarfBuzz.dll` |
+| `Avalonia.Native` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.Native.dll` |
+| `Avalonia.Remote.Protocol` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.Remote.Protocol.dll` |
+| `Avalonia.Skia` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.Skia.dll` |
+| `Avalonia.Themes.Fluent` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.Themes.Fluent.dll` |
+| `Avalonia.Win32` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.Win32.dll` |
+| `Avalonia.X11` | `12.1.4` | MIT + NOTICE éditeur | licenses/Avalonia-LICENSE.txt + Avalonia-NOTICE.txt | `PRESENT_CANDIDAT` : `Avalonia.X11.dll` (managé même sur Windows) |
+| `HarfBuzzSharp` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz si natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | `PRESENT_CANDIDAT` : `HarfBuzzSharp.dll` |
+| `HarfBuzzSharp.NativeAssets.Linux` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | `NATIF_AUTRE_RID_ABSENT_CANDIDAT` : aucun `.so`, `.dylib`, `.wasm` |
+| `HarfBuzzSharp.NativeAssets.macOS` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | `NATIF_AUTRE_RID_ABSENT_CANDIDAT` : aucun `.so`, `.dylib`, `.wasm` |
+| `HarfBuzzSharp.NativeAssets.WebAssembly` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | `NATIF_AUTRE_RID_ABSENT_CANDIDAT` : aucun `.so`, `.dylib`, `.wasm` |
+| `HarfBuzzSharp.NativeAssets.Win32` | `8.3.1.3` | MIT wrapper + Old MIT HarfBuzz natif | licenses/SkiaSharp-LICENSE.txt + HarfBuzz-COPYING.txt | `PRESENT_CANDIDAT` : `libHarfBuzzSharp.dll` |
+| `MicroCom.Runtime` | `0.11.6` | MIT | licenses/MicroCom-LICENSE.txt | `PRESENT_CANDIDAT` : `MicroCom.Runtime.dll` |
+| `SkiaSharp` | `3.119.4` | MIT wrapper + BSD Skia si natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | `PRESENT_CANDIDAT` : `SkiaSharp.dll` |
+| `SkiaSharp.NativeAssets.Linux` | `3.119.4` | MIT wrapper + BSD Skia natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | `NATIF_AUTRE_RID_ABSENT_CANDIDAT` : aucun `.so`, `.dylib`, `.wasm` |
+| `SkiaSharp.NativeAssets.macOS` | `3.119.4` | MIT wrapper + BSD Skia natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | `NATIF_AUTRE_RID_ABSENT_CANDIDAT` : aucun `.so`, `.dylib`, `.wasm` |
+| `SkiaSharp.NativeAssets.WebAssembly` | `3.119.4` | MIT wrapper + BSD Skia natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | `NATIF_AUTRE_RID_ABSENT_CANDIDAT` : aucun `.so`, `.dylib`, `.wasm` |
+| `SkiaSharp.NativeAssets.Win32` | `3.119.4` | MIT wrapper + BSD Skia natif | licenses/SkiaSharp-LICENSE.txt + Skia-LICENSE.txt | `PRESENT_CANDIDAT` : `libSkiaSharp.dll` |
+| `Tmds.DBus.Protocol` | `0.94.1` | MIT | licenses/Tmds.DBus-COPYING.txt | `PRESENT_CANDIDAT` : `Tmds.DBus.Protocol.dll` (managé même sur Windows) |
+
+## Preuve fichier-level du candidat de DEV 1
+
+Source : [PR #55, job .NET de la CI #174](https://github.com/TobbyCy/RomothequeManager/actions/runs/39958695887/job/120431047432), bloc `PUBLISH_FILE_MANIFEST_BEGIN/END`, **223 fichiers** avant ajout des fichiers juridiques. Les 25 paquets NuGet ont été confrontés aux noms observés. **22 assemblies Avalonia** y sont visibles, y compris les modules managés FreeDesktop/X11 : ne pas les exclure au motif qu'ils visent Linux. Les variantes natives Linux/macOS/WebAssembly ne sont pas présentes (0 extension `.so`, `.dylib`, `.wasm`).
+
+| Binaire observé | SHA-256 du candidat | Constat |
+|---|---|---|
+| `av_libglesv2.dll` | `53191a77fe783cd757ca7767077c2a64a662e7043777a5b4ab74980d4a0b73e3` | ANGLE natif Windows présent |
+| `libSkiaSharp.dll` | `7dec3ba900ab353491e6446f0083739924c6f8dd668832e2f09d38ebffdbbe1c` | Skia natif présent |
+| `libHarfBuzzSharp.dll` | `145ade963eba427027d5e1381db5d51a0ef9e98e9fef9efbfa6074ca20da246f` | HarfBuzz natif présent |
+| `hostfxr.dll` | `838591885c5396fb0588a3aedc2f3e841d3afc67570868b1bce615264005a44c` | Version **.NET 10.0.12**, commit runtime `95017c71…` |
+| `System.Private.CoreLib.dll` | `1125acc8106c43fc8bad2d203c4c4485df6182d292846c2fff415c1040c54678` | Version **10.0.12-servicing.26422.108**, même commit |
+
+Le manifeste observe également `MicroCom.Runtime.dll`, `Tmds.DBus.Protocol.dll`, `HarfBuzzSharp.dll` et `SkiaSharp.dll`. Les noms de fichiers constituent une preuve de présence, mais la **provenance exacte de la licence binaire Microsoft** doit être rapprochée du runtime pack NuGet **10.0.12** ; les notices de la branche source [dotnet/runtime v10.0.12](https://github.com/dotnet/runtime/tree/v10.0.12) ne suffisent pas à prouver le contenu du pack Windows.
 
 ## Sources éditeurs et textes complets conservés
 
@@ -48,10 +62,10 @@ Les textes complets identifiés sont dans `packaging/licenses/` ; `packaging/THI
 
 ## Contrôles de clôture nécessaires — pas de GO distribution à ce stade
 
-1. **PUBLISH-MAP** : DEV 1 publie le manifeste exhaustif du `dotnet publish -r win-x64 --self-contained true` sur le HEAD de distribution, avec noms et SHA-256 ; rapprocher chaque `.dll`/natif des paquets de ce tableau. Confirmer par absence les paquets non-Windows ; les sections du lock ne suffisent pas.
-2. **DOTNET-RUNTIME** : relever la version exacte du runtime pack et les deux documents binaires Microsoft ; les copier dans le ZIP et prouver leur provenance/hash.
+1. **PUBLISH-MAP** : le manifeste du candidat #55 (223 fichiers) est rapproché ci-dessus ; DEV 1 doit le régénérer et le confronter au **ZIP final exact** sur HEAD figé. Confirmer que le contenu final correspond aux fichiers réellement distribués.
+2. **DOTNET-RUNTIME** : version observée **10.0.12** ; extraire les deux documents binaires Microsoft du runtime pack Windows exact, les copier dans le ZIP et prouver leur provenance/hash.
 3. **NATIVE-THIRD-PARTY** : inspecter les éventuels sous-composants/avis provenant des binaires ANGLE/Skia/HarfBuzz ; conserver les notices de distribution des paquets exacts. Ne pas déduire du seul statut MIT NuGet que toutes les obligations natives sont couvertes.
 4. **ZIP-CONTENT** : inclure l'index `THIRD-PARTY-NOTICES.txt`, les fichiers `licenses/` réellement applicables, la licence projet et les avis .NET ; gate bloquant si une notice requise est absente, si une exclusion n'est pas prouvée ou si le hash ne correspond pas au ZIP exact.
 5. **REVUE** : CI sur PR de distribution, contrôle indépendant Agent sur ZIP extrait, décision du Contrôleur avant upload. UX externe reste `NOT_TESTED` et ne vaut pas approbation d'une Release.
 
-**Verdict DEV 2 :** `SOURCE_INVENTORY_PREPARED` ; `ACTUAL_SHIPPED_CONTENT_NOT_YET_PROVEN` ; `RELEASE_HOLD`. Ce document ne lève pas la réserve `thirdPartyNotices=PENDING` de l'Issue #50.
+**Verdict DEV 2 :** `SOURCE_INVENTORY_PREPARED` ; `CANDIDATE_PUBLISH_223_FILES_MAPPED` ; `FINAL_ZIP_NOT_YET_PROVEN` ; `RELEASE_HOLD`. Ce document ne lève pas la réserve `thirdPartyNotices=PENDING` de l'Issue #50.
