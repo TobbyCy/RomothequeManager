@@ -9,6 +9,8 @@ namespace RomothequeManager.V2;
 public sealed class MainWindow : Window
 {
     private readonly NavigationState _state = new(ReadOnlyCatalogue.Synthetic());
+    private readonly LibraryProjection _libraryProjection;
+    private readonly LibraryViewState _libraryViewState;
     private readonly StackPanel _page = new() { Spacing = 14 };
     private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#E9EEF6"));
     private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#A9B8CD"));
@@ -29,7 +31,9 @@ public sealed class MainWindow : Window
         if (_state.CurrentView != POCView.GameDetail || _page.Children.Count < 3) return false;
         _state.ShowLibraries();
         Render();
-        if (_state.CurrentView != POCView.Libraries || _page.Children.Count < 2) return false;
+        if (_state.CurrentView != POCView.Libraries || _page.Children.Count < 2 ||
+            !_libraryViewState.TryCompare()) return false;
+        Render();
         _state.ShowDashboard();
         Render();
         return _state.CurrentView == POCView.Dashboard && _page.Children.Count >= 3;
@@ -37,6 +41,9 @@ public sealed class MainWindow : Window
 
     public MainWindow()
     {
+        _libraryProjection = LibraryProjection.LoadSynthetic(_state.Catalogue);
+        _libraryViewState = new LibraryViewState(_libraryProjection);
+        SizeChanged += (_, _) => { if (_state.CurrentView == POCView.Libraries) Render(); };
         Title = "ROMothèque Manager — POC synthétique";
         Width = 1120; Height = 720; MinWidth = 760; MinHeight = 480;
         Background = new SolidColorBrush(Color.Parse("#121B2A"));
@@ -154,7 +161,8 @@ public sealed class MainWindow : Window
     private void Libraries()
     {
         _page.Children.Add(Text("Bibliothèques & snapshots", 30, true));
-        _page.Children.Add(LibraryPage.Build(_state.Catalogue));
+        _page.Children.Add(LibraryPage.Build(_libraryProjection, _libraryViewState,
+            Render, Bounds.Width < 1000));
     }
 
     private void Detail()
@@ -168,6 +176,7 @@ public sealed class MainWindow : Window
             Text("Variante : " + game.Variant),
             Text("Identifiant fictif : " + game.GameId),
             Text("Bibliothèque : " + game.Library),
+            Text("Identité logique : " + game.LibraryId),
             Text("Disponibilité actuelle : " + game.Availability, 16, true),
             Text("Fraîcheur de la dernière observation : " + game.Freshness),
             Text("Couverture : " + game.Coverage),
