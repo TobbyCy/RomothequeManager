@@ -61,7 +61,7 @@ $licensesSource = Join-Path $repo 'packaging/licenses'
 $requiredLicenseNames = @(
   'ANGLE-LICENSE.txt', 'Avalonia-LICENSE.txt', 'Avalonia-NOTICE.txt',
   'HarfBuzz-COPYING.txt', 'MicroCom-LICENSE.txt', 'Skia-LICENSE.txt',
-  'SkiaSharp-LICENSE.txt', 'Tmds.DBus-COPYING.txt'
+  'SkiaSharp-LICENSE.txt', 'SkiaSharp-THIRD-PARTY-NOTICES.txt', 'Tmds.DBus-COPYING.txt'
 )
 foreach ($name in $requiredLicenseNames) {
   $source = Join-Path $licensesSource $name
