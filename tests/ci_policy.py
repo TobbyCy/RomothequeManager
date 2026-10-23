@@ -20,7 +20,7 @@ PS_JOBS = ("ci0-static", "ci1-runtime", "ci2-pester", "ci3-e1-integration",
 NEEDS = {"policy", "ci-docs", "ci-dotnet", *PS_JOBS}
 REQUIRED_DOCS = {"README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md",
                  "docs/product-status.md", "docs/roadmap.md", "docs/developer/workflow.md"}
-DOC = r"(?:README|CHANGELOG|CONTRIBUTING|BRANDING|LEGAL)\.md|(?:docs|Docs)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.md|Export/README\.md|assets/branding/README\.md"
+DOC = r"(?:README|CHANGELOG|CONTRIBUTING|BRANDING|LEGAL)\.md|(?:docs|Docs)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.md|Export/README\.md|assets/branding/README\.md|packaging/(?:THIRD-PARTY-NOTICES\.txt|licenses/[A-Za-z0-9_.-]+\.txt)"
 NET = r"(?:src|app)/RomothequeManager\.V2/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|csproj|sln|axaml|resx|json|png|svg|ico)|tests/dotnet/RomothequeManager\.V2\.Tests/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|csproj|json)"
 SHARED = r"(?:contracts|schemas)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json|adapters/shared/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|ps1|psm1|json)|Modules/(?:Identity|PersistentIdentity|DecisionSchema|StateCodec)\.psm1"
 PS = r"Initialize\.ps1|Modules/[A-Za-z][A-Za-z0-9]*\.psm1|Export/[^/]+\.(?:ps1|psm1)|Preflight/[^/]+\.ps1|tests/Unit/[^/]+\.Tests\.ps1"
