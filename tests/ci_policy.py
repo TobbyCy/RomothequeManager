@@ -277,34 +277,20 @@ def verify_public_ci_guard(root):
     all_uses = list(re.finditer(r"(?m)^\s*(?:-\s+)?uses:\s*([^\s#]+)", workflow))
     require(len(actions) >= 1 and len(actions) == len(all_uses),
             "PUBLIC_CI_UNSUPPORTED_ACTION_SHAPE")
-    upload_sha = "ea165f8d65b6e75b540449e92b4886f43607fa02"
-    upload_seen = 0
+    # A self-contained ZIP contains third-party native components. Until the
+    # notices are audited, CI must not expose a downloadable artifact.
+    require("actions/upload-artifact@" not in workflow
+            and "v2-01a-win-x64-candidate" not in workflow,
+            "PUBLIC_CI_UNREVIEWED_ARTIFACT_UPLOAD")
     for action in actions:
         value = action.group(1)
+        require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
+                "PUBLIC_CI_UNAPPROVED_ACTION:" + value)
         following = workflow[action.end():]
         boundary = re.search(r"(?m)^      - name: |^  [a-z0-9-]+:\n", following)
         step = following[:boundary.start()] if boundary else following
-        if value == "actions/upload-artifact@" + upload_sha:
-            upload_seen += 1
-            require(upload_seen == 1, "PUBLIC_CI_MULTIPLE_ARTIFACT_ACTIONS")
-            require("name: v2-01a-win-x64-candidate" in step
-                    and "if-no-files-found: error" in step
-                    and "retention-days: 7" in step
-                    and step.count("${{ runner.temp }}") == 2
-                    and "rm-v2-01a-candidate" in step
-                    and ".zip.sha256" in step
-                    and ".zip" in step,
-                    "PUBLIC_CI_ARTIFACT_PATH_INVALID")
-            require(workflow.index("  ci-dotnet:") < action.start() < workflow.index("  ci-policy-gate:"),
-                    "PUBLIC_CI_ARTIFACT_WRONG_JOB")
-        else:
-            require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
-                    "PUBLIC_CI_UNAPPROVED_ACTION:" + value)
-            # Every checkout action must explicitly avoid storing its credential.
-            require(re.search(r"(?m)^          persist-credentials: false\s*$", step)
-                    is not None, "PUBLIC_CI_CHECKOUT_CREDENTIALS")
-    if "v2-01a-win-x64-candidate" in workflow:
-        require(upload_seen == 1, "PUBLIC_CI_ARTIFACT_UPLOAD_MISSING")
+        require(re.search(r"(?m)^          persist-credentials: false\s*$", step)
+                is not None, "PUBLIC_CI_CHECKOUT_CREDENTIALS")
     expected = {"* @TobbyCy", "/.github/ @TobbyCy",
                 "/tests/ci_policy.py @TobbyCy",
                 "/tests/Invoke-CiStatic.ps1 @TobbyCy"}
@@ -425,11 +411,26 @@ def documents(root, plan):
     print("DOC_SECURITY_PASS baseline=19 export=2 preflight=1 no_product_execution=true")
 
 
+def verify_sdk_pin(root):
+    """Candidate uses the exact SDK, no prerelease/roll-forward or silent drift."""
+    target = root / "global.json"
+    require(target.is_file() and not target.is_symlink(), "DOTNET_GLOBAL_JSON_REQUIRED")
+    value = json.loads(target.read_text(encoding="utf-8-sig"))
+    require(value == {"sdk": {"version": "10.0.401", "rollForward": "disable",
+                             "allowPrerelease": False}}, "DOTNET_SDK_PIN_INVALID")
+    return "10.0.401"
+
+
 def dotnet(root):
     entries = tree(root)
     projects = sorted(p for p in entries if p.endswith(".csproj") and re.fullmatch(NET, p))
     test_projects = []
     require(projects, "DOTNET_PROJECT_OR_TEST_MISSING")
+    required_sdk = verify_sdk_pin(root)
+    observed_sdk = subprocess.run(["dotnet", "--version"], cwd=root, check=True,
+                                  text=True, capture_output=True).stdout.strip()
+    require(observed_sdk == required_sdk, "DOTNET_SDK_RUNTIME_MISMATCH:" + observed_sdk)
+    print("DOTNET_SDK_PIN_PASS version=" + observed_sdk + " rollForward=disable")
     for p in projects:
         xml = ET.fromstring(git(root, "cat-file", "blob", entries[p][2]))
         if any(e.tag.split("}")[-1] == "IsTestProject" and (e.text or "").strip().lower() == "true" for e in xml.iter()):

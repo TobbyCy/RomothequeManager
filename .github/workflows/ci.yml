@@ -342,16 +342,9 @@ jobs:
           $checksum = Join-Path $stage 'RomothequeManager-V2-01A-win-x64.zip.sha256'
           [IO.File]::WriteAllText($checksum, ($digest + '  ' + [IO.Path]::GetFileName($zip) + "`n"), [Text.UTF8Encoding]::new($false))
           Write-Host ('POC_ZIP_CANDIDATE_PASS sha256=' + $digest + ' sizeBytes=' + (Get-Item $zip).Length + ' source=' + $env:GITHUB_SHA)
-          Write-Host ('POC_CANDIDATE_PATH ' + $zip)
-      - name: Preserve candidate ZIP and SHA-256 as expiring CI artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: v2-01a-win-x64-candidate
-          path: |
-            ${{ runner.temp }}\\rm-v2-01a-candidate\\RomothequeManager-V2-01A-win-x64.zip
-            ${{ runner.temp }}\\rm-v2-01a-candidate\\RomothequeManager-V2-01A-win-x64.zip.sha256
-          if-no-files-found: error
-          retention-days: 7
+          # The old candidate ZIP is NOT copyright-cleared. The runner's temp
+          # volume will be destroyed; no download, Release or artifact upload.
+          Write-Host 'POC_ZIP_QUARANTINED_NOT_UPLOADED thirdPartyNotices=PENDING'
 
   ci-policy-gate:
     name: ci-policy-gate

@@ -48,4 +48,44 @@ L'inventaire et les licences des dépendances NuGet/natives doivent faire
 l'objet d'une revue juridique distincte avant distribution publique.
 Aucune adoption définitive de la stack.
 
+
+## Réserves de revue — SDK et notices (23.10.2026)
+
+Le SDK est **exactement** `10.0.401`, `global.json` à la racine avec
+`rollForward=disable` et `allowPrerelease=false` : le contrôle Python
+`verify_sdk_pin` et la commande `dotnet --version` dans le job Windows
+échouent en cas d'écart. La règle de chemins CI-0 et des canaris négatifs
+autorisent exclusivement `global.json` à cette casse, sans suffixe.
+
+**Audit de l'artefact existant** [GitHub Actions #39905309039](https://github.com/TobbyCy/RomothequeManager/actions/runs/39905309039),
+artefact ID `12481030630` : archive externe contenant ZIP (SHA-256
+`71c81b07cd1a4a98631a0075b505a709876514e6b9f3f4b2c68b6c9122293cac`).
+Inspection du ZIP **effectuée réellement** : 225 entrées incluant DLL
+Avalonia, `libSkiaSharp.dll`, `libHarfBuzzSharp.dll`, les DLL du runtime .NET
+et `av_libglesv2.dll`. L'archive ne contient pour notices que `LICENSE`
+(licence du produit) et `POC-NOTICE.txt` (générique). **Aucun texte de
+licence tiers ni inventaire d'attribution vérifié embarqué**.
+
+Composants concernés : Avalonia `12.1.4` (MIT déclaré par NuGet), SkiaSharp
+`3.119.4`, HarfBuzzSharp `8.3.1.3`, ANGLE
+`Avalonia.Angle.Windows.Natives 2.1.27548.20260419`, MicroCom, Tmds.DBus
+et pack runtime Microsoft .NET `10.0.12`. Ces mentions ne valent **pas**
+vérification du texte des licences ni de toutes les obligations redistributives.
+
+**Décision de sécurité** : les nouvelles archives sont toujours construites et
+SHA-256 calculé en CI mais demeurent **quarantainées dans RUNNER_TEMP et ne
+sont plus téléchargables**. L'action `upload-artifact` est supprimée et
+interdite par `verify_public_ci_guard` avec canaris négatifs. L'artefact
+**historique** reste potentiellement téléchargeable jusqu'au **30.10.2026
+05:23 UTC** : **suppression manuelle prioritaire par le Contrôleur**
+(GitHub Actions, run #39905309039, artefact
+`v2-01a-win-x64-candidate`; vérifier aussi les runs précédents).
+L'absence de nouvel upload ne retire pas rétroactivement ce fichier.
+
+Avant toute nouvelle autorisation de téléchargement : inventaire complet des
+composants binaires, versions, textes intégrals officiels de licences,
+obligations d'attribution éventuelle (Skia, HarfBuzz, ANGLE, runtime .NET),
+intégration des notices et contre-audit du ZIP **réel**, validation explicite
+du propriétaire et nouvelle PR de restauration du gate d'artefact.
+
 Ne pas utiliser ce code sur une bibliothèque réelle ou en production.
