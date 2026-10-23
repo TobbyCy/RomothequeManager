@@ -484,7 +484,7 @@ class WorkflowTests(unittest.TestCase):
                 "setup_dotnet_wrong_sdk": workflow.replace("dotnet-version: '10.0.401'", "dotnet-version: '10.0.402'"),
                 "setup_dotnet_floating_sdk": workflow.replace("dotnet-version: '10.0.401'", "dotnet-version: '10.0.x'"),
                 "setup_dotnet_missing": workflow.replace("actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9", "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09"),
-                "setup_dotnet_extra_source": workflow.replace("dotnet-version: '10.0.401'", "dotnet-version: '10.0.401'\\n          source-url: https://untrusted.example.invalid"),
+                "setup_dotnet_extra_source": workflow.replace("dotnet-version: '10.0.401'", "dotnet-version: '10.0.401'\n          source-url: https://untrusted.example.invalid"),
                 "script_policy_bypass": workflow.replace("    if: ${{ always() }}", "    if: ${{ success() }}", 1),
                 "untrusted_shell": workflow + "\n        run: echo ${{ github.event.pull_request.title }}\n",
                 "artifact_unpinned": workflow.replace("  ci-policy-gate:",
