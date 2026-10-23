@@ -301,6 +301,52 @@ class DocumentTests(unittest.TestCase):
         for path in (".github/workflows/unreviewed.yml", "tests/ci_policy_extra.py", "docs/secret.exe", "ROMS/demo.gba", "SECURITY.txt", "LICENSE.txt", "LICENSE.bak", "license", "BRANDING.md.bak", "LEGAL.txt", "LEGAL.md/evil", "tests/Invoke-CiE1PreflightSynthetic.ps1.bak", "tests/Invoke-CiE1PreflightSynthetic.ps1/extra"):
             self.assertFalse(any(__import__('re').fullmatch(r, path) for r in rules))
 
+    def test_brand01_exact_paths_and_binary_negative_canaries(self):
+        import re
+        root = Path(__file__).resolve().parent.parent
+        rules, _ = p.path_rules(root)
+        allowed = ("assets/branding/RM_V2_Horizontal_Fond_Sombre.png",
+                   "assets/branding/README.md")
+        for path in allowed:
+            self.assertTrue(any(re.fullmatch(rule, path) for rule in rules), path)
+        rejected = (
+            "assets/branding/other.png",
+            "assets/branding/RM_V2_Horizontal_Couleur.svg",
+            "assets/branding/RM_V2_Icone_Detaillee_Couleur.svg",
+            "assets/branding/RM_V2_Icone_Simplifiee_Couleur.svg",
+            "assets/branding/RM_V2_Favicon.ico",
+            "assets/branding/logo.svg",
+            "assets/branding/remote.svg",
+            "assets/branding/nested/RM_V2_Horizontal_Fond_Sombre.png",
+            "assets/branding/RM_V2_Horizontal_Fond_Sombre.png.svg",
+            "assets/branding/RM_V2_Horizontal_Fond_Sombre.png.bak",
+            "assets/branding/README.md.bak",
+            "Assets/branding/RM_V2_Horizontal_Fond_Sombre.png",
+            "assets/branding/README.md/extra",
+            "assets/branding/../branding/RM_V2_Horizontal_Fond_Sombre.png",
+        )
+        for path in rejected:
+            with self.subTest(rejected=path):
+                self.assertFalse(any(re.fullmatch(rule, path) for rule in rules), path)
+                with self.assertRaisesRegex(p.PolicyError, "TRACKED_PATH_NOT_ALLOWED"):
+                    p.audit_entries(root, {path: ("100644", "blob", "f" * 40)}, rules)
+
+        # Pin to the unchanged public-authorized source; content-type spoofing,
+        # rewritten SVG-in-PNG, appended content and modified dimensions fail.
+        original = (root / p.BRAND01_PNG).read_bytes()
+        self.assertTrue(p.verify_brand01_banner(p.BRAND01_GIT_BLOB_SHA, original))
+        with self.assertRaisesRegex(p.PolicyError, "BRAND01_UNAPPROVED_IMAGE_BLOB"):
+            p.verify_brand01_banner("f" * 40, original)
+        with self.assertRaisesRegex(p.PolicyError, "BRAND01_UNEXPECTED_IMAGE_SIZE"):
+            p.verify_brand01_banner(p.BRAND01_GIT_BLOB_SHA, original[:-1])
+        malformed = b"<svg onload='alert(1)'/>".ljust(len(original), b"x")
+        with self.assertRaisesRegex(p.PolicyError, "BRAND01_NOT_PNG"):
+            p.verify_brand01_banner(p.BRAND01_GIT_BLOB_SHA, malformed)
+        wrong_dimensions = bytearray(original)
+        wrong_dimensions[16:20] = (1).to_bytes(4, "big")
+        with self.assertRaisesRegex(p.PolicyError, "BRAND01_DIMENSIONS_INVALID"):
+            p.verify_brand01_banner(p.BRAND01_GIT_BLOB_SHA, bytes(wrong_dimensions))
+
     def test_public_issue_form_allowlist_and_unexpected_paths_fail_closed(self):
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
