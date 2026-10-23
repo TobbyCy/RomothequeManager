@@ -277,16 +277,34 @@ def verify_public_ci_guard(root):
     all_uses = list(re.finditer(r"(?m)^\s*(?:-\s+)?uses:\s*([^\s#]+)", workflow))
     require(len(actions) >= 1 and len(actions) == len(all_uses),
             "PUBLIC_CI_UNSUPPORTED_ACTION_SHAPE")
+    upload_sha = "ea165f8d65b6e75b540449e92b4886f43607fa02"
+    upload_seen = 0
     for action in actions:
         value = action.group(1)
-        require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
-                "PUBLIC_CI_UNAPPROVED_ACTION:" + value)
-        # Every checkout action must explicitly avoid storing its credential.
         following = workflow[action.end():]
         boundary = re.search(r"(?m)^      - name: |^  [a-z0-9-]+:\n", following)
         step = following[:boundary.start()] if boundary else following
-        require(re.search(r"(?m)^          persist-credentials: false\s*$", step)
-                is not None, "PUBLIC_CI_CHECKOUT_CREDENTIALS")
+        if value == "actions/upload-artifact@" + upload_sha:
+            upload_seen += 1
+            require(upload_seen == 1, "PUBLIC_CI_MULTIPLE_ARTIFACT_ACTIONS")
+            require("name: v2-01a-win-x64-candidate" in step
+                    and "if-no-files-found: error" in step
+                    and "retention-days: 7" in step
+                    and step.count("${{ runner.temp }}") == 2
+                    and "rm-v2-01a-candidate" in step
+                    and ".zip.sha256" in step
+                    and ".zip" in step,
+                    "PUBLIC_CI_ARTIFACT_PATH_INVALID")
+            require(workflow.index("  ci-dotnet:") < action.start() < workflow.index("  ci-policy-gate:"),
+                    "PUBLIC_CI_ARTIFACT_WRONG_JOB")
+        else:
+            require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
+                    "PUBLIC_CI_UNAPPROVED_ACTION:" + value)
+            # Every checkout action must explicitly avoid storing its credential.
+            require(re.search(r"(?m)^          persist-credentials: false\s*$", step)
+                    is not None, "PUBLIC_CI_CHECKOUT_CREDENTIALS")
+    if "v2-01a-win-x64-candidate" in workflow:
+        require(upload_seen == 1, "PUBLIC_CI_ARTIFACT_UPLOAD_MISSING")
     expected = {"* @TobbyCy", "/.github/ @TobbyCy",
                 "/tests/ci_policy.py @TobbyCy",
                 "/tests/Invoke-CiStatic.ps1 @TobbyCy"}

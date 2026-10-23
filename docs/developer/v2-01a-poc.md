@@ -20,7 +20,7 @@ toute réception ; aucun résultat de build ni de packaging n'est présumé.
 
 Objectif d'artefact ultérieur : `dotnet publish -c Release -r win-x64
 --self-contained true -p:PublishSingleFile=false`, ZIP de dossier complet,
-inventaire des dépendances et SHA-256, uniquement en candidat CI. Pas de Release.
+inventaire des dépendances et SHA-256, uniquement en candidat CI. Artefact éphémère GitHub Actions (rétention 7 jours), sans GitHub Release. Vérifier les licences des composants transitifs avant toute distribution publique.
 La présence de SDK/.NET sur le runner ne prouve pas la portabilité sur PC
 sans runtime ; essai Windows propre externe encore requis avec permission.
 

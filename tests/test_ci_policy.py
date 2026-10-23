@@ -449,6 +449,8 @@ class WorkflowTests(unittest.TestCase):
                 "checkout_credential": workflow.replace("persist-credentials: false", "persist-credentials: true", 1),
                 "script_policy_bypass": workflow.replace("    if: ${{ always() }}", "    if: ${{ success() }}", 1),
                 "untrusted_shell": workflow + "\n        run: echo ${{ github.event.pull_request.title }}\n",
+                "artifact_unpinned": workflow.replace("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", "actions/upload-artifact@v4"),
+                "artifact_missing_sha": workflow.replace("if-no-files-found: error", "if-no-files-found: warn"),
             }
             for name, text_value in bad_workflows.items():
                 with self.subTest(case=name):
