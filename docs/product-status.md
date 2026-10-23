@@ -4,6 +4,12 @@
 
 Le terme **fonctionnel** désigne ici un POC exécuté et testé **sur fixtures fictives**, pas un produit prêt pour des bibliothèques personnelles. Le code intégré, la validation CI et la disponibilité d'un binaire distribué sont trois états distincts.
 
+## En développement — V2-01B (PR Draft #48, non intégré)
+
+La [PR Draft #48](https://github.com/TobbyCy/RomothequeManager/pull/48), issue du mandat [#47](https://github.com/TobbyCy/RomothequeManager/issues/47), propose la quatrième vue Avalonia « Bibliothèques & snapshots ». La branche contient une fixture versionnée de **trois bibliothèques liées aux six jeux fictifs existants**, une présentation liste/inspecteur, des snapshots datés et une sélection A/B utilisant exclusivement des résultats préqualifiés. Les sept scénarios PowerShell historiques restent des vecteurs de test indépendants, non additionnés au Dashboard.
+
+**Non intégré et non distribué :** la CI et la revue indépendante sur le HEAD final sont encore à recevoir. Aucun scan, collection réelle, moteur de comparaison C#, PowerShell lancé par l'UI, stockage ou Release n'est autorisé. Les compteurs inconnus restent `null`, les absences observées ne prouvent aucune suppression et le dernier complet vérifié reste distinct des tentatives partielles.
+
 ## Capacités réellement intégrées
 
 | Domaine | État intégré et preuves | Limites actuelles |
@@ -18,7 +24,7 @@ Le terme **fonctionnel** désigne ici un POC exécuté et testé **sur fixtures 
 
 ## Travail futur ou non livré
 
-- **V2-01B — Bibliothèques et snapshots dans l'application Avalonia :** quatrième vue, comparaison A/B, états OFFLINE/STALE et données synthétiques ; **préparation de périmètre**, pas de code intégré dans V2-01A.
+- **V2-01B — Bibliothèques et snapshots dans l'application Avalonia :** développement en [PR Draft #48](https://github.com/TobbyCy/RomothequeManager/pull/48), **non fusionné et non disponible sur main** ; tests et revue finale attendus.
 - **Bibliothèques personnelles, favoris, tags, persistance et synchronisation :** non implémentés dans le POC Windows.
 - **Export E2 à E6, conversion, copie et opérations physiques :** conception uniquement ; aucune action réelle autorisée.
 - **Distribution Windows, USB, essais externes, compatibilité SteamOS/Linux/ARM :** non validés. L'obtention d'une CI verte ne lève pas l'interdiction de Release.
