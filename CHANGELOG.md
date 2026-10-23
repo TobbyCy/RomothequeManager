@@ -4,7 +4,7 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 ## Non publié — développement
 
-- V2-01A / Issue #41 (PR candidate) : premiers sources desktop C#/.NET 10 + Avalonia 12.1.4, Dashboard/Collection/fiche sur six jeux fictifs. Tests .NET, verrouillage NuGet et ZIP autonome **non validés à ce stade** ; aucun runtime téléchargé côté utilisateur, lecture seule et aucune ROM réelle.
+- V2-01A / Issue #41 (PR #42 candidate) : fenêtre Avalonia 12.1.4 sous .NET 10 avec trois vues et six jeux entièrement fictifs. Deux locks NuGet générés réellement, 8 tests MSTest exécutés, ouverture Windows des trois vues et ZIP `win-x64` self-contained de 75 Mo avec SHA-256 et artefact CI temporaire. [Preuve sur SHA source intermédiaire](https://github.com/TobbyCy/RomothequeManager/actions/runs/39904964788) ; CI du HEAD de livraison, PC externe sans runtime, licences tierces et revue indépendante restent à valider. Aucune Release, aucune ROM, aucun accès StateRoot, aucune adoption définitive.
 
 
 - VAL-01 / Issue #39 : smoke **Microsoft Edge réel sous Windows**, en mode headless sur les deux pages HTML `file://` et données fictives. Pilotage CDP par Node natif sans dépendance téléchargée ; gestes souris, navigation, fiches, comparaison, index inaccessible, OFFLINE/STALE/UNKNOWN, exceptions JavaScript et requêtes réseau non autorisées. Contrôle obligatoire dans CI-0 ; preuve Edge et gate à vérifier sur SHA exact, aucun navigateur humain ni Release présumés.

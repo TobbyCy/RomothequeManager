@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-> V2-01A / Issue #41 : POC desktop .NET 10 + Avalonia 12.1.4 **en développement sur branche courte**, synthétique seulement. Aucune Release ni adoption définitive ; locks, tests, ZIP et lancement hors runtime restent à prouver. La CI de `main` reste indépendante de cette branche.
+> **V2-01A / Issue #41 — candidat PR #42**, en branche séparée : .NET 10 + Avalonia 12.1.4, Dashboard/Collection/Fiche sur six objets synthétiques, lecture seule. **Locks NuGet réels, 8 tests MSTest et fenêtre Windows à trois vues, ZIP self-contained et SHA-256 démontrés** sur [Actions #39904964788](https://github.com/TobbyCy/RomothequeManager/actions/runs/39904964788), SHA source `36d6b8be34092cbadae1430ab27ea94a272ee1fc`. Ce n'est ni une Release ni une adoption définitive ; la CI du HEAD documentaire suivant, la revue indépendante, la portabilité sur PC externe et l'audit de redistribution restent à recevoir. `main` demeure indépendant.
 
 
 Ce tableau distingue les **sources intégrées dans le dépôt public**, les prototypes consultables et les versions **effectivement distribuées**. Code présent ne signifie ni validation d'exécution réelle ni adoption des contrats candidats.
