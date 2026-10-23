@@ -70,13 +70,22 @@ public static class LibraryPage
         if (library is null) return Text("Aucune bibliothèque sélectionnée.", 16);
         var panel = new StackPanel { Spacing = 12 };
         panel.Children.Add(Text(library.Name + " — inspecteur", 22, true));
-        panel.Children.Add(Text("Source : " + library.CurrentAvailability, 15, true));
+        panel.Children.Add(Text("Disponibilité : " + library.CurrentAvailability, 15, true));
         panel.Children.Add(Text("Fraîcheur : " + library.Freshness + " · Index : " +
             (library.IndexAccessible ? "ACCESSIBLE" : "INACCESSIBLE"), 14));
         panel.Children.Add(Text("Disponibilité observée : " +
             (library.AvailabilityObservedAtUtc ?? "NON OBSERVÉE"), 13));
-        panel.Children.Add(Text("Dernier snapshot complet vérifié : " +
-            (library.LastVerifiedCompleteRef ?? "AUCUN"), 14, true));
+        panel.Children.Add(Text((library.IndexAccessible
+            ? "Dernier snapshot complet vérifié : "
+            : "Référence mémorisée du dernier complet (non consultable) : ") +
+            (library.LastVerifiedCompleteRef ?? "AUCUNE"), 14, true));
+        if (!library.IndexAccessible)
+        {
+            panel.Children.Add(Text(
+                "Index inaccessible : historique détaillé indisponible, compteur INCONNU (jamais zéro déduit).", 14, true));
+            panel.Children.Add(Text("Comparaison A / B indisponible tant que l'index n'est pas accessible.", 14));
+            return panel;
+        }
         var lastAttempt = library.Generations.OrderByDescending(item => item.CapturedAtUtc,
             StringComparer.Ordinal).FirstOrDefault();
         panel.Children.Add(Text("Dernière tentative : " +
@@ -101,11 +110,6 @@ public static class LibraryPage
         }
 
         panel.Children.Add(Text("Comparaison A / B", 18, true));
-        if (!library.IndexAccessible)
-        {
-            panel.Children.Add(Text("Index inaccessible : nombre d'unités inconnu et comparaison indisponible.", 14, true));
-            return panel;
-        }
         var snapshotIds = library.Generations.OrderBy(item => item.CapturedAtUtc, StringComparer.Ordinal)
             .Select(item => item.SnapshotId).ToArray();
         var selectors = new StackPanel { Spacing = 8 };

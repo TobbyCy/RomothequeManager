@@ -8,7 +8,23 @@ Le terme **fonctionnel** désigne ici un POC exécuté et testé **sur fixtures 
 
 La [PR Draft #48](https://github.com/TobbyCy/RomothequeManager/pull/48), issue du mandat [#47](https://github.com/TobbyCy/RomothequeManager/issues/47), propose la quatrième vue Avalonia « Bibliothèques & snapshots ». La branche contient une fixture versionnée de **trois bibliothèques liées aux six jeux fictifs existants**, une présentation liste/inspecteur, des snapshots datés et une sélection A/B utilisant exclusivement des résultats préqualifiés. Les sept scénarios PowerShell historiques restent des vecteurs de test indépendants, non additionnés au Dashboard.
 
-**Non intégré et non distribué :** la CI et la revue indépendante sur le HEAD final sont encore à recevoir. Aucun scan, collection réelle, moteur de comparaison C#, PowerShell lancé par l'UI, stockage ou Release n'est autorisé. Les compteurs inconnus restent `null`, les absences observées ne prouvent aucune suppression et le dernier complet vérifié reste distinct des tentatives partielles.
+**Non intégré et non distribué :** la CI et la revue indépendante sur tout nouveau HEAD restent à recevoir. Aucun scan, collection réelle, moteur de comparaison C#, PowerShell lancé par l'UI, stockage ou Release n'est autorisé. Les compteurs inconnus restent `null`, les absences observées ne prouvent aucune suppression et le dernier complet vérifié reste distinct des tentatives partielles.
+
+### Traçabilité de la fixture Windows V2-01B (candidat)
+
+**`UI-only / handcrafted deterministic demo / NOT_ENGINE_VERIFIED`.** Le JSON embarqué `src/RomothequeManager.V2/Fixtures/library-ui-v2-01b.synthetic.json` est une démonstration fictive **figée et révisable**, non une sortie vérifiée du producteur PowerShell. Les six `syn-001…syn-006` restent répartis en trois `libraryId` (`lib-a/b/c`) ; les sept vecteurs PS demeurent séparés et ne constituent pas sept bibliothèques à afficher. Aucun résultat de classification de cette fixture ne doit être attribué au moteur PS5.1.
+
+Les **oracles indépendants** des champs `counts`, `entries` et `countDenominator` sont codés en dur dans `ThreeFrozenUiOraclesAreIndependentOfFixtureCounts` (MSTest), puis confrontés au JSON :
+
+| Bibliothèque | A → B synthétiques | Couverture | A∪B | Résultats attendus |
+| --- | --- | --- | ---: | --- |
+| `lib-a` | `a-complete-20261019` → `fictif-2026-10-20` | INCOMPLETE | 2 | UNKNOWN 2 |
+| `lib-b` | `b-complete-20261017` → `fictif-2026-10-18` | COMPLETE | 2 | UNCHANGED 1, NOT_COMPARABLE 1 (conflit local d'identité) |
+| `lib-c` | `c-complete-20261021` → `fictif-2026-10-22` | COMPLETE | 4 | ADDED 1, CHANGED 1, UNCHANGED 1, NOT_OBSERVED_IN_B_COVERED_SCOPE 1 |
+
+Ces dénominateurs sont des **unions d'unités logiques observées**, jamais des nombres de fichiers physiques supprimés. Les tests de qualification imposent la couverture exacte des partitions `console × sourceKey × rootKey × domain`, vérifient les références A/B et leurs scopes et rejettent les preuves absentes, étrangères ou dupliquées. Le rendu masque l'historique détaillé lorsque `indexAccessible=false` : seule une référence mémorisée explicitement non consultable peut être montrée.
+
+**Limite UX volontaire du POC :** `INTERACTIVE_KEYBOARD_SCROLL_NOT_TESTED`. Le smoke CI Windows atteste l'ouverture des quatre vues et l'exercice de l'état A/B, **pas** un parcours physique clavier/ComboBox, le maintien du focus ou du scroll, ni la vérification humaine à largeur réduite. À suivre séparément après intégration si le Contrôleur le décide.
 
 ## Capacités réellement intégrées
 

@@ -5,7 +5,10 @@ Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées
 ## En cours — V2-01B / PR Draft #48 (non intégré)
 
 - [Issue #47](https://github.com/TobbyCy/RomothequeManager/issues/47) et [PR Draft #48](https://github.com/TobbyCy/RomothequeManager/pull/48) : quatrième vue Avalonia Bibliothèques & snapshots, trois bibliothèques cohérentes avec les six jeux fictifs, états indépendants, provenance, sélection A/B et comparaison **préqualifiée** à six classes. Modèle de présentation synthétique versionné, sans moteur métier C# parallèle.
-- **Statut : code candidat uniquement.** CI du HEAD final, tests MSTest/smoke Windows quatre vues et revue indépendante à établir ; aucune fusion, aucun ZIP publié ni Release.
+- **Durcissement demandé par le Contrôleur (PR #48, toujours Draft) :** validation fail-closed des partitions de couverture (multi-root, ROMS/MEDIAS, preuves uniques/exactes), champs A/B et scopes concordants avec les générations canoniques, refus des faux COMPLETE, rendu honnête de l'index inaccessible et libellé « Disponibilité ». Canaris MSTest positifs/négatifs étendus.
+- **Oracle de démonstration :** fixture `UI-only / handcrafted deterministic demo / NOT_ENGINE_VERIFIED`, trois paires A/B dont les six classifications et dénominateurs A∪B sont vérifiés contre des attentes codées en dur. Aucune prétention d'équivalence avec le comparateur PS5.1.
+- **Limite UX :** `INTERACTIVE_KEYBOARD_SCROLL_NOT_TESTED` ; le smoke quatre vues ne certifie pas le parcours clavier/focus/scroll réel.
+- **Statut : code candidat uniquement.** CI du nouveau HEAD, tests MSTest/smoke Windows et revues indépendantes à renouveler avant décision de fusion ; aucun ZIP publié ni Release.
 
 ## Intégré sur `main` — 23 octobre 2026 (non distribué)
 
