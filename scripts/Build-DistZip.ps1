@@ -4,7 +4,9 @@
 param(
   [Parameter(Mandatory = $true)]
   [ValidatePattern('^[0-9a-f]{40}$')]
-  [string]$SourceSha
+  [string]$SourceSha,
+  [ValidateSet('validate', 'publish')]
+  [string]$Phase = 'validate'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -34,8 +36,14 @@ foreach ($name in @('Avalonia', 'SkiaSharp', 'HarfBuzz', 'Microsoft', 'MIT')) {
 if ($notices -match '(?i)\[(?:TODO|PENDING|TBD)\]' -or $inventory -match '(?i)\[(?:TODO|PENDING|TBD)\]') {
   throw 'DIST_NOTICES_UNRESOLVED_PLACEHOLDER'
 }
-if ($inventory -cnotmatch '(?m)^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED$') {
+$legalApproved = $inventory -cmatch '(?m)^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED$'
+if ($Phase -ceq 'publish' -and -not $legalApproved) {
   throw 'DIST_LICENCE_VALIDATION_HOLD'
+}
+$legalStatus = if ($legalApproved) { 'APPROVED_SOURCE_MARKER_PRESENT' } else { 'LEGAL_HOLD' }
+Write-Host ('DIST_LEGAL_STATUS phase=' + $Phase + ' status=' + $legalStatus)
+if ($Phase -ceq 'validate' -and -not $legalApproved) {
+  Write-Warning 'DIST_VALIDATE_LEGAL_HOLD — technical candidate only; no distribution authorization or upload.'
 }
 
 $stage = Join-Path $env:RUNNER_TEMP ('dist-zip-01-' + $SourceSha.Substring(0, 12))
@@ -247,10 +255,14 @@ try {
   Write-Host $stdout.Result
 } finally { $proc.Dispose() }
 
-Write-Host ('DIST_ZIP_VALIDATED_PASS sha256=' + $digest + ' sizeBytes=' + (Get-Item $zip).Length + ' files=' + $extracted.Count + ' source=' + $SourceSha)
+Write-Host ('DIST_ZIP_VALIDATED_PASS sha256=' + $digest + ' sizeBytes=' + (Get-Item $zip).Length + ' files=' + $extracted.Count + ' source=' + $SourceSha + ' legalStatus=' + $legalStatus + ' phase=' + $Phase)
+if ($Phase -ceq 'validate' -and -not $legalApproved) {
+  Write-Host ('DIST_CANDIDATE_VERIFIED_LEGAL_HOLD sha256=' + $digest + ' source=' + $SourceSha + ' — NO_UPLOAD')
+}
 [IO.File]::AppendAllText($env:GITHUB_OUTPUT, ('zip=' + $zip + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
 [IO.File]::AppendAllText($env:GITHUB_OUTPUT, ('checksum=' + $checksum + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
 [IO.File]::AppendAllText($env:GITHUB_OUTPUT, ('sha256=' + $digest + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
 [IO.File]::AppendAllText($env:GITHUB_OUTPUT, ('zipName=' + [IO.Path]::GetFileName($zip) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
 [IO.File]::AppendAllText($env:GITHUB_OUTPUT, ('checksumName=' + [IO.Path]::GetFileName($checksum) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
+[IO.File]::AppendAllText($env:GITHUB_OUTPUT, ('legalStatus=' + $legalStatus + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
 # Deliberately no upload or publication in this script.
