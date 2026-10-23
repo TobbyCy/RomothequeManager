@@ -71,4 +71,9 @@ Describe 'DIST-ZIP-01 isolated legal approval marker — LF/CRLF and refusal can
     It 'rejects surrounding spaces on the marker line' {
         (("header`n " + $distZipLegalMarker + " `nfooter") -cmatch $distZipLegalPattern) | Should -Be $false
     }
+    It 'recognizes the actual checked-out legal inventory marker' {
+        $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $inventory = [IO.File]::ReadAllText((Join-Path $root 'docs/developer/lic-zip-01-inventory.md'))
+        ($inventory -cmatch $distZipLegalPattern) | Should -Be $true
+    }
 }
