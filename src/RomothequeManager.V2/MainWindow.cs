@@ -15,6 +15,23 @@ public sealed class MainWindow : Window
     private static readonly IBrush Card = new SolidColorBrush(Color.Parse("#202B3D"));
 
     public POCView CurrentView => _state.CurrentView;
+
+    // Exercises the three real Avalonia visual trees after the window opens.
+    // The normal UI still uses actual buttons/textbox for human interaction.
+    public bool SmokeExerciseThreeViews()
+    {
+        if (_state.CurrentView != POCView.Dashboard || _page.Children.Count < 3) return false;
+        _state.ShowCollection();
+        Render();
+        if (_state.CurrentView != POCView.Collection || _page.Children.Count < 4) return false;
+        if (!_state.Open("syn-003")) return false;
+        Render();
+        if (_state.CurrentView != POCView.GameDetail || _page.Children.Count < 3) return false;
+        _state.ShowDashboard();
+        Render();
+        return _state.CurrentView == POCView.Dashboard && _page.Children.Count >= 3;
+    }
+
     public MainWindow()
     {
         Title = "ROMothèque Manager — POC synthétique";
