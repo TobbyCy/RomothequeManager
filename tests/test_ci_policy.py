@@ -4,6 +4,7 @@ import copy
 import io
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -558,6 +559,15 @@ class CliRoutingProofTests(unittest.TestCase):
             for key, value in (("user.name", "Synthetic CI"), ("user.email", "ci@example.invalid"), ("commit.gpgsign", "false"), ("core.autocrlf", "false")):
                 p.git(root, "config", key, value)
             # The clone tests policy behavior, not the separate documentation PR.
+            # When a real .NET POC exists, this *routing* canary still needs a
+            # disposable repository without a .NET project to prove fail-closed.
+            # Never delete files from the checked-out Product; only from tmp/repo.
+            for rel in ("src/RomothequeManager.V2", "tests/dotnet/RomothequeManager.V2.Tests"):
+                candidate = (root / rel).resolve()
+                p.require(candidate.is_relative_to(root.resolve()) and candidate != root.resolve(),
+                          "DOTNET_ROUTING_FIXTURE_BOUNDARY")
+                if candidate.exists():
+                    shutil.rmtree(candidate)
             # Complete the disposable fixture only; real repository checks stay strict.
             for name in p.REQUIRED_DOCS:
                 target = root / name
