@@ -4,6 +4,7 @@ import copy
 import io
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -340,17 +341,20 @@ class DocumentTests(unittest.TestCase):
             commands = []
             def fake_run(args, **kwargs):
                 commands.append(args)
+                if args[1] == "--version":
+                    return subprocess.CompletedProcess(args, 0, stdout="10.0.401\n", stderr="")
                 if args[1] == "test":
                     dest = Path(args[args.index("--results-directory") + 1])
                     dest.mkdir(parents=True)
                     (dest / "tests.trx").write_text('<TestRun><ResultSummary><Counters total="' + str(executed) + '" passed="' + str(executed) + '" executed="' + str(executed) + '" failed="0"/></ResultSummary></TestRun>', encoding="utf-8")
-            with patch.object(p, "tree", return_value=entries), patch.object(p, "git", side_effect=blob), patch.object(p.subprocess, "run", side_effect=fake_run):
+            with patch.object(p, "tree", return_value=entries), patch.object(p, "git", side_effect=blob), patch.object(p, "verify_sdk_pin", return_value="10.0.401"), patch.object(p.subprocess, "run", side_effect=fake_run):
                 if executed:
                     with contextlib.redirect_stdout(io.StringIO()):
                         p.dotnet(Path("."))
                 else:
                     with self.assertRaisesRegex(p.PolicyError, "DOTNET_ZERO_OR_FAILED_TESTS"):
                         p.dotnet(Path("."))
+            self.assertEqual(1, sum(c[1] == "--version" for c in commands))
             self.assertEqual(2, sum(c[1] == "restore" and "--locked-mode" in c for c in commands))
             self.assertEqual(2, sum(c[1] == "build" and "-p:EnableNETAnalyzers=true" in c for c in commands))
             self.assertTrue(all(c[0] == "dotnet" for c in commands))
@@ -380,8 +384,8 @@ class WorkflowTests(unittest.TestCase):
         import re
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
-        permitted = ["tests/Invoke-CiE1PreflightSynthetic.ps1", "tests/edge-browser-smoke.cjs", "tests/Export-SyntheticUiProjection.ps1", "tests/fixtures/TEST_MATRIX_S3.md", "tests/fixtures/SyntheticLibrarySnapshots.ps1", "tests/fixtures/UiProjectionVectors.ps1", "tests/fixtures/CatalogueT3CanonicalSample.json", "tests/Export-SyntheticCanonicalCatalogue.ps1", "tests/catalogue_t3_consumer.test.cjs", "adapters/shared/catalogue-t3-consumer.js", "prototype/ui11/t4-catalogue.test.cjs"]
-        forbidden = ["tests/Invoke-CiE1PreflightSynthetic.psm1", "tests/edge-browser-smoke.cjs.bak", "tests/EDGE-browser-smoke.cjs", "tests/fixtures/unapproved.json", "tests/Export-SyntheticUnverified.ps1", "tests/untrusted.test.cjs", "adapters/shared/unapproved.js", "prototype/ui11/unapproved.html"]
+        permitted = ["global.json", "tests/Invoke-CiE1PreflightSynthetic.ps1", "tests/edge-browser-smoke.cjs", "tests/Export-SyntheticUiProjection.ps1", "tests/fixtures/TEST_MATRIX_S3.md", "tests/fixtures/SyntheticLibrarySnapshots.ps1", "tests/fixtures/UiProjectionVectors.ps1", "tests/fixtures/CatalogueT3CanonicalSample.json", "tests/Export-SyntheticCanonicalCatalogue.ps1", "tests/catalogue_t3_consumer.test.cjs", "adapters/shared/catalogue-t3-consumer.js", "prototype/ui11/t4-catalogue.test.cjs"]
+        forbidden = ["global.json.bak", "GLOBAL.json", "tests/Invoke-CiE1PreflightSynthetic.psm1", "tests/edge-browser-smoke.cjs.bak", "tests/EDGE-browser-smoke.cjs", "tests/fixtures/unapproved.json", "tests/Export-SyntheticUnverified.ps1", "tests/untrusted.test.cjs", "adapters/shared/unapproved.js", "prototype/ui11/unapproved.html"]
         for path in permitted:
             with self.subTest(permitted=path):
                 self.assertTrue(any(re.fullmatch(rule, path) for rule in rules), path)
@@ -389,6 +393,36 @@ class WorkflowTests(unittest.TestCase):
             with self.subTest(forbidden=path):
                 self.assertFalse(any(re.fullmatch(rule, path) for rule in rules), path)
 
+
+    def test_v2_01a_sdk_exact_pin_negative_canaries(self):
+        import tempfile
+        with tempfile.TemporaryDirectory(prefix="rm-sdk-pin-") as tmp:
+            root = Path(tmp)
+            target = root / "global.json"
+            with self.assertRaisesRegex(p.PolicyError, "DOTNET_GLOBAL_JSON_REQUIRED"):
+                p.verify_sdk_pin(root)
+            correct = {"sdk": {"version": "10.0.401", "rollForward": "disable",
+                                "allowPrerelease": False}}
+            target.write_text(json.dumps(correct), encoding="utf-8")
+            self.assertEqual("10.0.401", p.verify_sdk_pin(root))
+            variants = [
+                {"sdk": {**correct["sdk"], "version": "10.0.100"}},
+                {"sdk": {**correct["sdk"], "rollForward": "latestFeature"}},
+                {"sdk": {**correct["sdk"], "allowPrerelease": True}},
+                {"sdk": {**correct["sdk"], "extra": "unauthorized"}}
+            ]
+            for variant in variants:
+                target.write_text(json.dumps(variant), encoding="utf-8")
+                with self.assertRaisesRegex(p.PolicyError, "DOTNET_SDK_PIN_INVALID"):
+                    p.verify_sdk_pin(root)
+            target.unlink()
+
+    def test_v2_01a_distribution_hold_required(self):
+        root = Path(__file__).resolve().parent.parent
+        workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("POC_ZIP_QUARANTINED_NOT_UPLOADED", workflow)
+        self.assertNotIn("actions/upload-artifact@", workflow)
+        self.assertNotIn("v2-01a-win-x64-candidate", workflow)
 
     def test_val01_edge_is_required_and_fail_closed(self):
         root = Path(__file__).resolve().parent.parent
@@ -448,6 +482,10 @@ class WorkflowTests(unittest.TestCase):
                 "checkout_credential": workflow.replace("persist-credentials: false", "persist-credentials: true", 1),
                 "script_policy_bypass": workflow.replace("    if: ${{ always() }}", "    if: ${{ success() }}", 1),
                 "untrusted_shell": workflow + "\n        run: echo ${{ github.event.pull_request.title }}\n",
+                "artifact_unpinned": workflow.replace("  ci-policy-gate:",
+                    "      - name: Unapproved artifact\n        uses: actions/upload-artifact@v4\n  ci-policy-gate:"),
+                "artifact_pinned_but_unreviewed": workflow.replace("  ci-policy-gate:",
+                    "      - name: Unapproved artifact\n        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n  ci-policy-gate:"),
             }
             for name, text_value in bad_workflows.items():
                 with self.subTest(case=name):
@@ -558,6 +596,15 @@ class CliRoutingProofTests(unittest.TestCase):
             for key, value in (("user.name", "Synthetic CI"), ("user.email", "ci@example.invalid"), ("commit.gpgsign", "false"), ("core.autocrlf", "false")):
                 p.git(root, "config", key, value)
             # The clone tests policy behavior, not the separate documentation PR.
+            # When a real .NET POC exists, this *routing* canary still needs a
+            # disposable repository without a .NET project to prove fail-closed.
+            # Never delete files from the checked-out Product; only from tmp/repo.
+            for rel in ("src/RomothequeManager.V2", "tests/dotnet/RomothequeManager.V2.Tests"):
+                candidate = (root / rel).resolve()
+                p.require(candidate.is_relative_to(root.resolve()) and candidate != root.resolve(),
+                          "DOTNET_ROUTING_FIXTURE_BOUNDARY")
+                if candidate.exists():
+                    shutil.rmtree(candidate)
             # Complete the disposable fixture only; real repository checks stay strict.
             for name in p.REQUIRED_DOCS:
                 target = root / name

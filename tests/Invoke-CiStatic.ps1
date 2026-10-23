@@ -34,7 +34,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'git ls-files failed' }
     Require ($paths.Count -gt 0) 'No tracked files'
     $allowed = @(
-        '^LICENSE$', '^BRANDING\.md$', '^LEGAL\.md$', '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
+        '^global\.json$', '^LICENSE$', '^BRANDING\.md$', '^LEGAL\.md$', '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
         '^Modules/[A-Za-z][A-Za-z0-9]*\.psm1$',
         '^Export/(ExportE1\.psm1|Invoke-ExportE1InventoryReadOnly\.ps1|README\.md)$',
         '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$',

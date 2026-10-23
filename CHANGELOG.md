@@ -4,6 +4,12 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 ## Non publié — développement
 
+- Revue V2-01A : ajout de `global.json` (SDK .NET **10.0.401** exact et roll-forward désactivé), validation stricte et canaris. Audit des 225 entrées du ZIP : seulement licence MIT du Produit et notice générique, aucune attribution tierce vérifiée. **Upload des nouveaux ZIP suspendu**, build/tests/ZIP SHA toujours exécutés ; suppression manuelle des artefacts historiques requise par le Contrôleur. Aucune Release ni adoption définitive.
+
+
+- V2-01A / Issue #41 (PR #42 candidate) : fenêtre Avalonia 12.1.4 sous .NET 10 avec trois vues et six jeux entièrement fictifs. Deux locks NuGet générés réellement, 8 tests MSTest exécutés, ouverture Windows des trois vues et ZIP `win-x64` self-contained de 75 Mo avec SHA-256 et artefact CI temporaire. [Preuve sur SHA source intermédiaire](https://github.com/TobbyCy/RomothequeManager/actions/runs/39904964788) ; CI du HEAD de livraison, PC externe sans runtime, licences tierces et revue indépendante restent à valider. Aucune Release, aucune ROM, aucun accès StateRoot, aucune adoption définitive.
+
+
 - VAL-01 / Issue #39 : smoke **Microsoft Edge réel sous Windows**, en mode headless sur les deux pages HTML `file://` et données fictives. Pilotage CDP par Node natif sans dépendance téléchargée ; gestes souris, navigation, fiches, comparaison, index inaccessible, OFFLINE/STALE/UNKNOWN, exceptions JavaScript et requêtes réseau non autorisées. Contrôle obligatoire dans CI-0 ; preuve Edge et gate à vérifier sur SHA exact, aucun navigateur humain ni Release présumés.
 
 - Issue #2 : correction de l'indentation du commit conditionnel dans le test Python de routage CI (`tests/test_ci_policy.py`, lignes 555–556) ; remplacement d'un canari négatif de chemin devenu obsolète (`.github/CODEOWNERS`, autorisé) par `.github/CODEOWNERS.txt` (toujours interdit et non ignoré par Git). Huit chemins négatifs contrôlés sans assouplir l'allowlist. Une assertion PS5.1 Bibliothèques découvert après déblocage de Python conserve son critère strict et affiche désormais l'exception observée en cas de refus incorrect ; gate complet à revalider.
