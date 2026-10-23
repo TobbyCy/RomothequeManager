@@ -65,15 +65,18 @@ jobs:
         shell: pwsh
         env:
           REQUESTED_SHA: ${{ inputs.source_sha }}
+          DIST_PHASE: ${{ inputs.phase }}
         run: |
-          ./scripts/Build-DistZip.ps1 -SourceSha $env:REQUESTED_SHA
+          ./scripts/Build-DistZip.ps1 -SourceSha $env:REQUESTED_SHA -Phase $env:DIST_PHASE
       - name: Validation-only quarantine confirmation
         if: inputs.phase == 'validate'
         shell: pwsh
         env:
           ZIP_SHA256: ${{ steps.bundle.outputs.sha256 }}
+          LEGAL_STATUS: ${{ steps.bundle.outputs.legalStatus }}
         run: |
-          Write-Host ('DIST_ZIP_QUARANTINED_NOT_UPLOADED sha256=' + $env:ZIP_SHA256)
+          Write-Host ('DIST_ZIP_QUARANTINED_NOT_UPLOADED sha256=' + $env:ZIP_SHA256 + ' legalStatus=' + $env:LEGAL_STATUS)
+          if ($env:LEGAL_STATUS -cne 'APPROVED_SOURCE_MARKER_PRESENT') { Write-Warning 'LEGAL_HOLD — validated technical candidate; no distribution authorization.' }
           Write-Host 'No GitHub Actions artifact, draft Release, Pre-release or public download.'
       - name: Final owner authorization gate — before any upload
         if: inputs.phase == 'publish'
@@ -86,9 +89,11 @@ jobs:
           REQUESTED_SHA: ${{ inputs.source_sha }}
           EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
           ACTUAL_SHA256: ${{ steps.bundle.outputs.sha256 }}
+          LEGAL_STATUS: ${{ steps.bundle.outputs.legalStatus }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           $ErrorActionPreference = 'Stop'
+          if ($env:LEGAL_STATUS -cne 'APPROVED_SOURCE_MARKER_PRESENT') { throw 'DIST_LEGAL_APPROVAL_MISSING_BEFORE_UPLOAD' }
           if ($env:FINAL_GO -cne 'true') { throw 'DIST_OWNER_FINAL_GO_NOT_GRANTED' }
           if ($env:APPROVED_SOURCE_SHA -cne $env:REQUESTED_SHA) { throw 'DIST_APPROVED_SOURCE_MISMATCH' }
           if ($env:EXPECTED_SHA256 -cnotmatch '^[0-9a-f]{64}$' -or $env:EXPECTED_SHA256 -cne $env:ACTUAL_SHA256 -or $env:APPROVED_ZIP_SHA256 -cne $env:ACTUAL_SHA256) { throw 'DIST_APPROVED_ZIP_HASH_MISMATCH' }
