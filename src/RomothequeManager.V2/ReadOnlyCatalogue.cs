@@ -55,7 +55,7 @@ public sealed class ReadOnlyCatalogue
         _games.Where(g => g.Availability == availability).Select(g => g.Library).Distinct(StringComparer.Ordinal).Count();
 }
 
-public enum POCView { Dashboard, Collection, GameDetail }
+public enum POCView { Dashboard, Collection, GameDetail, Libraries }
 
 public sealed class NavigationState(ReadOnlyCatalogue catalogue)
 {
@@ -66,6 +66,7 @@ public sealed class NavigationState(ReadOnlyCatalogue catalogue)
 
     public void ShowDashboard() { CurrentView = POCView.Dashboard; Selected = null; }
     public void ShowCollection() { CurrentView = POCView.Collection; Selected = null; }
+    public void ShowLibraries() { CurrentView = POCView.Libraries; Selected = null; }
     public void Search(string? value) { SearchText = value ?? ""; CurrentView = POCView.Collection; }
     public bool Open(string? id)
     {

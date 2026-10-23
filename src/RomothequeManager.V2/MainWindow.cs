@@ -18,7 +18,7 @@ public sealed class MainWindow : Window
 
     // Exercises the three real Avalonia visual trees after the window opens.
     // The normal UI still uses actual buttons/textbox for human interaction.
-    public bool SmokeExerciseThreeViews()
+    public bool SmokeExerciseFourViews()
     {
         if (_state.CurrentView != POCView.Dashboard || _page.Children.Count < 3) return false;
         _state.ShowCollection();
@@ -27,6 +27,9 @@ public sealed class MainWindow : Window
         if (!_state.Open("syn-003")) return false;
         Render();
         if (_state.CurrentView != POCView.GameDetail || _page.Children.Count < 3) return false;
+        _state.ShowLibraries();
+        Render();
+        if (_state.CurrentView != POCView.Libraries || _page.Children.Count < 2) return false;
         _state.ShowDashboard();
         Render();
         return _state.CurrentView == POCView.Dashboard && _page.Children.Count >= 3;
@@ -43,6 +46,7 @@ public sealed class MainWindow : Window
         menu.Children.Add(Text("MANAGER · POC V2", 12));
         menu.Children.Add(Button("Tableau de bord", () => { _state.ShowDashboard(); Render(); }));
         menu.Children.Add(Button("Collection", () => { _state.ShowCollection(); Render(); }));
+        menu.Children.Add(Button("Bibliothèques & snapshots", () => { _state.ShowLibraries(); Render(); }));
         menu.Children.Add(Text("LECTURE SEULE", 13, true));
         menu.Children.Add(Text("Jeux, dates et bibliothèques 100 % fictifs.", 13));
         var sidebar = new Border
@@ -101,6 +105,7 @@ public sealed class MainWindow : Window
             case POCView.Dashboard: Dashboard(); break;
             case POCView.Collection: Collection(); break;
             case POCView.GameDetail: Detail(); break;
+            case POCView.Libraries: Libraries(); break;
         }
     }
 
@@ -144,6 +149,12 @@ public sealed class MainWindow : Window
                 Button("Ouvrir la fiche", () => { if (_state.Open(id)) Render(); })
             )));
         }
+    }
+
+    private void Libraries()
+    {
+        _page.Children.Add(Text("Bibliothèques & snapshots", 30, true));
+        _page.Children.Add(LibraryPage.Build(_state.Catalogue));
     }
 
     private void Detail()

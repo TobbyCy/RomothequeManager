@@ -30,12 +30,12 @@ internal static class Program
                 {
                     if (!window.IsVisible || window.Content is null ||
                         window.Title != "ROMothèque Manager — POC synthétique" ||
-                        !window.SmokeExerciseThreeViews())
+                        !window.SmokeExerciseFourViews())
                     {
                         Environment.ExitCode = 17;
                         Console.Error.WriteLine("POC_WINDOW_SMOKE_FAIL");
                     }
-                    else Console.WriteLine("POC_WINDOW_OPENED_PASS views=Dashboard,Collection,GameDetail fixtures=6 synthetic=1");
+                    else Console.WriteLine("POC_WINDOW_OPENED_PASS views=Dashboard,Collection,GameDetail,Libraries fixtures=6 synthetic=1");
                     window.Close();
                 });
             };
