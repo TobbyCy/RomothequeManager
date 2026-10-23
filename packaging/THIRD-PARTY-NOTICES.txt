@@ -23,14 +23,19 @@ SKIASHARP 3.119.4 / HARFBUZZSHARP 8.3.1.3 (managed wrapper as shipped)
 SKIA NATIVE (if libSkiaSharp / linked native code redistributed)
   License: BSD-style. Full text: licenses/Skia-LICENSE.txt
   Source: https://github.com/google/skia/blob/main/LICENSE
-  Additional third-party notices built into the exact native binary must be
-  determined from its producer distribution, not inferred solely from this file.
+  Publisher native-package notice (SkiaSharp.NativeAssets.Win32 3.119.4):
+  licenses/SkiaSharp-THIRD-PARTY-NOTICES.txt
+  Exact upstream file: mono/SkiaSharp v3.119.4 External-Dependency-Info.txt,
+  packaged as THIRD-PARTY-NOTICES.txt by binding/NativeAssets.Build.targets.
+  Git blob SHA-1: 02f9d113ec2763c89c4c33af3e9c55d522fbef06.
+  Keep this 22-component notice unmodified; it includes notices beyond Skia.
 
 HARFBUZZ NATIVE 8.3.1 (if libHarfBuzzSharp / linked native code redistributed)
   License: Old MIT. Full text: licenses/HarfBuzz-COPYING.txt
   Source: https://github.com/harfbuzz/harfbuzz/blob/8.3.1/COPYING
-  Additional component-specific COPYING files must be verified against the
-  exact native package contents.
+  The shared publisher native-package notice above also covers HarfBuzzSharp
+  NativeAssets (its Windows project imports the same NativeAssets.Build.targets).
+  Any separately applicable COPYING files still require exact-package review.
 
 MICROCOM.RUNTIME 0.11.6 (if assembly redistributed)
   License: MIT. Full text: licenses/MicroCom-LICENSE.txt
