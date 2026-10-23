@@ -165,6 +165,14 @@ jobs:
             Write-Host 'UI_NOT_APPLICABLE_NO_PROTOTYPE_IN_TREE'
           }
 
+      - name: VAL-01 real Microsoft Edge headless browser on synthetic file URLs
+        shell: powershell
+        run: |
+          node --version
+          if ($LASTEXITCODE -ne 0) { throw 'EDGE_BROWSER_NODE_MISSING' }
+          node .\tests\edge-browser-smoke.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'EDGE_BROWSER_SMOKE_FAILED' }
+
       - name: Documentation currency gate (PR and main)
         shell: powershell
         run: |
