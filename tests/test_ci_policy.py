@@ -533,6 +533,54 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("gh release", script)
         self.assertNotIn("upload-artifact", script)
 
+    def test_dist_remote_tag_guard_negative_canaries(self):
+        # Static policy canaries for the manual publish step; no API call or release.
+        workflow = (Path(__file__).resolve().parent.parent / ".github/workflows/dist-zip.yml").read_text(encoding="utf-8")
+
+        def guarded(candidate):
+            required = (
+                "Authorization = ('Bearer ' + $env:GH_TOKEN)",
+                "Invoke-WebRequest -Uri $uri -Headers $headers -SkipHttpErrorCheck",
+                "if ($status -eq 404 -and $AllowNotFound) { return $null }",
+                "if ($status -ne 200) { throw ('DIST_REMOTE_TAG_API_HTTP_FAILED_' + $status) }",
+                "DIST_REMOTE_TAG_API_TRANSPORT_FAILED",
+                "Get-DistRemoteGitObject -ApiPath $tagPath -AllowNotFound $true",
+                "if ($null -ne $preexistingTag) { throw 'DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD' }",
+                "Get-DistRemoteGitObject -ApiPath $tagPath",
+                "Get-DistRemoteGitObject -ApiPath ('git/tags/' + $tagObject.sha)",
+                "if ($resolvedCommit -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_TARGET_MISMATCH' }",
+                "DIST_REMOTE_TAG_TARGET_VERIFIED",
+            )
+            if not all(value in candidate for value in required):
+                return False
+            return (
+                candidate.index("DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD")
+                < candidate.index("gh release create")
+                < candidate.index("DIST_REMOTE_TAG_TARGET_VERIFIED")
+                < candidate.index("gh release edit")
+            )
+
+        self.assertTrue(guarded(workflow))  # Absent tag, then exact source SHA: accepted route.
+        mutations = {
+            "preexisting_wrong_target_must_reject": workflow.replace(
+                "if ($null -ne $preexistingTag) { throw 'DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD' }",
+                "Write-Host 'unsafe preexisting tag accepted'", 1),
+            "remote_api_error_must_reject": workflow.replace(
+                "if ($status -ne 200) { throw ('DIST_REMOTE_TAG_API_HTTP_FAILED_' + $status) }",
+                "Write-Host 'unsafe API error accepted'", 1),
+            "remote_transport_error_must_reject": workflow.replace(
+                "DIST_REMOTE_TAG_API_TRANSPORT_FAILED", "DIST_REMOTE_TAG_API_IGNORED", 1),
+            "annotated_tag_must_be_dereferenced": workflow.replace(
+                "Get-DistRemoteGitObject -ApiPath ('git/tags/' + $tagObject.sha)",
+                "$null", 1),
+            "postdraft_wrong_target_must_reject": workflow.replace(
+                "if ($resolvedCommit -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_TARGET_MISMATCH' }",
+                "Write-Host 'unsafe tag target accepted'", 1),
+        }
+        for name, mutant in mutations.items():
+            with self.subTest(name=name):
+                self.assertFalse(guarded(mutant))
+
     def test_val01_edge_is_required_and_fail_closed(self):
         root = Path(__file__).resolve().parent.parent
         workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
