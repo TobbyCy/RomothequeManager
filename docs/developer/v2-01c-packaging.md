@@ -52,3 +52,24 @@ Sur une VM ou un Windows x64 propre, sans SDK/runtime .NET préinstallé si poss
 - **DEV 2** : cohérence documentaire, identité visuelle/BRAND-01, licence et mention des limites.
 - **Agent** : indépendance de l'extraction, fichiers attendus/interdits, SHA-256, absence d'upload, adéquation des preuves CI.
 - **Contrôleur** : vérifie HEAD, CI, verdicts et décide du merge éventuel. **Pas de merge autonome.**
+
+## DIST-ZIP-01 — distribution de test contrôlée (préparation, aucun upload à ce stade)
+
+Décision [Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) du 23.10.2026 : **GO_PREPARE_TEST_DISTRIBUTION**, mais **RELEASE_HOLD_UNTIL_NOTICES_AND_FINAL_ARTIFACT_VERIFIED**. La fusion du packaging V2-01C [PR #53](https://github.com/TobbyCy/RomothequeManager/pull/53) n'a livré aucun ZIP téléchargeable.
+
+Le workflow distinct `.github/workflows/dist-zip.yml` est **exclusivement manuel** (`workflow_dispatch`, sélection de `main`) :
+
+1. **`phase=validate`** : impose un SHA source exact, le SDK 10.0.401, les locks NuGet, les notices tierces et l'inventaire validés ; construit le ZIP Windows x64 dans `RUNNER_TEMP`, le recompile/emballe de façon ordonnée, vérifie deux ZIP successifs identiques, le SHA-256, chaque fichier après extraction et le smoke Avalonia depuis l'extraction. **Aucun téléversement ; le ZIP disparaît avec le runner.** Les logs livrent l'empreinte et l'identité du commit.
+2. **Revue finale** : DEV 2 confirme `docs/legal/THIRD-PARTY-NOTICES.txt` et `docs/legal/THIRD-PARTY-INVENTORY.md` pour les dépendances **réellement embarquées** ; Agent contre-vérifie le HEAD, la CI, la liste de fichiers et le SHA. Le Contrôleur soumet à Tobby le commit, le hash et les limites connues.
+3. **`phase=publish`**, uniquement après **GO final explicite** : mêmes sources figées, même validation préalable, puis quatre variables de dépôt contrôlées par le propriétaire doivent concorder : `DIST_ZIP_FINAL_GO=true`, `DIST_ZIP_APPROVED_SOURCE_SHA`, `DIST_ZIP_APPROVED_SHA256`, `DIST_ZIP_APPROVED_TAG`. Les champs manuels `source_sha`, `expected_sha256` et `release_tag` doivent aussi concorder. **Toute différence bloque l'upload.**
+4. Après ce dernier contrôle, le workflow crée une **Release brouillon et pré-release** avec le ZIP et `.sha256`, retélécharge les deux assets et compare leur contenu au candidat validé. Il ne publie la **Pre-release** que si les deux fichiers sont intacts. Un échec laisse au maximum un brouillon, jamais une version stable.
+
+Tag de publication attendu : `poc-v2-01c-YYYYMMDD-<12 premiers caractères du SHA source>`. Le ZIP contient `POC-NOTICE.txt`, `POC-MANIFEST.json`, `LICENSE`, `LEGAL.md`, `THIRD-PARTY-NOTICES.txt` et `THIRD-PARTY-INVENTORY.md`. Les notices ou l'inventaire manquants provoquent un **FAIL**, sans substitution par une notice fictive.
+
+### Limites conservées
+
+- Le succès d'une PR et même d'un run `validate` **ne fournit aucun téléchargement**. Le hash d'un run doit correspondre exactement au hash approuvé ; toute variation exige une nouvelle revue/approbation.
+- La répétition de l'archive ZIP dans un même run prouve un emballage déterministe de fichiers identiques, **pas** la reproductibilité complète de `dotnet publish` entre deux machines/runs.
+- Une pré-release de test reste publique dès sa publication finale ; le GO final doit donc être conscient de cette visibilité. Aucun canal de distribution ne doit contenir de ROM, BIOS, clés, secrets ni données personnelles.
+- La recette interactive Windows `UXZIP-01–12`, dont clavier/focus/scroll/resize, reste **NOT_TESTED** avant essai externe du ZIP téléchargé exact. L'Agent consigne la vérification binaire ; DEV 3/Tobby consigne l'UX.
+- Aucune Release stable, installateur, signature, scan réel ou extension de périmètre n'est compris dans DIST-ZIP-01.

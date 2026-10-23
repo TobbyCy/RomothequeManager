@@ -311,6 +311,15 @@ jobs:
       - name: Require actual projects, locked restore, build and executed tests
         shell: cmd
         run: python -B tests/ci_policy.py dotnet
+      - name: Parse DIST-ZIP-01 PowerShell packaging script (no distribution)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('scripts/Build-DistZip.ps1', [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw ('DIST_ZIP_PS_PARSE_FAILED:' + ($errors | Out-String)) }
+          Write-Host 'DIST_ZIP_PS_PARSE_PASS'
       - name: Build and verify quarantined V2-01C self-contained win-x64 ZIP
         shell: pwsh
         run: |
