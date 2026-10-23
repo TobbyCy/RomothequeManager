@@ -53,6 +53,27 @@ TMDS.DBUS.PROTOCOL 0.94.1 (if assembly redistributed)
   License: MIT. Full text: licenses/Tmds.DBus-COPYING.txt
   Source: https://github.com/tmds/Tmds.DBus/blob/main/COPYING
 
+NATIVE GRAPH ATTRIBUTIONS — LEGAL-RELEASE-CLEARANCE (23.10.2026)
+  Exact Windows binary SHA-256 from DIST validate #39992237910:
+  libSkiaSharp.dll    7dec3ba900ab353491e6446f0083739924c6f8dd668832e2f09d38ebffdbbe1c
+  libHarfBuzzSharp.dll 145ade963eba427027d5e1381db5d51a0ef9e98e9fef9efbfa6074ca20da246f
+  av_libglesv2.dll    53191a77fe783cd757ca7767077c2a64a662e7043777a5b4ab74980d4a0b73e3
+  The ANGLE DLL embeds upstream git 1c89805903c1, matching NuGet
+  Avalonia.Angle.Windows.Natives 2.1.27548.20260419:
+  https://github.com/AvaloniaUI/angle/tree/1c89805903c1482166356d3b950d474973180e61
+  Native ANGLE links xxHash (BSD-2: separate ANGLE-xxHash-LICENSE.txt),
+  Abseil and Arm ASTC Encoder (Apache-2.0), and zlib-style compression.
+  Skia's pinned GIF implementation uses Wuffs (Apache-2.0), not the
+  Mozilla gif code cited in the broad publisher notice:
+  https://github.com/mono/skia/tree/7dbfc07dd33181f84e0958afb7ee805c6c769f0b
+  https://github.com/google/wuffs-mirror-release-c/tree/e3f919ccfe3ef542cfc983a82146070258fb57f8
+  https://github.com/ARM-software/astc-encoder/tree/2319d9c4d4af53a7fc7c52985e264ce6e8a02a9b
+  The complete Apache-2.0 licence is already reproduced in
+  licenses/SkiaSharp-THIRD-PARTY-NOTICES.txt. The pinned Wuffs, ASTC and
+  Abseil project roots have no separate NOTICE file. No GPL/LGPL
+  source/relinking duty was identified for these linked Windows targets.
+  This index does not replace the owner approval or exact-ZIP gates.
+
 MICROSOFT .NET 10 WINDOWS SELF-CONTAINED RUNTIME (runtime files redistributed)
   The ZIP MUST contain the complete, unmodified LICENSE.TXT and
   THIRD-PARTY-NOTICES.TXT from the precise Microsoft.NETCore.App.Runtime.win-x64
