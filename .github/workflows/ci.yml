@@ -286,7 +286,7 @@ jobs:
     needs: [policy, ci-docs]
     if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' && needs.policy.outputs.dotnet == 'true' }}
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout exact sources without credentials
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
@@ -296,25 +296,49 @@ jobs:
       - name: Require actual projects, locked restore, build and executed tests
         shell: cmd
         run: python -B tests/ci_policy.py dotnet
-      # Temporary diagnostic step: this follows a FAILED strict restore, retains the
-      # job FAILURE and never changes branch contents or CI gates.
-      - name: Print NuGet lockfile proposals after failed strict restore
-        if: ${{ failure() }}
+      - name: Publish self-contained win-x64 candidate and run real window smoke
         shell: pwsh
         run: |
-          dotnet --list-sdks
-          foreach ($project in @('src/RomothequeManager.V2/RomothequeManager.V2.csproj', 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj')) {
-            dotnet restore $project --force-evaluate --use-lock-file
-            if ($LASTEXITCODE -ne 0) { throw "NUGET_LOCK_PROPOSAL_RESTORE_FAILED $project" }
-            $lock = Join-Path (Split-Path $project -Parent) 'packages.lock.json'
-            $inputBytes = [IO.File]::ReadAllBytes($lock)
-            $buffer = New-Object IO.MemoryStream
-            $gz = New-Object IO.Compression.GzipStream($buffer, [IO.Compression.CompressionMode]::Compress)
-            try { $gz.Write($inputBytes, 0, $inputBytes.Length) } finally { $gz.Dispose() }
-            Write-Host ('NUGET_LOCK_PROPOSAL_BEGIN ' + $lock)
-            Write-Host ('NUGET_LOCK_GZIP_B64 ' + [Convert]::ToBase64String($buffer.ToArray()))
-            Write-Host ('NUGET_LOCK_PROPOSAL_END ' + $lock)
+          $ErrorActionPreference = 'Stop'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          $stage = Join-Path $env:RUNNER_TEMP 'rm-v2-01a-candidate'
+          $publish = Join-Path $stage 'app'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $publish
+          if ($LASTEXITCODE -ne 0) { throw 'POC_PUBLISH_FAILED' }
+          $exe = Join-Path $publish 'RomothequeManager.V2.exe'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'POC_EXE_MISSING' }
+          foreach ($required in @('coreclr.dll','hostfxr.dll')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $publish $required) -PathType Leaf)) { throw ('SELF_CONTAINED_RUNTIME_MISSING:' + $required) }
           }
+          $start = New-Object Diagnostics.ProcessStartInfo
+          $start.FileName = $exe
+          $start.Arguments = '--smoke-window'
+          $start.WorkingDirectory = $publish
+          $start.UseShellExecute = $false
+          $start.CreateNoWindow = $false
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $proc = [Diagnostics.Process]::Start($start)
+          try {
+            $stdout = $proc.StandardOutput.ReadToEndAsync()
+            $stderr = $proc.StandardError.ReadToEndAsync()
+            if (-not $proc.WaitForExit(30000)) { $proc.Kill(); throw 'POC_WINDOW_TIMEOUT' }
+            if ($proc.ExitCode -ne 0 -or -not $stdout.Result.Contains('POC_WINDOW_OPENED_PASS')) {
+              throw ('POC_REAL_WINDOW_FAILED exit=' + $proc.ExitCode + ';stdout=' + $stdout.Result + ';stderr=' + $stderr.Result)
+            }
+            Write-Host $stdout.Result
+          } finally { $proc.Dispose() }
+          Copy-Item -LiteralPath 'LICENSE' -Destination (Join-Path $publish 'LICENSE') -Force
+          $notice = 'Candidate V2-01A: synthetic-only. No ROM/BIOS media. Avalonia packages and their transitive dependencies retain their respective licenses. Not a release.'
+          [IO.File]::WriteAllText((Join-Path $publish 'POC-NOTICE.txt'), $notice, [Text.UTF8Encoding]::new($false))
+          $zip = Join-Path $stage 'RomothequeManager-V2-01A-win-x64.zip'
+          Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $digest = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $checksum = Join-Path $stage 'RomothequeManager-V2-01A-win-x64.zip.sha256'
+          [IO.File]::WriteAllText($checksum, ($digest + '  ' + [IO.Path]::GetFileName($zip) + "`n"), [Text.UTF8Encoding]::new($false))
+          Write-Host ('POC_ZIP_CANDIDATE_PASS sha256=' + $digest + ' sizeBytes=' + (Get-Item $zip).Length + ' source=' + $env:GITHUB_SHA)
+          Write-Host ('POC_CANDIDATE_PATH ' + $zip)
 
   ci-policy-gate:
     name: ci-policy-gate
