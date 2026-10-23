@@ -293,6 +293,21 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Diagnose Windows SDKs outside the pinned repository
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Push-Location -LiteralPath $env:RUNNER_TEMP
+          try {
+            dotnet --list-sdks
+            if ($LASTEXITCODE -ne 0) { throw 'DOTNET_PREINSTALLED_SDK_LIST_FAILED' }
+            dotnet --info
+            if ($LASTEXITCODE -ne 0) { throw 'DOTNET_PREINSTALLED_INFO_FAILED' }
+          } finally { Pop-Location }
+      - name: Provision exact .NET SDK 10.0.401
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1, commit SHA verified
+        with:
+          dotnet-version: '10.0.401'
       - name: Require actual projects, locked restore, build and executed tests
         shell: cmd
         run: python -B tests/ci_policy.py dotnet

@@ -4,6 +4,9 @@ Ce document décrit les évolutions **effectivement intégrées**. Les fonctionn
 
 ## Non publié — développement
 
+- **CI-DOTNET-01 / Issue #43 (candidat)** : l'image `windows-2022` mise à jour (20261021.343) n'inclut plus le SDK `10.0.401`, remplacé par `10.0.402`. Provisionnement explicite du SDK **exact** via `actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9` (v4.3.1) seulement pour le job .NET, diagnostic hors dépôt, garde CI strict et canaris négatifs. Le `global.json` reste intact ; tests, gate final et interdiction des uploads ZIP à revalider sur le HEAD du correctif. Aucune Release ni fusion par DEV 1.
+
+
 - Revue V2-01A : ajout de `global.json` (SDK .NET **10.0.401** exact et roll-forward désactivé), validation stricte et canaris. Audit des 225 entrées du ZIP : seulement licence MIT du Produit et notice générique, aucune attribution tierce vérifiée. **Upload des nouveaux ZIP suspendu**, build/tests/ZIP SHA toujours exécutés ; suppression manuelle des artefacts historiques requise par le Contrôleur. Aucune Release ni adoption définitive.
 
 

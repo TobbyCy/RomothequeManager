@@ -282,15 +282,32 @@ def verify_public_ci_guard(root):
     require("actions/upload-artifact@" not in workflow
             and "v2-01a-win-x64-candidate" not in workflow,
             "PUBLIC_CI_UNREVIEWED_ARTIFACT_UPLOAD")
+    setup_sha = "67a3573c9a986a3f9c594539f4ab511d57bb3ce9"  # actions/setup-dotnet v4.3.1
+    setup_position = -1
+    checkout_position = workflow.index("      - name: Checkout exact sources without credentials",
+                                       workflow.index("  ci-dotnet:"))
+    actual_tests_position = workflow.index("      - name: Require actual projects, locked restore, build and executed tests",
+                                            workflow.index("  ci-dotnet:"))
     for action in actions:
         value = action.group(1)
-        require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
-                "PUBLIC_CI_UNAPPROVED_ACTION:" + value)
         following = workflow[action.end():]
         boundary = re.search(r"(?m)^      - name: |^  [a-z0-9-]+:\n", following)
         step = following[:boundary.start()] if boundary else following
-        require(re.search(r"(?m)^          persist-credentials: false\s*$", step)
-                is not None, "PUBLIC_CI_CHECKOUT_CREDENTIALS")
+        if value == "actions/setup-dotnet@" + setup_sha:
+            require(setup_position == -1, "PUBLIC_CI_DUPLICATE_DOTNET_PROVISION")
+            setup_position = action.start()
+            require(workflow.index("  ci-dotnet:") < setup_position < workflow.index("  ci-policy-gate:")
+                    and checkout_position < setup_position < actual_tests_position,
+                    "PUBLIC_CI_DOTNET_SETUP_WRONG_JOB_OR_ORDER")
+            require(re.findall(r"(?m)^          dotnet-version: (.+)$", step) ==
+                    ["'10.0.401'"] and "source-url:" not in step and "dotnet-quality:" not in step,
+                    "PUBLIC_CI_DOTNET_SETUP_NOT_EXACT")
+        else:
+            require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
+                    "PUBLIC_CI_UNAPPROVED_ACTION:" + value)
+            require(re.search(r"(?m)^          persist-credentials: false\s*$", step)
+                    is not None, "PUBLIC_CI_CHECKOUT_CREDENTIALS")
+    require(setup_position >= 0, "PUBLIC_CI_DOTNET_SETUP_REQUIRED")
     expected = {"* @TobbyCy", "/.github/ @TobbyCy",
                 "/tests/ci_policy.py @TobbyCy",
                 "/tests/Invoke-CiStatic.ps1 @TobbyCy"}

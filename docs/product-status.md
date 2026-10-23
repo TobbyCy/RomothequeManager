@@ -1,5 +1,8 @@
 # État des fonctionnalités
 
+> **P0 CI-DOTNET-01 / Issue #43 (23.10.2026) :** la PR #42 a été fusionnée sur `main=f9b0bbf11bf4234cc67a6a37507af4fd40dde2d9`, mais le [push main #39912901839](https://github.com/TobbyCy/RomothequeManager/actions/runs/39912901839) a échoué au job .NET. L'image `windows-2022` **20261012.333** de la PR comprenait le SDK **10.0.401** ; l'image **20261021.343** du push le remplace par **10.0.402** ([inventaires officiels GitHub runner-images](https://github.com/actions/runner-images/blob/win22/20261021.343/images/windows/Windows2022-Readme.md)). Le correctif proposé installe explicitement le SDK 10.0.401 par `actions/setup-dotnet` épinglé, sans toucher à `global.json` ni au blocage des artefacts. Nouvelle CI/contre-revue requises.
+
+
 > **V2-01A / Issue #41 — candidat PR #42, téléversement ZIP SUSPENDU pour notices tierces incomplètes (revue finale 23.10.2026). `global.json` impose SDK 10.0.401 exact.** Voir [audit de l'artefact](developer/v2-01a-poc.md). Les ZIP déjà hébergés doivent être retirés manuellement par le Contrôleur.\n\n> **V2-01A / Issue #41 — candidat PR #42**, en branche séparée : .NET 10 + Avalonia 12.1.4, Dashboard/Collection/Fiche sur six objets synthétiques, lecture seule. **Locks NuGet réels, 8 tests MSTest et fenêtre Windows à trois vues, ZIP self-contained et SHA-256 démontrés** sur [Actions #39904964788](https://github.com/TobbyCy/RomothequeManager/actions/runs/39904964788), SHA source `36d6b8be34092cbadae1430ab27ea94a272ee1fc`. Ce n'est ni une Release ni une adoption définitive ; la CI du HEAD documentaire suivant, la revue indépendante, la portabilité sur PC externe et l'audit de redistribution restent à recevoir. `main` demeure indépendant.
 
 
