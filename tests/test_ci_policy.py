@@ -546,6 +546,15 @@ class WorkflowTests(unittest.TestCase):
                 "DIST_REMOTE_TAG_API_TRANSPORT_FAILED",
                 "Get-DistRemoteGitObject -ApiPath $tagPath -AllowNotFound $true",
                 "if ($null -ne $preexistingTag) { throw 'DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD' }",
+                "$createBody = @{ ref = $refName; sha = $env:SOURCE_SHA } | ConvertTo-Json -Compress",
+                "Invoke-WebRequest -Uri $createUri -Method Post -Headers $createHeaders",
+                "if ($createStatus -ne 201) { throw ('DIST_REMOTE_TAG_CREATE_HTTP_FAILED_' + $createStatus) }",
+                "DIST_REMOTE_TAG_CREATE_TRANSPORT_FAILED",
+                "DIST_REMOTE_TAG_CREATE_RESPONSE_INVALID",
+                "if ($null -eq $createdRef -or $createdRef.ref -cne $refName -or $createdRef.object.type -cne 'commit' -or $createdRef.object.sha -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_CREATED_REF_MISMATCH' }",
+                "if ($null -eq $readbackRef -or $readbackRef.ref -cne $refName -or $readbackRef.object.type -cne 'commit' -or $readbackRef.object.sha -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_CREATE_READBACK_MISMATCH' }",
+                "DIST_REMOTE_TAG_CREATED_VERIFIED",
+                "--verify-tag --target $env:SOURCE_SHA",
                 "Get-DistRemoteGitObject -ApiPath $tagPath",
                 "Get-DistRemoteGitObject -ApiPath ('git/tags/' + $tagObject.sha)",
                 "if ($resolvedCommit -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_TARGET_MISMATCH' }",
@@ -555,6 +564,7 @@ class WorkflowTests(unittest.TestCase):
                 return False
             return (
                 candidate.index("DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD")
+                < candidate.index("DIST_REMOTE_TAG_CREATED_VERIFIED")
                 < candidate.index("gh release create")
                 < candidate.index("DIST_REMOTE_TAG_TARGET_VERIFIED")
                 < candidate.index("gh release edit")
@@ -570,6 +580,29 @@ class WorkflowTests(unittest.TestCase):
                 "Write-Host 'unsafe API error accepted'", 1),
             "remote_transport_error_must_reject": workflow.replace(
                 "DIST_REMOTE_TAG_API_TRANSPORT_FAILED", "DIST_REMOTE_TAG_API_IGNORED", 1),
+            "no_explicit_remote_tag_create": workflow.replace(
+                "Invoke-WebRequest -Uri $createUri -Method Post -Headers $createHeaders",
+                "Write-Host 'unsafe no tag create'", 1),
+            "wrong_sha_remote_tag_create": workflow.replace(
+                "$createBody = @{ ref = $refName; sha = $env:SOURCE_SHA } | ConvertTo-Json -Compress",
+                "$createBody = @{ ref = $refName; sha = '0000000000000000000000000000000000000000' } | ConvertTo-Json -Compress", 1),
+            "create_201_gate_removed": workflow.replace(
+                "if ($createStatus -ne 201) { throw ('DIST_REMOTE_TAG_CREATE_HTTP_FAILED_' + $createStatus) }",
+                "Write-Host 'unsafe non-201 accepted'", 1),
+            "create_transport_error_ignored": workflow.replace(
+                "DIST_REMOTE_TAG_CREATE_TRANSPORT_FAILED", "DIST_REMOTE_TAG_CREATE_TRANSPORT_IGNORED", 1),
+            "create_response_not_checked": workflow.replace(
+                "if ($null -eq $createdRef -or $createdRef.ref -cne $refName -or $createdRef.object.type -cne 'commit' -or $createdRef.object.sha -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_CREATED_REF_MISMATCH' }",
+                "Write-Host 'unsafe create response accepted'", 1),
+            "create_readback_not_checked": workflow.replace(
+                "if ($null -eq $readbackRef -or $readbackRef.ref -cne $refName -or $readbackRef.object.type -cne 'commit' -or $readbackRef.object.sha -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_CREATE_READBACK_MISMATCH' }",
+                "Write-Host 'unsafe readback accepted'", 1),
+            "tag_must_preexist_for_gh_release": workflow.replace(
+                "--verify-tag --target $env:SOURCE_SHA",
+                "--target $env:SOURCE_SHA", 1),
+            "tag_created_after_release_upload": workflow.replace(
+                "Write-Host ('DIST_REMOTE_TAG_CREATED_VERIFIED sha=' + $env:SOURCE_SHA)",
+                "Write-Host ('DIST_REMOTE_TAG_CREATED_LATE sha=' + $env:SOURCE_SHA)", 1),
             "annotated_tag_must_be_dereferenced": workflow.replace(
                 "Get-DistRemoteGitObject -ApiPath ('git/tags/' + $tagObject.sha)",
                 "$null", 1),

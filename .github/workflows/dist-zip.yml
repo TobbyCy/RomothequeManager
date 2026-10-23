@@ -143,7 +143,35 @@ jobs:
           $preexistingTag = Get-DistRemoteGitObject -ApiPath $tagPath -AllowNotFound $true
           if ($null -ne $preexistingTag) { throw 'DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD' }
           Write-Host 'DIST_REMOTE_TAG_AUTHENTICATED_404_ABSENT_BEFORE_UPLOAD'
-          # A draft release may create the tag. Its remote target is rechecked before publication.
+          # GitHub Draft Releases may not materialize a Git tag until publication.
+          # Create the approved lightweight ref ourselves, before ANY Release asset upload.
+          # A concurrent/unauthorized ref creation fails closed (201 is the only success).
+          $refName = 'refs/tags/' + $env:RELEASE_TAG
+          $createUri = 'https://api.github.com/repos/' + $env:GH_REPO + '/git/refs'
+          $createHeaders = @{
+            Authorization = ('Bearer ' + $env:GH_TOKEN)
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent' = 'RomothequeManager-DIST-ZIP-01'
+          }
+          $createBody = @{ ref = $refName; sha = $env:SOURCE_SHA } | ConvertTo-Json -Compress
+          try {
+            $createResponse = Invoke-WebRequest -Uri $createUri -Method Post -Headers $createHeaders -ContentType 'application/json' -Body $createBody -SkipHttpErrorCheck -TimeoutSec 20 -ErrorAction Stop
+          } catch {
+            throw 'DIST_REMOTE_TAG_CREATE_TRANSPORT_FAILED'
+          }
+          $createStatus = [int]$createResponse.StatusCode
+          if ($createStatus -ne 201) { throw ('DIST_REMOTE_TAG_CREATE_HTTP_FAILED_' + $createStatus) }
+          try {
+            $createdRef = $createResponse.Content | ConvertFrom-Json -ErrorAction Stop
+          } catch {
+            throw 'DIST_REMOTE_TAG_CREATE_RESPONSE_INVALID'
+          }
+          if ($null -eq $createdRef -or $createdRef.ref -cne $refName -or $createdRef.object.type -cne 'commit' -or $createdRef.object.sha -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_CREATED_REF_MISMATCH' }
+          $readbackRef = Get-DistRemoteGitObject -ApiPath $tagPath
+          if ($null -eq $readbackRef -or $readbackRef.ref -cne $refName -or $readbackRef.object.type -cne 'commit' -or $readbackRef.object.sha -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_CREATE_READBACK_MISMATCH' }
+          Write-Host ('DIST_REMOTE_TAG_CREATED_VERIFIED sha=' + $env:SOURCE_SHA)
+          # The same exact remote tag is checked again after Draft creation before publication.
           $notes = Join-Path $env:RUNNER_TEMP 'DIST-ZIP-01-RELEASE-NOTES.md'
           $body = @(
             '# ROMothèque Manager — POC SYNTHÉTIQUE / TEST UNIQUEMENT'
@@ -160,7 +188,7 @@ jobs:
             'Ceci est une pré-release de test, pas une version stable.'
           ) -join [Environment]::NewLine
           [IO.File]::WriteAllText($notes, ($body + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
-          gh release create $env:RELEASE_TAG $env:ZIP $env:CHECKSUM --draft --prerelease --latest=false --target $env:SOURCE_SHA --title 'ROMothèque Manager — POC SYNTHÉTIQUE / TEST UNIQUEMENT' --notes-file $notes
+          gh release create $env:RELEASE_TAG $env:ZIP $env:CHECKSUM --draft --prerelease --latest=false --verify-tag --target $env:SOURCE_SHA --title 'ROMothèque Manager — POC SYNTHÉTIQUE / TEST UNIQUEMENT' --notes-file $notes
           if ($LASTEXITCODE -ne 0) { throw 'DIST_DRAFT_CREATE_FAILED' }
           $draft = gh release view $env:RELEASE_TAG --json isDraft,isPrerelease,assets,targetCommitish | ConvertFrom-Json
           if (-not $draft.isDraft -or -not $draft.isPrerelease -or $draft.targetCommitish -cne $env:SOURCE_SHA -or $draft.assets.Count -ne 2) { throw 'DIST_DRAFT_METADATA_INVALID' }
