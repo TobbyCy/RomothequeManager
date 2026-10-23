@@ -57,6 +57,8 @@ Sur une VM ou un Windows x64 propre, sans SDK/runtime .NET préinstallé si poss
 
 Décision [Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) du 23.10.2026 : **GO_PREPARE_TEST_DISTRIBUTION**, mais **RELEASE_HOLD_UNTIL_NOTICES_AND_FINAL_ARTIFACT_VERIFIED**. La fusion du packaging V2-01C [PR #53](https://github.com/TobbyCy/RomothequeManager/pull/53) n'a livré aucun ZIP téléchargeable.
 
+Pour **LIC-ZIP-01**, la CI Windows automatique publie dans ses **logs uniquement** un `PUBLISH_FILE_MANIFEST_BEGIN/END` et chaque `PUBLISH_FILE_JSON` (chemin relatif, taille, SHA-256, version fichier/produit) juste après `dotnet publish`, **avant l'ajout des notices**. DEV 2 peut rapprocher cet inventaire exact des paquets NuGet et composants natifs, sans téléchargement d'artefact. Le workflow manuel émet le même type de liste après ajout des notices (`DIST_PUBLISH_FILE_JSON`).
+
 Le workflow distinct `.github/workflows/dist-zip.yml` est **exclusivement manuel** (`workflow_dispatch`, sélection de `main`) :
 
 1. **`phase=validate`** : impose un SHA source exact, le SDK 10.0.401, les locks NuGet, les notices tierces et l'inventaire validés ; construit le ZIP Windows x64 dans `RUNNER_TEMP`, le recompile/emballe de façon ordonnée, vérifie deux ZIP successifs identiques, le SHA-256, chaque fichier après extraction et le smoke Avalonia depuis l'extraction. **Aucun téléversement ; le ZIP disparaît avec le runner.** Les logs livrent l'empreinte et l'identité du commit.

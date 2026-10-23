@@ -79,6 +79,22 @@ foreach ($required in @('RomothequeManager.V2.exe', 'coreclr.dll', 'hostfxr.dll'
 }
 $published = @(Get-ChildItem -LiteralPath $publish -Recurse -File | Sort-Object FullName)
 if ($published.Count -lt 10) { throw 'DIST_PUBLISH_EMPTY' }
+Write-Host ('DIST_PUBLISH_FILE_MANIFEST_BEGIN source=' + $SourceSha + ' count=' + $published.Count)
+foreach ($file in $published) {
+  $relative = $file.FullName.Substring($publish.Length + 1)
+  $version = if ($file.Extension -in @('.dll', '.exe')) { $file.VersionInfo.FileVersion } else { '' }
+  $productVersion = if ($file.Extension -in @('.dll', '.exe')) { $file.VersionInfo.ProductVersion } else { '' }
+  $record = [ordered]@{
+    path = $relative
+    sizeBytes = $file.Length
+    sha256 = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    fileVersion = $version
+    productVersion = $productVersion
+  }
+  Write-Host ('DIST_PUBLISH_FILE_JSON ' + ($record | ConvertTo-Json -Compress))
+}
+Write-Host ('DIST_PUBLISH_FILE_MANIFEST_END source=' + $SourceSha + ' count=' + $published.Count)
+
 $forbiddenExtensions = @('.rom', '.chd', '.iso', '.cue', '.gdi', '.cdi', '.nes', '.sfc', '.smc', '.gba', '.gbc', '.n64', '.z64', '.nsp', '.xci', '.wad', '.sav', '.srm', '.pfx', '.pem', '.p12', '.snk', '.key')
 $forbiddenNames = @('.env', 'id_rsa', 'id_ed25519', 'credentials.json', 'secrets.json')
 foreach ($file in $published) {

@@ -337,6 +337,23 @@ jobs:
           foreach ($required in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll')) {
             if (-not (Test-Path -LiteralPath (Join-Path $publish $required) -PathType Leaf)) { throw ('V2C_SELF_CONTAINED_FILE_MISSING:' + $required) }
           }
+          # LIC-ZIP-01 evidence: exact dotnet publish output BEFORE our own legal/POC files.
+          $publishFiles = @(Get-ChildItem -LiteralPath $publish -Recurse -File | Sort-Object FullName)
+          Write-Host ('PUBLISH_FILE_MANIFEST_BEGIN source=' + $env:GITHUB_SHA + ' count=' + $publishFiles.Count)
+          foreach ($file in $publishFiles) {
+            $relative = $file.FullName.Substring($publish.Length + 1)
+            $version = if ($file.Extension -in @('.dll', '.exe')) { $file.VersionInfo.FileVersion } else { '' }
+            $productVersion = if ($file.Extension -in @('.dll', '.exe')) { $file.VersionInfo.ProductVersion } else { '' }
+            $record = [ordered]@{
+              path = $relative
+              sizeBytes = $file.Length
+              sha256 = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              fileVersion = $version
+              productVersion = $productVersion
+            }
+            Write-Host ('PUBLISH_FILE_JSON ' + ($record | ConvertTo-Json -Compress))
+          }
+          Write-Host ('PUBLISH_FILE_MANIFEST_END source=' + $env:GITHUB_SHA + ' count=' + $publishFiles.Count)
           Copy-Item -LiteralPath 'LICENSE' -Destination (Join-Path $publish 'LICENSE') -Force
           $notice = @(
             'ROMothèque Manager V2-01C — POC SYNTHÉTIQUE, lecture seule.'

@@ -515,6 +515,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("DIST_FORBIDDEN_CONTENT", script)
         self.assertIn("DIST_EXTRACTED_SMOKE_FAILED", script)
         self.assertIn("DIST_ZIP_VALIDATED_PASS", script)
+        self.assertIn("DIST_PUBLISH_FILE_MANIFEST_BEGIN", script)
+        self.assertIn("PUBLISH_FILE_MANIFEST_BEGIN", (root / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
         self.assertNotIn("gh release", script)
         self.assertNotIn("upload-artifact", script)
 
