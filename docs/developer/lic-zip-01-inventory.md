@@ -108,3 +108,38 @@ Cette qualification distingue le **contenu du publish candidat** (hashs ci-dessu
 5. **REVUE** : CI sur PR de distribution, contrôle indépendant Agent sur ZIP extrait, décision du Contrôleur avant upload. UX externe reste `NOT_TESTED` et ne vaut pas approbation d'une Release.
 
 **Verdict DEV 2 :** `SOURCE_INVENTORY_PREPARED` ; `CANDIDATE_PUBLISH_223_FILES_MAPPED` ; `FINAL_ZIP_NOT_YET_PROVEN` ; `RELEASE_HOLD`. Ce document ne lève pas la réserve `thirdPartyNotices=PENDING` de l'Issue #50.
+
+## LEGAL-RELEASE-CLEARANCE — clôture native ciblée (23.10.2026)
+
+**Cette section remplace les anciens verdicts RELEASE_HOLD portant sur les licences natives et le ZIP non encore validé.** Périmètre exclusivement limité à la première Pre-release de test synthétique Windows x64.
+
+### ZIP exact et provenance
+
+[Validation finale #39992237910](https://github.com/TobbyCy/RomothequeManager/actions/runs/39992237910) : source d8b43d72d349afd6945a0ea7b4edbe9f8c3dae1d, 243 fichiers, 75 336 626 octets, ZIP SHA-256 20412460cb8f95d69b44c1e37eabd480ad34f6c55ab2b07fe4e47bfd8923efa5 ; smoke quatre vues/six jeux synthétiques PASS ; dix notices editeurs et deux documents runtime .NET présents ; NO_UPLOAD.
+
+| DLL du ZIP | SHA-256 | NuGet verrouillé |
+|---|---|---|
+| libSkiaSharp.dll | 7dec3ba900ab353491e6446f0083739924c6f8dd668832e2f09d38ebffdbbe1c | SkiaSharp.NativeAssets.Win32 3.119.4 |
+| libHarfBuzzSharp.dll | 145ade963eba427027d5e1381db5d51a0ef9e98e9fef9efbfa6074ca20da246f | HarfBuzzSharp.NativeAssets.Win32 8.3.1.3 |
+| av_libglesv2.dll | 53191a77fe783cd757ca7767077c2a64a662e7043777a5b4ab74980d4a0b73e3 | Avalonia.Angle.Windows.Natives 2.1.27548.20260419 |
+
+Le fichier ANGLE incorpore le productVersion « 2.1.1 git hash: 1c89805903c1 ». Ce hash identifie la [révision source ANGLE immuable](https://github.com/AvaloniaUI/angle/commit/1c89805903c1482166356d3b950d474973180e61) dont le [projet NuGet](https://github.com/AvaloniaUI/angle/blob/1c89805903c1482166356d3b950d474973180e61/nuget/Avalonia.Angle.Windows.Natives.csproj) porte exactement la version résolue. [Son build Windows](https://github.com/AvaloniaUI/angle/blob/1c89805903c1482166356d3b950d474973180e61/.github/workflows/build.yml) compile libGLESv2 x64 puis le place dans le package. Les deux autres DLL correspondent aux [recettes Windows SkiaSharp](https://github.com/mono/SkiaSharp/blob/v3.119.4/native/windows/build.cake) et [HarfBuzzSharp](https://github.com/mono/SkiaSharp/blob/v3.119.4/native/windows/libHarfBuzzSharp/libHarfBuzzSharp.vcxproj).
+
+La comparaison cryptographique indépendante des DLL extraites directement des NUPKG n'a **pas** été réalisée. Restore verrouillé, versions, hashes du manifest et identifiant Git embarqué dans ANGLE fournissent toutefois une provenance suffisante pour ce contrôle de redistribution ; l'extraction NUPKG supplémentaire est souhaitable pour l'audit reproductible, **pas imposée par une licence**.
+
+### Inclusion/exclusion et conditions des composants ciblés
+
+- **FreeType : exclu de SkiaSharp Windows.** Le [GN Skia épinglé](https://github.com/mono/skia/blob/7dbfc07dd33181f84e0958afb7ee805c6c769f0b/gn/skia.gni) active FreeType par défaut sur Android/Fuchsia/Linux/WASM, pas Windows. Le build Windows ne le réactive pas. Aucun choix FTL/GPL ni source FreeType n'est requis.
+- **gif sous MPL/GPL/LGPL : non lié comme composant distinct.** Le [BUILD.gn Skia](https://github.com/mono/skia/blob/7dbfc07dd33181f84e0958afb7ee805c6c769f0b/BUILD.gn) sélectionne SkWuffsCodec ; [son target Wuffs](https://github.com/mono/skia/blob/7dbfc07dd33181f84e0958afb7ee805c6c769f0b/third_party/wuffs/BUILD.gn) compile GIF/LZW. Le [Wuffs miroir exact](https://github.com/google/wuffs-mirror-release-c/blob/e3f919ccfe3ef542cfc983a82146070258fb57f8/LICENSE) est Apache-2.0, non le code Mozilla générique de l'avis éditeur.
+- **libmicrohttpd : exclu.** Le seul lien [BUILD.gn](https://github.com/mono/skia/blob/7dbfc07dd33181f84e0958afb7ee805c6c769f0b/BUILD.gn) vers libmicrohttpd concerne skiaserve, pas la cible SkiaSharp ; l'entrée est commentée dans les [DEPS Skia épinglés](https://github.com/mono/skia/blob/7dbfc07dd33181f84e0958afb7ee805c6c769f0b/DEPS). Pas d'obligation LGPL/eCos de source ou de reliaison pour ce ZIP.
+- **ANGLE xxHash : inclus.** Le [BUILD.gn ANGLE épinglé](https://github.com/AvaloniaUI/angle/blob/1c89805903c1482166356d3b950d474973180e61/BUILD.gn) relie angle_common à xxHash. Licence BSD-2/attribution déjà présente intégralement dans ANGLE-xxHash-LICENSE.txt.
+- **ANGLE Abseil et Arm ASTC Encoder : inclus par graphe de compilation.** angle_common utilise angle_abseil avec Clang par défaut ([configuration ANGLE](https://github.com/AvaloniaUI/angle/blob/1c89805903c1482166356d3b950d474973180e61/BUILD.gn), [DevSetup officiel](https://github.com/google/angle/blob/main/doc/DevSetup.md)) ; angle_image_util utilise astcenc, activé sur Windows standalone par [gni/angle.gni](https://github.com/AvaloniaUI/angle/blob/1c89805903c1482166356d3b950d474973180e61/gni/angle.gni). Tous deux sont Apache-2.0 ([Abseil](https://github.com/abseil/abseil-cpp/blob/master/LICENSE), [ASTC révision épinglée](https://github.com/ARM-software/astc-encoder/blob/2319d9c4d4af53a7fc7c52985e264ce6e8a02a9b/LICENSE.txt)).
+- **ANGLE zlib/compression : inclus par graphe ;** avis zlib présent dans l'avis natif SkiaSharp. RapidJSON n'est pas dans le libGLESv2 sans frame capture par défaut ; les dépendances SPIR-V/Vulkan sont désactivées dans les options x64 du build éditeur.
+
+### Obligations effectivement applicables
+
+Les textes BSD-2 ANGLE/xxHash et les notices SkiaSharp/HarfBuzzSharp sont livrés intégralement. [Apache-2.0 section 4](https://www.apache.org/licenses/LICENSE-2.0) exige une copie de licence pour une redistribution binaire : **le texte intégral Apache-2.0 est déjà reproduit dans SkiaSharp-THIRD-PARTY-NOTICES.txt** du ZIP. Les dépôts racines épinglés de Wuffs, Abseil et ASTC n'ont pas de fichier NOTICE distinct ; les sources des trois bibliothèques ne doivent pas être publiées au titre d'Apache-2.0 pour ce binaire non modifié. L'index THIRD-PARTY-NOTICES.txt associe désormais explicitement les trois projets à ce texte déjà distribué. Aucun composant copyleft identifié comme effectivement lié n'impose une offre de sources, un mécanisme de reliaison ou une licence alternative.
+
+**Verdict : LEGAL_APPROVED** pour le volet licences/notices de cette Pre-release synthétique Windows, sous réserve de fusion de la présente PR et d'un **nouveau validate sur le nouveau SHA de main**. Le présent verdict ne vaut ni GO final du propriétaire, ni UX externe PASS, ni autorisation d'upload autonome. Le workflow publish reste contrôlé par les valeurs source/ZIP/tag approuvées par Tobby.
+
+LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED
