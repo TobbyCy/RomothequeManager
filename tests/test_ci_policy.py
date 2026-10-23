@@ -341,17 +341,20 @@ class DocumentTests(unittest.TestCase):
             commands = []
             def fake_run(args, **kwargs):
                 commands.append(args)
+                if args[1] == "--version":
+                    return subprocess.CompletedProcess(args, 0, stdout="10.0.401\n", stderr="")
                 if args[1] == "test":
                     dest = Path(args[args.index("--results-directory") + 1])
                     dest.mkdir(parents=True)
                     (dest / "tests.trx").write_text('<TestRun><ResultSummary><Counters total="' + str(executed) + '" passed="' + str(executed) + '" executed="' + str(executed) + '" failed="0"/></ResultSummary></TestRun>', encoding="utf-8")
-            with patch.object(p, "tree", return_value=entries), patch.object(p, "git", side_effect=blob), patch.object(p.subprocess, "run", side_effect=fake_run):
+            with patch.object(p, "tree", return_value=entries), patch.object(p, "git", side_effect=blob), patch.object(p, "verify_sdk_pin", return_value="10.0.401"), patch.object(p.subprocess, "run", side_effect=fake_run):
                 if executed:
                     with contextlib.redirect_stdout(io.StringIO()):
                         p.dotnet(Path("."))
                 else:
                     with self.assertRaisesRegex(p.PolicyError, "DOTNET_ZERO_OR_FAILED_TESTS"):
                         p.dotnet(Path("."))
+            self.assertEqual(1, sum(c[1] == "--version" for c in commands))
             self.assertEqual(2, sum(c[1] == "restore" and "--locked-mode" in c for c in commands))
             self.assertEqual(2, sum(c[1] == "build" and "-p:EnableNETAnalyzers=true" in c for c in commands))
             self.assertTrue(all(c[0] == "dotnet" for c in commands))
