@@ -102,7 +102,7 @@ public sealed class MainWindow : Window
     {
         _page.Children.Add(Text("Collection", 30, true));
         _page.Children.Add(Text("Résultats observés dans les fixtures. Ce total ne prouve pas une bibliothèque complète."));
-        var search = new TextBox { Watermark = "Rechercher un jeu ou une plateforme", Text = _state.SearchText };
+        var search = new TextBox { PlaceholderText = "Rechercher un jeu ou une plateforme", Text = _state.SearchText };
         search.TextChanged += (_, _) => { _state.Search(search.Text); FillResults(); };
         _page.Children.Add(search);
         _list = new StackPanel { Spacing = 10 };

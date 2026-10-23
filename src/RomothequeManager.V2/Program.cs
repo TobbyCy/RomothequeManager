@@ -13,7 +13,7 @@ internal static class Program
     {
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
-            Args = args, ShutdownMode = ShutdownMode.OnMainWindowClose
+            Args = args
         };
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
