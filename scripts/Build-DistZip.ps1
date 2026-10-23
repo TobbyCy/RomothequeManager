@@ -59,7 +59,7 @@ if ($LASTEXITCODE -ne 0) { throw 'DIST_PUBLISH_FAILED' }
 # Canonical LIC-ZIP-01 source files come from DEV 2, not memory or placeholders.
 $licensesSource = Join-Path $repo 'packaging/licenses'
 $requiredLicenseNames = @(
-  'ANGLE-LICENSE.txt', 'Avalonia-LICENSE.txt', 'Avalonia-NOTICE.txt',
+  'ANGLE-LICENSE.txt', 'ANGLE-xxHash-LICENSE.txt', 'Avalonia-LICENSE.txt', 'Avalonia-NOTICE.txt',
   'HarfBuzz-COPYING.txt', 'MicroCom-LICENSE.txt', 'Skia-LICENSE.txt',
   'SkiaSharp-LICENSE.txt', 'SkiaSharp-THIRD-PARTY-NOTICES.txt', 'Tmds.DBus-COPYING.txt'
 )

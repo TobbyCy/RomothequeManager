@@ -16,6 +16,14 @@ ANGLE WINDOWS NATIVES 2.1.27548.20260419 (if native DLL redistributed)
   License: BSD-style redistribution terms. Full text: licenses/ANGLE-LICENSE.txt
   Source: https://www.nuget.org/packages/Avalonia.Angle.Windows.Natives/2.1.27548.20260419/License
 
+ANGLE / xxHash (conditional native subcomponent, conservative notice)
+  Copyright (C) 2012-2023 Yann Collet; BSD 2-Clause.
+  Full attribution and disclaimer: licenses/ANGLE-xxHash-LICENSE.txt
+  Source: https://github.com/AvaloniaUI/angle/blob/avalonia-fork-master/src/common/third_party/xxhash/xxhash.h
+  The Avalonia ANGLE source graph includes xxhash through angle_common;
+  exact NuGet DLL linkage still requires frozen build/binary confirmation.
+  The BSD-2 notice imposes attribution, not a general source-code offer.
+
 SKIASHARP 3.119.4 / HARFBUZZSHARP 8.3.1.3 (managed wrapper as shipped)
   License: MIT. Full text: licenses/SkiaSharp-LICENSE.txt
   Source: https://github.com/mono/SkiaSharp/blob/v3.119.4/LICENSE.md
