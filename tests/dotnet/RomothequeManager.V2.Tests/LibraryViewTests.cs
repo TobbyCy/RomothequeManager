@@ -156,15 +156,15 @@ public sealed class LibraryViewTests
     {
         var node = Fixture();
         node["registry"]!["schemaVersion"] = JsonValue.Create("unexpected");
-        Assert.ThrowsException<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
+        Assert.ThrowsExactly<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
 
         node = Fixture();
         node["registry"]!["libraries"]!.AsArray()[1]!["libraryId"] = JsonValue.Create("lib-a");
-        Assert.ThrowsException<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
+        Assert.ThrowsExactly<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
 
         node = Fixture();
         node["registry"]!["libraries"]!.AsArray()[0]!["generations"]!.AsArray()[0]!["coverageProof"] = new JsonArray();
-        Assert.ThrowsException<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
+        Assert.ThrowsExactly<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
     }
 
     [TestMethod]
@@ -172,7 +172,7 @@ public sealed class LibraryViewTests
     {
         var node = Fixture();
         node["comparisons"]!.AsArray()[0]!["counts"]!["UNKNOWN"] = JsonValue.Create(999);
-        Assert.ThrowsException<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
+        Assert.ThrowsExactly<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
 
         node = Fixture();
         var library = node["registry"]!["libraries"]!.AsArray()[0]!;
@@ -180,7 +180,7 @@ public sealed class LibraryViewTests
         foreach (var generation in library["generations"]!.AsArray())
             generation!["countKnown"] = JsonValue.Create(false);
         node["comparisons"]!.AsArray().RemoveAt(0);
-        Assert.ThrowsException<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
+        Assert.ThrowsExactly<ArgumentException>(() => LibraryProjection.FromJson(node.ToJsonString()));
     }
 
     [TestMethod]
