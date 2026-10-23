@@ -4,7 +4,7 @@ using Avalonia.Themes.Fluent;
 
 namespace RomothequeManager.V2;
 
-internal sealed class App : Application;
+internal sealed class App : Application { }
 
 internal static class Program
 {
@@ -28,7 +28,7 @@ internal static class Program
             {
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
-                    if (!window.Visible || window.Content is null ||
+                    if (!window.IsVisible || window.Content is null ||
                         window.Title != "ROMothèque Manager — POC synthétique")
                     {
                         Environment.ExitCode = 17;
