@@ -304,6 +304,10 @@ jobs:
           $stage = Join-Path $env:RUNNER_TEMP 'rm-v2-01a-candidate'
           $publish = Join-Path $stage 'app'
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          # Runtime packs are downloaded only for a RID/self-contained restore.
+          # Preserve the committed NuGet lock; never resolve unpinned packages.
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'POC_RUNTIME_PACK_LOCKED_RESTORE_FAILED' }
           dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $publish
           if ($LASTEXITCODE -ne 0) { throw 'POC_PUBLISH_FAILED' }
           $exe = Join-Path $publish 'RomothequeManager.V2.exe'
