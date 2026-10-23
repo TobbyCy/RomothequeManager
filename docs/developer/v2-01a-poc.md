@@ -1,7 +1,18 @@
 # V2-01A — POC Windows synthétique (Issue #41)
 
-**Statut : candidat technique, non adopté, non distribué.** Un GO limité autorise
-uniquement la démonstration Windows .NET 10 + Avalonia UI Community 12.1.4.
+**Statut au 23.10.2026 : code du POC V2-01A intégré sur `main` via [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42), fonctionnel en CI sur fixtures synthétiques, mais stack non adoptée définitivement et application non distribuée.** Le GO limité porte sur la démonstration Windows .NET 10 + Avalonia UI Community 12.1.4.
+
+## Preuves et limites actuelles
+
+- [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42) **MERGED** à `f9b0bbf11bf4234cc67a6a37507af4fd40dde2d9` ; [PR #45](https://github.com/TobbyCy/RomothequeManager/pull/45) **MERGED** à `408d6263be6ae1fbc77c31f6eb9fb530cb4f76e6`, après incident du SDK sur l'image Windows renouvelée.
+- La [CI post-fusion #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607) est **SUCCESS** sur le second SHA : pin SDK `10.0.401`, restauration verrouillée, build et **8 MSTest**, fenêtre Avalonia réelle, ZIP/SHA-256 temporaires, `ci-policy-gate` réussi.
+- Le job `.NET` installe désormais explicitement `10.0.401` via `actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9` avant le garde. `global.json` reste strict (`rollForward=disable`). Le succès de cette CI **ne démontre pas encore** le scénario d'un runner initialement dépourvu de `10.0.401` : [Issue #43](https://github.com/TobbyCy/RomothequeManager/issues/43).
+- Les **quatre anciens artefacts ZIP Actions** ont été [supprimés et contre-vérifiés](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451) dans PUB-04 ; les ZIP suivants restent confinés à `RUNNER_TEMP` sans `upload-artifact`. **Aucun ZIP Windows, installateur ni GitHub Release n'est téléchargeable.**
+- Notices et licences tierces, essai sur PC externe sans runtime/SDK, USB, accessibilité, compatibilité ARM/SteamOS et fonctionnement sur bibliothèque réelle : **non validés**. V2-01B (quatrième vue Bibliothèques/snapshots) reste **future**.
+
+## Historique des essais V2-01A (preuves datées)
+
+Les mesures, hashes et états d'artefacts ci-dessous décrivent les exécutions antérieures à la purge PUB-04. Ils ne doivent pas être interprétés comme une distribution encore disponible.
 
 Trois vues : Dashboard, Collection, Fiche. Six jeux **inventés** et des
 bibliothèques fictives OFFLINE/UNKNOWN/ONLINE avec provenance et horodatage.
@@ -75,12 +86,12 @@ vérification du texte des licences ni de toutes les obligations redistributives
 **Décision de sécurité** : les nouvelles archives sont toujours construites et
 SHA-256 calculé en CI mais demeurent **quarantainées dans RUNNER_TEMP et ne
 sont plus téléchargables**. L'action `upload-artifact` est supprimée et
-interdite par `verify_public_ci_guard` avec canaris négatifs. L'artefact
-**historique** reste potentiellement téléchargeable jusqu'au **30.10.2026
-05:23 UTC** : **suppression manuelle prioritaire par le Contrôleur**
-(GitHub Actions, run #39905309039, artefact
-`v2-01a-win-x64-candidate`; vérifier aussi les runs précédents).
-L'absence de nouvel upload ne retire pas rétroactivement ce fichier.
+interdite par `verify_public_ci_guard` avec canaris négatifs. À la date de cet audit initial, l'artefact **historique** était encore
+potentiellement téléchargeable jusqu'au **30.10.2026 05:23 UTC**
+(run #39905309039, `v2-01a-win-x64-candidate`). **Cette situation a depuis
+été résolue par PUB-04** : les quatre artefacts concernés ont été supprimés
+et leur absence vérifiée ([Issue #44](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451)).
+La purge ne peut pas retirer d'éventuelles copies téléchargées antérieurement.
 
 Avant toute nouvelle autorisation de téléchargement : inventaire complet des
 composants binaires, versions, textes intégrals officiels de licences,
