@@ -4,6 +4,28 @@
 
 Le terme **fonctionnel** désigne ici un POC exécuté et testé **sur fixtures fictives**, pas un produit prêt pour des bibliothèques personnelles. Le code intégré, la validation CI et la disponibilité d'un binaire distribué sont trois états distincts.
 
+## V2-01B intégré — Bibliothèques et snapshots
+
+La [PR #48](https://github.com/TobbyCy/RomothequeManager/pull/48), issue du mandat [#47](https://github.com/TobbyCy/RomothequeManager/issues/47), a été **fusionnée** sur `main=eda249cd95327cb4bbba27350898513070eca62b`. Elle ajoute la quatrième vue Avalonia « Bibliothèques & snapshots » : **trois bibliothèques liées aux six jeux fictifs existants**, liste/inspecteur, snapshots datés, états de disponibilité et de fraîcheur, et sélection A/B sur résultats préqualifiés. Les sept scénarios PowerShell historiques restent des vecteurs de test indépendants, non additionnés au Dashboard.
+
+**Intégré mais non distribué :** ce POC reste limité aux fixtures synthétiques. Aucun scan, collection réelle, moteur de comparaison C#, PowerShell lancé par l'UI, stockage ou Release n'est autorisé. Les compteurs inconnus restent `null`, les absences observées ne prouvent aucune suppression et le dernier complet vérifié reste distinct des tentatives partielles.
+
+### Traçabilité de la fixture Windows V2-01B (POC synthétique intégré)
+
+**`UI-only / handcrafted deterministic demo / NOT_ENGINE_VERIFIED`.** Le JSON embarqué `src/RomothequeManager.V2/Fixtures/library-ui-v2-01b.synthetic.json` est une démonstration fictive **figée et révisable**, non une sortie vérifiée du producteur PowerShell. Les six `syn-001…syn-006` restent répartis en trois `libraryId` (`lib-a/b/c`) ; les sept vecteurs PS demeurent séparés et ne constituent pas sept bibliothèques à afficher. Aucun résultat de classification de cette fixture ne doit être attribué au moteur PS5.1.
+
+Les **oracles indépendants** des champs `counts`, `entries` et `countDenominator` sont codés en dur dans `ThreeFrozenUiOraclesAreIndependentOfFixtureCounts` (MSTest), puis confrontés au JSON :
+
+| Bibliothèque | A → B synthétiques | Couverture | A∪B | Résultats attendus |
+| --- | --- | --- | ---: | --- |
+| `lib-a` | `a-complete-20261019` → `fictif-2026-10-20` | INCOMPLETE | 2 | UNKNOWN 2 |
+| `lib-b` | `b-complete-20261017` → `fictif-2026-10-18` | COMPLETE | 2 | UNCHANGED 1, NOT_COMPARABLE 1 (conflit local d'identité) |
+| `lib-c` | `c-complete-20261021` → `fictif-2026-10-22` | COMPLETE | 4 | ADDED 1, CHANGED 1, UNCHANGED 1, NOT_OBSERVED_IN_B_COVERED_SCOPE 1 |
+
+Ces dénominateurs sont des **unions d'unités logiques observées**, jamais des nombres de fichiers physiques supprimés. Les tests de qualification imposent la couverture exacte des partitions `console × sourceKey × rootKey × domain`, vérifient les références A/B et leurs scopes et rejettent les preuves absentes, étrangères ou dupliquées. Le rendu masque l'historique détaillé lorsque `indexAccessible=false` : seule une référence mémorisée explicitement non consultable peut être montrée.
+
+**Limite UX volontaire du POC :** `INTERACTIVE_KEYBOARD_SCROLL_NOT_TESTED`. Le smoke CI Windows atteste l'ouverture des quatre vues et l'exercice de l'état A/B, **pas** un parcours physique clavier/ComboBox, le maintien du focus ou du scroll, ni la vérification humaine à largeur réduite. À suivre séparément après intégration si le Contrôleur le décide.
+
 ## Capacités réellement intégrées
 
 | Domaine | État intégré et preuves | Limites actuelles |
@@ -11,14 +33,14 @@ Le terme **fonctionnel** désigne ici un POC exécuté et testé **sur fixtures 
 | Moteur Windows PowerShell 5.1 / inventaire E1 | Sources et contrôles synthétiques présents ; CI-0 à CI-4 et Pester applicables **SUCCESS** dans le [run #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607) | Aucun scan ni modification de collection réelle autorisé |
 | Prototype web `prototype/ui11/` | Dashboard, Bibliothèques, comparaison A/B, Collection et fiches sur données fictives ; smoke Node et Edge headless `file://` **SUCCESS** dans ce run | Pas de persistance, ni de connexion à une collection réelle ; Edge headless n'est pas une recette graphique humaine |
 | Bibliothèques / snapshots / catalogue PS → JSON → JS | Producteur PowerShell, projections, comparateur à six classes et consommateur JS intégrés ; canaris et fixtures synthétiques exécutés en CI | DTO 0.2 encore candidat ; l'état OFFLINE/STALE ou un index inaccessible ne prouve jamais une suppression |
-| **POC Windows V2-01A** | `src/RomothequeManager.V2/` intégré via **PR #42** ; .NET 10, Avalonia 12.1.4, **trois vues** Dashboard / Collection-recherche / Fiche, **six jeux inventés** en mémoire ; **8 MSTest** et smoke réel de fenêtre Windows en CI | Lecture seule ; pas de scan, stockage, réseau métier, export, import de ROM, bibliothèques/snapshots en quatrième vue, ni essai utilisateur sur PC externe |
+| **POC Windows V2-01A/B** | `src/RomothequeManager.V2/` intégré via **PR #42 et #48** ; .NET 10, Avalonia 12.1.4, **quatre vues** Dashboard / Collection-recherche / Fiche / Bibliothèques-snapshots avec A/B, **six jeux fictifs et trois bibliothèques fictives** ; **31 MSTest** et smoke réel de fenêtre Windows à quatre vues dans la CI de #48 | Lecture seule sur fixtures UI, résultats A/B préqualifiés et non vérifiés par le moteur ; pas de scan, stockage, réseau métier, export, import de ROM ou essai utilisateur sur PC externe |
 | SDK et restauration .NET | `global.json` impose **SDK 10.0.401 exact**, `rollForward=disable` ; locks NuGet committés, restore verrouillé ; [PR #45](https://github.com/TobbyCy/RomothequeManager/pull/45) ajoute `actions/setup-dotnet` épinglé avant les contrôles | Le run post-fusion prouve le succès du provisionnement sur son runner, **pas encore** le scénario reproductible d'une image initialement dépourvue de 10.0.401 (suivi [#43](https://github.com/TobbyCy/RomothequeManager/issues/43)) |
 | ZIP Windows / Release | Publication self-contained `win-x64` et SHA-256 **générés dans `RUNNER_TEMP`**, sans `upload-artifact` ; les **quatre anciens artefacts Actions ont été purgés** et contre-vérifiés ([PUB-04 #44](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451)) | **Aucun ZIP téléchargeable, aucun installateur, aucune GitHub Release** ; licences/notices tierces du package encore à qualifier ; d'éventuelles copies téléchargées avant purge ne sont pas effacées par GitHub |
-| Licence et visuels | Licence MIT pour le code original et la documentation autorisée ; `LEGAL.md` et `BRANDING.md` publics ; bandeau PNG officiel V2 présent dans l'arbre BRAND-01 sur autorisation du propriétaire | Aucune licence MIT implicite sur le bandeau (droits réservés) ; autres SVG/ICO non distribués ; aucun droit sur ROM/BIOS/jeux tiers |
+| Licence et visuels | Licence MIT pour le code original et la documentation autorisée ; `LEGAL.md` et `BRANDING.md` publics ; bandeau PNG officiel V2 ajouté dans BRAND-01 avec autorisation propriétaire | Le bandeau reste sous droits graphiques réservés, distincts de MIT ; autres SVG/ICO non distribués ; aucun droit sur ROM/BIOS/jeux tiers |
 
 ## Travail futur ou non livré
 
-- **V2-01B — Bibliothèques et snapshots dans l'application Avalonia :** quatrième vue, comparaison A/B, états OFFLINE/STALE et données synthétiques ; **préparation de périmètre**, pas de code intégré dans V2-01A.
+- **Raccordement des bibliothèques réelles à l'interface Windows :** non implémenté dans V2-01B ; la vue intégrée utilise exclusivement des fixtures fictives et aucun moteur de comparaison métier C#.
 - **Bibliothèques personnelles, favoris, tags, persistance et synchronisation :** non implémentés dans le POC Windows.
 - **Export E2 à E6, conversion, copie et opérations physiques :** conception uniquement ; aucune action réelle autorisée.
 - **Distribution Windows, USB, essais externes, compatibilité SteamOS/Linux/ARM :** non validés. L'obtention d'une CI verte ne lève pas l'interdiction de Release.
