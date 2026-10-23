@@ -1,0 +1,788 @@
+{
+  "registry": {
+    "schemaVersion": "0.1.0-synthetic",
+    "readOnly": true,
+    "libraries": [
+      {
+        "libraryId": "lib-a",
+        "name": "Bibliothèque A",
+        "platforms": [
+          "GBA",
+          "PS1"
+        ],
+        "sources": [
+          {
+            "sourceKey": "synthetic-source-a",
+            "rootKey": "synthetic-root-a",
+            "domains": [
+              "ROMS"
+            ]
+          }
+        ],
+        "currentAvailability": "OFFLINE",
+        "availabilityObservedAtUtc": "2026-10-22T12:15:00Z",
+        "freshness": "STALE",
+        "indexAccessible": true,
+        "lastVerifiedCompleteRef": "a-complete-20261019",
+        "lastObservedAtUtc": "2026-10-20T14:00:00Z",
+        "generations": [
+          {
+            "snapshotId": "a-complete-20261019",
+            "generationId": "a-gen-01",
+            "scanId": "scan-a-complete-20261019",
+            "capturedAtUtc": "2026-10-19T14:00:00Z",
+            "schemaVersion": "1.0.0",
+            "scanStatus": "complete",
+            "scopeIsExhaustive": true,
+            "coverage": [
+              {
+                "console": "GBA",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              },
+              {
+                "console": "PS1",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              }
+            ],
+            "coverageProof": [
+              {
+                "console": "GBA",
+                "sourceKey": "synthetic-source-a",
+                "rootKey": "synthetic-root-a",
+                "domain": "ROMS",
+                "status": "complete"
+              },
+              {
+                "console": "PS1",
+                "sourceKey": "synthetic-source-a",
+                "rootKey": "synthetic-root-a",
+                "domain": "ROMS",
+                "status": "complete"
+              }
+            ],
+            "countKnown": true,
+            "observedUnitCount": 2,
+            "provenance": "Fixture V2-01B intégrée · source synthétique A"
+          },
+          {
+            "snapshotId": "fictif-2026-10-20",
+            "generationId": "a-gen-02",
+            "scanId": "scan-fictif-2026-10-20",
+            "capturedAtUtc": "2026-10-20T14:00:00Z",
+            "schemaVersion": "1.0.0",
+            "scanStatus": "partial",
+            "scopeIsExhaustive": false,
+            "coverage": [
+              {
+                "console": "GBA",
+                "status": "partial",
+                "reason": "SCAN_NOT_COMPLETE"
+              },
+              {
+                "console": "PS1",
+                "status": "partial",
+                "reason": "SCAN_NOT_COMPLETE"
+              }
+            ],
+            "coverageProof": [
+              {
+                "console": "GBA",
+                "sourceKey": "synthetic-source-a",
+                "rootKey": "synthetic-root-a",
+                "domain": "ROMS",
+                "status": "partial"
+              },
+              {
+                "console": "PS1",
+                "sourceKey": "synthetic-source-a",
+                "rootKey": "synthetic-root-a",
+                "domain": "ROMS",
+                "status": "partial"
+              }
+            ],
+            "countKnown": true,
+            "observedUnitCount": 2,
+            "provenance": "Fixture V2-01B intégrée · source synthétique A"
+          }
+        ]
+      },
+      {
+        "libraryId": "lib-b",
+        "name": "Bibliothèque B",
+        "platforms": [
+          "GBA",
+          "SNES"
+        ],
+        "sources": [
+          {
+            "sourceKey": "synthetic-source-b",
+            "rootKey": "synthetic-root-b",
+            "domains": [
+              "ROMS"
+            ]
+          }
+        ],
+        "currentAvailability": "UNKNOWN",
+        "availabilityObservedAtUtc": null,
+        "freshness": "UNKNOWN",
+        "indexAccessible": true,
+        "lastVerifiedCompleteRef": "fictif-2026-10-18",
+        "lastObservedAtUtc": "2026-10-18T09:30:00Z",
+        "generations": [
+          {
+            "snapshotId": "b-complete-20261017",
+            "generationId": "b-gen-01",
+            "scanId": "scan-b-complete-20261017",
+            "capturedAtUtc": "2026-10-17T09:30:00Z",
+            "schemaVersion": "1.0.0",
+            "scanStatus": "complete",
+            "scopeIsExhaustive": true,
+            "coverage": [
+              {
+                "console": "GBA",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              },
+              {
+                "console": "SNES",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              }
+            ],
+            "coverageProof": [
+              {
+                "console": "GBA",
+                "sourceKey": "synthetic-source-b",
+                "rootKey": "synthetic-root-b",
+                "domain": "ROMS",
+                "status": "complete"
+              },
+              {
+                "console": "SNES",
+                "sourceKey": "synthetic-source-b",
+                "rootKey": "synthetic-root-b",
+                "domain": "ROMS",
+                "status": "complete"
+              }
+            ],
+            "countKnown": true,
+            "observedUnitCount": 2,
+            "provenance": "Fixture V2-01B intégrée · source synthétique B"
+          },
+          {
+            "snapshotId": "fictif-2026-10-18",
+            "generationId": "b-gen-02",
+            "scanId": "scan-fictif-2026-10-18",
+            "capturedAtUtc": "2026-10-18T09:30:00Z",
+            "schemaVersion": "1.0.0",
+            "scanStatus": "complete",
+            "scopeIsExhaustive": true,
+            "coverage": [
+              {
+                "console": "GBA",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              },
+              {
+                "console": "SNES",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              }
+            ],
+            "coverageProof": [
+              {
+                "console": "GBA",
+                "sourceKey": "synthetic-source-b",
+                "rootKey": "synthetic-root-b",
+                "domain": "ROMS",
+                "status": "complete"
+              },
+              {
+                "console": "SNES",
+                "sourceKey": "synthetic-source-b",
+                "rootKey": "synthetic-root-b",
+                "domain": "ROMS",
+                "status": "complete"
+              }
+            ],
+            "countKnown": true,
+            "observedUnitCount": 2,
+            "provenance": "Fixture V2-01B intégrée · source synthétique B"
+          }
+        ]
+      },
+      {
+        "libraryId": "lib-c",
+        "name": "Bibliothèque C",
+        "platforms": [
+          "GBA",
+          "PS1"
+        ],
+        "sources": [
+          {
+            "sourceKey": "synthetic-source-c",
+            "rootKey": "synthetic-root-c",
+            "domains": [
+              "ROMS"
+            ]
+          }
+        ],
+        "currentAvailability": "ONLINE",
+        "availabilityObservedAtUtc": "2026-10-22T12:15:00Z",
+        "freshness": "FRESH",
+        "indexAccessible": true,
+        "lastVerifiedCompleteRef": "fictif-2026-10-22",
+        "lastObservedAtUtc": "2026-10-22T12:15:00Z",
+        "generations": [
+          {
+            "snapshotId": "c-complete-20261021",
+            "generationId": "c-gen-01",
+            "scanId": "scan-c-complete-20261021",
+            "capturedAtUtc": "2026-10-21T12:15:00Z",
+            "schemaVersion": "1.0.0",
+            "scanStatus": "complete",
+            "scopeIsExhaustive": true,
+            "coverage": [
+              {
+                "console": "GBA",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              },
+              {
+                "console": "PS1",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              }
+            ],
+            "coverageProof": [
+              {
+                "console": "GBA",
+                "sourceKey": "synthetic-source-c",
+                "rootKey": "synthetic-root-c",
+                "domain": "ROMS",
+                "status": "complete"
+              },
+              {
+                "console": "PS1",
+                "sourceKey": "synthetic-source-c",
+                "rootKey": "synthetic-root-c",
+                "domain": "ROMS",
+                "status": "complete"
+              }
+            ],
+            "countKnown": true,
+            "observedUnitCount": 3,
+            "provenance": "Fixture V2-01B intégrée · source synthétique C"
+          },
+          {
+            "snapshotId": "fictif-2026-10-22",
+            "generationId": "c-gen-02",
+            "scanId": "scan-fictif-2026-10-22",
+            "capturedAtUtc": "2026-10-22T12:15:00Z",
+            "schemaVersion": "1.0.0",
+            "scanStatus": "complete",
+            "scopeIsExhaustive": true,
+            "coverage": [
+              {
+                "console": "GBA",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              },
+              {
+                "console": "PS1",
+                "status": "complete",
+                "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+              }
+            ],
+            "coverageProof": [
+              {
+                "console": "GBA",
+                "sourceKey": "synthetic-source-c",
+                "rootKey": "synthetic-root-c",
+                "domain": "ROMS",
+                "status": "complete"
+              },
+              {
+                "console": "PS1",
+                "sourceKey": "synthetic-source-c",
+                "rootKey": "synthetic-root-c",
+                "domain": "ROMS",
+                "status": "complete"
+              }
+            ],
+            "countKnown": true,
+            "observedUnitCount": 3,
+            "provenance": "Fixture V2-01B intégrée · source synthétique C"
+          }
+        ]
+      }
+    ]
+  },
+  "comparisons": [
+    {
+      "schemaVersion": "0.1.0-synthetic",
+      "readOnly": true,
+      "library": {
+        "libraryId": "lib-a",
+        "name": "Bibliothèque A",
+        "platforms": [
+          "GBA",
+          "PS1"
+        ],
+        "currentAvailability": "OFFLINE",
+        "freshness": "STALE",
+        "indexAccessible": true,
+        "lastVerifiedCompleteRef": "a-complete-20261019"
+      },
+      "before": {
+        "snapshotId": "a-complete-20261019",
+        "generationId": "a-gen-01",
+        "scanId": "scan-a-complete-20261019",
+        "capturedAtUtc": "2026-10-19T14:00:00Z",
+        "schemaVersion": "1.0.0",
+        "scanStatus": "complete",
+        "scopeIsExhaustive": true,
+        "coverage": [
+          {
+            "console": "GBA",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          },
+          {
+            "console": "PS1",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          }
+        ],
+        "coverageProof": [
+          {
+            "console": "GBA",
+            "sourceKey": "synthetic-source-a",
+            "rootKey": "synthetic-root-a",
+            "domain": "ROMS",
+            "status": "complete"
+          },
+          {
+            "console": "PS1",
+            "sourceKey": "synthetic-source-a",
+            "rootKey": "synthetic-root-a",
+            "domain": "ROMS",
+            "status": "complete"
+          }
+        ],
+        "countKnown": true,
+        "observedUnitCount": 2,
+        "provenance": "Fixture V2-01B intégrée · source synthétique A"
+      },
+      "after": {
+        "snapshotId": "fictif-2026-10-20",
+        "generationId": "a-gen-02",
+        "scanId": "scan-fictif-2026-10-20",
+        "capturedAtUtc": "2026-10-20T14:00:00Z",
+        "schemaVersion": "1.0.0",
+        "scanStatus": "partial",
+        "scopeIsExhaustive": false,
+        "coverage": [
+          {
+            "console": "GBA",
+            "status": "partial",
+            "reason": "SCAN_NOT_COMPLETE"
+          },
+          {
+            "console": "PS1",
+            "status": "partial",
+            "reason": "SCAN_NOT_COMPLETE"
+          }
+        ],
+        "coverageProof": [
+          {
+            "console": "GBA",
+            "sourceKey": "synthetic-source-a",
+            "rootKey": "synthetic-root-a",
+            "domain": "ROMS",
+            "status": "partial"
+          },
+          {
+            "console": "PS1",
+            "sourceKey": "synthetic-source-a",
+            "rootKey": "synthetic-root-a",
+            "domain": "ROMS",
+            "status": "partial"
+          }
+        ],
+        "countKnown": true,
+        "observedUnitCount": 2,
+        "provenance": "Fixture V2-01B intégrée · source synthétique A"
+      },
+      "scopeCompared": [],
+      "scopeNotComparable": [
+        {
+          "console": "GBA",
+          "status": "INCOMPLETE",
+          "beforeStatus": "complete",
+          "afterStatus": "partial",
+          "beforeReason": "ALL_DECLARED_PARTITIONS_PROVEN",
+          "afterReason": "SCAN_NOT_COMPLETE"
+        },
+        {
+          "console": "PS1",
+          "status": "INCOMPLETE",
+          "beforeStatus": "complete",
+          "afterStatus": "partial",
+          "beforeReason": "ALL_DECLARED_PARTITIONS_PROVEN",
+          "afterReason": "SCAN_NOT_COMPLETE"
+        }
+      ],
+      "coverageStatus": "INCOMPLETE",
+      "counts": {
+        "ADDED": 0,
+        "CHANGED": 0,
+        "UNCHANGED": 0,
+        "NOT_OBSERVED_IN_B_COVERED_SCOPE": 0,
+        "UNKNOWN": 2,
+        "NOT_COMPARABLE": 0
+      },
+      "entries": [
+        {
+          "romUnitId": "unit-syn-001",
+          "gameId": "syn-001",
+          "variantId": "variant-syn-001",
+          "console": "GBA",
+          "beforeDigest": null,
+          "afterDigest": null,
+          "reason": "SCAN_NOT_COMPLETE",
+          "classification": "UNKNOWN"
+        },
+        {
+          "romUnitId": "unit-syn-002",
+          "gameId": "syn-002",
+          "variantId": "variant-syn-002",
+          "console": "PS1",
+          "beforeDigest": null,
+          "afterDigest": null,
+          "reason": "SCAN_NOT_COMPLETE",
+          "classification": "UNKNOWN"
+        }
+      ],
+      "countDenominator": 2,
+      "limitations": [
+        "SCOPE_INTERSECTION_NOT_FULLY_PROVEN",
+        "HISTORICAL_OBSERVATIONS_NOT_PHYSICAL_ROM_BYTES",
+        "COUNTS_ONLY_OBSERVED_UNION_A_B"
+      ]
+    },
+    {
+      "schemaVersion": "0.1.0-synthetic",
+      "readOnly": true,
+      "library": {
+        "libraryId": "lib-b",
+        "name": "Bibliothèque B",
+        "platforms": [
+          "GBA",
+          "SNES"
+        ],
+        "currentAvailability": "UNKNOWN",
+        "freshness": "UNKNOWN",
+        "indexAccessible": true,
+        "lastVerifiedCompleteRef": "fictif-2026-10-18"
+      },
+      "before": {
+        "snapshotId": "b-complete-20261017",
+        "generationId": "b-gen-01",
+        "scanId": "scan-b-complete-20261017",
+        "capturedAtUtc": "2026-10-17T09:30:00Z",
+        "schemaVersion": "1.0.0",
+        "scanStatus": "complete",
+        "scopeIsExhaustive": true,
+        "coverage": [
+          {
+            "console": "GBA",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          },
+          {
+            "console": "SNES",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          }
+        ],
+        "coverageProof": [
+          {
+            "console": "GBA",
+            "sourceKey": "synthetic-source-b",
+            "rootKey": "synthetic-root-b",
+            "domain": "ROMS",
+            "status": "complete"
+          },
+          {
+            "console": "SNES",
+            "sourceKey": "synthetic-source-b",
+            "rootKey": "synthetic-root-b",
+            "domain": "ROMS",
+            "status": "complete"
+          }
+        ],
+        "countKnown": true,
+        "observedUnitCount": 2,
+        "provenance": "Fixture V2-01B intégrée · source synthétique B"
+      },
+      "after": {
+        "snapshotId": "fictif-2026-10-18",
+        "generationId": "b-gen-02",
+        "scanId": "scan-fictif-2026-10-18",
+        "capturedAtUtc": "2026-10-18T09:30:00Z",
+        "schemaVersion": "1.0.0",
+        "scanStatus": "complete",
+        "scopeIsExhaustive": true,
+        "coverage": [
+          {
+            "console": "GBA",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          },
+          {
+            "console": "SNES",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          }
+        ],
+        "coverageProof": [
+          {
+            "console": "GBA",
+            "sourceKey": "synthetic-source-b",
+            "rootKey": "synthetic-root-b",
+            "domain": "ROMS",
+            "status": "complete"
+          },
+          {
+            "console": "SNES",
+            "sourceKey": "synthetic-source-b",
+            "rootKey": "synthetic-root-b",
+            "domain": "ROMS",
+            "status": "complete"
+          }
+        ],
+        "countKnown": true,
+        "observedUnitCount": 2,
+        "provenance": "Fixture V2-01B intégrée · source synthétique B"
+      },
+      "scopeCompared": [
+        {
+          "console": "GBA",
+          "status": "complete",
+          "reason": "PROVEN_IN_A_AND_B"
+        },
+        {
+          "console": "SNES",
+          "status": "complete",
+          "reason": "PROVEN_IN_A_AND_B"
+        }
+      ],
+      "scopeNotComparable": [],
+      "coverageStatus": "COMPLETE",
+      "counts": {
+        "ADDED": 0,
+        "CHANGED": 0,
+        "UNCHANGED": 1,
+        "NOT_OBSERVED_IN_B_COVERED_SCOPE": 0,
+        "UNKNOWN": 0,
+        "NOT_COMPARABLE": 1
+      },
+      "entries": [
+        {
+          "romUnitId": "unit-syn-003",
+          "gameId": "syn-003",
+          "variantId": "variant-syn-003",
+          "console": "GBA",
+          "beforeDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "afterDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "reason": "OBSERVATION_DIGEST_EQUAL",
+          "classification": "UNCHANGED"
+        },
+        {
+          "romUnitId": "unit-syn-004",
+          "gameId": "syn-004",
+          "variantId": "variant-syn-004",
+          "console": "SNES",
+          "beforeDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "afterDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "reason": "OWNER_MISMATCH",
+          "classification": "NOT_COMPARABLE"
+        }
+      ],
+      "countDenominator": 2,
+      "limitations": [
+        "OWNER_IDENTITY_CONFLICT_FOR_ONE_UNIT",
+        "HISTORICAL_OBSERVATIONS_NOT_PHYSICAL_ROM_BYTES",
+        "COUNTS_ONLY_OBSERVED_UNION_A_B"
+      ]
+    },
+    {
+      "schemaVersion": "0.1.0-synthetic",
+      "readOnly": true,
+      "library": {
+        "libraryId": "lib-c",
+        "name": "Bibliothèque C",
+        "platforms": [
+          "GBA",
+          "PS1"
+        ],
+        "currentAvailability": "ONLINE",
+        "freshness": "FRESH",
+        "indexAccessible": true,
+        "lastVerifiedCompleteRef": "fictif-2026-10-22"
+      },
+      "before": {
+        "snapshotId": "c-complete-20261021",
+        "generationId": "c-gen-01",
+        "scanId": "scan-c-complete-20261021",
+        "capturedAtUtc": "2026-10-21T12:15:00Z",
+        "schemaVersion": "1.0.0",
+        "scanStatus": "complete",
+        "scopeIsExhaustive": true,
+        "coverage": [
+          {
+            "console": "GBA",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          },
+          {
+            "console": "PS1",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          }
+        ],
+        "coverageProof": [
+          {
+            "console": "GBA",
+            "sourceKey": "synthetic-source-c",
+            "rootKey": "synthetic-root-c",
+            "domain": "ROMS",
+            "status": "complete"
+          },
+          {
+            "console": "PS1",
+            "sourceKey": "synthetic-source-c",
+            "rootKey": "synthetic-root-c",
+            "domain": "ROMS",
+            "status": "complete"
+          }
+        ],
+        "countKnown": true,
+        "observedUnitCount": 3,
+        "provenance": "Fixture V2-01B intégrée · source synthétique C"
+      },
+      "after": {
+        "snapshotId": "fictif-2026-10-22",
+        "generationId": "c-gen-02",
+        "scanId": "scan-fictif-2026-10-22",
+        "capturedAtUtc": "2026-10-22T12:15:00Z",
+        "schemaVersion": "1.0.0",
+        "scanStatus": "complete",
+        "scopeIsExhaustive": true,
+        "coverage": [
+          {
+            "console": "GBA",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          },
+          {
+            "console": "PS1",
+            "status": "complete",
+            "reason": "ALL_DECLARED_PARTITIONS_PROVEN"
+          }
+        ],
+        "coverageProof": [
+          {
+            "console": "GBA",
+            "sourceKey": "synthetic-source-c",
+            "rootKey": "synthetic-root-c",
+            "domain": "ROMS",
+            "status": "complete"
+          },
+          {
+            "console": "PS1",
+            "sourceKey": "synthetic-source-c",
+            "rootKey": "synthetic-root-c",
+            "domain": "ROMS",
+            "status": "complete"
+          }
+        ],
+        "countKnown": true,
+        "observedUnitCount": 3,
+        "provenance": "Fixture V2-01B intégrée · source synthétique C"
+      },
+      "scopeCompared": [
+        {
+          "console": "GBA",
+          "status": "complete",
+          "reason": "PROVEN_IN_A_AND_B"
+        },
+        {
+          "console": "PS1",
+          "status": "complete",
+          "reason": "PROVEN_IN_A_AND_B"
+        }
+      ],
+      "scopeNotComparable": [],
+      "coverageStatus": "COMPLETE",
+      "counts": {
+        "ADDED": 1,
+        "CHANGED": 1,
+        "UNCHANGED": 1,
+        "NOT_OBSERVED_IN_B_COVERED_SCOPE": 1,
+        "UNKNOWN": 0,
+        "NOT_COMPARABLE": 0
+      },
+      "entries": [
+        {
+          "romUnitId": "unit-syn-005",
+          "gameId": "syn-005",
+          "variantId": "variant-syn-005",
+          "console": "PS1",
+          "beforeDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "afterDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "reason": "OBSERVATION_DIGEST_DIFFERENT",
+          "classification": "CHANGED"
+        },
+        {
+          "romUnitId": "unit-syn-006",
+          "gameId": "syn-006",
+          "variantId": "variant-syn-006",
+          "console": "GBA",
+          "beforeDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "afterDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "reason": "OBSERVATION_DIGEST_EQUAL",
+          "classification": "UNCHANGED"
+        },
+        {
+          "romUnitId": "unit-history-new",
+          "gameId": "history-new",
+          "variantId": "variant-history-new",
+          "console": "GBA",
+          "beforeDigest": null,
+          "afterDigest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "reason": "NOT_PRESENT_IN_A_COVERED_SCOPE",
+          "classification": "ADDED"
+        },
+        {
+          "romUnitId": "unit-history-old",
+          "gameId": "history-old",
+          "variantId": "variant-history-old",
+          "console": "PS1",
+          "beforeDigest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "afterDigest": null,
+          "reason": "NOT_FOUND_IN_B_COVERED_SCOPE",
+          "classification": "NOT_OBSERVED_IN_B_COVERED_SCOPE"
+        }
+      ],
+      "countDenominator": 4,
+      "limitations": [
+        "HISTORICAL_OBSERVATIONS_NOT_PHYSICAL_ROM_BYTES",
+        "COUNTS_ONLY_OBSERVED_UNION_A_B"
+      ]
+    }
+  ]
+}

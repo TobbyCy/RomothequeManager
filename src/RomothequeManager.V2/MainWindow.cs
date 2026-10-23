@@ -9,6 +9,8 @@ namespace RomothequeManager.V2;
 public sealed class MainWindow : Window
 {
     private readonly NavigationState _state = new(ReadOnlyCatalogue.Synthetic());
+    private readonly LibraryProjection _libraryProjection;
+    private readonly LibraryViewState _libraryViewState;
     private readonly StackPanel _page = new() { Spacing = 14 };
     private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#E9EEF6"));
     private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#A9B8CD"));
@@ -18,7 +20,7 @@ public sealed class MainWindow : Window
 
     // Exercises the three real Avalonia visual trees after the window opens.
     // The normal UI still uses actual buttons/textbox for human interaction.
-    public bool SmokeExerciseThreeViews()
+    public bool SmokeExerciseFourViews()
     {
         if (_state.CurrentView != POCView.Dashboard || _page.Children.Count < 3) return false;
         _state.ShowCollection();
@@ -27,6 +29,11 @@ public sealed class MainWindow : Window
         if (!_state.Open("syn-003")) return false;
         Render();
         if (_state.CurrentView != POCView.GameDetail || _page.Children.Count < 3) return false;
+        _state.ShowLibraries();
+        Render();
+        if (_state.CurrentView != POCView.Libraries || _page.Children.Count < 2 ||
+            !_libraryViewState.TryCompare()) return false;
+        Render();
         _state.ShowDashboard();
         Render();
         return _state.CurrentView == POCView.Dashboard && _page.Children.Count >= 3;
@@ -34,6 +41,9 @@ public sealed class MainWindow : Window
 
     public MainWindow()
     {
+        _libraryProjection = LibraryProjection.LoadSynthetic(_state.Catalogue);
+        _libraryViewState = new LibraryViewState(_libraryProjection);
+        SizeChanged += (_, _) => { if (_state.CurrentView == POCView.Libraries) Render(); };
         Title = "ROMothèque Manager — POC synthétique";
         Width = 1120; Height = 720; MinWidth = 760; MinHeight = 480;
         Background = new SolidColorBrush(Color.Parse("#121B2A"));
@@ -43,6 +53,7 @@ public sealed class MainWindow : Window
         menu.Children.Add(Text("MANAGER · POC V2", 12));
         menu.Children.Add(Button("Tableau de bord", () => { _state.ShowDashboard(); Render(); }));
         menu.Children.Add(Button("Collection", () => { _state.ShowCollection(); Render(); }));
+        menu.Children.Add(Button("Bibliothèques & snapshots", () => { _state.ShowLibraries(); Render(); }));
         menu.Children.Add(Text("LECTURE SEULE", 13, true));
         menu.Children.Add(Text("Jeux, dates et bibliothèques 100 % fictifs.", 13));
         var sidebar = new Border
@@ -101,6 +112,7 @@ public sealed class MainWindow : Window
             case POCView.Dashboard: Dashboard(); break;
             case POCView.Collection: Collection(); break;
             case POCView.GameDetail: Detail(); break;
+            case POCView.Libraries: Libraries(); break;
         }
     }
 
@@ -146,6 +158,13 @@ public sealed class MainWindow : Window
         }
     }
 
+    private void Libraries()
+    {
+        _page.Children.Add(Text("Bibliothèques & snapshots", 30, true));
+        _page.Children.Add(LibraryPage.Build(_libraryProjection, _libraryViewState,
+            Render, Bounds.Width < 1000));
+    }
+
     private void Detail()
     {
         var game = _state.Selected;
@@ -157,6 +176,7 @@ public sealed class MainWindow : Window
             Text("Variante : " + game.Variant),
             Text("Identifiant fictif : " + game.GameId),
             Text("Bibliothèque : " + game.Library),
+            Text("Identité logique : " + game.LibraryId),
             Text("Disponibilité actuelle : " + game.Availability, 16, true),
             Text("Fraîcheur de la dernière observation : " + game.Freshness),
             Text("Couverture : " + game.Coverage),
