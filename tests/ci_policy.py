@@ -330,6 +330,20 @@ def path_rules(root):
     return rules, text
 
 
+BRAND01_PNG = "assets/branding/RM_V2_Horizontal_Fond_Sombre.png"
+BRAND01_GIT_BLOB_SHA = "e594b9602bb7d44a01a9408c8d189d74ee5180b4"
+
+def verify_brand01_banner(oid, data):
+    """Only the exact, owner-authorized V2 PNG may enter the public repository."""
+    require(oid == BRAND01_GIT_BLOB_SHA, "BRAND01_UNAPPROVED_IMAGE_BLOB")
+    require(len(data) == 53761, "BRAND01_UNEXPECTED_IMAGE_SIZE")
+    require(data[:8] == bytes.fromhex("89504e470d0a1a0a") and
+            data[12:16] == b"IHDR", "BRAND01_NOT_PNG")
+    require(int.from_bytes(data[16:20], "big") == 1960 and
+            int.from_bytes(data[20:24], "big") == 576, "BRAND01_DIMENSIONS_INVALID")
+    return True
+
+
 def audit_entries(root, entries, rules):
     seen = set()
     for path, (mode, kind, oid) in entries.items():
@@ -344,6 +358,8 @@ def audit_entries(root, entries, rules):
         require(not any(p.is_symlink() for p in target.parents if p != root.parent), "REPARSE_PARENT")
         data = git(root, "cat-file", "blob", oid)
         require(len(data) < 2000000, "SUSPICIOUS_SIZE")
+        if path == BRAND01_PNG:
+            verify_brand01_banner(oid, data)
         if not path.endswith((".png", ".ico")):
             text = data.decode("utf-8-sig", errors="strict")
             require(not any(re.search(pattern, text) for pattern in SENSITIVE), "SENSITIVE_CONTENT:" + path)
@@ -418,6 +434,8 @@ def check_links(root, paths, entries):
 def documents(root, plan):
     require(not plan["error"], "CLASSIFICATION_SCOPE_UNPROVEN")
     entries = tree(root)
+    require(BRAND01_PNG in entries and "assets/branding/README.md" in entries,
+            "BRAND01_PNG_AND_NOTICE_REQUIRED")
     rules, static = path_rules(root)
     verify_public_ci_guard(root)
     audit_entries(root, entries, rules)

@@ -1,17 +1,18 @@
 # ROMothèque Manager
 
+<p align="center">
+  <img src="assets/branding/RM_V2_Horizontal_Fond_Sombre.png" alt="ROMothèque Manager — cartouche rétro stylisée avec étagère et flèche rouge" width="640">
+</p>
+
 **Inventorier, comprendre et organiser ses bibliothèques de jeux rétro — sans perdre de vue la provenance des fichiers ni l'état réel des supports.**
 
 ROMothèque Manager est un projet logiciel **indépendant et open source pour son code original**, consacré à la gestion de collections **locales** de jeux vidéo rétro. Il distingue les jeux, leurs variantes, les unités de fichiers, les **métadonnées issues de sources importées** (dont **EmulationStation Desktop Edition — ES-DE**, source historique initiale) et les observations enregistrées au fil des inventaires. **À terme**, l'objectif est de conserver un catalogue interne indépendant des XML importés ; cette persistance autonome n'est pas encore livrée.
 
-> **Aujourd'hui :** code source public, démonstrations web hors ligne et **POC Windows .NET 10 / Avalonia intégré au code source**, limité à trois vues et six jeux fictifs. **Aucune application distribuée, aucun ZIP Windows téléchargeable et aucune GitHub Release.**
+> **Aujourd'hui :** code source public, démonstrations web hors ligne et **POC Windows .NET 10 / Avalonia intégré au code source**, doté de quatre vues, avec six jeux fictifs et trois bibliothèques fictives. **Aucune application distribuée, aucun ZIP Windows téléchargeable et aucune GitHub Release.**
 >
 > **Aucune ROM, aucun BIOS ni jeu commercial n'est fourni ou proposé au téléchargement.**
-
-<!-- Bandeau officiel V2 envisagé : RM_V2_Horizontal_Fond_Sombre.png.
-     NE PAS inclure de lien/image avant vérification de la provenance, de la permission
-     de redistribution publique, des droits tiers et de l'allowlist CI ciblée.
-     Voir BRANDING.md et l'Issue Produit #35. -->
+>
+> **Bandeau officiel V2 :** identité créée pour le projet avec ChatGPT à la demande du propriétaire, reproduite ici avec son autorisation. Les [droits graphiques](BRANDING.md) sont distincts de la licence MIT du code.
 
 ## Pourquoi ROMothèque Manager ?
 
@@ -36,7 +37,7 @@ Le projet cherche à répondre à quatre questions sans les confondre :
 | **Collection et fiches de jeux** | Recherche, filtres, variantes, provenance et observations dans les démonstrations synthétiques | Enrichissement et gestion durable des données utilisateur |
 | **Catalogue partagé PS → JSON → JS** | Producteur et consommateur intégrés ; **DTO 0.2 encore candidat**, tests synthétiques | Adoption du contrat et recette navigateur complète |
 | **Export E2 à E6, conversion, copie** | Concepts, contrats et garde-fous documentés | Fonctionnalités non livrées ; **aucune opération réelle autorisée** |
-| **POC Windows V2-01A (.NET 10 / Avalonia 12.1.4)** | Code intégré via [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42) : Dashboard, Collection/recherche et Fiche, six jeux fictifs en mémoire ; **8 tests MSTest et smoke de fenêtre Windows** dans la CI | Pas de lecture de collection réelle, persistance, édition ni quatrième vue Bibliothèques ; distribution suspendue |
+| **POC Windows V2-01A/B (.NET 10 / Avalonia 12.1.4)** | Code intégré via [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42) et [#48](https://github.com/TobbyCy/RomothequeManager/pull/48) : Dashboard, Collection/recherche, Fiche et Bibliothèques/snapshots avec comparaison A/B ; six jeux fictifs et trois bibliothèques fictives ; **31 tests MSTest et smoke de fenêtre Windows à quatre vues** dans la CI de #48 | Lecture seule sur fixtures ; aucun accès à une collection réelle, scan, persistance ou export ; distribution suspendue |
 | **Application Windows portable distribuée** | Publication self-contained `win-x64` et SHA-256 produits **temporairement en CI**, sans téléversement | Aucun ZIP ni installateur téléchargeable ; licences/notices tierces et essai sur PC externe à valider avant Release |
 
 **Lire l'[état détaillé des fonctionnalités](docs/product-status.md)** pour distinguer code intégré, prototypes, tests réalisés et capacités futures. La [roadmap](docs/roadmap.md) expose les orientations sans annoncer de date de livraison.
@@ -94,7 +95,7 @@ Le [run `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/a
 | --- | --- |
 | `Modules/`, `Export/`, `Preflight/` | Noyau PowerShell, inventaire E1 et contrôles préalables |
 | `prototype/ui11/` | Interface web et démonstrations sur fixtures fictives |
-| `src/RomothequeManager.V2/`, `tests/dotnet/` | POC Avalonia V2-01A et tests MSTest intégrés, synthétiques et non distribués |
+| `src/RomothequeManager.V2/`, `tests/dotnet/` | POC Avalonia V2-01A/B à quatre vues et tests MSTest intégrés, synthétiques et non distribués |
 | `tests/` | Tests, canaris de refus et outils de validation synthétique |
 | [`docs/product-status.md`](docs/product-status.md) | État réel du produit et limites des preuves |
 | [`docs/roadmap.md`](docs/roadmap.md) | Fonctionnalités futures et critères de sortie |
