@@ -1,6 +1,20 @@
 # Journal des changements
 
-Ce document décrit les évolutions **effectivement intégrées**. Les fonctionnalités proposées figurent dans la [roadmap](docs/roadmap.md) et ne sont pas annoncées comme livrées.
+Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
+
+## Intégré sur `main` — 23 octobre 2026 (non distribué)
+
+- **V2-01A / [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42), Issue #41 — fusionnée :** premier POC Windows .NET 10 / Avalonia 12.1.4 en lecture seule, avec trois vues (Dashboard, Collection/recherche, Fiche) et six jeux entièrement fictifs en mémoire. Deux `packages.lock.json` et `global.json` SDK **10.0.401** exact (`rollForward=disable`). **8 MSTest** et smoke de fenêtre Avalonia démontrés sous Windows CI. Aucun scan, export, ROM/BIOS, persistance ou réseau métier.
+- **CI-DOTNET-01 / [PR #45](https://github.com/TobbyCy/RomothequeManager/pull/45), Issue #43 — fusionnée :** provisionnement explicite du SDK 10.0.401 dans le job `.NET` via `actions/setup-dotnet` épinglé à `67a3573c9a986a3f9c594539f4ab511d57bb3ce9` (v4.3.1), après diagnostic hors dépôt. Pin, locks, tests non vides, canaris négatifs, gate final et interdiction d'upload ZIP inchangés. La [CI `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607), sur `408d6263be6ae1fbc77c31f6eb9fb530cb4f76e6`, est **SUCCESS**. La validation sur une image où le SDK est initialement absent reste une limite distincte du succès du run.
+- **PUB-04 / [Issue #44](https://github.com/TobbyCy/RomothequeManager/issues/44) — terminé :** les quatre anciens artefacts ZIP `v2-01a-win-x64-candidate` ont été supprimés de GitHub Actions et la purge a été contre-vérifiée ([preuve](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451)). Les nouveaux ZIP restent produits/hashés **temporairement dans le runner**, sans téléversement. Aucune autorisation de redistribution ni garantie sur d'éventuelles copies déjà téléchargées.
+- **Prototype web et moteur PowerShell :** les démonstrations locales, projections de bibliothèques/snapshots, catalogue synthétique, validations Node/Edge headless, Pester et préflights restent dans le dépôt public. Le contrat DTO 0.2 et la stack Windows ne sont pas adoptés comme architecture finale.
+- **Fonctions futures non livrées :** quatrième vue Bibliothèques/snapshots V2-01B, persistance, favoris/tags, collecte réelle, export E2–E6 et distribution Windows/SteamOS.
+
+Les notes ci-dessous sont **conservées comme historique de rédaction des sprints**. Les termes « candidat », « PR Draft », « à revalider », « non fusionné » et les états d'artefacts qu'elles contiennent décrivaient leur moment d'écriture ; **ils ne constituent pas l'état courant**. Consulter [l'état produit](docs/product-status.md) pour l'inventaire actualisé.
+
+---
+
+## Archives des notes de sprint (contenu historique conservé)
 
 ## Non publié — développement
 

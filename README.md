@@ -4,7 +4,7 @@
 
 ROMothèque Manager est un projet logiciel **indépendant et open source pour son code original**, consacré à la gestion de collections **locales** de jeux vidéo rétro. Il distingue les jeux, leurs variantes, les unités de fichiers, les métadonnées **EmulationStation Desktop Edition (ES-DE)** et les observations enregistrées au fil des inventaires.
 
-> **Aujourd'hui : code source public et prototype interactif hors ligne sur données entièrement fictives. Aucune application Windows prête à installer, aucun ZIP autonome et aucune GitHub Release.**
+> **Aujourd'hui :** code source public, démonstrations web hors ligne et **POC Windows .NET 10 / Avalonia intégré au code source**, limité à trois vues et six jeux fictifs. **Aucune application distribuée, aucun ZIP Windows téléchargeable et aucune GitHub Release.**
 >
 > **Aucune ROM, aucun BIOS ni jeu commercial n'est fourni ou proposé au téléchargement.**
 
@@ -36,7 +36,8 @@ Le projet cherche à répondre à quatre questions sans les confondre :
 | **Collection et fiches de jeux** | Recherche, filtres, variantes, provenance et observations dans les démonstrations synthétiques | Enrichissement et gestion durable des données utilisateur |
 | **Catalogue partagé PS → JSON → JS** | Producteur et consommateur intégrés ; **DTO 0.2 encore candidat**, tests synthétiques | Adoption du contrat et recette navigateur complète |
 | **Export E2 à E6, conversion, copie** | Concepts, contrats et garde-fous documentés | Fonctionnalités non livrées ; **aucune opération réelle autorisée** |
-| **Application Windows portable** | Objectif produit décrit dans la roadmap | **Pas d'exécutable, d'installateur ni de Release disponible** |
+| **POC Windows V2-01A (.NET 10 / Avalonia 12.1.4)** | Code intégré via [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42) : Dashboard, Collection/recherche et Fiche, six jeux fictifs en mémoire ; **8 tests MSTest et smoke de fenêtre Windows** dans la CI | Pas de lecture de collection réelle, persistance, édition ni quatrième vue Bibliothèques ; distribution suspendue |
+| **Application Windows portable distribuée** | Publication self-contained `win-x64` et SHA-256 produits **temporairement en CI**, sans téléversement | Aucun ZIP ni installateur téléchargeable ; licences/notices tierces et essai sur PC externe à valider avant Release |
 
 **Lire l'[état détaillé des fonctionnalités](docs/product-status.md)** pour distinguer code intégré, prototypes, tests réalisés et capacités futures. La [roadmap](docs/roadmap.md) expose les orientations sans annoncer de date de livraison.
 
@@ -81,18 +82,19 @@ L'intégrité de la collection d'origine et la capacité d'expliquer les décisi
 
 ## Code, qualité et limites de validation
 
-Le dépôt contient un moteur historique **Windows PowerShell 5.1**, des modules de projection de données et un prototype web **HTML/CSS/JavaScript natifs**. Les tests automatisés utilisent des fixtures fictives. Ils vérifient notamment le rejet de données invalides, les contrôles de chemins et des parcours d'interface en environnement simulé.
+Le dépôt contient un moteur historique **Windows PowerShell 5.1**, des modules de projection de données, un prototype web **HTML/CSS/JavaScript natifs** et les sources du **POC Windows .NET 10 / Avalonia 12.1.4**. Le SDK développeur est épinglé exactement à **10.0.401** par `global.json` (`rollForward=disable`) et provisionné explicitement dans la CI .NET. Les tests automatisés utilisent des fixtures fictives. Ils vérifient notamment le rejet de données invalides, les contrôles de chemins et des parcours d'interface en environnement simulé.
 
 La [CI GitHub Actions](https://github.com/TobbyCy/RomothequeManager/actions) exécute les contrôles applicables selon la nature des changements, avec un **gate final obligatoire**. Le résultat de chaque run doit être consulté sur son **commit exact** : une CI verte n'atteste ni un test sur une bibliothèque réelle, ni une recette graphique sous Edge, ni la disponibilité d'une application Windows.
 
-La configuration future de l'application autonome, les contrats de données définitifs, la persistance et le packaging restent soumis à décisions et vérifications spécifiques. **Aucune compatibilité SteamOS ou expérience d'installation finale n'est revendiquée.**
+Le [run `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607) est **SUCCESS** sur `408d6263…` après la [PR #45](https://github.com/TobbyCy/RomothequeManager/pull/45) ; il ne prouve pas à lui seul l'installation sur un runner initialement dépourvu du SDK ni un essai sur un PC externe. Les quatre anciens artefacts ZIP Actions ont été [retirés et contre-vérifiés](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451). Les nouveaux ZIP restent confinés au runner, sans téléchargement. La configuration produit définitive, les contrats de données, la persistance et la distribution exigent des décisions et validations distinctes. **Aucune compatibilité SteamOS ni expérience d'installation finale n'est revendiquée.**
 
 ## Repères dans le dépôt
 
 | Chemin | Contenu |
 | --- | --- |
 | `Modules/`, `Export/`, `Preflight/` | Noyau PowerShell, inventaire E1 et contrôles préalables |
-| `prototype/ui11/` | Interface et démonstrations sur fixtures fictives |
+| `prototype/ui11/` | Interface web et démonstrations sur fixtures fictives |
+| `src/RomothequeManager.V2/`, `tests/dotnet/` | POC Avalonia V2-01A et tests MSTest intégrés, synthétiques et non distribués |
 | `tests/` | Tests, canaris de refus et outils de validation synthétique |
 | [`docs/product-status.md`](docs/product-status.md) | État réel du produit et limites des preuves |
 | [`docs/roadmap.md`](docs/roadmap.md) | Fonctionnalités futures et critères de sortie |
@@ -118,4 +120,4 @@ ROMothèque Manager **ne fournit, n'héberge ni ne distribue de ROM, BIOS, firmw
 
 ---
 
-**ROMothèque Manager est actuellement un projet de développement public et une démonstration synthétique consultable — pas encore une application de gestion de ROM prête à être distribuée.**
+**ROMothèque Manager comprend désormais un POC Windows fonctionnel dans le code source et des démonstrations web synthétiques — mais aucune application de gestion de ROM n'est encore autorisée à la distribution ni à l'usage sur des collections réelles.**
