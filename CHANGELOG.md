@@ -2,7 +2,14 @@
 
 Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
 
-## En cours — V2-01C / Issue #50 (PR Draft, non distribué)
+## En cours — DIST-ZIP-01 / Issue #50 (PR Draft, aucun upload)
+
+- Suite au GO propriétaire de **préparation de distribution de test**, ajout d'une voie `workflow_dispatch` manuelle et distincte du CI PR/push : phase `validate` sans upload, phase `publish` réservée à un SHA/ZIP/tag exacts et aux variables d'approbation finale du propriétaire.
+- L'emballage vérifie les notices tierces et leur inventaire, le SHA-256, deux archives identiques, les fichiers extraits un à un, l'absence de contenus interdits et le smoke des quatre vues depuis le ZIP extrait.
+- La publication visée, **après un second GO final**, est une **GitHub Pre-release « POC SYNTHÉTIQUE / TEST UNIQUEMENT »**, jamais une version stable : brouillon, retéléchargement/contrôle des deux assets, puis publication.
+- **HOLD actuel :** notices validées DEV 2 non encore intégrées, contrôle indépendant Agent et artefact exact non vérifié pour distribution ; aucun ZIP téléchargeable.
+
+## Intégré sur `main` — V2-01C / [PR #53](https://github.com/TobbyCy/RomothequeManager/pull/53) (non distribué)
 
 - [Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) : préparation d'un ZIP Windows x64 autonome (runtime .NET inclus), avec SHA-256, manifeste et notice explicite « POC SYNTHÉTIQUE ».
 - **CI ciblée :** publication self-contained et tests depuis un dossier extrait distinct, comparaison de la liste des fichiers et contrôle d'absence de ROM/BIOS/sauvegardes. Le smoke automatisé exige l'ouverture de la fenêtre et quatre vues ; les parcours clavier, focus, scrolling et redimensionnement interactifs restent à tester sur Windows externe.

@@ -311,6 +311,15 @@ jobs:
       - name: Require actual projects, locked restore, build and executed tests
         shell: cmd
         run: python -B tests/ci_policy.py dotnet
+      - name: Parse DIST-ZIP-01 PowerShell packaging script (no distribution)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('scripts/Build-DistZip.ps1', [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw ('DIST_ZIP_PS_PARSE_FAILED:' + ($errors | Out-String)) }
+          Write-Host 'DIST_ZIP_PS_PARSE_PASS'
       - name: Build and verify quarantined V2-01C self-contained win-x64 ZIP
         shell: pwsh
         run: |
@@ -328,6 +337,44 @@ jobs:
           foreach ($required in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll')) {
             if (-not (Test-Path -LiteralPath (Join-Path $publish $required) -PathType Leaf)) { throw ('V2C_SELF_CONTAINED_FILE_MISSING:' + $required) }
           }
+          # LIC-ZIP-01 evidence: exact dotnet publish output BEFORE our own legal/POC files.
+          $publishFiles = @(Get-ChildItem -LiteralPath $publish -Recurse -File | Sort-Object FullName)
+          Write-Host ('PUBLISH_FILE_MANIFEST_BEGIN source=' + $env:GITHUB_SHA + ' count=' + $publishFiles.Count)
+          foreach ($file in $publishFiles) {
+            $relative = $file.FullName.Substring($publish.Length + 1)
+            $version = if ($file.Extension -in @('.dll', '.exe')) { $file.VersionInfo.FileVersion } else { '' }
+            $productVersion = if ($file.Extension -in @('.dll', '.exe')) { $file.VersionInfo.ProductVersion } else { '' }
+            $record = [ordered]@{
+              path = $relative
+              sizeBytes = $file.Length
+              sha256 = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              fileVersion = $version
+              productVersion = $productVersion
+            }
+            Write-Host ('PUBLISH_FILE_JSON ' + ($record | ConvertTo-Json -Compress))
+          }
+          Write-Host ('PUBLISH_FILE_MANIFEST_END source=' + $env:GITHUB_SHA + ' count=' + $publishFiles.Count)
+          # LIC-ZIP-01: locate publisher-supplied .NET Windows runtime legal assets.
+          $fxrVersion = (Get-Item -LiteralPath (Join-Path $publish 'hostfxr.dll')).VersionInfo.ProductVersion
+          $runtimeVersion = '10.0.12'
+          $nugetRoot = if (-not [string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) { $env:NUGET_PACKAGES } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages' }
+          $runtimeRoots = @((Join-Path $nugetRoot ('microsoft.netcore.app.runtime.win-x64/' + $runtimeVersion)))
+          if (-not [string]::IsNullOrWhiteSpace($env:DOTNET_ROOT)) { $runtimeRoots += (Join-Path $env:DOTNET_ROOT ('packs/Microsoft.NETCore.App.Runtime.win-x64/' + $runtimeVersion)) }
+          Write-Host ('DOTNET_RUNTIME_LEGAL_DISCOVERY_BEGIN version=' + $runtimeVersion + ' hostfxr=' + $fxrVersion)
+          $found = $false
+          foreach ($runtimeRoot in $runtimeRoots) {
+            if (-not (Test-Path -LiteralPath $runtimeRoot -PathType Container)) { continue }
+            $licenseFiles = @(Get-ChildItem -LiteralPath $runtimeRoot -Recurse -File | Where-Object { $_.Name -ceq 'LICENSE.TXT' })
+            $noticeFiles = @(Get-ChildItem -LiteralPath $runtimeRoot -Recurse -File | Where-Object { $_.Name -ceq 'THIRD-PARTY-NOTICES.TXT' })
+            if ($licenseFiles.Count -ne 1 -or $noticeFiles.Count -ne 1) { continue }
+            foreach ($file in @($licenseFiles[0], $noticeFiles[0])) {
+              Write-Host ('DOTNET_RUNTIME_LEGAL_FILE name=' + $file.Name + ' bytes=' + $file.Length + ' sha256=' + (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant() + ' source=' + $file.FullName)
+            }
+            $found = $true
+            break
+          }
+          if (-not $found) { Write-Host 'DOTNET_RUNTIME_LEGAL_DISCOVERY_NOT_FOUND — release remains HOLD' }
+
           Copy-Item -LiteralPath 'LICENSE' -Destination (Join-Path $publish 'LICENSE') -Force
           $notice = @(
             'ROMothèque Manager V2-01C — POC SYNTHÉTIQUE, lecture seule.'

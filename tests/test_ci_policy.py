@@ -483,6 +483,104 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("gh release", workflow)
         self.assertNotIn("v2-01a-win-x64-candidate", workflow)
 
+    def test_dist_zip_01_manual_publication_is_fail_closed(self):
+        root = Path(__file__).resolve().parent.parent
+        workflow = (root / ".github/workflows/dist-zip.yml").read_text(encoding="utf-8")
+        script = (root / "scripts/Build-DistZip.ps1").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertNotIn("\n  push:", workflow)
+        self.assertNotIn("\n  pull_request:", workflow)
+        self.assertNotIn("\n  schedule:", workflow)
+        self.assertNotIn("actions/upload-artifact@", workflow)
+        self.assertIn("github.ref == 'refs/heads/main' && github.actor == 'TobbyCy'", workflow)
+        self.assertIn("inputs.phase == 'publish'", workflow)
+        self.assertIn("vars.DIST_ZIP_FINAL_GO", workflow)
+        self.assertIn("vars.DIST_ZIP_APPROVED_SOURCE_SHA", workflow)
+        self.assertIn("vars.DIST_ZIP_APPROVED_SHA256", workflow)
+        self.assertIn("vars.DIST_ZIP_APPROVED_TAG", workflow)
+        self.assertIn("DIST_APPROVED_ZIP_HASH_MISMATCH", workflow)
+        self.assertIn("gh release create", workflow)
+        self.assertIn("--draft --prerelease --latest=false", workflow)
+        self.assertIn("gh release download", workflow)
+        self.assertIn("DIST_DRAFT_ASSETS_REDOWNLOADED_VERIFIED", workflow)
+        self.assertIn("gh release edit", workflow)
+        self.assertIn("--draft=false --prerelease", workflow)
+        self.assertIn("packaging/THIRD-PARTY-NOTICES.txt", script)
+        self.assertIn("docs/developer/lic-zip-01-inventory.md", script)
+        self.assertIn("DIST_REQUIRED_NOTICE_OR_LEGAL_FILE_MISSING", script)
+        self.assertIn("DIST_REQUIRED_FULL_LICENSE_MISSING", script)
+        self.assertIn("DIST_EXACT_WINDOWS_RUNTIME_LEGAL_ASSETS_MISSING", script)
+        self.assertIn("DIST_RUNTIME_LEGAL_ASSETS_VERIFIED", script)
+        self.assertIn("DIST_LICENCE_VALIDATION_HOLD", script)
+        self.assertIn("[ValidateSet('validate', 'publish')]", script)
+        self.assertIn("if ($Phase -ceq 'publish' -and -not $legalApproved)", script)
+        self.assertIn("DIST_CANDIDATE_VERIFIED_LEGAL_HOLD", script)
+        self.assertIn("('legalStatus=' + $legalStatus", script)
+        self.assertNotIn("if ($inventory -cnotmatch '(?m)^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED$')", script)
+        self.assertIn("-Phase $env:DIST_PHASE", workflow)
+        self.assertIn("DIST_LEGAL_APPROVAL_MISSING_BEFORE_UPLOAD", workflow)
+        self.assertIn("steps.bundle.outputs.legalStatus", workflow)
+        self.assertIn("DIST_ZIP_SHA256_MISMATCH", script)
+        self.assertIn("DIST_ARCHIVE_REPRODUCIBILITY_FAILED", script)
+        self.assertIn("DIST_EXTRACTED_FILE_SET_MISMATCH", script)
+        self.assertIn("DIST_EXTRACTED_FILE_SHA256_MISMATCH", script)
+        self.assertIn("DIST_FORBIDDEN_CONTENT", script)
+        self.assertIn("DIST_EXTRACTED_SMOKE_FAILED", script)
+        self.assertIn("DIST_ZIP_VALIDATED_PASS", script)
+        self.assertIn("DIST_PUBLISH_FILE_MANIFEST_BEGIN", script)
+        self.assertIn("PUBLISH_FILE_MANIFEST_BEGIN", (root / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+        self.assertIn("DOTNET_RUNTIME_LEGAL_DISCOVERY_BEGIN", (root / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+        self.assertNotIn("gh release", script)
+        self.assertNotIn("upload-artifact", script)
+
+    def test_dist_remote_tag_guard_negative_canaries(self):
+        # Static policy canaries for the manual publish step; no API call or release.
+        workflow = (Path(__file__).resolve().parent.parent / ".github/workflows/dist-zip.yml").read_text(encoding="utf-8")
+
+        def guarded(candidate):
+            required = (
+                "Authorization = ('Bearer ' + $env:GH_TOKEN)",
+                "Invoke-WebRequest -Uri $uri -Headers $headers -SkipHttpErrorCheck",
+                "if ($status -eq 404 -and $AllowNotFound) { return $null }",
+                "if ($status -ne 200) { throw ('DIST_REMOTE_TAG_API_HTTP_FAILED_' + $status) }",
+                "DIST_REMOTE_TAG_API_TRANSPORT_FAILED",
+                "Get-DistRemoteGitObject -ApiPath $tagPath -AllowNotFound $true",
+                "if ($null -ne $preexistingTag) { throw 'DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD' }",
+                "Get-DistRemoteGitObject -ApiPath $tagPath",
+                "Get-DistRemoteGitObject -ApiPath ('git/tags/' + $tagObject.sha)",
+                "if ($resolvedCommit -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_TARGET_MISMATCH' }",
+                "DIST_REMOTE_TAG_TARGET_VERIFIED",
+            )
+            if not all(value in candidate for value in required):
+                return False
+            return (
+                candidate.index("DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD")
+                < candidate.index("gh release create")
+                < candidate.index("DIST_REMOTE_TAG_TARGET_VERIFIED")
+                < candidate.index("gh release edit")
+            )
+
+        self.assertTrue(guarded(workflow))  # Absent tag, then exact source SHA: accepted route.
+        mutations = {
+            "preexisting_wrong_target_must_reject": workflow.replace(
+                "if ($null -ne $preexistingTag) { throw 'DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD' }",
+                "Write-Host 'unsafe preexisting tag accepted'", 1),
+            "remote_api_error_must_reject": workflow.replace(
+                "if ($status -ne 200) { throw ('DIST_REMOTE_TAG_API_HTTP_FAILED_' + $status) }",
+                "Write-Host 'unsafe API error accepted'", 1),
+            "remote_transport_error_must_reject": workflow.replace(
+                "DIST_REMOTE_TAG_API_TRANSPORT_FAILED", "DIST_REMOTE_TAG_API_IGNORED", 1),
+            "annotated_tag_must_be_dereferenced": workflow.replace(
+                "Get-DistRemoteGitObject -ApiPath ('git/tags/' + $tagObject.sha)",
+                "$null", 1),
+            "postdraft_wrong_target_must_reject": workflow.replace(
+                "if ($resolvedCommit -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_TARGET_MISMATCH' }",
+                "Write-Host 'unsafe tag target accepted'", 1),
+        }
+        for name, mutant in mutations.items():
+            with self.subTest(name=name):
+                self.assertFalse(guarded(mutant))
+
     def test_val01_edge_is_required_and_fail_closed(self):
         root = Path(__file__).resolve().parent.parent
         workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")

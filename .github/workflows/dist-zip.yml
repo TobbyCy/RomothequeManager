@@ -1,0 +1,204 @@
+name: DIST-ZIP-01 / controlled Windows POC distribution
+
+# Intentionally no pull_request, push, schedule, workflow_call or automatic upload.
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "validate = no upload; publish = owner-approved exact hash only"
+        required: true
+        type: choice
+        default: validate
+        options:
+          - validate
+          - publish
+      source_sha:
+        description: "Exact 40-character main commit SHA (frozen source)"
+        required: true
+        type: string
+      expected_sha256:
+        description: "Exact approved ZIP SHA-256 (publish only)"
+        required: false
+        type: string
+      release_tag:
+        description: "poc-v2-01c-YYYYMMDD-<first 12 source SHA chars> (publish only)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dist-zip-01-controlled
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Frozen self-contained ZIP / final manual gate
+    if: github.ref == 'refs/heads/main' && github.actor == 'TobbyCy'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    permissions:
+      contents: write # Needed only by the final, conditionally executed prerelease step.
+    steps:
+      - name: Confirm exact main source and authorized dispatcher
+        shell: pwsh
+        env:
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+          DIST_PHASE: ${{ inputs.phase }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_REF -cne 'refs/heads/main' -or $env:GITHUB_ACTOR -cne 'TobbyCy') { throw 'DIST_OWNER_MAIN_REQUIRED' }
+          if ($env:REQUESTED_SHA -cnotmatch '^[0-9a-f]{40}$' -or $env:REQUESTED_SHA -cne $env:GITHUB_SHA) { throw 'DIST_FROZEN_SHA_MISMATCH' }
+          if ($env:DIST_PHASE -cnotin @('validate', 'publish')) { throw 'DIST_PHASE_INVALID' }
+      - name: Checkout exact commit without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Provision exact .NET SDK 10.0.401
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Build ZIP, checksum, extract, inspect and smoke without upload
+        id: bundle
+        shell: pwsh
+        env:
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+          DIST_PHASE: ${{ inputs.phase }}
+        run: |
+          ./scripts/Build-DistZip.ps1 -SourceSha $env:REQUESTED_SHA -Phase $env:DIST_PHASE
+      - name: Validation-only quarantine confirmation
+        if: inputs.phase == 'validate'
+        shell: pwsh
+        env:
+          ZIP_SHA256: ${{ steps.bundle.outputs.sha256 }}
+          LEGAL_STATUS: ${{ steps.bundle.outputs.legalStatus }}
+        run: |
+          Write-Host ('DIST_ZIP_QUARANTINED_NOT_UPLOADED sha256=' + $env:ZIP_SHA256 + ' legalStatus=' + $env:LEGAL_STATUS)
+          if ($env:LEGAL_STATUS -cne 'APPROVED_SOURCE_MARKER_PRESENT') { Write-Warning 'LEGAL_HOLD — validated technical candidate; no distribution authorization.' }
+          Write-Host 'No GitHub Actions artifact, draft Release, Pre-release or public download.'
+      - name: Final owner authorization gate — before any upload
+        if: inputs.phase == 'publish'
+        shell: pwsh
+        env:
+          FINAL_GO: ${{ vars.DIST_ZIP_FINAL_GO }}
+          APPROVED_SOURCE_SHA: ${{ vars.DIST_ZIP_APPROVED_SOURCE_SHA }}
+          APPROVED_ZIP_SHA256: ${{ vars.DIST_ZIP_APPROVED_SHA256 }}
+          APPROVED_RELEASE_TAG: ${{ vars.DIST_ZIP_APPROVED_TAG }}
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+          ACTUAL_SHA256: ${{ steps.bundle.outputs.sha256 }}
+          LEGAL_STATUS: ${{ steps.bundle.outputs.legalStatus }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:LEGAL_STATUS -cne 'APPROVED_SOURCE_MARKER_PRESENT') { throw 'DIST_LEGAL_APPROVAL_MISSING_BEFORE_UPLOAD' }
+          if ($env:FINAL_GO -cne 'true') { throw 'DIST_OWNER_FINAL_GO_NOT_GRANTED' }
+          if ($env:APPROVED_SOURCE_SHA -cne $env:REQUESTED_SHA) { throw 'DIST_APPROVED_SOURCE_MISMATCH' }
+          if ($env:EXPECTED_SHA256 -cnotmatch '^[0-9a-f]{64}$' -or $env:EXPECTED_SHA256 -cne $env:ACTUAL_SHA256 -or $env:APPROVED_ZIP_SHA256 -cne $env:ACTUAL_SHA256) { throw 'DIST_APPROVED_ZIP_HASH_MISMATCH' }
+          if ($env:RELEASE_TAG -cnotmatch '^poc-v2-01c-[0-9]{8}-[0-9a-f]{12}$' -or -not $env:RELEASE_TAG.EndsWith($env:REQUESTED_SHA.Substring(0, 12)) -or $env:APPROVED_RELEASE_TAG -cne $env:RELEASE_TAG) { throw 'DIST_APPROVED_TAG_MISMATCH' }
+          Write-Host ('DIST_OWNER_APPROVED_EXACT_PACKAGE source=' + $env:REQUESTED_SHA + ' sha256=' + $env:ACTUAL_SHA256 + ' tag=' + $env:RELEASE_TAG)
+      - name: Create draft, re-download exact assets, then publish test prerelease
+        if: inputs.phase == 'publish'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          ZIP: ${{ steps.bundle.outputs.zip }}
+          CHECKSUM: ${{ steps.bundle.outputs.checksum }}
+          ZIP_SHA256: ${{ steps.bundle.outputs.sha256 }}
+          ZIP_NAME: ${{ steps.bundle.outputs.zipName }}
+          CHECKSUM_NAME: ${{ steps.bundle.outputs.checksumName }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Authenticated remote Git refs are authoritative; --target does not retarget an existing tag.
+          function Get-DistRemoteGitObject {
+            param([string]$ApiPath, [bool]$AllowNotFound = $false)
+            if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { throw 'DIST_REMOTE_TAG_API_TOKEN_MISSING' }
+            $headers = @{
+              Authorization = ('Bearer ' + $env:GH_TOKEN)
+              Accept = 'application/vnd.github+json'
+              'X-GitHub-Api-Version' = '2022-11-28'
+              'User-Agent' = 'RomothequeManager-DIST-ZIP-01'
+            }
+            $uri = 'https://api.github.com/repos/' + $env:GH_REPO + '/' + $ApiPath
+            try {
+              $response = Invoke-WebRequest -Uri $uri -Headers $headers -SkipHttpErrorCheck -TimeoutSec 20 -ErrorAction Stop
+            } catch {
+              throw 'DIST_REMOTE_TAG_API_TRANSPORT_FAILED'
+            }
+            $status = [int]$response.StatusCode
+            if ($status -eq 404 -and $AllowNotFound) { return $null }
+            if ($status -ne 200) { throw ('DIST_REMOTE_TAG_API_HTTP_FAILED_' + $status) }
+            try {
+              return ($response.Content | ConvertFrom-Json -ErrorAction Stop)
+            } catch {
+              throw 'DIST_REMOTE_TAG_API_RESPONSE_INVALID'
+            }
+          }
+          $tagPath = 'git/ref/tags/' + [uri]::EscapeDataString($env:RELEASE_TAG)
+          $preexistingTag = Get-DistRemoteGitObject -ApiPath $tagPath -AllowNotFound $true
+          if ($null -ne $preexistingTag) { throw 'DIST_REMOTE_TAG_ALREADY_EXISTS_BEFORE_UPLOAD' }
+          Write-Host 'DIST_REMOTE_TAG_AUTHENTICATED_404_ABSENT_BEFORE_UPLOAD'
+          # A draft release may create the tag. Its remote target is rechecked before publication.
+          $notes = Join-Path $env:RUNNER_TEMP 'DIST-ZIP-01-RELEASE-NOTES.md'
+          $body = @(
+            '# ROMothèque Manager — POC SYNTHÉTIQUE / TEST UNIQUEMENT'
+            ''
+            'Windows x64 autonome (.NET inclus). Six jeux et trois bibliothèques entièrement fictifs.'
+            'Quatre vues Avalonia. Aucune ROM, aucun BIOS, aucun scan réel ni télémétrie.'
+            ''
+            ('Source : ' + $env:SOURCE_SHA)
+            ('ZIP SHA-256 : ' + $env:ZIP_SHA256)
+            ''
+            'Vérifier le fichier .sha256 avant extraction. Application non signée : SmartScreen peut avertir.'
+            'Notices/licences tierces et inventaire inclus dans le ZIP.'
+            'Tests interactifs UXZIP-01–12 sur Windows externe : NOT_TESTED avant recette utilisateur.'
+            'Ceci est une pré-release de test, pas une version stable.'
+          ) -join [Environment]::NewLine
+          [IO.File]::WriteAllText($notes, ($body + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
+          gh release create $env:RELEASE_TAG $env:ZIP $env:CHECKSUM --draft --prerelease --latest=false --target $env:SOURCE_SHA --title 'ROMothèque Manager — POC SYNTHÉTIQUE / TEST UNIQUEMENT' --notes-file $notes
+          if ($LASTEXITCODE -ne 0) { throw 'DIST_DRAFT_CREATE_FAILED' }
+          $draft = gh release view $env:RELEASE_TAG --json isDraft,isPrerelease,assets,targetCommitish | ConvertFrom-Json
+          if (-not $draft.isDraft -or -not $draft.isPrerelease -or $draft.targetCommitish -cne $env:SOURCE_SHA -or $draft.assets.Count -ne 2) { throw 'DIST_DRAFT_METADATA_INVALID' }
+          $remoteTag = Get-DistRemoteGitObject -ApiPath $tagPath
+          if ($null -eq $remoteTag -or $remoteTag.ref -cne ('refs/tags/' + $env:RELEASE_TAG)) { throw 'DIST_REMOTE_TAG_REF_INVALID_AFTER_DRAFT' }
+          $tagObject = $remoteTag.object
+          $seenTagObjects = @{}
+          $resolvedCommit = $null
+          for ($depth = 0; $depth -lt 8; $depth++) {
+            if ($null -eq $tagObject -or $tagObject.sha -cnotmatch '^[0-9a-f]{40}$') { throw 'DIST_REMOTE_TAG_OBJECT_INVALID' }
+            if ($tagObject.type -ceq 'commit') {
+              $resolvedCommit = $tagObject.sha
+              break
+            }
+            if ($tagObject.type -cne 'tag') { throw 'DIST_REMOTE_TAG_OBJECT_TYPE_UNEXPECTED' }
+            if ($seenTagObjects.ContainsKey($tagObject.sha)) { throw 'DIST_REMOTE_TAG_OBJECT_CYCLE' }
+            $seenTagObjects[$tagObject.sha] = $true
+            $annotatedTag = Get-DistRemoteGitObject -ApiPath ('git/tags/' + $tagObject.sha)
+            if ($null -eq $annotatedTag -or $annotatedTag.sha -cne $tagObject.sha) { throw 'DIST_REMOTE_ANNOTATED_TAG_INVALID' }
+            $tagObject = $annotatedTag.object
+          }
+          if ($null -eq $resolvedCommit) { throw 'DIST_REMOTE_TAG_DEPTH_EXCEEDED' }
+          if ($resolvedCommit -cne $env:SOURCE_SHA) { throw 'DIST_REMOTE_TAG_TARGET_MISMATCH' }
+          Write-Host ('DIST_REMOTE_TAG_TARGET_VERIFIED sha=' + $resolvedCommit)
+          $names = @($draft.assets | ForEach-Object { $_.name })
+          if ($env:ZIP_NAME -cnotin $names -or $env:CHECKSUM_NAME -cnotin $names) { throw 'DIST_DRAFT_ASSETS_INVALID' }
+          $download = Join-Path $env:RUNNER_TEMP 'dist-draft-downloaded'
+          New-Item -ItemType Directory -Force -Path $download | Out-Null
+          gh release download $env:RELEASE_TAG --dir $download
+          if ($LASTEXITCODE -ne 0) { throw 'DIST_DRAFT_DOWNLOAD_FAILED' }
+          $downloadedZip = Join-Path $download $env:ZIP_NAME
+          $downloadedChecksum = Join-Path $download $env:CHECKSUM_NAME
+          if (-not (Test-Path -LiteralPath $downloadedZip -PathType Leaf) -or -not (Test-Path -LiteralPath $downloadedChecksum -PathType Leaf)) { throw 'DIST_DOWNLOADED_ASSET_MISSING' }
+          if ((Get-FileHash -LiteralPath $downloadedZip -Algorithm SHA256).Hash.ToLowerInvariant() -cne $env:ZIP_SHA256) { throw 'DIST_DOWNLOADED_ZIP_HASH_MISMATCH' }
+          if ((Get-Content -LiteralPath $downloadedChecksum -Raw).Trim() -cne (Get-Content -LiteralPath $env:CHECKSUM -Raw).Trim()) { throw 'DIST_DOWNLOADED_CHECKSUM_MISMATCH' }
+          Write-Host ('DIST_DRAFT_ASSETS_REDOWNLOADED_VERIFIED sha256=' + $env:ZIP_SHA256)
+          gh release edit $env:RELEASE_TAG --draft=false --prerelease --latest=false
+          if ($LASTEXITCODE -ne 0) { throw 'DIST_PRERELEASE_PUBLISH_FAILED_DRAFT_MAY_REMAIN' }
+          $released = gh release view $env:RELEASE_TAG --json isDraft,isPrerelease,assets | ConvertFrom-Json
+          if ($released.isDraft -or -not $released.isPrerelease -or $released.assets.Count -ne 2) { throw 'DIST_PUBLISHED_PRERELEASE_STATE_INVALID' }
+          Write-Host ('DIST_TEST_PRERELEASE_PUBLISHED tag=' + $env:RELEASE_TAG + ' sha256=' + $env:ZIP_SHA256)
