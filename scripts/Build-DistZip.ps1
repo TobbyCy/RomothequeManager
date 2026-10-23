@@ -36,7 +36,7 @@ foreach ($name in @('Avalonia', 'SkiaSharp', 'HarfBuzz', 'Microsoft', 'MIT')) {
 if ($notices -match '(?i)\[(?:TODO|PENDING|TBD)\]' -or $inventory -match '(?i)\[(?:TODO|PENDING|TBD)\]') {
   throw 'DIST_NOTICES_UNRESOLVED_PLACEHOLDER'
 }
-$legalApproved = $inventory -cmatch '(?m)^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED$'
+$legalApproved = $inventory -cmatch '(?m)^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED\r?$'
 if ($Phase -ceq 'publish' -and -not $legalApproved) {
   throw 'DIST_LICENCE_VALIDATION_HOLD'
 }

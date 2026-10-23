@@ -167,6 +167,34 @@ fb6a46bc6e9e5786e3800c67e82abe6937343d8f19952b861f053ade6786e1d4  Modules/StateC
         Require (-not ($data -match '(?i)(github_pat_|gh[pousr]_|AKIA)[A-Za-z0-9_]{16,}')) ('TOKEN_PATTERN: ' + $name)
         Require (-not ($data -match '(?i)(password|secret|api[_-]?key)\s*[:=]\s*[\x22\x27][^\x22\x27]{4,}')) ('SUSPECT_SECRET_ASSIGNMENT: ' + $name)
     }
+    # DIST-ZIP-01 P1: exercise the ACTUAL Build-DistZip.ps1 legal marker predicate.
+    # String-only canaries; never build, upload, tag, publish or create a Release.
+    $markerFailureCount = $failures.Count
+    $distSource = [IO.File]::ReadAllText((Join-Path $root 'scripts\Build-DistZip.ps1'))
+    $markerLines = @($distSource -split "`n" | Where-Object { $_.StartsWith('$legalApproved = $inventory -cmatch ') })
+    Require ($markerLines.Count -eq 1) 'DIST_LEGAL_MARKER_PREDICATE_MISSING_OR_DUPLICATE'
+    if ($markerLines.Count -eq 1) {
+        $markerPredicate = [regex]::Match($markerLines[0], "-cmatch '([^']+)'")
+        Require $markerPredicate.Success 'DIST_LEGAL_MARKER_PREDICATE_INVALID'
+        if ($markerPredicate.Success) {
+            $pattern = $markerPredicate.Groups[1].Value
+            $marker = 'LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED'
+            Require (("header`n" + $marker + "`nfooter") -cmatch $pattern) 'DIST_LEGAL_MARKER_LF_REJECTED'
+            Require (("header`r`n" + $marker + "`r`nfooter") -cmatch $pattern) 'DIST_LEGAL_MARKER_CRLF_REJECTED'
+            Require (-not ("header`nfooter" -cmatch $pattern)) 'DIST_LEGAL_MARKER_ABSENT_ACCEPTED'
+            Require (-not (("header`nPREFIX" + $marker + "`nfooter") -cmatch $pattern)) 'DIST_LEGAL_MARKER_PREFIX_ACCEPTED'
+            Require (-not (("header`n" + $marker + "SUFFIX`nfooter") -cmatch $pattern)) 'DIST_LEGAL_MARKER_SUFFIX_ACCEPTED'
+            Require (-not (("header`n# " + $marker + "`nfooter") -cmatch $pattern)) 'DIST_LEGAL_MARKER_COMMENT_ACCEPTED'
+            Require (-not (("header`n> " + $marker + "`nfooter") -cmatch $pattern)) 'DIST_LEGAL_MARKER_QUOTE_ACCEPTED'
+            Require (-not (("header`n" + $marker.ToLowerInvariant() + "`nfooter") -cmatch $pattern)) 'DIST_LEGAL_MARKER_WRONG_CASE_ACCEPTED'
+            Require (-not (("header`n " + $marker + " `nfooter") -cmatch $pattern)) 'DIST_LEGAL_MARKER_SPACES_ACCEPTED'
+            $realInventory = [IO.File]::ReadAllText((Join-Path $root 'docs\developer\lic-zip-01-inventory.md'))
+            Require ($realInventory -cmatch $pattern) 'DIST_LEGAL_MARKER_REAL_INVENTORY_REJECTED'
+            if ($failures.Count -eq $markerFailureCount) {
+                Write-Host 'DIST_LEGAL_MARKER_CANARIES_PASS | cases=10 | LF=PASS | CRLF=PASS | realInventory=PASS | refusals=7/7'
+            }
+        }
+    }
     $parse = @($paths | Where-Object { $_ -match '\.(ps1|psm1)$' } | ForEach-Object { Join-Path $root $_ })
     if ($AdditionalSyntaxPath) { $parse += @($AdditionalSyntaxPath) }
     foreach ($file in $parse) {
