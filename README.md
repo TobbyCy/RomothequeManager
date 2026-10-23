@@ -12,7 +12,7 @@ ROMothèque Manager est un projet logiciel **indépendant et open source pour so
 >
 > **Aucune ROM, aucun BIOS ni jeu commercial n'est fourni ou proposé au téléchargement.**
 >
-> **Bandeau officiel V2 :** identité créée pour le projet avec ChatGPT à la demande du propriétaire, reproduite ici avec son autorisation. Les [droits graphiques](BRANDING.md) sont distincts de la licence MIT du code.
+> **Bandeau officiel V2 :** identité créée pour le projet, reproduite ici avec son autorisation. Les [droits graphiques](BRANDING.md) sont distincts de la licence MIT du code.
 
 ## Pourquoi ROMothèque Manager ?
 

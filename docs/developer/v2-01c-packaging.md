@@ -1,0 +1,54 @@
+# V2-01C — préparation du ZIP Windows x64 (non distribué)
+
+**Mandat :** [Issue Produit #50](https://github.com/TobbyCy/RomothequeManager/issues/50). **Décision :** GO technique packaging uniquement ; **HOLD publication**. Le code de V2-01A/B, les quatre vues et les données fictives restent inchangés.
+
+## Résultat attendu en CI
+
+Sur `windows-2022`, avec SDK .NET `10.0.401` exact et NuGet en mode verrouillé :
+
+1. `dotnet publish` produit une application `win-x64` **self-contained**, non trimée et non single-file, contenant notamment `RomothequeManager.V2.exe`, `coreclr.dll` et `hostfxr.dll`.
+2. La CI ajoute `LICENSE`, `POC-NOTICE.txt` et `POC-MANIFEST.json` (six jeux fictifs, trois bibliothèques fictives, quatre vues, source du run et verrou `HOLD_OWNER_GO`).
+3. Elle crée `RomothequeManager-V2-01C-win-x64.zip` et `RomothequeManager-V2-01C-win-x64.zip.sha256` **dans `RUNNER_TEMP` uniquement**.
+4. Elle recalcule le SHA-256, extrait le ZIP dans **un dossier différent**, vérifie les fichiers essentiels, l'identité de la liste de fichiers et l'absence d'extensions ROM/BIOS/sauvegardes/clefs connues.
+5. Elle lance l'exécutable **extrait** avec `--smoke-window`, sans compter sur un runtime .NET global, et exige `POC_WINDOW_OPENED_PASS views=Dashboard,Collection,GameDetail,Libraries fixtures=6 synthetic=1`.
+6. Elle émet `V2C_ZIP_VERIFIED_PASS` avec empreinte, taille, nombre de fichiers et source du run, puis `POC_ZIP_QUARANTINED_NOT_UPLOADED`.
+
+Ces preuves valident une **préparation reproductible et un smoke automatisé dans le runner CI**. Elles ne démontrent **pas** le démarrage interactif d'un poste utilisateur réel.
+
+## Frontière de distribution
+
+- Aucun `actions/upload-artifact`, aucune Release/Pre-release, aucun lien de téléchargement, aucune copie hors de la quarantaine.
+- Le ZIP et son `.sha256` disparaissent avec le runner ; **ils ne sont pas téléchargeables par l'utilisateur**.
+- `POC-MANIFEST.json.sourceCommit` identifie le `GITHUB_SHA` du run. Sur une PR, il peut s'agir du commit de fusion temporaire évalué par GitHub Actions ; la branche et son HEAD doivent être relevés séparément.
+- Les licences/mentions tierces doivent être revues avant une distribution. L'application n'est pas signée ; SmartScreen peut avertir. Aucun de ces éléments n'autorise à publier.
+- Une décision explicite ultérieure du propriétaire est nécessaire avant tout upload ou Pre-release. Le Contrôleur décide seul des merges.
+
+## Matrice de réception
+
+| ID | Contrôle | Preuve attendue | Limite |
+| --- | --- | --- | --- |
+| ZIP-01 | SDK exact, restore verrouillé, tests .NET | Job `ci-dotnet` vert | Même SHA uniquement |
+| ZIP-02 | Exécutable et runtime autonomes | `coreclr.dll`, `hostfxr.dll` présents dans ZIP extrait | Smoke automatisé |
+| ZIP-03 | Notice, licence, manifeste | Présence et validation CI | Notice tierce complète à revoir |
+| ZIP-04 | ZIP et empreinte SHA-256 | `V2C_ZIP_VERIFIED_PASS` | Artefacts temporaires |
+| ZIP-05 | Contenu exclusivement POC fictif | Contrôle d'extensions + manifeste | Pas un audit exhaustif de tous les formats |
+| ZIP-06 | Lancement depuis extraction | `POC_WINDOW_OPENED_PASS` sur l'exécutable extrait | Pas de parcours interactif |
+| ZIP-07 | Aucune publication | `POC_ZIP_QUARANTINED_NOT_UPLOADED` + `ci-policy-gate` | GO propriétaire futur |
+| UXZIP-01–12 | Quatre vues, navigation souris/clavier, focus, scrolling, redimensionnement, DPI | **NOT_TESTED** jusqu'à essai externe Windows propre, selon [Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) | Ne pas déduire PASS du smoke |
+
+## Essai externe ultérieur — après autorisation de mise à disposition
+
+Sur une VM ou un Windows x64 propre, sans SDK/runtime .NET préinstallé si possible :
+
+1. Récupérer **uniquement le ZIP explicitement autorisé** et son `.sha256`, puis comparer `Get-FileHash -Algorithm SHA256` à l'empreinte annoncée.
+2. Extraire dans un nouveau dossier utilisateur, hors du dépôt. Vérifier `LICENSE`, `POC-NOTICE.txt`, `POC-MANIFEST.json`.
+3. Démarrer `RomothequeManager.V2.exe` sans élévation ni installation. Contrôler absence d'accès à une ROM, BIOS ou bibliothèque réelle.
+4. Vérifier les quatre vues, les six jeux fictifs, les trois bibliothèques fictives, les états OFFLINE/STALE et la comparaison A/B sur leurs fixtures.
+5. Effectuer les vérifications UXZIP-01–12 de DEV 3 : navigation souris/clavier/Tab, focus visible, ComboBox, défilement, redimensionnement et DPI. Noter chaque PASS/FAIL ; **aucun PASS présumé avant exécution**.
+6. Consigner OS/build, architecture, SHA du ZIP, résultat SmartScreen et éventuelles limites.
+
+## Revues avant décision
+
+- **DEV 2** : cohérence documentaire, identité visuelle/BRAND-01, licence et mention des limites.
+- **Agent** : indépendance de l'extraction, fichiers attendus/interdits, SHA-256, absence d'upload, adéquation des preuves CI.
+- **Contrôleur** : vérifie HEAD, CI, verdicts et décide du merge éventuel. **Pas de merge autonome.**

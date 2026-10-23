@@ -311,55 +311,94 @@ jobs:
       - name: Require actual projects, locked restore, build and executed tests
         shell: cmd
         run: python -B tests/ci_policy.py dotnet
-      - name: Publish self-contained win-x64 candidate and run real window smoke
+      - name: Build and verify quarantined V2-01C self-contained win-x64 ZIP
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
-          $stage = Join-Path $env:RUNNER_TEMP 'rm-v2-01a-candidate'
+          $stage = Join-Path $env:RUNNER_TEMP 'rm-v2-01c-quarantine'
           $publish = Join-Path $stage 'app'
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          # Runtime packs are downloaded only for a RID/self-contained restore.
-          # Preserve the committed NuGet lock; never resolve unpinned packages.
+          $extract = Join-Path $stage 'verified-extract'
+          New-Item -ItemType Directory -Force -Path $publish | Out-Null
+          # Keep the committed NuGet locks and include the .NET runtime.
           dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
-          if ($LASTEXITCODE -ne 0) { throw 'POC_RUNTIME_PACK_LOCKED_RESTORE_FAILED' }
+          if ($LASTEXITCODE -ne 0) { throw 'V2C_RUNTIME_PACK_LOCKED_RESTORE_FAILED' }
           dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $publish
-          if ($LASTEXITCODE -ne 0) { throw 'POC_PUBLISH_FAILED' }
-          $exe = Join-Path $publish 'RomothequeManager.V2.exe'
-          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'POC_EXE_MISSING' }
-          foreach ($required in @('coreclr.dll','hostfxr.dll')) {
-            if (-not (Test-Path -LiteralPath (Join-Path $publish $required) -PathType Leaf)) { throw ('SELF_CONTAINED_RUNTIME_MISSING:' + $required) }
+          if ($LASTEXITCODE -ne 0) { throw 'V2C_PUBLISH_FAILED' }
+          foreach ($required in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $publish $required) -PathType Leaf)) { throw ('V2C_SELF_CONTAINED_FILE_MISSING:' + $required) }
           }
+          Copy-Item -LiteralPath 'LICENSE' -Destination (Join-Path $publish 'LICENSE') -Force
+          $notice = @(
+            'ROMothèque Manager V2-01C — POC SYNTHÉTIQUE, lecture seule.'
+            'Six jeux fictifs et trois bibliothèques fictives. Aucune ROM, aucun BIOS ni collection réelle.'
+            'Aucun scan, export, persistance, installation, élévation ni télémétrie.'
+            'Application non signée ; Windows SmartScreen peut afficher un avertissement.'
+            'Avalonia et les composants .NET conservent leurs licences respectives.'
+            'Notices tierces et essai Windows externe à valider avant toute distribution.'
+            'AUCUNE RELEASE : publication interdite sans GO propriétaire distinct.'
+          ) -join [Environment]::NewLine
+          [IO.File]::WriteAllText((Join-Path $publish 'POC-NOTICE.txt'), ($notice + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
+          $manifest = [ordered]@{
+            schemaVersion = 1
+            package = 'RomothequeManager-V2-01C'
+            sourceCommit = $env:GITHUB_SHA
+            runtimeIdentifier = 'win-x64'
+            selfContained = $true
+            syntheticOnly = $true
+            gameFixtures = 6
+            libraryFixtures = 3
+            views = @('Dashboard','Collection','GameDetail','Libraries')
+            publication = 'HOLD_OWNER_GO'
+          }
+          [IO.File]::WriteAllText((Join-Path $publish 'POC-MANIFEST.json'), (($manifest | ConvertTo-Json -Depth 4) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
+          $zip = Join-Path $stage 'RomothequeManager-V2-01C-win-x64.zip'
+          Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          if (-not (Test-Path -LiteralPath $zip -PathType Leaf)) { throw 'V2C_ZIP_MISSING' }
+          $digest = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $checksum = Join-Path $stage 'RomothequeManager-V2-01C-win-x64.zip.sha256'
+          $checksumLine = $digest + '  ' + [IO.Path]::GetFileName($zip)
+          [IO.File]::WriteAllText($checksum, ($checksumLine + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
+          if ((Get-Content -LiteralPath $checksum -Raw).Trim() -cne $checksumLine) { throw 'V2C_CHECKSUM_FILE_INVALID' }
+          if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant() -cne $digest) { throw 'V2C_CHECKSUM_MISMATCH' }
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          foreach ($required in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll','LICENSE','POC-NOTICE.txt','POC-MANIFEST.json')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $extract $required) -PathType Leaf)) { throw ('V2C_EXTRACTED_FILE_MISSING:' + $required) }
+          }
+          $files = @(Get-ChildItem -LiteralPath $extract -Recurse -File)
+          if ($files.Count -lt 10) { throw 'V2C_PACKAGE_CONTENT_EMPTY' }
+          $forbiddenExtensions = @('.rom','.chd','.iso','.cue','.gdi','.cdi','.nes','.sfc','.smc','.gba','.gbc','.n64','.z64','.nsp','.xci','.wad','.sav','.srm','.pfx','.pem','.p12','.snk')
+          foreach ($file in $files) {
+            if ($forbiddenExtensions -ccontains $file.Extension.ToLowerInvariant() -or $file.Name -eq '.env') { throw ('V2C_FORBIDDEN_PACKAGE_FILE:' + $file.Name) }
+          }
+          $publishedPaths = @(Get-ChildItem -LiteralPath $publish -Recurse -File | ForEach-Object { $_.FullName.Substring($publish.Length + 1) })
+          $extractedPaths = @($files | ForEach-Object { $_.FullName.Substring($extract.Length + 1) })
+          if (@(Compare-Object -ReferenceObject $publishedPaths -DifferenceObject $extractedPaths -CaseSensitive).Count -ne 0) { throw 'V2C_ARCHIVE_FILE_SET_MISMATCH' }
+          $extractedManifest = Get-Content -LiteralPath (Join-Path $extract 'POC-MANIFEST.json') -Raw | ConvertFrom-Json
+          if ($extractedManifest.sourceCommit -cne $env:GITHUB_SHA -or $extractedManifest.runtimeIdentifier -cne 'win-x64' -or -not $extractedManifest.selfContained -or -not $extractedManifest.syntheticOnly -or $extractedManifest.gameFixtures -ne 6 -or $extractedManifest.libraryFixtures -ne 3 -or ($extractedManifest.views -join ',') -cne 'Dashboard,Collection,GameDetail,Libraries' -or $extractedManifest.publication -cne 'HOLD_OWNER_GO') { throw 'V2C_MANIFEST_INVALID' }
           $start = New-Object Diagnostics.ProcessStartInfo
-          $start.FileName = $exe
+          $start.FileName = Join-Path $extract 'RomothequeManager.V2.exe'
           $start.Arguments = '--smoke-window'
-          $start.WorkingDirectory = $publish
+          $start.WorkingDirectory = $extract
           $start.UseShellExecute = $false
-          $start.CreateNoWindow = $false
           $start.RedirectStandardOutput = $true
           $start.RedirectStandardError = $true
+          $start.Environment['DOTNET_ROOT'] = Join-Path $stage 'unavailable-global-runtime'
+          $start.Environment['DOTNET_MULTILEVEL_LOOKUP'] = '0'
           $proc = [Diagnostics.Process]::Start($start)
           try {
             $stdout = $proc.StandardOutput.ReadToEndAsync()
             $stderr = $proc.StandardError.ReadToEndAsync()
-            if (-not $proc.WaitForExit(30000)) { $proc.Kill(); throw 'POC_WINDOW_TIMEOUT' }
-            if ($proc.ExitCode -ne 0 -or -not $stdout.Result.Contains('POC_WINDOW_OPENED_PASS')) {
-              throw ('POC_REAL_WINDOW_FAILED exit=' + $proc.ExitCode + ';stdout=' + $stdout.Result + ';stderr=' + $stderr.Result)
+            if (-not $proc.WaitForExit(30000)) { $proc.Kill(); throw 'V2C_EXTRACTED_WINDOW_TIMEOUT' }
+            $expectedSmoke = 'POC_WINDOW_OPENED_PASS views=Dashboard,Collection,GameDetail,Libraries fixtures=6 synthetic=1'
+            if ($proc.ExitCode -ne 0 -or -not $stdout.Result.Contains($expectedSmoke)) {
+              throw ('V2C_EXTRACTED_WINDOW_FAILED exit=' + $proc.ExitCode + ';stdout=' + $stdout.Result + ';stderr=' + $stderr.Result)
             }
             Write-Host $stdout.Result
           } finally { $proc.Dispose() }
-          Copy-Item -LiteralPath 'LICENSE' -Destination (Join-Path $publish 'LICENSE') -Force
-          $notice = 'Candidate V2-01A: synthetic-only. No ROM/BIOS media. Avalonia packages and their transitive dependencies retain their respective licenses. Not a release.'
-          [IO.File]::WriteAllText((Join-Path $publish 'POC-NOTICE.txt'), $notice, [Text.UTF8Encoding]::new($false))
-          $zip = Join-Path $stage 'RomothequeManager-V2-01A-win-x64.zip'
-          Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal -Force
-          $digest = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          $checksum = Join-Path $stage 'RomothequeManager-V2-01A-win-x64.zip.sha256'
-          [IO.File]::WriteAllText($checksum, ($digest + '  ' + [IO.Path]::GetFileName($zip) + "`n"), [Text.UTF8Encoding]::new($false))
-          Write-Host ('POC_ZIP_CANDIDATE_PASS sha256=' + $digest + ' sizeBytes=' + (Get-Item $zip).Length + ' source=' + $env:GITHUB_SHA)
-          # The old candidate ZIP is NOT copyright-cleared. The runner's temp
-          # volume will be destroyed; no download, Release or artifact upload.
-          Write-Host 'POC_ZIP_QUARANTINED_NOT_UPLOADED thirdPartyNotices=PENDING'
+          Write-Host ('V2C_ZIP_VERIFIED_PASS sha256=' + $digest + ' sizeBytes=' + (Get-Item $zip).Length + ' files=' + $files.Count + ' source=' + $env:GITHUB_SHA)
+          # No artifact upload, Release or public download. The runner temp is destroyed.
+          Write-Host 'POC_ZIP_QUARANTINED_NOT_UPLOADED thirdPartyNotices=PENDING ownerReleaseGo=PENDING'
 
   ci-policy-gate:
     name: ci-policy-gate

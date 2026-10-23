@@ -2,13 +2,19 @@
 
 Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
 
-## En cours — V2-01B / PR Draft #48 (non intégré)
+## En cours — V2-01C / Issue #50 (PR Draft, non distribué)
 
-- [Issue #47](https://github.com/TobbyCy/RomothequeManager/issues/47) et [PR Draft #48](https://github.com/TobbyCy/RomothequeManager/pull/48) : quatrième vue Avalonia Bibliothèques & snapshots, trois bibliothèques cohérentes avec les six jeux fictifs, états indépendants, provenance, sélection A/B et comparaison **préqualifiée** à six classes. Modèle de présentation synthétique versionné, sans moteur métier C# parallèle.
-- **Durcissement demandé par le Contrôleur (PR #48, toujours Draft) :** validation fail-closed des partitions de couverture (multi-root, ROMS/MEDIAS, preuves uniques/exactes), champs A/B et scopes concordants avec les générations canoniques, refus des faux COMPLETE, rendu honnête de l'index inaccessible et libellé « Disponibilité ». Canaris MSTest positifs/négatifs étendus.
+- [Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) : préparation d'un ZIP Windows x64 autonome (runtime .NET inclus), avec SHA-256, manifeste et notice explicite « POC SYNTHÉTIQUE ».
+- **CI ciblée :** publication self-contained et tests depuis un dossier extrait distinct, comparaison de la liste des fichiers et contrôle d'absence de ROM/BIOS/sauvegardes. Le smoke automatisé exige l'ouverture de la fenêtre et quatre vues ; les parcours clavier, focus, scrolling et redimensionnement interactifs restent à tester sur Windows externe.
+- **Distribution suspendue :** ZIP et empreinte restent temporaires dans le runner CI. Aucun upload GitHub Actions, Release, Pre-release, signature ou partage public n'est autorisé ; revue des notices tierces et GO propriétaire distinct nécessaires.
+
+## Intégré sur `main` — V2-01B / [PR #48](https://github.com/TobbyCy/RomothequeManager/pull/48) (non distribué)
+
+- [Issue #47](https://github.com/TobbyCy/RomothequeManager/issues/47) : quatrième vue Avalonia Bibliothèques & snapshots, trois bibliothèques cohérentes avec six jeux fictifs, états indépendants, provenance, sélection A/B et comparaison **préqualifiée** à six classes. Modèle de présentation synthétique versionné, sans moteur métier C# parallèle.
+- **Contrats et garde-fous intégrés :** validation fail-closed des partitions de couverture (multi-root, ROMS/MEDIAS, preuves uniques/exactes), champs A/B et scopes concordants avec les générations canoniques, refus des faux COMPLETE, rendu honnête de l'index inaccessible et libellé « Disponibilité ». Canaris MSTest positifs/négatifs.
 - **Oracle de démonstration :** fixture `UI-only / handcrafted deterministic demo / NOT_ENGINE_VERIFIED`, trois paires A/B dont les six classifications et dénominateurs A∪B sont vérifiés contre des attentes codées en dur. Aucune prétention d'équivalence avec le comparateur PS5.1.
 - **Limite UX :** `INTERACTIVE_KEYBOARD_SCROLL_NOT_TESTED` ; le smoke quatre vues ne certifie pas le parcours clavier/focus/scroll réel.
-- **Statut : code candidat uniquement.** CI du nouveau HEAD, tests MSTest/smoke Windows et revues indépendantes à renouveler avant décision de fusion ; aucun ZIP publié ni Release.
+- **Statut : code intégré, pas distribué.** Le ZIP V2-01C demeure un candidat sous contrôle CI ; aucune Release.
 
 ## Intégré sur `main` — 23 octobre 2026 (non distribué)
 
@@ -16,7 +22,7 @@ Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées
 - **CI-DOTNET-01 / [PR #45](https://github.com/TobbyCy/RomothequeManager/pull/45), Issue #43 — fusionnée :** provisionnement explicite du SDK 10.0.401 dans le job `.NET` via `actions/setup-dotnet` épinglé à `67a3573c9a986a3f9c594539f4ab511d57bb3ce9` (v4.3.1), après diagnostic hors dépôt. Pin, locks, tests non vides, canaris négatifs, gate final et interdiction d'upload ZIP inchangés. La [CI `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607), sur `408d6263be6ae1fbc77c31f6eb9fb530cb4f76e6`, est **SUCCESS**. La validation sur une image où le SDK est initialement absent reste une limite distincte du succès du run.
 - **PUB-04 / [Issue #44](https://github.com/TobbyCy/RomothequeManager/issues/44) — terminé :** les quatre anciens artefacts ZIP `v2-01a-win-x64-candidate` ont été supprimés de GitHub Actions et la purge a été contre-vérifiée ([preuve](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451)). Les nouveaux ZIP restent produits/hashés **temporairement dans le runner**, sans téléversement. Aucune autorisation de redistribution ni garantie sur d'éventuelles copies déjà téléchargées.
 - **Prototype web et moteur PowerShell :** les démonstrations locales, projections de bibliothèques/snapshots, catalogue synthétique, validations Node/Edge headless, Pester et préflights restent dans le dépôt public. Le contrat DTO 0.2 et la stack Windows ne sont pas adoptés comme architecture finale.
-- **Fonctions futures non livrées :** quatrième vue Bibliothèques/snapshots V2-01B (en PR Draft, non intégrée), persistance, favoris/tags, collecte réelle, export E2–E6 et distribution Windows/SteamOS.
+- **Fonctions futures non livrées :** persistance, favoris/tags, collecte réelle, export E2–E6 et distribution Windows/SteamOS. La quatrième vue Bibliothèques/snapshots est intégrée via V2-01B, sans validation UX interactive externe.
 
 Les notes ci-dessous sont **conservées comme historique de rédaction des sprints**. Les termes « candidat », « PR Draft », « à revalider », « non fusionné » et les états d'artefacts qu'elles contiennent décrivaient leur moment d'écriture ; **ils ne constituent pas l'état courant**. Consulter [l'état produit](docs/product-status.md) pour l'inventaire actualisé.
 
