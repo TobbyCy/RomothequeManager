@@ -8,7 +8,7 @@
 
 ROMothèque Manager est un projet logiciel **indépendant et open source pour son code original**, consacré à la gestion de collections **locales** de jeux vidéo rétro. Il distingue les jeux, leurs variantes, les unités de fichiers, les **métadonnées issues de sources importées** (dont **EmulationStation Desktop Edition — ES-DE**, source historique initiale) et les observations enregistrées au fil des inventaires. **À terme**, l'objectif est de conserver un catalogue interne indépendant des XML importés ; cette persistance autonome n'est pas encore livrée.
 
-> **Aujourd'hui :** code source public, démonstrations web hors ligne et **POC Windows .NET 10 / Avalonia intégré au code source**, doté de quatre vues, avec six jeux fictifs et trois bibliothèques fictives. **Aucune application distribuée, aucun ZIP Windows téléchargeable et aucune GitHub Release.**
+> **Aujourd'hui (24 octobre 2026) :** code source public, démonstrations web locales et [**première Pre-release Windows x64 V2-01C publiée**](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec), autonome (.NET inclus). Il s'agit **uniquement d'un POC synthétique** : quatre vues Avalonia, six jeux fictifs et trois bibliothèques fictives. Pas de scan ni de collection réelle.
 >
 > **Aucune ROM, aucun BIOS ni jeu commercial n'est fourni ou proposé au téléchargement.**
 >
@@ -33,14 +33,25 @@ Le projet cherche à répondre à quatre questions sans les confondre :
 | --- | --- | --- |
 | **Moteur et inventaire E1** | Sources Windows PowerShell 5.1 intégrées ; tests et préflights sur données synthétiques | Qualification avant tout usage sur une collection réelle |
 | **Tableau de bord et bibliothèques** | Prototype HTML/CSS/JavaScript consultable localement ; états de disponibilité et de fraîcheur fictifs | Persistance et raccordement à de véritables bibliothèques autorisées |
-| **Snapshots et comparaison A/B** | Historique fictif, choix de deux snapshots, six classifications et couverture explicite | Validation fonctionnelle et ergonomique d'une future application distribuée |
+| **Snapshots et comparaison A/B** | Historique fictif, choix de deux snapshots, six classifications et couverture explicite | Recette UX détaillée du POC publié et raccordement futur à des bibliothèques réelles |
 | **Collection et fiches de jeux** | Recherche, filtres, variantes, provenance et observations dans les démonstrations synthétiques | Enrichissement et gestion durable des données utilisateur |
 | **Catalogue partagé PS → JSON → JS** | Producteur et consommateur intégrés ; **DTO 0.2 encore candidat**, tests synthétiques | Adoption du contrat et recette navigateur complète |
 | **Export E2 à E6, conversion, copie** | Concepts, contrats et garde-fous documentés | Fonctionnalités non livrées ; **aucune opération réelle autorisée** |
-| **POC Windows V2-01A/B (.NET 10 / Avalonia 12.1.4)** | Code intégré via [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42) et [#48](https://github.com/TobbyCy/RomothequeManager/pull/48) : Dashboard, Collection/recherche, Fiche et Bibliothèques/snapshots avec comparaison A/B ; six jeux fictifs et trois bibliothèques fictives ; **31 tests MSTest et smoke de fenêtre Windows à quatre vues** dans la CI de #48 | Lecture seule sur fixtures ; aucun accès à une collection réelle, scan, persistance ou export ; distribution suspendue |
-| **Application Windows portable distribuée** | Publication self-contained `win-x64` et SHA-256 produits **temporairement en CI**, sans téléversement | Aucun ZIP ni installateur téléchargeable ; licences/notices tierces et essai sur PC externe à valider avant Release |
+| **POC Windows V2-01A/B (.NET 10 / Avalonia 12.1.4)** | Code et tests intégrés via [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42) et [#48](https://github.com/TobbyCy/RomothequeManager/pull/48) : Dashboard, Collection, Fiche et Bibliothèques/snapshots A/B ; six jeux et trois bibliothèques fictifs | Présent dans la **Pre-release de test V2-01C**, en lecture seule sur fixtures ; sans scan, import ES-DE dans l'UI, persistance ou export |
+| **Pre-release Windows portable V2-01C** | [ZIP Windows x64 autonome](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip) et [SHA-256](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip.sha256) **publiés le 23.10.2026**, avec notices tierces ; [publication contrôlée et traçabilité #50](https://github.com/TobbyCy/RomothequeManager/issues/50) | **Pre-release de test non signée**, pas de stable/installateur, de compatibilité SteamOS validée ni de gestion réelle de ROM ; recette UX détaillée encore incomplète |
 
 **Lire l'[état détaillé des fonctionnalités](docs/product-status.md)** pour distinguer code intégré, prototypes, tests réalisés et capacités futures. La [roadmap](docs/roadmap.md) expose les orientations sans annoncer de date de livraison.
+
+## Télécharger et lancer le POC Windows (Pre-release de test)
+
+1. Sur un PC **Windows x64**, télécharger le [ZIP V2-01C](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip) et son [fichier `.sha256`](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip.sha256) depuis la [Pre-release du 23.10.2026](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec). Le paquet contient le runtime .NET : **aucun SDK ou runtime .NET à installer**.
+2. Dans PowerShell, vérifier l'empreinte du ZIP avec `Get-FileHash -Algorithm SHA256 .\RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip` et la comparer au fichier `.sha256` ainsi qu'à la valeur attendue ci-dessous.
+3. **Extraire entièrement** le ZIP dans un dossier utilisateur de son choix (ne pas lancer l'exécutable depuis l'archive).
+4. Dans le dossier extrait, lancer `RomothequeManager.V2.exe` sans droits administrateur. Le binaire n'est pas signé : Windows SmartScreen peut afficher un avertissement ; ne pas désactiver les protections globalement.
+
+**SHA-256 du ZIP publié :** `22328d682b7c93edcdeeb735c9913880e68dec64c54b159bd6e6de77bcc7eaaf` — source `4cf475fbd1ece16b138403d3bd967a56d295ee54`.
+
+Les vues **Dashboard, Collection, Fiche jeu et Bibliothèques** présentent **six jeux et trois bibliothèques fictifs**. Tobby a [confirmé un premier lancement et une utilisation générale réussis](https://github.com/TobbyCy/RomothequeManager/issues/50#issuecomment-6381903496) ; les scénarios UX détaillés clavier/focus/scroll/redimensionnement ne sont **pas** attestés individuellement. Le raccordement ES-DE, la persistance, les jaquettes réelles, la gestion de collections personnelles et les opérations physiques restent à développer.
 
 ## Découvrir le prototype interactif
 
@@ -85,9 +96,9 @@ L'intégrité de la collection d'origine et la capacité d'expliquer les décisi
 
 Le dépôt contient un moteur historique **Windows PowerShell 5.1**, des modules de projection de données, un prototype web **HTML/CSS/JavaScript natifs** et les sources du **POC Windows .NET 10 / Avalonia 12.1.4**. Le SDK développeur est épinglé exactement à **10.0.401** par `global.json` (`rollForward=disable`) et provisionné explicitement dans la CI .NET. Les tests automatisés utilisent des fixtures fictives. Ils vérifient notamment le rejet de données invalides, les contrôles de chemins et des parcours d'interface en environnement simulé.
 
-La [CI GitHub Actions](https://github.com/TobbyCy/RomothequeManager/actions) exécute les contrôles applicables selon la nature des changements, avec un **gate final obligatoire**. Le résultat de chaque run doit être consulté sur son **commit exact** : une CI verte n'atteste ni un test sur une bibliothèque réelle, ni une recette graphique sous Edge, ni la disponibilité d'une application Windows.
+La [CI GitHub Actions](https://github.com/TobbyCy/RomothequeManager/actions) exécute les contrôles applicables selon la nature des changements, avec un **gate final obligatoire**. Chaque run est lié à son **SHA source exact** : une CI verte, prise isolément, ne prouve pas une recette sur des bibliothèques réelles ou un poste externe. La **disponibilité actuelle du ZIP** est établie distinctement par la [Pre-release publiée](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec).
 
-Le [run `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607) est **SUCCESS** sur `408d6263…` après la [PR #45](https://github.com/TobbyCy/RomothequeManager/pull/45) ; il ne prouve pas à lui seul l'installation sur un runner initialement dépourvu du SDK ni un essai sur un PC externe. Les quatre anciens artefacts ZIP Actions ont été [retirés et contre-vérifiés](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451). Les nouveaux ZIP restent confinés au runner, sans téléchargement. La configuration produit définitive, les contrats de données, la persistance et la distribution exigent des décisions et validations distinctes. **Aucune compatibilité SteamOS ni expérience d'installation finale n'est revendiquée.**
+**Repère historique (23.10.2026, avant publication) :** le [run `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607) était **SUCCESS** sur `408d6263…` après la [PR #45](https://github.com/TobbyCy/RomothequeManager/pull/45) ; il ne démontrait pas à lui seul un essai sur PC externe. Les quatre anciens artefacts ZIP Actions avaient été [retirés et contre-vérifiés](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451) et les nouveaux ZIP de cette **phase préliminaire** restaient confinés au runner. **Depuis, le ZIP V2-01C a été publié dans une Pre-release contrôlée**. La configuration métier définitive, la persistance, SteamOS et l'exploitation de collections réelles demeurent non validées.
 
 ## Repères dans le dépôt
 
@@ -95,7 +106,7 @@ Le [run `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/a
 | --- | --- |
 | `Modules/`, `Export/`, `Preflight/` | Noyau PowerShell, inventaire E1 et contrôles préalables |
 | `prototype/ui11/` | Interface web et démonstrations sur fixtures fictives |
-| `src/RomothequeManager.V2/`, `tests/dotnet/` | POC Avalonia V2-01A/B à quatre vues et tests MSTest intégrés, synthétiques et non distribués |
+| `src/RomothequeManager.V2/`, `tests/dotnet/` | Sources et tests du POC Avalonia V2-01C ; exécutable synthétique proposé dans la [Pre-release Windows](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec) |
 | `tests/` | Tests, canaris de refus et outils de validation synthétique |
 | [`docs/product-status.md`](docs/product-status.md) | État réel du produit et limites des preuves |
 | [`docs/roadmap.md`](docs/roadmap.md) | Fonctionnalités futures et critères de sortie |
@@ -121,4 +132,4 @@ ROMothèque Manager **ne fournit, n'héberge ni ne distribue de ROM, BIOS, firmw
 
 ---
 
-**ROMothèque Manager comprend désormais un POC Windows fonctionnel dans le code source et des démonstrations web synthétiques — mais aucune application de gestion de ROM n'est encore autorisée à la distribution ni à l'usage sur des collections réelles.**
+**ROMothèque Manager propose désormais une Pre-release Windows x64 du POC synthétique et des démonstrations web locales. Aucune fonctionnalité de gestion de ROM réelles, de scan, d'import ES-DE dans l'interface ou d'opération physique n'est encore livrée ou autorisée.**
