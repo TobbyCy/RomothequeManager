@@ -160,7 +160,7 @@ public static class EsDeCatalogueImporter
             g.GameId + "|" + g.Title + "|" + g.Description + "|" + g.RomExists + "|" +
             string.Join(",", g.Media.Select(m => m.Kind + ":" + m.RelativePath + ":" + m.Exists)) + "|" +
             string.Join(",", g.DiscPaths)));
-        return new(Digest("library:ROMS+MEDIAS"), "ES_DE_READ_ONLY",
+        return new(Digest("library:ROMS+MEDIAS|" + string.Join("|", sorted.Select(g => g.GameId))), "ES_DE_READ_ONLY",
             Digest(evidence), sorted, diagnostics.ToArray());
     }
 
