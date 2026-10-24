@@ -866,12 +866,12 @@ class Pr64UxArtifactPolicyTests(unittest.TestCase):
 
     def test_ux_artifact_workflow_is_strictly_pinned_and_manual_release_free(self):
         workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/ux-artifact.yml").read_text(encoding="utf-8")
-        self.assertIn("pull_request:\\n    branches: [main]", workflow)
+        self.assertIn("  pull_request:\n    branches: [main]", workflow)
         self.assertIn("github.event.pull_request.number == 64", workflow)
         self.assertIn("github.actor == 'TobbyCy'", workflow)
         self.assertIn("github.event.pull_request.head.repo.full_name == 'TobbyCy/RomothequeManager'", workflow)
         self.assertIn("ref: cc35abf70acc12120f7617f8e5ab0a8ea84b8801", workflow)
-        self.assertIn("permissions:\\n  contents: read", workflow)
+        self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("retention-days: 3", workflow)
         self.assertIn("if-no-files-found: error", workflow)
         self.assertIn("UX_RECIPE_LEGAL_APPROVAL_REQUIRED", workflow)
