@@ -17,6 +17,7 @@ public sealed class ImportedCatalogueUiState
         string.Equals(game.GameId, SelectedGameId, StringComparison.Ordinal));
     public const int PageSize = 50;
     public int PageIndex { get; private set; }
+    public POCView CurrentView { get; private set; } = POCView.Dashboard;
     public int TotalCount => FilteredGames.Count;
     public int PageCount => Math.Max(1, (TotalCount + PageSize - 1) / PageSize);
     public IReadOnlyList<EsDeGame> PageGames => FilteredGames.Skip(PageIndex * PageSize).Take(PageSize).ToArray();
@@ -38,6 +39,7 @@ public sealed class ImportedCatalogueUiState
         SearchText = "";
         PageIndex = 0;
         SelectedGameId = null;
+        CurrentView = POCView.Dashboard;
         ErrorMessage = null;
     }
 
@@ -68,6 +70,8 @@ public sealed class ImportedCatalogueUiState
         {
             var updated = _session.Import();
             SelectedGameId = updated.Games.Any(g => g.GameId == SelectedGameId) ? SelectedGameId : null;
+            if (SelectedGameId is null && CurrentView == POCView.GameDetail)
+                CurrentView = POCView.Collection;
             PageIndex = Math.Min(PageIndex, PageCount - 1);
             ErrorMessage = null;
             return true;
@@ -80,7 +84,7 @@ public sealed class ImportedCatalogueUiState
     }
 
     public static bool IsExpectedImportError(Exception error) =>
-        error is IOException or UnauthorizedAccessException or ArgumentException or
+        error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or
         System.Xml.XmlException or System.Security.SecurityException or NotSupportedException;
 
     public void ImportFailed(Exception error) =>
@@ -90,7 +94,12 @@ public sealed class ImportedCatalogueUiState
     public void ReportUnavailableFolder() =>
         ErrorMessage = "Sélectionnez un dossier local accessible. Aucun import effectué.";
 
-    public void ShowDemo() { Mode = CatalogueMode.Demonstration; SelectedGameId = null; }
+    public void ShowDemo()
+    {
+        Mode = CatalogueMode.Demonstration;
+        SelectedGameId = null;
+        CurrentView = POCView.Dashboard;
+    }
 
     public bool ShowImported()
     {
@@ -100,8 +109,20 @@ public sealed class ImportedCatalogueUiState
             return false;
         }
         Mode = CatalogueMode.Imported;
+        CurrentView = POCView.Dashboard;
         return true;
     }
+
+    // Imported navigation never points to an unselected game's details.
+    public void Navigate(POCView view)
+    {
+        CurrentView = view == POCView.GameDetail && Selected is null
+            ? POCView.Collection : view;
+    }
+
+    public static IReadOnlyList<EsDeMedia> CoverCandidates(EsDeGame game) =>
+        game.Media.Where(media => media.Kind is "image" or "thumbnail")
+            .OrderBy(media => media.Kind == "image" ? 0 : 1).ToArray();
 
     public void Search(string? search)
     {
@@ -128,6 +149,7 @@ public sealed class ImportedCatalogueUiState
         if (Snapshot?.Games.Any(game => string.Equals(game.GameId, gameId, StringComparison.Ordinal)) != true)
             return false;
         SelectedGameId = gameId;
+        CurrentView = POCView.GameDetail;
         return true;
     }
 

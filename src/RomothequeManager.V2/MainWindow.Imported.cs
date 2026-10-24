@@ -16,14 +16,12 @@ public sealed partial class MainWindow
     private readonly List<Bitmap> _coverImages = new();
     private StackPanel? _importedList;
     private bool _importBusy;
-    private POCView _importView = POCView.Dashboard;
-
-    private POCView ActiveView => _importedUi.IsImported ? _importView : _state.CurrentView;
+    private POCView ActiveView => _importedUi.IsImported ? _importedUi.CurrentView : _state.CurrentView;
 
     private void Navigate(POCView view)
     {
         if (_importedUi.IsImported)
-            _importView = view;
+            _importedUi.Navigate(view);
         else
         {
             switch (view)
@@ -45,7 +43,7 @@ public sealed partial class MainWindow
 
     private void ShowImported()
     {
-        if (_importedUi.ShowImported()) _importView = POCView.Dashboard;
+        _importedUi.ShowImported();
         Render();
     }
 
@@ -90,7 +88,7 @@ public sealed partial class MainWindow
         try
         {
             var success = await Task.Run(operation);
-            if (success) _importView = POCView.Dashboard;
+            if (success) _importedUi.Navigate(POCView.Dashboard);
         }
         finally
         {
@@ -116,7 +114,7 @@ public sealed partial class MainWindow
         }
         _page.Children.Add(Text("BIBLIOTHÈQUE IMPORTÉE · ES-DE · LECTURE SEULE", 13, true));
         _page.Children.Add(Text("Cette vue reflète uniquement les gamelists trouvées. Aucun scan complet, aucune suppression déduite.", 13));
-        switch (_importView)
+        switch (_importedUi.CurrentView)
         {
             case POCView.Dashboard: ImportedDashboard(snapshot); break;
             case POCView.Collection: ImportedCollection(); break;
@@ -190,7 +188,6 @@ public sealed partial class MainWindow
                 {
                     if (_importedUi.Open(gameId))
                     {
-                        _importView = POCView.GameDetail;
                         Render();
                     }
                 })
@@ -215,7 +212,7 @@ public sealed partial class MainWindow
         var game = _importedUi.Selected;
         if (game is null)
         {
-            _importView = POCView.Collection;
+            _importedUi.Navigate(POCView.Collection);
             ImportedCollection();
             return;
         }
@@ -249,30 +246,36 @@ public sealed partial class MainWindow
 
     private Control CoverFor(EsDeGame game, double width, double height)
     {
-        var media = game.Media.FirstOrDefault(x => x.Kind == "image")
-            ?? game.Media.FirstOrDefault(x => x.Kind == "thumbnail");
-        if (media is null) return Text("Jaquette non renseignée", 13);
-        if (!_importedUi.TryOpenMedia(media, out var stream))
-            return Text("Jaquette absente / indisponible", 13);
-        try
+        var candidates = ImportedCatalogueUiState.CoverCandidates(game);
+        if (candidates.Count == 0) return Text("Jaquette non renseignée", 13);
+        var undecodable = false;
+        foreach (var media in candidates)
         {
-            using (stream)
+            if (!_importedUi.TryOpenMedia(media, out var stream)) continue;
+            try
             {
-                var bitmap = new Bitmap(stream!);
-                _coverImages.Add(bitmap);
-                return new Image
+                using (stream)
                 {
-                    Source = bitmap, Width = width, Height = height,
-                    Stretch = Stretch.Uniform
-                };
+                    var bitmap = new Bitmap(stream!);
+                    _coverImages.Add(bitmap);
+                    return new Image
+                    {
+                        Source = bitmap, Width = width, Height = height,
+                        Stretch = Stretch.Uniform
+                    };
+                }
+            }
+            catch (Exception error) when (error is IOException or ArgumentException or
+                InvalidDataException or InvalidOperationException or NotSupportedException or
+                System.Runtime.InteropServices.COMException)
+            {
+                // Invalid image data is a placeholder case; try the thumbnail next.
+                undecodable = true;
             }
         }
-        catch (Exception error) when (error is IOException or ArgumentException or
-            InvalidDataException or InvalidOperationException or NotSupportedException or
-            System.Runtime.InteropServices.COMException)
-        {
-            return Text("Jaquette illisible (format ou données invalides)", 13);
-        }
+        return Text(undecodable
+            ? "Jaquette illisible / miniature indisponible"
+            : "Jaquette absente / indisponible", 13);
     }
 
     private void ImportedLibraries(EsDeCatalogueSnapshot snapshot)
