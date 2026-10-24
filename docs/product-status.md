@@ -1,5 +1,14 @@
 # État des fonctionnalités
 
+## UX-ARTIFACT-CI — distribution de recette temporaire, PR #64 uniquement (24 octobre 2026)
+
+- Un workflow **distinct** `.github/workflows/ux-artifact.yml` est proposé **dans la PR #64 Draft uniquement**. Il exige une PR #64 du dépôt même, ouverte vers `main`, et le compte propriétaire `TobbyCy`; il ne s'exécute pas au démarrage de l'application et ne déclenche aucun scan réel.
+- La compilation est **figée** au commit déjà validé `cc35abf70acc12120f7617f8e5ab0a8ea84b8801`, indépendamment du commit portant le workflow. SDK `.NET 10.0.401`, restauration NuGet verrouillée, tests, `win-x64 --self-contained`, licences/notices exactes du runtime 10.0.12, inventaire juridique et marqueur LIC-ZIP-01 requis avant toute création de téléchargement.
+- Une bibliothèque ES-DE générée **exclusivement dans le runner** contient quatre jeux fictifs, des fichiers texte `.fixture` non exécutables et des mini-images PNG synthétiques, avec cas de jaquette absente/illisible et média manquant. **Aucune ROM/BIOS, aucun média tiers, aucun chemin ou contenu personnel.**
+- L'archive est extraite et contrôlée fichier par fichier (SHA-256), ainsi qu'au moyen du smoke Avalonia avec runtime externe volontairement indisponible. La seule sortie distribuable autorisée est l'**artifact GitHub Actions** temporaire de 3 jours contenant ZIP + `.sha256`; **aucun workflow Release, aucun tag, aucune fusion automatique**. Les canaris et la liste blanche CI sont étendus à ce chemin exact, tandis que l'interdiction d'upload du workflow principal `ci.yml` est inchangée.
+- Statut courant : **workflow proposé sur la branche, CI et artifact à vérifier avant tout lien de téléchargement**. Un ZIP ne doit pas être annoncé livré sans un run SUCCESS et son artifact disponible. La recette UX clavier/focus/défilement/redimensionnement reste `NOT_TESTED` sans essai humain sous Windows.
+
+
 ## NEXT-01-UX — candidate Avalonia sur bibliothèque ES-DE (PR #64 Draft, non fusionnée)
 
 - La [PR #64](https://github.com/TobbyCy/RomothequeManager/pull/64), dépendante du contrat de lecture seule [PR #62](https://github.com/TobbyCy/RomothequeManager/pull/62) désormais fusionné, propose **sur une branche non distribuée** deux modes clairement distincts : POC fictif et bibliothèque ES-DE importée sur sélection explicite du dossier racine.
