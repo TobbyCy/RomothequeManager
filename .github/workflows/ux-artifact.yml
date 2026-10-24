@@ -1,0 +1,183 @@
+name: UX-ARTIFACT-CI / PR64 synthetic Windows recipe
+
+# Only this PR is authorized; this workflow is not a Release mechanism.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+permissions:
+  contents: read
+concurrency:
+  group: ux-artifact-pr64
+  cancel-in-progress: false
+
+jobs:
+  recipe:
+    name: Frozen PR64 self-contained UX artifact (temporary)
+    if: github.event.pull_request.number == 64 && github.actor == 'TobbyCy' && github.event.pull_request.head.repo.full_name == 'TobbyCy/RomothequeManager' && github.event.pull_request.base.ref == 'main'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout frozen, reviewed source without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          ref: cc35abf70acc12120f7617f8e5ab0a8ea84b8801
+      - name: Verify exact PR64 source commit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = 'cc35abf70acc12120f7617f8e5ab0a8ea84b8801'
+          if ((git rev-parse HEAD).Trim() -cne $expected) { throw 'UX_RECIPE_SOURCE_SHA_MISMATCH' }
+          if ((git status --porcelain --untracked-files=no).Count -ne 0) { throw 'UX_RECIPE_TRACKED_WORKTREE_DIRTY' }
+          Write-Host ('UX_RECIPE_FROZEN_SOURCE=' + $expected)
+      - name: Provision exact .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Locked restore, test, synthetic fixture, notices, zip, hash and extracted smoke
+        id: build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = 'cc35abf70acc12120f7617f8e5ab0a8ea84b8801'
+          if ((dotnet --version).Trim() -cne '10.0.401') { throw 'UX_RECIPE_SDK_PIN_MISMATCH' }
+          $inventory = 'docs/developer/lic-zip-01-inventory.md'
+          if (-not (Select-String -LiteralPath $inventory -Pattern '^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED\r?$' -Quiet)) { throw 'UX_RECIPE_LEGAL_APPROVAL_REQUIRED' }
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          $tests = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          dotnet restore $tests --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_LOCKED_TEST_RESTORE_FAILED' }
+          dotnet test $tests -c Release --no-restore -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_TESTS_FAILED' }
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_LOCKED_RESTORE_FAILED' }
+          $out = Join-Path $env:RUNNER_TEMP 'ux64-out'
+          $publish = Join-Path $env:RUNNER_TEMP 'ux64-app'
+          $extract = Join-Path $env:RUNNER_TEMP 'ux64-verify'
+          New-Item -ItemType Directory -Force -Path $out,$publish,$extract | Out-Null
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:ContinuousIntegrationBuild=true -p:TreatWarningsAsErrors=true -o $publish
+          if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_PUBLISH_FAILED' }
+          foreach ($n in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $publish $n) -PathType Leaf)) { throw ('UX_RECIPE_SELFCONTAINED_MISSING:' + $n) }
+          }
+          $fxr = (Get-Item (Join-Path $publish 'hostfxr.dll')).VersionInfo.ProductVersion
+          if (-not $fxr.StartsWith('10.0.12')) { throw ('UX_RECIPE_RUNTIME_VERSION_UNEXPECTED:' + $fxr) }
+          foreach ($n in @('LICENSE','LEGAL.md','BRANDING.md')) { Copy-Item -LiteralPath $n -Destination $publish }
+          Copy-Item -LiteralPath 'packaging/THIRD-PARTY-NOTICES.txt' -Destination (Join-Path $publish 'THIRD-PARTY-NOTICES.txt')
+          Copy-Item -LiteralPath $inventory -Destination (Join-Path $publish 'THIRD-PARTY-INVENTORY.md')
+          Copy-Item -LiteralPath 'packaging/licenses' -Destination (Join-Path $publish 'licenses') -Recurse
+          $required = @('ANGLE-LICENSE.txt','ANGLE-xxHash-LICENSE.txt','Avalonia-LICENSE.txt','Avalonia-NOTICE.txt','HarfBuzz-COPYING.txt','MicroCom-LICENSE.txt','Skia-LICENSE.txt','SkiaSharp-LICENSE.txt','SkiaSharp-THIRD-PARTY-NOTICES.txt','Tmds.DBus-COPYING.txt')
+          foreach ($n in $required) {
+            $p = Join-Path $publish ('licenses/' + $n)
+            if (-not (Test-Path -LiteralPath $p -PathType Leaf) -or (Get-Item $p).Length -lt 100) { throw ('UX_RECIPE_LEGAL_FILE_MISSING:' + $n) }
+          }
+          $nugetRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages' }
+          $runtime = Join-Path $nugetRoot 'microsoft.netcore.app.runtime.win-x64/10.0.12'
+          if (-not (Test-Path $runtime -PathType Container)) { throw 'UX_RECIPE_RUNTIME_PACK_MISSING' }
+          $lic = @(Get-ChildItem $runtime -Recurse -File | Where-Object { $_.Name -ceq 'LICENSE.TXT' })
+          $not = @(Get-ChildItem $runtime -Recurse -File | Where-Object { $_.Name -ceq 'THIRD-PARTY-NOTICES.TXT' })
+          if ($lic.Count -ne 1 -or $not.Count -ne 1 -or $lic[0].Length -lt 500 -or $not[0].Length -lt 500) { throw 'UX_RECIPE_RUNTIME_NOTICES_UNVERIFIED' }
+          $runtimeDest = Join-Path $publish 'licenses/dotnet-runtime'
+          New-Item -ItemType Directory -Force -Path $runtimeDest | Out-Null
+          Copy-Item -LiteralPath $lic[0].FullName -Destination (Join-Path $runtimeDest 'LICENSE.TXT')
+          Copy-Item -LiteralPath $not[0].FullName -Destination (Join-Path $runtimeDest 'THIRD-PARTY-NOTICES.TXT')
+          $legalProvenance = [ordered]@{
+            package='Microsoft.NETCore.App.Runtime.win-x64';version='10.0.12'
+            licenseSha256=(Get-FileHash $lic[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            thirdPartyNoticesSha256=(Get-FileHash $not[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          }
+          ($legalProvenance | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $runtimeDest 'PROVENANCE.json') -Encoding utf8
+
+          # Entire fixture generated within the isolated runner. No ROM extension or playable content.
+          $fixture = Join-Path $publish 'fixture'
+          $romDir = Join-Path $fixture 'ROMS/gba'
+          $mediaDir = Join-Path $fixture 'MEDIAS/gba'
+          New-Item -ItemType Directory -Force -Path $romDir,(Join-Path $mediaDir 'metadata'),(Join-Path $mediaDir 'covers') | Out-Null
+          foreach ($n in @('A.fixture','B.fixture','C.fixture')) { [IO.File]::WriteAllText((Join-Path $romDir $n),'FICTITIOUS TEXT ONLY; NOT A ROM') }
+          $onePixel = [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9oYMNz8AAAAASUVORK5CYII=')
+          [IO.File]::WriteAllBytes((Join-Path $mediaDir 'covers/cover.png'),$onePixel)
+          [IO.File]::WriteAllBytes((Join-Path $mediaDir 'covers/thumb.png'),$onePixel)
+          [IO.File]::WriteAllText((Join-Path $mediaDir 'covers/corrupt.png'),'FICTITIOUS INVALID PNG')
+          $xml = @'
+          <gameList>
+            <game><path>./A.fixture</path><name>Même titre</name><image>../covers/absent.png</image><thumbnail>../covers/thumb.png</thumbnail></game>
+            <game><path>./B.fixture</path><name>Même titre</name><image>../covers/cover.png</image></game>
+            <game><path>./C.fixture</path><name>Jaquette illisible</name><image>../covers/corrupt.png</image></game>
+            <game><path>./Missing.fixture</path><name>ROM indisponible</name></game>
+          </gameList>
+          '@
+          [IO.File]::WriteAllText((Join-Path $mediaDir 'metadata/es-de-gamelist.xml'),$xml,[Text.UTF8Encoding]::new($false))
+          $guide = @'
+          ROMOTHEQUE — RECETTE UX FICTIVE / PR #64
+          1. Decompresser le ZIP sous Windows x64, lancer RomothequeManager.V2.exe.
+          2. Au depart : mode demonstration. Cliquer « Choisir une bibliotheque ES-DE ».
+          3. Selectionner le dossier « fixture » (ROMS et MEDIAS), jamais une collection personnelle.
+          4. Dashboard : 4 jeux fictifs ; Collection : deux titres identiques, jaquette repli image vers miniature,
+             jaquette invalide et fichier ROM introuvable clairement annonces. Tester fiche/recherche/navigation.
+          5. Bibliotheques importees : A/B desactive. Basculer en demonstration : A/B fonctionne.
+             Changer de bibliotheque demo : comparaison precedente effacee.
+          6. Tester Tab / Shift+Tab / Entree / Espace, scroll et fenetre 760x480 puis 1120x720.
+          7. Reimport : sauvegarder le XML fictif, le remplacer provisoirement par <gameList><game>,
+             cliquer Actualiser ; erreur visible, ancien catalogue conserve ; restaurer XML, reimporter.
+          8. Captures reelles sous Windows, uniquement des jeux fictifs, et retour PASS/FAIL sur la PR.
+          Aucun media tiers ni ROM jouable. Aucune Release ou import automatique.
+          '@
+          [IO.File]::WriteAllText((Join-Path $publish 'GUIDE-UX.txt'),$guide,[Text.UTF8Encoding]::new($false))
+          $manifest = [ordered]@{ sourceCommit=$source; pr=64; runtime='win-x64'; selfContained=$true; syntheticOnly=$true; expectedGameCount=4; fixture='text-and-generated-images-only'; release=$false }
+          ($manifest | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $publish 'UX-MANIFEST.json') -Encoding utf8
+          $forbidden = @('.gba','.rom','.chd','.iso','.cue','.gdi','.cdi','.nes','.sfc','.smc','.gbc','.n64','.z64','.nsp','.xci','.wad','.sav','.srm','.pfx','.pem','.p12','.snk','.key')
+          $contents = @(Get-ChildItem -LiteralPath $publish -Recurse -File)
+          foreach ($file in $contents) {
+            if ($forbidden -ccontains $file.Extension.ToLowerInvariant()) { throw ('UX_RECIPE_FORBIDDEN_FILE:' + $file.Name) }
+          }
+          $zip = Join-Path $out 'RomothequeManager-UX-PR64-win-x64-cc35abf70acc.zip'
+          Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $shaFile = $zip + '.sha256'
+          [IO.File]::WriteAllText($shaFile,($hash + '  ' + [IO.Path]::GetFileName($zip) + [Environment]::NewLine),[Text.Encoding]::ASCII)
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          $inside = @(Get-ChildItem -LiteralPath $extract -Recurse -File)
+          if ($inside.Count -ne $contents.Count) { throw 'UX_RECIPE_FILE_COUNT_MISMATCH' }
+          foreach ($file in $contents) {
+            $relative = $file.FullName.Substring($publish.Length + 1)
+            $copy = Join-Path $extract $relative
+            if (-not (Test-Path -LiteralPath $copy -PathType Leaf)) { throw ('UX_RECIPE_FILE_MISSING:' + $relative) }
+            if ((Get-FileHash $file.FullName -Algorithm SHA256).Hash -cne (Get-FileHash $copy -Algorithm SHA256).Hash) { throw ('UX_RECIPE_FILE_HASH_MISMATCH:' + $relative) }
+          }
+          $m = Get-Content -LiteralPath (Join-Path $extract 'UX-MANIFEST.json') -Raw | ConvertFrom-Json
+          if ($m.sourceCommit -cne $source -or -not $m.syntheticOnly -or -not $m.selfContained -or $m.expectedGameCount -ne 4) { throw 'UX_RECIPE_MANIFEST_INVALID' }
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = Join-Path $extract 'RomothequeManager.V2.exe'
+          $start.Arguments = '--smoke-window'
+          $start.WorkingDirectory = $extract
+          $start.UseShellExecute = $false
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $start.Environment['DOTNET_ROOT'] = Join-Path $env:RUNNER_TEMP 'sdk-deliberately-not-present'
+          $start.Environment['DOTNET_MULTILEVEL_LOOKUP'] = '0'
+          $p = [Diagnostics.Process]::Start($start)
+          try {
+            $stdout = $p.StandardOutput.ReadToEndAsync()
+            $stderr = $p.StandardError.ReadToEndAsync()
+            if (-not $p.WaitForExit(30000)) { $p.Kill(); throw 'UX_RECIPE_SMOKE_TIMEOUT' }
+            if ($p.ExitCode -ne 0 -or -not $stdout.Result.Contains('POC_WINDOW_OPENED_PASS')) {
+              throw ('UX_RECIPE_EXTRACTED_SMOKE_FAILED:' + $stdout.Result + $stderr.Result)
+            }
+          } finally { $p.Dispose() }
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -cne $hash) { throw 'UX_RECIPE_SHA_MISMATCH' }
+          Write-Host ('UX_RECIPE_ZIP_VERIFIED_PASS source=' + $source + ' sha256=' + $hash + ' sizeBytes=' + (Get-Item $zip).Length + ' files=' + $contents.Count)
+          "sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Upload temporary checked artifact (no release)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: UX-PR64-win-x64-cc35abf70acc
+          path: |
+            ${{ runner.temp }}/ux64-out/RomothequeManager-UX-PR64-win-x64-cc35abf70acc.zip
+            ${{ runner.temp }}/ux64-out/RomothequeManager-UX-PR64-win-x64-cc35abf70acc.zip.sha256
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0

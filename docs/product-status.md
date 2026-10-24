@@ -1,5 +1,21 @@
 # État des fonctionnalités
 
+## UX-ARTIFACT-CI — distribution de recette temporaire, PR #64 uniquement (24 octobre 2026)
+
+- Un workflow **distinct** `.github/workflows/ux-artifact.yml` est proposé **dans la PR #64 Draft uniquement**. Il exige une PR #64 du dépôt même, ouverte vers `main`, et le compte propriétaire `TobbyCy`; il ne s'exécute pas au démarrage de l'application et ne déclenche aucun scan réel.
+- La compilation est **figée** au commit déjà validé `cc35abf70acc12120f7617f8e5ab0a8ea84b8801`, indépendamment du commit portant le workflow. SDK `.NET 10.0.401`, restauration NuGet verrouillée, tests, `win-x64 --self-contained`, licences/notices exactes du runtime 10.0.12, inventaire juridique et marqueur LIC-ZIP-01 requis avant toute création de téléchargement.
+- Une bibliothèque ES-DE générée **exclusivement dans le runner** contient quatre jeux fictifs, des fichiers texte `.fixture` non exécutables et des mini-images PNG synthétiques, avec cas de jaquette absente/illisible et média manquant. **Aucune ROM/BIOS, aucun média tiers, aucun chemin ou contenu personnel.**
+- L'archive est extraite et contrôlée fichier par fichier (SHA-256), ainsi qu'au moyen du smoke Avalonia avec runtime externe volontairement indisponible. La seule sortie distribuable autorisée est l'**artifact GitHub Actions** temporaire de 3 jours contenant ZIP + `.sha256`; **aucun workflow Release, aucun tag, aucune fusion automatique**. Les canaris et la liste blanche CI sont étendus à ce chemin exact, tandis que l'interdiction d'upload du workflow principal `ci.yml` est inchangée.
+- Statut courant : **workflow proposé sur la branche, CI et artifact à vérifier avant tout lien de téléchargement**. Un ZIP ne doit pas être annoncé livré sans un run SUCCESS et son artifact disponible. La recette UX clavier/focus/défilement/redimensionnement reste `NOT_TESTED` sans essai humain sous Windows.
+
+
+## NEXT-01-UX — candidate Avalonia sur bibliothèque ES-DE (PR #64 Draft, non fusionnée)
+
+- La [PR #64](https://github.com/TobbyCy/RomothequeManager/pull/64), dépendante du contrat de lecture seule [PR #62](https://github.com/TobbyCy/RomothequeManager/pull/62) désormais fusionné, propose **sur une branche non distribuée** deux modes clairement distincts : POC fictif et bibliothèque ES-DE importée sur sélection explicite du dossier racine.
+- Dashboard, Collection, fiche et Bibliothèques consomment le même catalogue importé ; recherche et pagination de 50 jeux, identités distinctes pour les titres homonymes, jaquette locale avec tentative de miniature de repli, diagnostics et refus de réimport non destructif. Les comparaisons A/B restent **fictives et indisponibles en mode importé**.
+- Les tests du lot sont **exclusivement synthétiques** (y compris une fixture de 2 000 entrées), sans scan de collection privée, ROM réelle, scraper, export ou modification des sources. La CI .NET et les captures interactives Windows doivent être qualifiées sur le HEAD exact de la PR avant toute approbation ; **aucune fonctionnalité NEXT-01-UX n'est intégrée sur `main` ni distribuée par cette PR**.
+- Cette note de branche sert à la traçabilité du changement de code ; l'actualisation transversale des autres états historiques et de la Pre-release relève séparément du chantier documentaire [PR #63](https://github.com/TobbyCy/RomothequeManager/pull/63).
+
 > **Référence historique DOC-GOV-01 — 23 octobre 2026 :** dépôt Produit **PUBLIC**, `main=408d6263be6ae1fbc77c31f6eb9fb530cb4f76e6` (avant V2-01B et BRAND-01). Les [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42) (POC Windows V2-01A) et [#45](https://github.com/TobbyCy/RomothequeManager/pull/45) (CI-DOTNET-01) sont **fusionnées**. La [CI `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607) est **COMPLETED / SUCCESS** sur ce SHA, y compris build/tests .NET, smoke de fenêtre Avalonia et `ci-policy-gate`. Cette preuve est propre à ce commit ; elle n'atteste pas une Release ni un usage réel.
 
 Le terme **fonctionnel** désigne ici un POC exécuté et testé **sur fixtures fictives**, pas un produit prêt pour des bibliothèques personnelles. Le code intégré, la validation CI et la disponibilité d'un binaire distribué sont trois états distincts.
