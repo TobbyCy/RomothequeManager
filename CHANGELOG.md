@@ -1,5 +1,11 @@
 # Journal des changements
 
+## En cours — NEXT-01-UX / Issue #61 (PR #64 Draft, pas sur main)
+
+- Sur la base de l'adaptateur [#62](https://github.com/TobbyCy/RomothequeManager/pull/62) désormais fusionné, présentation Avalonia de la bibliothèque explicitement sélectionnée : séparation démo/import, Dashboard/Collection/fiches et jaquettes locales via API de lecture seule. Les images invalides ou absentes peuvent céder la place à la miniature, puis à un message explicite ; A/B synthétique désactivé pour le catalogue importé.
+- Recherche et pagination à 50 jeux ; navigation conservant les identités et refus des erreurs de chargement/réimport sans perdre le dernier catalogue validé. Douze tests sources synthétiques NEXT-01-UX, incluant 2 000 entrées fictives et l'isolation de la comparaison A/B.
+- **CI/captures à valider sur le HEAD exact après reciblage sur main** ; ce lot n'est ni fusionné, ni distribué, ni autorisé à scanner le SSD personnel. Aucune ROM/BIOS/média tiers n'entre dans GitHub.
+
 Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
 
 ## En cours — NEXT-01-A / Issue #61 (PR Draft, données synthétiques)

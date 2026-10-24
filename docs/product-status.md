@@ -1,5 +1,12 @@
 # État des fonctionnalités
 
+## NEXT-01-UX — candidate Avalonia sur bibliothèque ES-DE (PR #64 Draft, non fusionnée)
+
+- La [PR #64](https://github.com/TobbyCy/RomothequeManager/pull/64), dépendante du contrat de lecture seule [PR #62](https://github.com/TobbyCy/RomothequeManager/pull/62) désormais fusionné, propose **sur une branche non distribuée** deux modes clairement distincts : POC fictif et bibliothèque ES-DE importée sur sélection explicite du dossier racine.
+- Dashboard, Collection, fiche et Bibliothèques consomment le même catalogue importé ; recherche et pagination de 50 jeux, identités distinctes pour les titres homonymes, jaquette locale avec tentative de miniature de repli, diagnostics et refus de réimport non destructif. Les comparaisons A/B restent **fictives et indisponibles en mode importé**.
+- Les tests du lot sont **exclusivement synthétiques** (y compris une fixture de 2 000 entrées), sans scan de collection privée, ROM réelle, scraper, export ou modification des sources. La CI .NET et les captures interactives Windows doivent être qualifiées sur le HEAD exact de la PR avant toute approbation ; **aucune fonctionnalité NEXT-01-UX n'est intégrée sur `main` ni distribuée par cette PR**.
+- Cette note de branche sert à la traçabilité du changement de code ; l'actualisation transversale des autres états historiques et de la Pre-release relève séparément du chantier documentaire [PR #63](https://github.com/TobbyCy/RomothequeManager/pull/63).
+
 > **Référence historique DOC-GOV-01 — 23 octobre 2026 :** dépôt Produit **PUBLIC**, `main=408d6263be6ae1fbc77c31f6eb9fb530cb4f76e6` (avant V2-01B et BRAND-01). Les [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42) (POC Windows V2-01A) et [#45](https://github.com/TobbyCy/RomothequeManager/pull/45) (CI-DOTNET-01) sont **fusionnées**. La [CI `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607) est **COMPLETED / SUCCESS** sur ce SHA, y compris build/tests .NET, smoke de fenêtre Avalonia et `ci-policy-gate`. Cette preuve est propre à ce commit ; elle n'atteste pas une Release ni un usage réel.
 
 Le terme **fonctionnel** désigne ici un POC exécuté et testé **sur fixtures fictives**, pas un produit prêt pour des bibliothèques personnelles. Le code intégré, la validation CI et la disponibilité d'un binaire distribué sont trois états distincts.
