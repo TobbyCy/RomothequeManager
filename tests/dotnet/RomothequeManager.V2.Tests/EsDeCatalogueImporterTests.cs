@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RomothequeManager.V2;
 
