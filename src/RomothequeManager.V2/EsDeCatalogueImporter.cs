@@ -19,7 +19,10 @@ public sealed record EsDeCatalogueSnapshot(
 
 public sealed class EsDeImportSession
 {
-    private readonly string _root;
+    private string _root;
+    // Session-scoped identity: persists through reimports and verified relocation.
+    // A new process/session needs explicit future persistence or re-association.
+    private readonly string _libraryId = "library-" + Guid.NewGuid().ToString("N");
     public EsDeCatalogueSnapshot? Current { get; private set; }
 
     public EsDeImportSession(string explicitlySelectedLibraryRoot)
@@ -32,9 +35,45 @@ public sealed class EsDeImportSession
     // Build fully in temporary memory; failure leaves Current untouched.
     public EsDeCatalogueSnapshot Import()
     {
-        var staged = EsDeCatalogueImporter.Read(_root);
+        var staged = EsDeCatalogueImporter.Read(_root, _libraryId);
         Current = staged;
         return staged;
+    }
+
+    // A new drive letter/path must be explicitly supplied and have matching content.
+    // Failed re-association preserves both the current root and last valid snapshot.
+    public EsDeCatalogueSnapshot RelocateVerified(string explicitlySelectedNewRoot)
+    {
+        if (Current is null) throw new InvalidOperationException("Import before relocation.");
+        var newRoot = Path.GetFullPath(explicitlySelectedNewRoot);
+        var staged = EsDeCatalogueImporter.Read(newRoot, _libraryId);
+        if (!string.Equals(staged.ContentFingerprint, Current.ContentFingerprint, StringComparison.Ordinal))
+            throw new InvalidDataException("Relocation not verified: catalogue fingerprint differs.");
+        _root = newRoot;
+        Current = staged;
+        return staged;
+    }
+
+    // Never trust Exists from a previous import: enforce snapshot membership and
+    // path/reparse restrictions again immediately before giving the UI a read handle.
+    // Caller owns and must dispose the returned stream. No network, writes or upload.
+    public bool TryOpenMedia(EsDeMedia media, out Stream? stream)
+    {
+        stream = null;
+        if (media is null || Current is null) return false;
+        if (!Current.Games.SelectMany(game => game.Media).Contains(media)) return false;
+        try
+        {
+            var path = EsDeCatalogueImporter.ResolveSnapshotMedia(_root, media.RelativePath);
+            stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+            or InvalidDataException or ArgumentException or System.Security.SecurityException
+            or NotSupportedException)
+        {
+            return false;
+        }
     }
 }
 
@@ -43,7 +82,10 @@ public static class EsDeCatalogueImporter
     private const long XmlLimit = 8 * 1024 * 1024;
     private static readonly string[] MediaFields = ["image", "thumbnail", "marquee", "video"];
 
-    public static EsDeCatalogueSnapshot Read(string explicitlySelectedLibraryRoot)
+    public static EsDeCatalogueSnapshot Read(string explicitlySelectedLibraryRoot) =>
+        Read(explicitlySelectedLibraryRoot, "library-" + Guid.NewGuid().ToString("N"));
+
+    internal static EsDeCatalogueSnapshot Read(string explicitlySelectedLibraryRoot, string libraryId)
     {
         if (string.IsNullOrWhiteSpace(explicitlySelectedLibraryRoot))
             throw new ArgumentException("Explicit library root is required.", nameof(explicitlySelectedLibraryRoot));
@@ -160,8 +202,24 @@ public static class EsDeCatalogueImporter
             g.GameId + "|" + g.Title + "|" + g.Description + "|" + g.RomExists + "|" +
             string.Join(",", g.Media.Select(m => m.Kind + ":" + m.RelativePath + ":" + m.Exists)) + "|" +
             string.Join(",", g.DiscPaths)));
-        return new(Digest("library:ROMS+MEDIAS|" + string.Join("|", sorted.Select(g => g.GameId))), "ES_DE_READ_ONLY",
+        return new(libraryId, "ES_DE_READ_ONLY",
             Digest(evidence), sorted, diagnostics.ToArray());
+    }
+
+    internal static string ResolveSnapshotMedia(string selectedRoot, string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            throw new InvalidDataException("Missing media path.");
+        var normalized = relativePath.Replace('\\', '/');
+        // A media reference belongs to exactly one explicitly selected domain.
+        var parts = normalized.Split('/');
+        if (parts.Length < 3 || (parts[0] != "ROMS" && parts[0] != "MEDIAS"))
+            throw new InvalidDataException("Media domain is not authorized.");
+        var root = Path.GetFullPath(selectedRoot);
+        RequireOrdinaryDirectory(root);
+        var domain = Path.Combine(root, parts[0]);
+        RequireOrdinaryDirectory(domain);
+        return ResolveRelative(root, normalized, domain);
     }
 
     private static XDocument LoadXml(string path)
