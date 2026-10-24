@@ -181,6 +181,119 @@ public sealed class EsDeCatalogueImporterTests
     }
 
     [TestMethod]
+    public void SessionLibraryIdSurvivesAddedGameWhileFingerprintChanges()
+    {
+        Put("ROMS/gba/First.gba");
+        Gamelist("<game><path>./First.gba</path><name>Premier</name></game>");
+        var session = new EsDeImportSession(_root);
+        var before = session.Import();
+        Put("ROMS/gba/Second.gba");
+        Gamelist("""
+            <game><path>./First.gba</path><name>Premier</name></game>
+            <game><path>./Second.gba</path><name>Deuxième</name></game>
+            """);
+        var after = session.Import();
+        Assert.AreEqual(before.LibraryId, after.LibraryId);
+        Assert.AreNotEqual(before.ContentFingerprint, after.ContentFingerprint);
+        Assert.AreEqual(2, after.Games.Count);
+    }
+
+    [TestMethod]
+    public void ExplicitVerifiedRelocationPreservesSessionIdentityAndMediaAccess()
+    {
+        Put("ROMS/gba/First.gba");
+        Put("MEDIAS/gba/covers/first.png", "synthetic cover");
+        Gamelist("<game><path>./First.gba</path><image>../covers/first.png</image></game>");
+        var session = new EsDeImportSession(_root);
+        var first = session.Import();
+        var relocatedRoot = Path.Combine(Path.GetTempPath(), "rm-next01a-relocated-" + Guid.NewGuid().ToString("N"));
+        Directory.Move(_root, relocatedRoot);
+        try
+        {
+            var moved = session.RelocateVerified(relocatedRoot);
+            Assert.AreEqual(first.LibraryId, moved.LibraryId);
+            Assert.AreEqual(first.ContentFingerprint, moved.ContentFingerprint);
+            var media = moved.Games.Single().Media.Single();
+            Assert.IsTrue(session.TryOpenMedia(media, out var stream));
+            using (stream) Assert.IsFalse(stream!.CanWrite);
+        }
+        finally
+        {
+            Directory.Move(relocatedRoot, _root);
+        }
+    }
+
+    [TestMethod]
+    public void RelocationRefusesChangedContentAndKeepsExistingState()
+    {
+        Put("ROMS/gba/First.gba");
+        Gamelist("<game><path>./First.gba</path></game>");
+        var session = new EsDeImportSession(_root);
+        var initial = session.Import();
+        var anotherRoot = Path.Combine(Path.GetTempPath(), "rm-next01a-other-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(anotherRoot, "ROMS", "gba"));
+        Directory.CreateDirectory(Path.Combine(anotherRoot, "MEDIAS", "gba", "metadata"));
+        File.WriteAllText(Path.Combine(anotherRoot, "MEDIAS", "gba", "metadata", "es-de-gamelist.xml"),
+            "<gameList><game><path>./Different.gba</path></game></gameList>");
+        try
+        {
+            Assert.ThrowsExactly<InvalidDataException>(() => session.RelocateVerified(anotherRoot));
+            Assert.AreSame(initial, session.Current);
+        }
+        finally
+        {
+            Directory.Delete(anotherRoot, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void MediaIsRevalidatedWhenOpenedNotTrustedFromImport()
+    {
+        Put("ROMS/gba/First.gba");
+        var coverPath = Put("MEDIAS/gba/covers/first.png", "fake cover bytes");
+        Gamelist("""
+            <game><path>./First.gba</path><image>../covers/first.png</image>
+            <thumbnail>../covers/missing.png</thumbnail></game>
+            """);
+        var session = new EsDeImportSession(_root);
+        var current = session.Import();
+        var cover = current.Games.Single().Media.Single(x => x.Kind == "image");
+        var missing = current.Games.Single().Media.Single(x => x.Kind == "thumbnail");
+        Assert.IsTrue(session.TryOpenMedia(cover, out var opened));
+        using (opened) Assert.IsFalse(opened!.CanWrite);
+        Assert.IsFalse(session.TryOpenMedia(missing, out var absent));
+        Assert.IsNull(absent);
+        Assert.IsFalse(session.TryOpenMedia(new EsDeMedia("image", "../escape.png", true), out var forged));
+        Assert.IsNull(forged);
+        File.Delete(coverPath);
+        Assert.IsFalse(session.TryOpenMedia(cover, out var removed));
+        Assert.IsNull(removed);
+    }
+
+    [TestMethod]
+    public void MediaChangedToReparsePointIsNotOpened()
+    {
+        Put("ROMS/gba/First.gba");
+        var coverPath = Put("MEDIAS/gba/covers/first.png", "fake cover");
+        var otherPath = Put("other/target.png", "outside media root");
+        Gamelist("<game><path>./First.gba</path><image>../covers/first.png</image></game>");
+        var session = new EsDeImportSession(_root);
+        var cover = session.Import().Games.Single().Media.Single();
+        File.Delete(coverPath);
+        try
+        {
+            File.CreateSymbolicLink(coverPath, otherPath);
+        }
+        catch (Exception e) when (e is UnauthorizedAccessException or IOException or PlatformNotSupportedException)
+        {
+            // CI host cannot create links: the implementation still refuses existing reparse points.
+            return;
+        }
+        Assert.IsFalse(session.TryOpenMedia(cover, out var stream));
+        Assert.IsNull(stream);
+    }
+
+    [TestMethod]
     public void MissingXmlIsFailureNotFalseEmptySuccess()
     {
         Assert.ThrowsExactly<InvalidDataException>(() => EsDeCatalogueImporter.Read(_root));
