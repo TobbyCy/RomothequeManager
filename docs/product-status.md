@@ -1,10 +1,24 @@
 # État des fonctionnalités
 
+## État public actuel — 24 octobre 2026
+
+La [première Pre-release Windows V2-01C a été publiée le 23.10.2026](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec) depuis `main=4cf475fbd1ece16b138403d3bd967a56d295ee54`. Le [ZIP Windows x64 autonome](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip) (243 fichiers ; runtime .NET inclus) et son [fichier de contrôle SHA-256](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip.sha256) sont **téléchargeables**. Son empreinte de référence est `22328d682b7c93edcdeeb735c9913880e68dec64c54b159bd6e6de77bcc7eaaf`.
+
+**Démarrage :** télécharger ZIP et `.sha256` ; lancer `Get-FileHash -Algorithm SHA256 .\RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip` dans PowerShell ; comparer l'empreinte ; **extraire** le ZIP dans un dossier utilisateur ; lancer `RomothequeManager.V2.exe` depuis ce dossier, sans installateur, SDK ou runtime .NET externe. L'application n'est pas signée (avertissement SmartScreen possible).
+
+**Portée attestée :** POC **strictement synthétique** sous .NET 10 / Avalonia 12.1.4 ; quatre vues (Dashboard, Collection, Fiche jeu, Bibliothèques), **six jeux fictifs et trois bibliothèques fictives**, lecture seule. Le [run de publication contrôlée](https://github.com/TobbyCy/RomothequeManager/actions/runs/40004889570) et l'[Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) documentent les preuves du paquet. La [réception utilisateur initiale](https://github.com/TobbyCy/RomothequeManager/issues/50#issuecomment-6381903496) confirme le lancement et l'utilisation générale sur le PC de Tobby ; elle **n'atteste pas** les douze contrôles UX détaillés.
+
+**Hors périmètre actuel :** aucune Release stable ni installateur signé, pas de scan réel, d'import ES-DE dans l'interface, de persistance de collections, de scraper, de synchronisation ou d'export/copie physique. La compatibilité SteamOS/USB et une recette Windows externe exhaustive restent à qualifier. **La réussite du POC n'autorise aucun traitement de ROM personnelles.**
+
+## Historique de préparation (états au 23 octobre 2026, avant publication)
+
+Les paragraphes DOC-GOV-01 / LIC-ZIP-01 / DIST-ZIP-01 suivants conservent **leurs statuts à la date indiquée**. Les mentions `RELEASE_HOLD`, « non fusionnée », « aucun ZIP téléchargeable » et `PENDING` ci-dessous concernent ces **étapes antérieures** ; elles ne décrivent pas la Pre-release désormais publiée.
+
 > **Référence historique DOC-GOV-01 — 23 octobre 2026 :** dépôt Produit **PUBLIC**, `main=408d6263be6ae1fbc77c31f6eb9fb530cb4f76e6` (avant V2-01B et BRAND-01). Les [PR #42](https://github.com/TobbyCy/RomothequeManager/pull/42) (POC Windows V2-01A) et [#45](https://github.com/TobbyCy/RomothequeManager/pull/45) (CI-DOTNET-01) sont **fusionnées**. La [CI `push main` #39919523607](https://github.com/TobbyCy/RomothequeManager/actions/runs/39919523607) est **COMPLETED / SUCCESS** sur ce SHA, y compris build/tests .NET, smoke de fenêtre Avalonia et `ci-policy-gate`. Cette preuve est propre à ce commit ; elle n'atteste pas une Release ni un usage réel.
 
 Le terme **fonctionnel** désigne ici un POC exécuté et testé **sur fixtures fictives**, pas un produit prêt pour des bibliothèques personnelles. Le code intégré, la validation CI et la disponibilité d'un binaire distribué sont trois états distincts.
 
-## V2-01C — packaging Windows candidat (aucune distribution)
+## V2-01C — packaging Windows candidat (historique : phase sans distribution)
 
 La première phase de l'[Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) autorisait **uniquement la préparation technique** d'un ZIP autonome `win-x64` et de son fichier SHA-256. Le workflow construit le paquet avec le SDK exact et les dépendances verrouillées, inscrit un manifeste `POC-MANIFEST.json` (`syntheticOnly=true`, quatre vues, six jeux et trois bibliothèques fictives), vérifie le ZIP puis le réextrait dans un autre dossier et lance l'exécutable depuis cette extraction. Le résultat reste dans `RUNNER_TEMP`, **sans upload, GitHub Pre-release ou Release**.
 
@@ -12,7 +26,7 @@ La première phase de l'[Issue #50](https://github.com/TobbyCy/RomothequeManager
 
 Cette CI n'atteste pas encore un démarrage sur un Windows x64 propre sans runtime/SDK, ni les parcours interactifs clavier, focus, défilement, ComboBox et redimensionnement de [UXZIP-01 à UXZIP-12](https://github.com/TobbyCy/RomothequeManager/issues/50). Les licences/notices tierces et la recette externe restent à valider. Le [guide packaging](developer/v2-01c-packaging.md) précise la vérification et le blocage de publication.
 
-## DIST-ZIP-01 — préparation de distribution de test (pas encore livrée)
+## DIST-ZIP-01 — préparation de distribution (historique : avant publication)
 
 Après fusion de la [PR #53](https://github.com/TobbyCy/RomothequeManager/pull/53) sur `main=31579350033c22cd3c55e156d29a4da7f18ad822`, Tobby a donné **GO_PREPARE_TEST_DISTRIBUTION**, pas le GO final d'upload. Une voie manuelle `workflow_dispatch` est préparée : `validate` (ZIP et SHA-256 éphémères, contrôlés depuis extraction) puis `publish` (pré-release de test uniquement après hash/commit/tag et variables d'approbation exacts). Aucune exécution PR/push n'autorise un upload.
 
@@ -26,7 +40,7 @@ Après fusion de la [PR #53](https://github.com/TobbyCy/RomothequeManager/pull/5
 
 La [PR #48](https://github.com/TobbyCy/RomothequeManager/pull/48), issue du mandat [#47](https://github.com/TobbyCy/RomothequeManager/issues/47), a été **fusionnée** sur `main=eda249cd95327cb4bbba27350898513070eca62b`. Elle ajoute la quatrième vue Avalonia « Bibliothèques & snapshots » : **trois bibliothèques liées aux six jeux fictifs existants**, liste/inspecteur, snapshots datés, états de disponibilité et de fraîcheur, et sélection A/B sur résultats préqualifiés. Les sept scénarios PowerShell historiques restent des vecteurs de test indépendants, non additionnés au Dashboard.
 
-**Intégré mais non distribué :** ce POC reste limité aux fixtures synthétiques. Aucun scan, collection réelle, moteur de comparaison C#, PowerShell lancé par l'UI, stockage ou Release n'est autorisé. Les compteurs inconnus restent `null`, les absences observées ne prouvent aucune suppression et le dernier complet vérifié reste distinct des tentatives partielles.
+**Intégré puis distribué dans la Pre-release synthétique :** le POC reste limité aux fixtures synthétiques. Aucun scan, collection réelle, moteur de comparaison C#, PowerShell lancé par l'UI, stockage ou export n'est livré. Les compteurs inconnus restent `null`, les absences observées ne prouvent aucune suppression et le dernier complet vérifié reste distinct des tentatives partielles.
 
 ### Traçabilité de la fixture Windows V2-01B (POC synthétique intégré)
 
@@ -53,7 +67,7 @@ Ces dénominateurs sont des **unions d'unités logiques observées**, jamais des
 | Bibliothèques / snapshots / catalogue PS → JSON → JS | Producteur PowerShell, projections, comparateur à six classes et consommateur JS intégrés ; canaris et fixtures synthétiques exécutés en CI | DTO 0.2 encore candidat ; l'état OFFLINE/STALE ou un index inaccessible ne prouve jamais une suppression |
 | **POC Windows V2-01A/B** | `src/RomothequeManager.V2/` intégré via **PR #42 et #48** ; .NET 10, Avalonia 12.1.4, **quatre vues** Dashboard / Collection-recherche / Fiche / Bibliothèques-snapshots avec A/B, **six jeux fictifs et trois bibliothèques fictives** ; **31 MSTest** et smoke réel de fenêtre Windows à quatre vues dans la CI de #48 | Lecture seule sur fixtures UI, résultats A/B préqualifiés et non vérifiés par le moteur ; pas de scan, stockage, réseau métier, export, import de ROM ou essai utilisateur sur PC externe |
 | SDK et restauration .NET | `global.json` impose **SDK 10.0.401 exact**, `rollForward=disable` ; locks NuGet committés, restore verrouillé ; [PR #45](https://github.com/TobbyCy/RomothequeManager/pull/45) ajoute `actions/setup-dotnet` épinglé avant les contrôles | Le run post-fusion prouve le succès du provisionnement sur son runner, **pas encore** le scénario reproductible d'une image initialement dépourvue de 10.0.401 (suivi [#43](https://github.com/TobbyCy/RomothequeManager/issues/43)) |
-| ZIP Windows / Release | Candidat V2-01C `win-x64` **self-contained** et fichier SHA-256 construits, recontrôlés et extraits dans `RUNNER_TEMP` ; smoke Windows des quatre vues depuis les fichiers extraits ; aucun `upload-artifact` ; anciens artefacts [purgés](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451) | **Aucun ZIP téléchargeable, installateur, Pre-release ou Release** ; essai Windows externe et notices tierces encore à qualifier ; des copies téléchargées avant la purge ne peuvent être effacées par GitHub |
+| ZIP Windows / Release | [Pre-release V2-01C publiée](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec) : [ZIP `win-x64` autonome](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip) et [`.sha256`](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip.sha256), 243 fichiers, SHA-256 `22328d682b7c93edcdeeb735c9913880e68dec64c54b159bd6e6de77bcc7eaaf` ; contrôles d'extraction, manifeste, notices et smoke des quatre vues en CI | **Version de test synthétique**, pas d'installateur/Release stable ; recette clavier/focus/scroll détaillée et collections réelles non validées |
 | Licence et visuels | Licence MIT pour le code original et la documentation autorisée ; `LEGAL.md` et `BRANDING.md` publics ; bandeau PNG officiel V2 ajouté dans BRAND-01 avec autorisation propriétaire | Le bandeau reste sous droits graphiques réservés, distincts de MIT ; autres SVG/ICO non distribués ; aucun droit sur ROM/BIOS/jeux tiers |
 
 ## Travail futur ou non livré
@@ -61,7 +75,7 @@ Ces dénominateurs sont des **unions d'unités logiques observées**, jamais des
 - **Raccordement des bibliothèques réelles à l'interface Windows :** non implémenté dans V2-01B ; la vue intégrée utilise exclusivement des fixtures fictives et aucun moteur de comparaison métier C#.
 - **Bibliothèques personnelles, favoris, tags, persistance et synchronisation :** non implémentés dans le POC Windows.
 - **Export E2 à E6, conversion, copie et opérations physiques :** conception uniquement ; aucune action réelle autorisée.
-- **Distribution Windows, USB, essais externes, compatibilité SteamOS/Linux/ARM :** non validés. L'obtention d'une CI verte ne lève pas l'interdiction de Release.
+- **Distribution et compatibilité :** la première **Pre-release de test Windows x64 est publiée** ; portabilité USB, Windows hors poste initial, recette UX détaillée, SteamOS/Linux/ARM et version stable restent à valider. La CI seule ne vaut pas GO pour une nouvelle Release.
 
 La [roadmap](roadmap.md) décrit les intentions. Le [CHANGELOG](../CHANGELOG.md) distingue les intégrations des anciens états de sprint. Les sections suivantes conservent les notes historiques **à leur date de rédaction** ; elles ne remplacent pas le tableau courant.
 
