@@ -49,9 +49,9 @@ jobs:
           if (-not (Select-String -LiteralPath $inventory -Pattern '^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED\r?$' -Quiet)) { throw 'UX_RECIPE_LEGAL_APPROVAL_REQUIRED' }
           $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
           $tests = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
-          dotnet restore $tests -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          dotnet restore $tests --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
           if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_LOCKED_TEST_RESTORE_FAILED' }
-          dotnet test $tests -c Release -r win-x64 --no-restore -p:TreatWarningsAsErrors=true
+          dotnet test $tests -c Release --no-restore -p:TreatWarningsAsErrors=true
           if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_TESTS_FAILED' }
           dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
           if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_LOCKED_RESTORE_FAILED' }
