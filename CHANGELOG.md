@@ -5,7 +5,7 @@ Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées
 ## En cours — NEXT-01-A / Issue #61 (PR Draft, données synthétiques)
 
 - Adaptateur .NET de lecture seule des métadonnées ES-DE vers une projection de catalogue en mémoire, avec chemins ROM/médias confinés, identités relatives, jaquettes et playlists multidisques.
-- Préparation complète avant réimport, sans perte silencieuse du dernier état utile ; tests synthétiques de lecture, sécurité, idempotence et indisponibilités.
+- Préparation complète avant réimport, sans perte silencieuse du dernier état utile ; identité de bibliothèque stable pour la session et déplacement explicite vérifié, ouverture de média revalidée à la demande, avec tests synthétiques de lecture, sécurité, idempotence et indisponibilités.
 - Aucun branchement UX, accès à une collection personnelle, modification des fichiers sources, merge ni nouvelle Release dans ce lot DEV 1.
 
 ## En cours — DIST-ZIP-01 / Issue #50 (PR Draft, aucun upload)
