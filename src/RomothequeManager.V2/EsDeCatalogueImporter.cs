@@ -1,0 +1,233 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Xml;
+using System.Xml.Linq;
+
+namespace RomothequeManager.V2;
+
+// NEXT-01-A: staging-only ES-DE reader. The application must opt in to a user-selected root.
+// No writes, recursive ROM scan, network access, or synthetic snapshot provenance.
+public sealed record EsDeDiagnostic(string Code, string Platform, string Entry, string Message);
+public sealed record EsDeMedia(string Kind, string RelativePath, bool Exists);
+public sealed record EsDeGame(
+    string GameId, string VariantId, string Platform, string Title, string RomRelativePath,
+    bool RomExists, string? Description, IReadOnlyList<EsDeMedia> Media,
+    IReadOnlyList<string> DiscPaths);
+public sealed record EsDeCatalogueSnapshot(
+    string LibraryId, string SourceKind, string ContentFingerprint,
+    IReadOnlyList<EsDeGame> Games, IReadOnlyList<EsDeDiagnostic> Diagnostics);
+
+public sealed class EsDeImportSession
+{
+    private readonly string _root;
+    public EsDeCatalogueSnapshot? Current { get; private set; }
+
+    public EsDeImportSession(string explicitlySelectedLibraryRoot)
+    {
+        if (string.IsNullOrWhiteSpace(explicitlySelectedLibraryRoot))
+            throw new ArgumentException("Explicit library root is required.", nameof(explicitlySelectedLibraryRoot));
+        _root = Path.GetFullPath(explicitlySelectedLibraryRoot);
+    }
+
+    // Build fully in temporary memory; failure leaves Current untouched.
+    public EsDeCatalogueSnapshot Import()
+    {
+        var staged = EsDeCatalogueImporter.Read(_root);
+        Current = staged;
+        return staged;
+    }
+}
+
+public static class EsDeCatalogueImporter
+{
+    private const long XmlLimit = 8 * 1024 * 1024;
+    private static readonly string[] MediaFields = ["image", "thumbnail", "marquee", "video"];
+
+    public static EsDeCatalogueSnapshot Read(string explicitlySelectedLibraryRoot)
+    {
+        if (string.IsNullOrWhiteSpace(explicitlySelectedLibraryRoot))
+            throw new ArgumentException("Explicit library root is required.", nameof(explicitlySelectedLibraryRoot));
+
+        var root = Path.GetFullPath(explicitlySelectedLibraryRoot);
+        RequireOrdinaryDirectory(root);
+        var romRoot = Path.Combine(root, "ROMS");
+        var mediaRoot = Path.Combine(root, "MEDIAS");
+        RequireOrdinaryDirectory(romRoot);
+        if (Directory.Exists(mediaRoot)) RequireOrdinaryDirectory(mediaRoot);
+
+        var games = new List<EsDeGame>();
+        var diagnostics = new List<EsDeDiagnostic>();
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+        var xmlFound = false;
+        foreach (var platformRoot in Directory.GetDirectories(romRoot).OrderBy(x => x, StringComparer.Ordinal))
+        {
+            RequireOrdinaryDirectory(platformRoot);
+            var platform = Path.GetFileName(platformRoot);
+            if (string.IsNullOrWhiteSpace(platform)) continue;
+
+            var mediaPlatform = Path.Combine(mediaRoot, platform);
+            var historicXml = Path.Combine(mediaPlatform, "metadata", "es-de-gamelist.xml");
+            var localXml = Path.Combine(platformRoot, "gamelist.xml");
+            var hasHistoric = File.Exists(historicXml);
+            var hasLocal = File.Exists(localXml);
+            if (hasHistoric && hasLocal)
+                throw new InvalidDataException("Ambiguous ES-DE source for platform " + platform);
+            if (!hasHistoric && !hasLocal)
+            {
+                diagnostics.Add(new("XML_MISSING", platform, "", "No supported gamelist found."));
+                continue;
+            }
+
+            var xmlFile = hasHistoric ? historicXml : localXml;
+            AssertWithin(xmlFile, hasHistoric ? mediaRoot : romRoot);
+            AssertNoReparsePoints(xmlFile);
+            xmlFound = true;
+            var doc = LoadXml(xmlFile);
+            if (doc.Root?.Name != "gameList")
+                throw new InvalidDataException("Expected unnamespaced gameList: " + platform);
+            foreach (var entry in doc.Root.Elements())
+            {
+                if (entry.Name == "folder")
+                {
+                    diagnostics.Add(new("FOLDER_ENTRY", platform, "", "Folder metadata is not a game."));
+                    continue;
+                }
+                if (entry.Name != "game")
+                {
+                    diagnostics.Add(new("IGNORED_ENTRY", platform, entry.Name.LocalName, "Unsupported ES-DE entry."));
+                    continue;
+                }
+                var rawPath = SingleField(entry, "path");
+                if (string.IsNullOrWhiteSpace(rawPath))
+                    throw new InvalidDataException("Missing or repeated game path in " + platform);
+                var romFile = ResolveRelative(platformRoot, rawPath, romRoot);
+                var romRelative = NormalizeRelative(Path.GetRelativePath(root, romFile));
+                if (!identities.Add(platform + "\u001f" + romRelative))
+                    throw new InvalidDataException("Duplicated ROM identity in " + platform);
+
+                var id = Digest(platform + "\u001f" + romRelative);
+                var title = SingleField(entry, "name");
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    title = Path.GetFileNameWithoutExtension(romFile);
+                    diagnostics.Add(new("TITLE_FALLBACK", platform, romRelative, "Name missing; filename shown."));
+                }
+                bool exists = File.Exists(romFile);
+                if (!exists)
+                    diagnostics.Add(new("ROM_MISSING", platform, romRelative, "Source unavailable; never treated as deleted."));
+
+                var media = new List<EsDeMedia>();
+                foreach (var field in MediaFields)
+                {
+                    var mediaValue = SingleField(entry, field);
+                    if (string.IsNullOrWhiteSpace(mediaValue)) continue;
+                    // A ROM-local gamelist can use ROM-local media; a historic metadata file
+                    // uses the explicitly authorized MEDIAS root. No implicit global search.
+                    var permitted = hasHistoric ? mediaRoot : romRoot;
+                    var resolved = ResolveRelative(Path.GetDirectoryName(xmlFile)!, mediaValue, permitted);
+                    var relative = NormalizeRelative(Path.GetRelativePath(root, resolved));
+                    var present = File.Exists(resolved);
+                    if (!present)
+                        diagnostics.Add(new("MEDIA_MISSING", platform, relative, "Media unavailable; no fetch."));
+                    media.Add(new(field, relative, present));
+                }
+
+                var discs = new List<string>();
+                if (exists && Path.GetExtension(romFile).Equals(".m3u", StringComparison.OrdinalIgnoreCase))
+                {
+                    var lines = File.ReadAllLines(romFile);
+                    if (lines.Length > 256) throw new InvalidDataException("Playlist too large.");
+                    foreach (var line in lines)
+                    {
+                        var disc = line.Trim();
+                        if (disc.Length == 0 || disc.StartsWith('#')) continue;
+                        var discFile = ResolveRelative(Path.GetDirectoryName(romFile)!, disc, romRoot);
+                        var discRelative = NormalizeRelative(Path.GetRelativePath(root, discFile));
+                        discs.Add(discRelative);
+                        if (!File.Exists(discFile))
+                            diagnostics.Add(new("DISC_MISSING", platform, discRelative, "Playlist member unavailable."));
+                    }
+                }
+                games.Add(new("esde-" + id, "variant-" + id, platform, title.Trim(), romRelative, exists,
+                    SingleField(entry, "desc"), media.ToArray(), discs.ToArray()));
+            }
+        }
+
+        if (!xmlFound) throw new InvalidDataException("No supported ES-DE gamelist in the selected root.");
+        var sorted = games.OrderBy(x => x.Platform, StringComparer.Ordinal)
+            .ThenBy(x => x.RomRelativePath, StringComparer.Ordinal).ToArray();
+        var evidence = string.Join("\n", sorted.Select(g =>
+            g.GameId + "|" + g.Title + "|" + g.Description + "|" + g.RomExists + "|" +
+            string.Join(",", g.Media.Select(m => m.Kind + ":" + m.RelativePath + ":" + m.Exists)) + "|" +
+            string.Join(",", g.DiscPaths)));
+        return new(Digest("library:ROMS+MEDIAS"), "ES_DE_READ_ONLY",
+            Digest(evidence), sorted, diagnostics.ToArray());
+    }
+
+    private static XDocument LoadXml(string path)
+    {
+        if (new FileInfo(path).Length > XmlLimit)
+            throw new InvalidDataException("ES-DE XML exceeds read limit.");
+        var options = new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = XmlLimit
+        };
+        using var input = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var reader = XmlReader.Create(input, options);
+        return XDocument.Load(reader, LoadOptions.None);
+    }
+
+    private static string? SingleField(XElement entry, string localName)
+    {
+        var values = entry.Elements().Where(x => x.Name == localName).ToArray();
+        if (values.Length > 1) throw new InvalidDataException("Repeated ES-DE field: " + localName);
+        return values.Length == 0 ? null : values[0].Value;
+    }
+
+    private static string ResolveRelative(string baseDirectory, string raw, string permittedRoot)
+    {
+        var value = raw.Trim().Replace('\\', '/');
+        if (value.Length == 0 || value[0] == '/' || value.Contains(':') || value.Contains('\0') ||
+            Path.IsPathRooted(value))
+            throw new InvalidDataException("Absolute, URI, or malformed ES-DE path refused.");
+        var resolved = Path.GetFullPath(Path.Combine(baseDirectory, value.Replace('/', Path.DirectorySeparatorChar)));
+        AssertWithin(resolved, permittedRoot);
+        AssertNoReparsePoints(resolved);
+        return resolved;
+    }
+
+    private static void AssertWithin(string path, string root)
+    {
+        var prefix = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        if (!Path.GetFullPath(path).StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("ES-DE path escapes its explicitly authorized root.");
+    }
+
+    private static void RequireOrdinaryDirectory(string path)
+    {
+        if (!Directory.Exists(path)) throw new DirectoryNotFoundException("Required library directory unavailable.");
+        AssertNoReparsePoints(path);
+    }
+
+    private static void AssertNoReparsePoints(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(full)!;
+        var current = root;
+        foreach (var component in full[root.Length..].Split(Path.DirectorySeparatorChar,
+                     StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = Path.Combine(current, component);
+            if ((File.Exists(current) || Directory.Exists(current)) &&
+                (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidDataException("Reparse point not followed: " + component);
+        }
+    }
+
+    private static string NormalizeRelative(string relative) => relative.Replace('\\', '/');
+
+    private static string Digest(string value) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant()[..24];
+}
