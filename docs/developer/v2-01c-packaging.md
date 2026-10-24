@@ -1,8 +1,21 @@
-# V2-01C — préparation du ZIP Windows x64 (non distribué)
+# V2-01C — ZIP Windows x64 : Pre-release publiée et historique du packaging
+
+## État actuel — Pre-release du 23 octobre 2026
+
+La [Pre-release V2-01C](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec) est **publiée et téléchargeable** depuis `main=4cf475fbd1ece16b138403d3bd967a56d295ee54` ; la procédure technique de quarantaine et ses anciens `HOLD` ci-dessous restent conservés comme **historique antérieur** à la décision de publication.
+
+- [Télécharger le ZIP Windows x64 autonome](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip) — **243 fichiers** ; `.NET 10` inclus, pas de SDK/runtime externe requis.
+- [Télécharger le fichier `.sha256`](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip.sha256) et vérifier avec `Get-FileHash -Algorithm SHA256 .\RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip`.
+- **Empreinte SHA-256 attendue :** `22328d682b7c93edcdeeb735c9913880e68dec64c54b159bd6e6de77bcc7eaaf`.
+- **Extraire le ZIP** dans un dossier Windows x64 utilisateur, puis lancer **`RomothequeManager.V2.exe`** depuis le dossier extrait (sans installateur ni droits administrateur). Binaire non signé : SmartScreen peut avertir.
+- **POC synthétique seulement :** quatre vues Avalonia, six jeux et trois bibliothèques fictifs ; aucune ROM/BIOS, ni bibliothèque réelle, scan, import ES-DE dans l'UI, persistance, export ou copie.
+- **Preuves :** [publication contrôlée `#40004889570`](https://github.com/TobbyCy/RomothequeManager/actions/runs/40004889570), [suivi Produit #50](https://github.com/TobbyCy/RomothequeManager/issues/50), [réception utilisateur initiale](https://github.com/TobbyCy/RomothequeManager/issues/50#issuecomment-6381903496) positive sur le lancement général. Contrôles UX manuels exhaustifs **NOT_ATTESTED_IN_DETAIL** ; aucune Release stable ou installation signée.
+
+## Mandat et résultat initial — historique daté du 23.10.2026
 
 **Mandat :** [Issue Produit #50](https://github.com/TobbyCy/RomothequeManager/issues/50). **Décision :** GO technique packaging uniquement ; **HOLD publication**. Le code de V2-01A/B, les quatre vues et les données fictives restent inchangés.
 
-## Résultat attendu en CI
+## Résultat CI initial — historique : ZIP en quarantaine
 
 Sur `windows-2022`, avec SDK .NET `10.0.401` exact et NuGet en mode verrouillé :
 
@@ -15,7 +28,7 @@ Sur `windows-2022`, avec SDK .NET `10.0.401` exact et NuGet en mode verrouillé 
 
 Ces preuves valident une **préparation reproductible et un smoke automatisé dans le runner CI**. Elles ne démontrent **pas** le démarrage interactif d'un poste utilisateur réel.
 
-## Frontière de distribution
+## Frontière de distribution initiale — historique avant publication
 
 - Aucun `actions/upload-artifact`, aucune Release/Pre-release, aucun lien de téléchargement, aucune copie hors de la quarantaine.
 - Le ZIP et son `.sha256` disparaissent avec le runner ; **ils ne sont pas téléchargeables par l'utilisateur**.
@@ -23,7 +36,7 @@ Ces preuves valident une **préparation reproductible et un smoke automatisé da
 - Les licences/mentions tierces doivent être revues avant une distribution. L'application n'est pas signée ; SmartScreen peut avertir. Aucun de ces éléments n'autorise à publier.
 - Une décision explicite ultérieure du propriétaire est nécessaire avant tout upload ou Pre-release. Le Contrôleur décide seul des merges.
 
-## Matrice de réception
+## Matrice de réception de la phase initiale (historique)
 
 | ID | Contrôle | Preuve attendue | Limite |
 | --- | --- | --- | --- |
@@ -36,26 +49,26 @@ Ces preuves valident une **préparation reproductible et un smoke automatisé da
 | ZIP-07 | Aucune publication | `POC_ZIP_QUARANTINED_NOT_UPLOADED` + `ci-policy-gate` | GO propriétaire futur |
 | UXZIP-01–12 | Quatre vues, navigation souris/clavier, focus, scrolling, redimensionnement, DPI | **NOT_TESTED** jusqu'à essai externe Windows propre, selon [Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) | Ne pas déduire PASS du smoke |
 
-## Essai externe ultérieur — après autorisation de mise à disposition
+## Réception externe — protocole applicable au ZIP publié
 
 Sur une VM ou un Windows x64 propre, sans SDK/runtime .NET préinstallé si possible :
 
-1. Récupérer **uniquement le ZIP explicitement autorisé** et son `.sha256`, puis comparer `Get-FileHash -Algorithm SHA256` à l'empreinte annoncée.
+1. Récupérer le [ZIP publié](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip) et son [`.sha256`](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip.sha256), puis comparer `Get-FileHash -Algorithm SHA256` à `22328d682b7c93edcdeeb735c9913880e68dec64c54b159bd6e6de77bcc7eaaf` avant extraction.
 2. Extraire dans un nouveau dossier utilisateur, hors du dépôt. Vérifier `LICENSE`, `POC-NOTICE.txt`, `POC-MANIFEST.json`.
 3. Démarrer `RomothequeManager.V2.exe` sans élévation ni installation. Contrôler absence d'accès à une ROM, BIOS ou bibliothèque réelle.
 4. Vérifier les quatre vues, les six jeux fictifs, les trois bibliothèques fictives, les états OFFLINE/STALE et la comparaison A/B sur leurs fixtures.
 5. Effectuer les vérifications UXZIP-01–12 de DEV 3 : navigation souris/clavier/Tab, focus visible, ComboBox, défilement, redimensionnement et DPI. Noter chaque PASS/FAIL ; **aucun PASS présumé avant exécution**.
 6. Consigner OS/build, architecture, SHA du ZIP, résultat SmartScreen et éventuelles limites.
 
-## Revues avant décision
+## Revues de la phase initiale — historique
 
 - **DEV 2** : cohérence documentaire, identité visuelle/BRAND-01, licence et mention des limites.
 - **Agent** : indépendance de l'extraction, fichiers attendus/interdits, SHA-256, absence d'upload, adéquation des preuves CI.
 - **Contrôleur** : vérifie HEAD, CI, verdicts et décide du merge éventuel. **Pas de merge autonome.**
 
-## DIST-ZIP-01 — distribution de test contrôlée (préparation, aucun upload à ce stade)
+## DIST-ZIP-01 — protocole de publication contrôlée (historique avant première Pre-release)
 
-Décision [Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) du 23.10.2026 : **GO_PREPARE_TEST_DISTRIBUTION**, mais **RELEASE_HOLD_UNTIL_NOTICES_AND_FINAL_ARTIFACT_VERIFIED**. La fusion du packaging V2-01C [PR #53](https://github.com/TobbyCy/RomothequeManager/pull/53) n'a livré aucun ZIP téléchargeable.
+Décision [Issue #50](https://github.com/TobbyCy/RomothequeManager/issues/50) du 23.10.2026 : **GO_PREPARE_TEST_DISTRIBUTION**, mais **RELEASE_HOLD_UNTIL_NOTICES_AND_FINAL_ARTIFACT_VERIFIED**. La fusion initiale du packaging V2-01C [PR #53](https://github.com/TobbyCy/RomothequeManager/pull/53) n'avait livré **à cette date** aucun ZIP téléchargeable ; cette étape a ensuite été suivie de la Pre-release ci-dessus.
 
 Pour **LIC-ZIP-01**, la CI Windows automatique publie dans ses **logs uniquement** un `PUBLISH_FILE_MANIFEST_BEGIN/END` et chaque `PUBLISH_FILE_JSON` (chemin relatif, taille, SHA-256, version fichier/produit) juste après `dotnet publish`, **avant l'ajout des notices**. DEV 2 peut rapprocher cet inventaire exact des paquets NuGet et composants natifs, sans téléchargement d'artefact. Le workflow manuel émet le même type de liste après ajout des notices (`DIST_PUBLISH_FILE_JSON`).
 
