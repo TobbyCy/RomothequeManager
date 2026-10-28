@@ -1,0 +1,65 @@
+name: NEXT-03 / Backend independent synthetic proof
+
+on:
+  push:
+    branches: [dev1/next03-backend-preparation]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: next03-backend-preparation
+  cancel-in-progress: true
+
+jobs:
+  backend-proof:
+    name: Core net10.0 build and IDEAL CHAOS MYSTERY safety smoke
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev1/next03-backend-preparation'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact branch head without credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Require exact HEAD and no source files from personal libraries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne '${{ github.sha }}') { throw 'NEXT03_SOURCE_HEAD_MISMATCH' }
+          if ((node --version) -notmatch '^v(2[0-9]|[3-9][0-9])\.') { throw 'NEXT03_NODE20_REQUIRED' }
+          $project = 'src/RomothequeManager.Inventory.Core/RomothequeManager.Inventory.Core.csproj'
+          $xml = Get-Content -LiteralPath $project -Raw
+          if ($xml -match 'PackageReference|Avalonia|CommunityToolkit|ReactiveUI') { throw 'NEXT03_BACKEND_PROJECT_NOT_INDEPENDENT' }
+          if (-not ($xml -match 'InventoryReader.cs')) { throw 'NEXT03_EXISTING_SCANNER_NOT_LINKED' }
+      - name: Set up pinned .NET SDK 10
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Restore and build independent Core and runner (no NuGet packages)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runner = 'tests/next03/RomothequeManager.Inventory.Core.Smoke.csproj'
+          dotnet restore $runner -p:NuGetAudit=true -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_RESTORE_FAILED' }
+          dotnet build $runner -c Release --no-restore -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_CORE_BUILD_FAILED' }
+          $deps = 'src/RomothequeManager.Inventory.Core/bin/Release/net10.0/RomothequeManager.Inventory.Core.deps.json'
+          if (-not (Test-Path -LiteralPath $deps)) { throw 'NEXT03_CORE_DEPS_MISSING' }
+          $content = Get-Content -LiteralPath $deps -Raw
+          if ($content -match 'Avalonia|CommunityToolkit|ReactiveUI') { throw 'NEXT03_UI_DEPENDENCY_LEAK' }
+          Write-Host ('NEXT03_CORE_NO_AVALONIA_PASS source=' + '${{ github.sha }}')
+      - name: Run synthetic-only backend smoke with real NEXT-02 reader
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runner = 'tests/next03/RomothequeManager.Inventory.Core.Smoke.csproj'
+          dotnet run --project $runner --configuration Release --no-build --no-restore -- --repo .
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_BACKEND_SYNTHETIC_TESTS_FAILED' }
+          Write-Host ('NEXT03_BACKEND_BRANCH_PASS source=' + '${{ github.sha }}')
+      - name: Explicit non-release hold
+        shell: pwsh
+        run: |
+          Write-Host 'NEXT03_BACKEND_PREP_ONLY NO_REAL_LIBRARY_SCAN NO_AVALONIA_INTEGRATION NO_RELEASE NO_UPLOAD'
