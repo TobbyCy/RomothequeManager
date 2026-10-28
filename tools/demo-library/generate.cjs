@@ -143,7 +143,7 @@ if(!xmlByPlatform.has(plat))xmlByPlatform.set(plat,[]);
 xmlByPlatform.get(plat).push(entry);
 }
 if(variant==='CHAOS'&&i%9===3&&!absent&&!g.discs){
-const p=variant+'/ROMS/'+plat+'/EXTRAS/DUP_'+g.id+path.posix.extname(short);
+const p=variant+'/ROMS/'+plat+'/EXTRAS/'+path.posix.basename(variantName);
 add(p,payload,'duplicate-candidate',g.id);duplicates++;
 }
 gameRecords.push({id:g.id,title:g.title,platform:plat,region:g.region,edition:g.edition,
