@@ -31,7 +31,7 @@ internal static class Program
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     if (!window.IsVisible || window.Content is null ||
-                        window.Title != "ROMothèque Manager — POC synthétique" ||
+                        window.Title != "ROMothèque Manager — Démonstration" ||
                         !window.SmokeExerciseFourViews())
                     {
                         Environment.ExitCode = 17;
