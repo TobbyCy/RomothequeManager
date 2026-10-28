@@ -5,6 +5,8 @@ Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées
 
 ## En cours — NEXT-02-INVENTORY / Issue #65 (PR Draft, fixtures exclusivement synthétiques)
 
+- Correctif P1 de la PR #68 : lecture `.m3u` bornée **pendant** les I/O (octets/lignes), annulation effective transformée en `PARTIAL/CANCELLED`, handle refermé ; accès fichiers concurrents traités conservativement en `PARTIAL/UNREADABLE_ENTRY` ; nouveaux tests synthétiques. Le contrôle de taille préalable seul n'est plus considéré suffisant.
+
 - Moteur candidat .NET en lecture seule, autonome d'ES-DE, avec sélection explicite de racine `ROMS/`, observation de fichiers distincte des identités de jeux, plateformes/alias explicitement configurés, extensions conservatrices, relations `.m3u`, groupes de doublons seulement potentiels et limites de ressources.
 - `InventorySnapshot` indépendant, `COMPLETE/PARTIAL/FAILED`, couverture, disponibilités, compteurs inconnus et conservation du dernier snapshot complet lorsque le scan suivant échoue. Aucun scan automatique au lancement, aucune opération sur ROMothèque réelle.
 - Dix-huit tests MSTest synthétiques proposés/exécutables sur répertoires temporaires ; preuves CI et revue DEV 2 à rattacher au HEAD exact. Contrat candidat : PR documentaire #66, non gelé sans revue.
