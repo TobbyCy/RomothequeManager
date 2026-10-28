@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- NEXT-03 preparation only: standalone Core is not referenced by the Avalonia app until the integration gate. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>RomothequeManager.Inventory.Core</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Exactly the existing NEXT-02 source, linked without changing its contents or creating a second scanner implementation. -->
+    <Compile Include="../RomothequeManager.V2/InventoryReader.cs" Link="InventoryReader.cs" />
+  </ItemGroup>
+</Project>
