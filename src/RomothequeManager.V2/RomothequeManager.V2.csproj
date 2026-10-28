@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>RomothequeManager.V2</AssemblyName>
+    <!-- Official icon from the unchanged owner-approved Pilotage asset (#67). -->
+    <ApplicationIcon>../../assets/branding/RM_V2_Favicon.ico</ApplicationIcon>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <NuGetAudit>true</NuGetAudit>
@@ -16,5 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/library-ui-v2-01b.synthetic.json" />
+    <Content Include="../../assets/branding/RM_V2_Horizontal_Fond_Sombre.png" Link="RM_V2_Horizontal_Fond_Sombre.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
+    <Content Include="../../assets/branding/RM_V2_Favicon.ico" Link="RM_V2_Favicon.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
   </ItemGroup>
 </Project>

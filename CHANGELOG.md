@@ -30,6 +30,20 @@ Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées
 - CI et artifact Actions requis avant livraison. Aucun merge, Release ou scan réel.
 
 
+## En cours — VISUAL-POC-01 retouches P1/P2 (28 octobre 2026)
+
+- Navigation latérale plus contrastée : active/inactive/survolée/indisponible, avec canaris de lisibilité des textes.
+- Cartes et marges moins hautes, sidebar déroulante à 760×480, six captures Windows à plusieurs échelles de rendu.
+- Pas de nouvelles fonctionnalités : mode ES-DE de lecture seule, droits branding réservés et gates de distribution inchangés.
+
+
+## En cours — VISUAL-POC-01 / Issue #67 (28.10.2026)
+
+- Nouvelle PR Draft empilée sur #64 : Dashboard Darcula Retro centré sur la collection, accès bibliothèques, Exports désactivés et diagnostics avec états et origine explicites. Aucun moteur, scan automatique ni opération physique.
+- Transfert octet pour octet des quatre SVG/ICO officiels depuis Pilotage (le PNG public reste inchangé) ; icône de fenêtre/barre des tâches et ressource ICO native de l'exécutable. Droits graphiques réservés, GO propriétaire limité à Produit et artifacts de test.
+- Contrôles d'assets et workflows CI révisés **sans relâcher les règles de sécurité**, nouveaux tests fictifs et captures de rendu Avalonia sur runner Windows à confirmer. Maquette historique non disponible pour comparaison pixel à pixel ; aucun merge/Release.
+
+
 ## En cours — NEXT-01-UX-FIX / PR #64 (28 octobre 2026)
 
 - Recette Windows propriétaire : l'exécutable Avalonia devient une application graphique `WinExe` pour éviter la console ouverte au double-clic. Le smoke Windows automatisé reste requis dans la CI.

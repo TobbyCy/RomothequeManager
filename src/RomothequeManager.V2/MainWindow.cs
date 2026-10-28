@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 
 namespace RomothequeManager.V2;
 
@@ -11,10 +12,21 @@ public sealed partial class MainWindow : Window
     private readonly NavigationState _state = new(ReadOnlyCatalogue.Synthetic());
     private readonly LibraryProjection _libraryProjection;
     private readonly LibraryViewState _libraryViewState;
-    private readonly StackPanel _page = new() { Spacing = 14 };
-    private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#E9EEF6"));
-    private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#A9B8CD"));
-    private static readonly IBrush Card = new SolidColorBrush(Color.Parse("#202B3D"));
+    private readonly StackPanel _page = new() { Spacing = 10 };
+    private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#E8E6E3"));
+    private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#AAB2BF"));
+    private static readonly IBrush Card = new SolidColorBrush(Color.Parse("#23262B"));
+
+    // Persistent visual state for sidebar buttons. Explicit foreground wins over
+    // the Fluent hover template which previously washed text out.
+    private sealed class SidebarVisual
+    {
+        public required Border Surface { get; init; }
+        public required TextBlock Label { get; init; }
+        public POCView? View { get; init; }
+        public bool Hovered { get; set; }
+    }
+    private readonly List<SidebarVisual> _sidebarVisuals = [];
 
     public POCView CurrentView => ActiveView;
 
@@ -43,31 +55,80 @@ public sealed partial class MainWindow : Window
     {
         _libraryProjection = LibraryProjection.LoadSynthetic(_state.Catalogue);
         _libraryViewState = new LibraryViewState(_libraryProjection);
-        SizeChanged += (_, _) => { if (ActiveView == POCView.Libraries) Render(); };
-        Title = "ROMothèque Manager — POC synthétique";
+        SizeChanged += (_, _) =>
+        {
+            if (ActiveView is POCView.Dashboard or POCView.Libraries)
+                Render();
+        };
+        Title = "ROMothèque Manager";
         Width = 1120; Height = 720; MinWidth = 760; MinHeight = 480;
-        Background = new SolidColorBrush(Color.Parse("#121B2A"));
-        var root = new Grid { ColumnDefinitions = new ColumnDefinitions("220,*") };
-        var menu = new StackPanel { Spacing = 18, Margin = new Thickness(20) };
-        menu.Children.Add(Text("ROMOTHÈQUE", 22, true));
-        menu.Children.Add(Text("MANAGER · POC V2", 12));
-        menu.Children.Add(Button("Tableau de bord", () => Navigate(POCView.Dashboard)));
-        menu.Children.Add(Button("Collection", () => Navigate(POCView.Collection)));
-        menu.Children.Add(Button("Bibliothèques & snapshots", () => Navigate(POCView.Libraries)));
-        menu.Children.Add(Text("LECTURE SEULE", 13, true));
-        menu.Children.Add(Button("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
-        menu.Children.Add(Button("Actualiser l'import", () => _ = RefreshImportAsync()));
-        menu.Children.Add(Button("Voir l'import", ShowImported));
-        menu.Children.Add(Button("Mode démonstration", ShowDemo));
-        menu.Children.Add(Text("Mode démo au démarrage ; l'import requiert votre sélection.", 12));
+        Background = new SolidColorBrush(Color.Parse("#16181D"));
+
+        // Both resources come from the official byte-for-byte approved branding pack.
+        // The EXE also embeds the same multiresolution ICO via ApplicationIcon.
+        var brandingRoot = AppContext.BaseDirectory;
+        var logoPath = Path.Combine(brandingRoot, "RM_V2_Horizontal_Fond_Sombre.png");
+        var iconPath = Path.Combine(brandingRoot, "RM_V2_Favicon.ico");
+        if (!File.Exists(logoPath) || !File.Exists(iconPath))
+            throw new InvalidDataException("Official application branding is missing.");
+        Icon = new WindowIcon(iconPath);
+        var logoBitmap = new Bitmap(logoPath);
+        Closed += (_, _) => logoBitmap.Dispose();
+
+        var root = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("220,*"),
+            Background = new SolidColorBrush(Color.Parse("#16181D"))
+        };
+        var menu = new StackPanel { Spacing = 7, Margin = new Thickness(14, 14, 14, 12) };
+        menu.Children.Add(new Image
+        {
+            Source = logoBitmap, Width = 188, Height = 58,
+            Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left
+        });
+        menu.Children.Add(Text("COLLECTION", 11, true));
+        menu.Children.Add(SidebarButton("Tableau de bord", () => Navigate(POCView.Dashboard), POCView.Dashboard));
+        menu.Children.Add(SidebarButton("Collection", () => Navigate(POCView.Collection), POCView.Collection));
+        menu.Children.Add(Text("BIBLIOTHÈQUES", 11, true));
+        menu.Children.Add(SidebarButton("Bibliothèques & supports", () => Navigate(POCView.Libraries), POCView.Libraries));
+        menu.Children.Add(Text("GESTION", 11, true));
+        // Readable, non-interactive placeholder: no disabled button with invisible text.
+        var disabledVisual = SidebarNavigationPalette.Resolve(false, false, false);
+        menu.Children.Add(new Border
+        {
+            Background = new SolidColorBrush(Color.Parse(disabledVisual.Background)),
+            BorderBrush = new SolidColorBrush(Color.Parse("#41454B")),
+            BorderThickness = new Thickness(3, 0, 0, 0),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(11, 9),
+            Child = new TextBlock
+            {
+                Text = "Exports · à venir", FontSize = 13, TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Color.Parse(disabledVisual.Foreground))
+            }
+        });
+        menu.Children.Add(Text("OUTILS · LECTURE SEULE", 11, true));
+        menu.Children.Add(SidebarButton("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
+        menu.Children.Add(SidebarButton("Actualiser l'import", () => _ = RefreshImportAsync()));
+        menu.Children.Add(SidebarButton("Voir l'import", ShowImported));
+        menu.Children.Add(SidebarButton("Mode démonstration", ShowDemo));
+        menu.Children.Add(Text("Aucun scan au démarrage. Import sur sélection.", 11));
         var sidebar = new Border
         {
-            Background = new SolidColorBrush(Color.Parse("#192439")), Child = menu
+            Background = new SolidColorBrush(Color.Parse("#1D2025")),
+            BorderBrush = new SolidColorBrush(Color.Parse("#35383E")),
+            BorderThickness = new Thickness(0, 0, 1, 0),
+            Child = new ScrollViewer
+            {
+                Content = menu,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            }
         };
         root.Children.Add(sidebar);
         var scroll = new ScrollViewer
         {
-            Content = _page, Margin = new Thickness(30),
+            Content = _page, Margin = new Thickness(16, 14, 16, 12),
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
         Grid.SetColumn(scroll, 1);
@@ -89,10 +150,57 @@ public sealed partial class MainWindow : Window
         {
             Content = label, HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Left,
-            Padding = new Thickness(14, 10), MinHeight = 40
+            Padding = new Thickness(14, 10), MinHeight = 40,
+            Foreground = Ink,
+            Background = new SolidColorBrush(Color.Parse("#2D3036")),
+            BorderBrush = new SolidColorBrush(Color.Parse("#44474E")),
+            BorderThickness = new Thickness(1)
         };
         b.Click += (_, _) => handler();
         return b;
+    }
+
+    // Native button remains focusable/keyboard accessible. Label and surface colors
+    // are under our control for inactive, active and pointer-hover states.
+    private Button SidebarButton(string title, Action action, POCView? view = null)
+    {
+        var label = new TextBlock
+        {
+            Text = title, FontSize = 13, TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var surface = new Border
+        {
+            CornerRadius = new CornerRadius(6),
+            BorderThickness = new Thickness(3, 0, 0, 0),
+            Padding = new Thickness(10, 7), MinHeight = 34, Child = label
+        };
+        var state = new SidebarVisual { Surface = surface, Label = label, View = view };
+        _sidebarVisuals.Add(state);
+        var button = new Button
+        {
+            Content = surface, Background = new SolidColorBrush(Color.Parse("#1D2025")),
+            BorderThickness = new Thickness(0), Padding = new Thickness(0),
+            MinHeight = 36, HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch
+        };
+        button.PointerEntered += (_, _) => { state.Hovered = true; UpdateSidebarStyles(); };
+        button.PointerExited += (_, _) => { state.Hovered = false; UpdateSidebarStyles(); };
+        button.Click += (_, _) => action();
+        return button;
+    }
+
+    private void UpdateSidebarStyles()
+    {
+        foreach (var state in _sidebarVisuals)
+        {
+            bool active = state.View is POCView view && view == ActiveView;
+            var colors = SidebarNavigationPalette.Resolve(active, state.Hovered, true);
+            state.Surface.Background = new SolidColorBrush(Color.Parse(colors.Background));
+            state.Surface.BorderBrush = new SolidColorBrush(Color.Parse(colors.Accent));
+            state.Label.Foreground = new SolidColorBrush(Color.Parse(colors.Foreground));
+            state.Label.FontWeight = active ? FontWeight.SemiBold : FontWeight.Normal;
+        }
     }
 
     private static Border Panel(Control content) => new()
@@ -110,11 +218,12 @@ public sealed partial class MainWindow : Window
 
     private void Render()
     {
+        UpdateSidebarStyles();
         _page.Children.Clear();
         ReleaseCoverImages();
         _importedList = null;
-        Title = _importedUi.IsImported ? "ROMothèque Manager — Bibliothèque importée" :
-            "ROMothèque Manager — POC synthétique";
+        Title = "ROMothèque Manager" + (_importedUi.IsImported ?
+            " — Bibliothèque ES-DE" : " — Démonstration");
         if (_importedUi.ErrorMessage is not null)
             _page.Children.Add(Text(_importedUi.ErrorMessage, 14, true));
         if (_importBusy) _page.Children.Add(Text("Lecture en cours ; aucune source modifiée.", 14, true));
@@ -134,13 +243,12 @@ public sealed partial class MainWindow : Window
 
     private void Dashboard()
     {
-        _page.Children.Add(Text("Tableau de bord", 30, true));
-        _page.Children.Add(Text("Un premier regard sur une collection fictive, sans aucun accès à vos ROM.", 15));
-        _page.Children.Add(Panel(Group(Text("6 jeux inventés", 25, true),
-            Text("3 bibliothèques fictives · 1 ONLINE · 1 OFFLINE · 1 UNKNOWN"),
-            Text("Dernière observation simulée : 22.10.2026 à 12:15 UTC"),
-            Text("OFFLINE ne signifie jamais que les jeux ont été supprimés.", 14, true))));
-        _page.Children.Add(Button("Parcourir la collection", () => { _state.ShowCollection(); Render(); }));
+        foreach (var section in VisualDashboard.BuildDemo(
+            _state.Catalogue, _libraryProjection,
+            () => Navigate(POCView.Collection),
+            () => Navigate(POCView.Libraries),
+            VisualDashboard.IsCompact(Width)))
+            _page.Children.Add(section);
     }
 
     private void Collection()

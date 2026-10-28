@@ -59,6 +59,8 @@ internal static class Program
                     finally { window.Close(); }
                 });
         }
+        if (args.Contains("--ci-visual-capture", StringComparer.Ordinal))
+            VisualCapture.Configure(window);
         if (args.Contains("--smoke-window", StringComparer.Ordinal))
         {
             // Real native Avalonia window must open. No artificial test-only success path.
@@ -67,7 +69,7 @@ internal static class Program
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     if (!window.IsVisible || window.Content is null ||
-                        window.Title != "ROMothèque Manager — POC synthétique" ||
+                        window.Title != "ROMothèque Manager — Démonstration" ||
                         !window.SmokeExerciseFourViews())
                     {
                         Environment.ExitCode = 17;

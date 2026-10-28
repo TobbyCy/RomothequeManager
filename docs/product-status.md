@@ -46,6 +46,25 @@ Les sections de NEXT-01 ci-dessous décrivent **une PR non fusionnée**, soumise
 - Publication ZIP temporaire sous GitHub Actions seulement : **aucune Release**, aucune bibliothèque réelle, aucun GO de merge présumé.
 
 
+## VISUAL-POC-01 — retouches de lisibilité et densité (retour propriétaire 28.10.2026)
+
+- Navigation : 4 états **actif, inactif, survolé, indisponible** explicitement contrastés, liseré d'état et vrais boutons conservant focus clavier ; seuil de contraste des textes >= 4,5:1 contrôlé par tests synthétiques.
+- Dashboard : marges, vignettes, cartes et espaces verticaux réduits sans supprimer les qualificatifs de disponibilité, d'origine fictive et de lecture seule. Aucun moteur ni import modifié.
+- À 760×480, la sidebar dispose de son défilement indépendant : les commandes basses ne sont plus coupées ; la page principale reste scrollable. Six captures Windows (760×480 et 1120×720 à échelles de rendu 100/125/150 %) et CI sont attendues sur le nouveau HEAD. Ces DPI **sont des échelles de rendu dans Avalonia**, pas des changements du DPI natif Windows.
+- Icône PE GUI et ressource ICO contrôlées automatiquement ; **Explorer Windows, barre des tâches, focus, hover et DPI système natif** restent à vérifier manuellement sur poste Windows par Tobby. Aucun merge, Release ou scan réel.
+
+
+- **Revue visuelle Windows réelle :** run #40675500153, 65 tests .NET PASS et captures 1120×720 / 760×480, DPI 100/125/150 %. Après inspection des PNG, correction de la grille large et du contraste navigation ; les contrôles Exports sont représentés comme éléments visuellement lisibles et **non interactifs**, sans fausse action.
+- **CI de clôture :** le changement final doit relancer Adaptive CI sur la PR temporairement ciblée `main`, puis être rebasé logiquement sur #64 pour isoler le delta avant toute revue/merge. Référencer le run final exact sur GitHub #69. Aucun droit de distribution en Release n'est accordé.
+
+## VISUAL-POC-01 — Dashboard Darcula Retro / [Issue #67](https://github.com/TobbyCy/RomothequeManager/issues/67) (PR Draft)
+
+- GO propriétaire explicite 28.10.2026 : intégration dans le Produit des **5 assets officiels** (bandeau PNG préexistant + 4 SVG/ICO intacts du Pilotage), y compris logo dans l'interface, `WindowIcon` et `ApplicationIcon` Windows. Droits réservés distincts de MIT ; pas de Release sans accord séparé.
+- PR dédiée **empilée sur #64** pour isoler le delta visuel. Palette Darcula Retro `#16181D` / `#B3202E` / `#AAB2BF` / `#E8E6E3`, collection prioritaire, bibliothèques/supports, Exports explicitement désactivés, diagnostics prudents ; données fictives ou ES-DE uniquement sur sélection volontaire. Aucun nouveau moteur, scan/écriture/copie.
+- Contrôles d'empreinte des originaux Pilotage et garde CI exacts ; captures du rendu réel Avalonia Windows à produire et publier comme **rendu attaché**, non comme capture native de la barre des tâches. La vérification dans l'Explorateur et la taskbar Windows **nécessite toujours la recette propriétaire**. La maquette PNG historique manque pour une correspondance pixel par pixel.
+- Aucune fusion, Release, ROM/BIOS ni média de tiers. Les preuves .NET / capture doivent citer le SHA et run effectifs, sans verdict présumé.
+
+
 ## NEXT-01-UX-FIX — correction suite à recette Windows (PR #64, 28 octobre 2026)
 
 - L'exécutable Avalonia de la PR est configuré en `WinExe`, pour ouvrir la fenêtre sans console au double-clic sous Windows. Le mode `--smoke-window` reste le contrôle automatisé de lancement ; la validation interactive de l'affichage relève de Tobby.

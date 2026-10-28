@@ -31,7 +31,7 @@ Pour une représentation officielle, conserver des proportions lisibles, un cont
 
 ## Ressources graphiques V2 de référence
 
-Ces cinq fichiers constituent le pack V2 de référence. Depuis BRAND-01, **seul le bandeau PNG horizontal est publié dans le dépôt Produit public**, avec l'autorisation explicite du propriétaire. Les quatre autres restent hors de ce dépôt :
+Ces cinq fichiers constituent le pack V2 de référence. Depuis BRAND-01, le bandeau PNG horizontal est publié dans le dépôt Produit public. **VISUAL-POC-01, Issue #67 (GO propriétaire 28.10.2026)** autorise les quatre autres SVG/ICO à être transférés intacts depuis Pilotage vers le Produit, l'application officielle et ses artifacts Windows de test. La licence MIT ne couvre toujours aucun de ces graphismes :
 
 | Fichier de référence | Utilisation envisagée |
 | --- | --- |
@@ -43,7 +43,7 @@ Ces cinq fichiers constituent le pack V2 de référence. Depuis BRAND-01, **seul
 
 **Provenance et autorisation du bandeau :** identité créée avec ChatGPT spécifiquement pour ROMothèque Manager, à la demande du propriétaire. Celui-ci a explicitement autorisé sa publication dans le dépôt public le 23 octobre 2026. Le fichier a été transféré **à l'identique** depuis le pack V2 versionné, sans régénération ni retouche. La [notice du bandeau](assets/branding/README.md) précise les conditions de réutilisation. La publication ne garantit pas l'absence de ressemblances fortuites avec des éléments tiers et ne constitue pas un dépôt de marque.
 
-Les déclinaisons SVG et ICO listées restent **non publiées** dans le Produit à ce stade. Leur présence dans le pack de référence ne vaut ni distribution ni licence générale.
+Les quatre déclinaisons SVG/ICO sont désormais proposées **dans une PR Draft**, par transfert des blobs originaux Pilotage sans retouche. Leur emploi public est limité à l'identité officielle de l'application et aux artifacts temporaires de test, selon le GO de l'Issue #67. **Aucune licence de marque/logo pour des tiers ni autorisation de Release** n'est accordée.
 
 ## Nom, logo et licence logicielle
 
