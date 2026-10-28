@@ -1,0 +1,3510 @@
+{
+  "schemaVersion": "demo-library-01/scenarios/1",
+  "status": "CANDIDATE_PENDING_DEV1_ALIGNMENT",
+  "sourceCatalogue": "contracts/demo-library-01/catalogue.json",
+  "sourceContentState": "SPECIFICATION_ONLY_NOT_GENERATED",
+  "variants": [
+    {
+      "name": "IDEAL",
+      "xmlPaths": [
+        "MEDIAS/dos/metadata/es-de-gamelist.xml",
+        "MEDIAS/gamecube/metadata/es-de-gamelist.xml",
+        "MEDIAS/gba/metadata/es-de-gamelist.xml",
+        "MEDIAS/megadrive/metadata/es-de-gamelist.xml",
+        "MEDIAS/n64/metadata/es-de-gamelist.xml",
+        "MEDIAS/nes/metadata/es-de-gamelist.xml",
+        "MEDIAS/pc/metadata/es-de-gamelist.xml",
+        "MEDIAS/ps2/metadata/es-de-gamelist.xml",
+        "MEDIAS/ps3/metadata/es-de-gamelist.xml",
+        "MEDIAS/ps4/metadata/es-de-gamelist.xml",
+        "MEDIAS/psx/metadata/es-de-gamelist.xml",
+        "MEDIAS/snes/metadata/es-de-gamelist.xml",
+        "MEDIAS/xbox/metadata/es-de-gamelist.xml"
+      ],
+      "entries": [
+        {
+          "id": "demo01-001",
+          "romPath": "ROMS/gba/demo01-001.gba",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/gba/covers/demo01-001.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/gba/thumbnails/demo01-001.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/gba/logos/demo01-001.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/gba/screenshots/demo01-001.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/gba/backcovers/demo01-001.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/gba/backgrounds/demo01-001.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "EDITION"
+          ]
+        },
+        {
+          "id": "demo01-002",
+          "romPath": "ROMS/ps2/demo01-002.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps2/covers/demo01-002.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps2/thumbnails/demo01-002.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps2/logos/demo01-002.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps2/screenshots/demo01-002.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps2/backcovers/demo01-002.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps2/backgrounds/demo01-002.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MULTIPLE_SCREENSHOTS"
+          ]
+        },
+        {
+          "id": "demo01-003",
+          "romPath": "ROMS/nes/demo01-003.nes",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/nes/covers/demo01-003.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/nes/thumbnails/demo01-003.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/nes/logos/demo01-003.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/nes/screenshots/demo01-003.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/nes/backcovers/demo01-003.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/nes/backgrounds/demo01-003.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "REGION_VERSION"
+          ]
+        },
+        {
+          "id": "demo01-004",
+          "romPath": "ROMS/psx/demo01-004.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-004.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-004.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-004.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-004.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-004.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-004.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MISSING_COVER"
+          ]
+        },
+        {
+          "id": "demo01-005",
+          "romPath": "ROMS/ps2/demo01-005.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps2/covers/demo01-005.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps2/thumbnails/demo01-005.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps2/logos/demo01-005.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps2/screenshots/demo01-005.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps2/backcovers/demo01-005.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps2/backgrounds/demo01-005.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MISSING_ROM_CHAOS"
+          ]
+        },
+        {
+          "id": "demo01-006",
+          "romPath": "ROMS/snes/demo01-006.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-006.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-006.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-006.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-006.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-006.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-006.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "ACCENTS"
+          ]
+        },
+        {
+          "id": "demo01-007",
+          "romPath": "ROMS/megadrive/demo01-007.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/megadrive/covers/demo01-007.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/megadrive/thumbnails/demo01-007.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/megadrive/logos/demo01-007.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/megadrive/screenshots/demo01-007.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/megadrive/backcovers/demo01-007.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/megadrive/backgrounds/demo01-007.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": []
+        },
+        {
+          "id": "demo01-008",
+          "romPath": "ROMS/psx/demo01-008.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-008.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-008.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-008.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-008.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-008.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-008.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "COVER_VARIANT"
+          ]
+        },
+        {
+          "id": "demo01-009",
+          "romPath": "ROMS/psx/demo01-009.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-009.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-009.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-009.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-009.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-009.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-009.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "LONG_DESCRIPTION"
+          ]
+        },
+        {
+          "id": "demo01-010",
+          "romPath": "ROMS/ps4/demo01-010.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps4/covers/demo01-010.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps4/thumbnails/demo01-010.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps4/logos/demo01-010.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps4/screenshots/demo01-010.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps4/backcovers/demo01-010.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps4/backgrounds/demo01-010.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "PARTIAL_METADATA"
+          ]
+        },
+        {
+          "id": "demo01-011",
+          "romPath": "ROMS/psx/demo01-011.m3u",
+          "romPresent": true,
+          "discPaths": [
+            "ROMS/psx/demo01-011-disc1.chd",
+            "ROMS/psx/demo01-011-disc2.chd"
+          ],
+          "discPresent": [
+            true,
+            true
+          ],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-011.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-011.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-011.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-011.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-011.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-011.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MULTIDISC"
+          ]
+        },
+        {
+          "id": "demo01-012",
+          "romPath": "ROMS/psx/demo01-012.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-012.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-012.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-012.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-012.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-012.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-012.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "CORRUPT_IMAGE_ISOLATED"
+          ]
+        },
+        {
+          "id": "demo01-013",
+          "romPath": "ROMS/ps2/demo01-013.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps2/covers/demo01-013.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps2/thumbnails/demo01-013.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps2/logos/demo01-013.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps2/screenshots/demo01-013.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps2/backcovers/demo01-013.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps2/backgrounds/demo01-013.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": []
+        },
+        {
+          "id": "demo01-014",
+          "romPath": "ROMS/pc/demo01-014.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-014.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-014.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-014.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-014.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-014.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-014.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "CROSS_PLATFORM"
+          ]
+        },
+        {
+          "id": "demo01-015",
+          "romPath": "ROMS/dos/demo01-015.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/dos/covers/demo01-015.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/dos/thumbnails/demo01-015.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/dos/logos/demo01-015.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/dos/screenshots/demo01-015.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/dos/backcovers/demo01-015.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/dos/backgrounds/demo01-015.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "SPACES_IN_PATH"
+          ]
+        },
+        {
+          "id": "demo01-016",
+          "romPath": "ROMS/xbox/demo01-016.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/xbox/covers/demo01-016.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/xbox/thumbnails/demo01-016.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/xbox/logos/demo01-016.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/xbox/screenshots/demo01-016.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/xbox/backcovers/demo01-016.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/xbox/backgrounds/demo01-016.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "XBOX_ORIGINAL",
+            "PUNCTUATION"
+          ]
+        },
+        {
+          "id": "demo01-017",
+          "romPath": "ROMS/pc/demo01-017.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-017.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-017.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-017.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-017.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-017.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-017.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MEDIA_MISSING"
+          ]
+        },
+        {
+          "id": "demo01-018",
+          "romPath": "ROMS/ps3/demo01-018.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-018.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-018.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-018.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-018.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-018.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-018.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "ODD_FILENAME"
+          ]
+        },
+        {
+          "id": "demo01-019",
+          "romPath": "ROMS/gamecube/demo01-019.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/gamecube/covers/demo01-019.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/gamecube/thumbnails/demo01-019.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/gamecube/logos/demo01-019.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/gamecube/screenshots/demo01-019.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/gamecube/backcovers/demo01-019.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/gamecube/backgrounds/demo01-019.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "NESTED_DIRECTORY"
+          ]
+        },
+        {
+          "id": "demo01-020",
+          "romPath": "ROMS/pc/demo01-020.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-020.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-020.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-020.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-020.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-020.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-020.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "THUMBNAIL_DISTINCT"
+          ]
+        },
+        {
+          "id": "demo01-021",
+          "romPath": "ROMS/ps3/demo01-021.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-021.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-021.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-021.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-021.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-021.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-021.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "HOMONYM_FNAME"
+          ]
+        },
+        {
+          "id": "demo01-022",
+          "romPath": "ROMS/pc/demo01-022.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-022.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-022.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-022.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-022.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-022.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-022.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "SPECIAL_SAFE_CHARACTERS"
+          ]
+        },
+        {
+          "id": "demo01-023",
+          "romPath": "ROMS/ps3/demo01-023.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-023.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-023.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-023.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-023.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-023.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-023.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "EDITION"
+          ]
+        },
+        {
+          "id": "demo01-024",
+          "romPath": "ROMS/ps3/demo01-024.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-024.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-024.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-024.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-024.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-024.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-024.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "APOSTROPHE"
+          ]
+        },
+        {
+          "id": "demo01-025",
+          "romPath": "ROMS/pc/demo01-025.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-025.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-025.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-025.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-025.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-025.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-025.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "BACKGROUND_LOGO"
+          ]
+        },
+        {
+          "id": "demo01-026",
+          "romPath": "ROMS/snes/demo01-026.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-026.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-026.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-026.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-026.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-026.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-026.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "TWO_EDITIONS"
+          ]
+        },
+        {
+          "id": "demo01-027",
+          "romPath": "ROMS/snes/demo01-027.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-027.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-027.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-027.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-027.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-027.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-027.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "EXACT_DUPLICATE_CHAOS"
+          ]
+        },
+        {
+          "id": "demo01-028",
+          "romPath": "ROMS/snes/demo01-028.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-028.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-028.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-028.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-028.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-028.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-028.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "ROM_RENAMED_CHAOS"
+          ]
+        },
+        {
+          "id": "demo01-029",
+          "romPath": "ROMS/snes/demo01-029.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-029.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-029.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-029.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-029.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-029.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-029.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "FICTIVE_DATE_PUBLISHER"
+          ]
+        },
+        {
+          "id": "demo01-030",
+          "romPath": "ROMS/n64/demo01-030.z64",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/n64/covers/demo01-030.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/n64/thumbnails/demo01-030.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/n64/logos/demo01-030.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/n64/screenshots/demo01-030.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/n64/backcovers/demo01-030.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/n64/backgrounds/demo01-030.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "INVALID_XML_ISOLATED"
+          ]
+        }
+      ],
+      "counts": {
+        "canonicalGames": 30,
+        "physicalRomFiles": 32,
+        "esDeGameEntries": 30,
+        "pngFiles": 180,
+        "missingMainRomReferences": 0,
+        "duplicateCandidateFiles": 0,
+        "confirmedLogicalGamesByScanner": null
+      }
+    },
+    {
+      "name": "CHAOS",
+      "xmlPaths": [
+        "MEDIAS/dos/metadata/es-de-gamelist.xml",
+        "MEDIAS/gamecube/metadata/es-de-gamelist.xml",
+        "MEDIAS/gba/metadata/es-de-gamelist.xml",
+        "MEDIAS/megadrive/metadata/es-de-gamelist.xml",
+        "MEDIAS/n64/metadata/es-de-gamelist.xml",
+        "MEDIAS/nes/metadata/es-de-gamelist.xml",
+        "MEDIAS/pc/metadata/es-de-gamelist.xml",
+        "MEDIAS/ps2/metadata/es-de-gamelist.xml",
+        "MEDIAS/ps3/metadata/es-de-gamelist.xml",
+        "MEDIAS/ps4/metadata/es-de-gamelist.xml",
+        "MEDIAS/psx/metadata/es-de-gamelist.xml",
+        "MEDIAS/snes/metadata/es-de-gamelist.xml",
+        "MEDIAS/xbox/metadata/es-de-gamelist.xml"
+      ],
+      "entries": [
+        {
+          "id": "demo01-001",
+          "romPath": "ROMS/gba/Odd Names/Edition_0/Très bizarre fichier-001.gba",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/gba/covers/demo01-001.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/gba/thumbnails/demo01-001.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/gba/logos/demo01-001.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/gba/screenshots/demo01-001.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/gba/backcovers/demo01-001.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/gba/backgrounds/demo01-001.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "EDITION"
+          ]
+        },
+        {
+          "id": "demo01-002",
+          "romPath": "ROMS/ps2/Odd Names/Edition_1/fichier-002.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps2/covers/demo01-002.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps2/thumbnails/demo01-002.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps2/logos/demo01-002.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps2/screenshots/demo01-002.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps2/backcovers/demo01-002.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps2/backgrounds/demo01-002.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MULTIPLE_SCREENSHOTS"
+          ]
+        },
+        {
+          "id": "demo01-003",
+          "romPath": "ROMS/nes/Odd Names/Edition_2/fichier-003.nes",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/nes/covers/demo01-003.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/nes/thumbnails/demo01-003.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/nes/logos/demo01-003.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/nes/screenshots/demo01-003.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/nes/backcovers/demo01-003.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/nes/backgrounds/demo01-003.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "REGION_VERSION"
+          ]
+        },
+        {
+          "id": "demo01-004",
+          "romPath": "ROMS/psx/Odd Names/Edition_3/Très bizarre fichier-004.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-004.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-004.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-004.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-004.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-004.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-004.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": "ROMS/psx/EXTRAS/Très bizarre fichier-004.chd",
+          "caseTags": [
+            "MISSING_COVER"
+          ]
+        },
+        {
+          "id": "demo01-005",
+          "romPath": "ROMS/ps2/Odd Names/Edition_0/fichier-005.bin",
+          "romPresent": false,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps2/covers/demo01-005.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps2/thumbnails/demo01-005.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps2/logos/demo01-005.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps2/screenshots/demo01-005.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps2/backcovers/demo01-005.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps2/backgrounds/demo01-005.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MISSING_ROM_CHAOS"
+          ]
+        },
+        {
+          "id": "demo01-006",
+          "romPath": "ROMS/snes/Odd Names/Edition_1/fichier-006.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-006.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-006.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-006.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-006.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-006.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-006.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "ACCENTS"
+          ]
+        },
+        {
+          "id": "demo01-007",
+          "romPath": "ROMS/megadrive/Odd Names/Edition_2/Très bizarre fichier-007.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/megadrive/covers/demo01-007.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/megadrive/thumbnails/demo01-007.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/megadrive/logos/demo01-007.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/megadrive/screenshots/demo01-007.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/megadrive/backcovers/demo01-007.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/megadrive/backgrounds/demo01-007.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": []
+        },
+        {
+          "id": "demo01-008",
+          "romPath": "ROMS/psx/Odd Names/Edition_3/fichier-008.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-008.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-008.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-008.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-008.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-008.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-008.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "COVER_VARIANT"
+          ]
+        },
+        {
+          "id": "demo01-009",
+          "romPath": "ROMS/psx/Odd Names/Edition_0/fichier-009.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-009.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-009.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-009.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-009.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-009.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-009.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "LONG_DESCRIPTION"
+          ]
+        },
+        {
+          "id": "demo01-010",
+          "romPath": "ROMS/ps4/Odd Names/Edition_1/Très bizarre fichier-010.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps4/covers/demo01-010.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps4/thumbnails/demo01-010.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps4/logos/demo01-010.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps4/screenshots/demo01-010.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps4/backcovers/demo01-010.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps4/backgrounds/demo01-010.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "PARTIAL_METADATA"
+          ]
+        },
+        {
+          "id": "demo01-011",
+          "romPath": "ROMS/psx/Odd Names/Edition_2/fichier-011.m3u",
+          "romPresent": true,
+          "discPaths": [
+            "ROMS/psx/Odd Names/Edition_2/demo01-011-disc1.chd",
+            "ROMS/psx/Odd Names/Edition_2/demo01-011-disc2.chd"
+          ],
+          "discPresent": [
+            true,
+            true
+          ],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-011.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-011.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-011.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-011.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-011.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-011.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MULTIDISC"
+          ]
+        },
+        {
+          "id": "demo01-012",
+          "romPath": "ROMS/psx/Odd Names/Edition_3/fichier-012.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-012.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-012.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-012.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-012.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-012.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-012.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "CORRUPT_IMAGE_ISOLATED"
+          ]
+        },
+        {
+          "id": "demo01-013",
+          "romPath": "ROMS/ps2/Odd Names/Edition_0/Très bizarre fichier-013.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps2/covers/demo01-013.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps2/thumbnails/demo01-013.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps2/logos/demo01-013.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps2/screenshots/demo01-013.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps2/backcovers/demo01-013.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps2/backgrounds/demo01-013.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": "ROMS/ps2/EXTRAS/Très bizarre fichier-013.bin",
+          "caseTags": []
+        },
+        {
+          "id": "demo01-014",
+          "romPath": "ROMS/pc/Odd Names/Edition_1/fichier-014.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-014.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-014.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-014.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-014.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-014.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-014.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "CROSS_PLATFORM"
+          ]
+        },
+        {
+          "id": "demo01-015",
+          "romPath": "ROMS/dos/Odd Names/Edition_2/fichier-015.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/dos/covers/demo01-015.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/dos/thumbnails/demo01-015.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/dos/logos/demo01-015.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/dos/screenshots/demo01-015.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/dos/backcovers/demo01-015.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/dos/backgrounds/demo01-015.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "SPACES_IN_PATH"
+          ]
+        },
+        {
+          "id": "demo01-016",
+          "romPath": "ROMS/xbox/Odd Names/Edition_3/Très bizarre fichier-016.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/xbox/covers/demo01-016.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/xbox/thumbnails/demo01-016.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/xbox/logos/demo01-016.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/xbox/screenshots/demo01-016.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/xbox/backcovers/demo01-016.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/xbox/backgrounds/demo01-016.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "XBOX_ORIGINAL",
+            "PUNCTUATION"
+          ]
+        },
+        {
+          "id": "demo01-017",
+          "romPath": "ROMS/pc/Odd Names/Edition_0/fichier-017.bin",
+          "romPresent": false,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-017.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-017.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-017.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-017.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-017.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-017.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MEDIA_MISSING"
+          ]
+        },
+        {
+          "id": "demo01-018",
+          "romPath": "ROMS/ps3/Odd Names/Edition_1/fichier-018.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-018.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-018.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-018.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-018.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-018.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-018.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "ODD_FILENAME"
+          ]
+        },
+        {
+          "id": "demo01-019",
+          "romPath": "ROMS/gamecube/Odd Names/Edition_2/Très bizarre fichier-019.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/gamecube/covers/demo01-019.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/gamecube/thumbnails/demo01-019.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/gamecube/logos/demo01-019.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/gamecube/screenshots/demo01-019.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/gamecube/backcovers/demo01-019.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/gamecube/backgrounds/demo01-019.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "NESTED_DIRECTORY"
+          ]
+        },
+        {
+          "id": "demo01-020",
+          "romPath": "ROMS/pc/Odd Names/Edition_3/fichier-020.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-020.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-020.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-020.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-020.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-020.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-020.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "THUMBNAIL_DISTINCT"
+          ]
+        },
+        {
+          "id": "demo01-021",
+          "romPath": "ROMS/ps3/Odd Names/Edition_0/fichier-021.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-021.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-021.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-021.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-021.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-021.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-021.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "HOMONYM_FNAME"
+          ]
+        },
+        {
+          "id": "demo01-022",
+          "romPath": "ROMS/pc/Odd Names/Edition_1/Très bizarre fichier-022.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-022.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-022.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-022.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-022.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-022.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-022.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "SPECIAL_SAFE_CHARACTERS"
+          ]
+        },
+        {
+          "id": "demo01-023",
+          "romPath": "ROMS/ps3/Odd Names/Edition_2/fichier-023.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-023.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-023.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-023.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-023.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-023.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-023.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "EDITION"
+          ]
+        },
+        {
+          "id": "demo01-024",
+          "romPath": "ROMS/ps3/Odd Names/Edition_3/fichier-024.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-024.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-024.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-024.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-024.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-024.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-024.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "APOSTROPHE"
+          ]
+        },
+        {
+          "id": "demo01-025",
+          "romPath": "ROMS/pc/Odd Names/Edition_0/Très bizarre fichier-025.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-025.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-025.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-025.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-025.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-025.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-025.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "BACKGROUND_LOGO"
+          ]
+        },
+        {
+          "id": "demo01-026",
+          "romPath": "ROMS/snes/Odd Names/Edition_1/fichier-026.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-026.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-026.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-026.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-026.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-026.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-026.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "TWO_EDITIONS"
+          ]
+        },
+        {
+          "id": "demo01-027",
+          "romPath": "ROMS/snes/Odd Names/Edition_2/fichier-027.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-027.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-027.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-027.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-027.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-027.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-027.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": "ROMS/snes/EXTRAS/fichier-027.sfc",
+          "caseTags": [
+            "EXACT_DUPLICATE_CHAOS"
+          ]
+        },
+        {
+          "id": "demo01-028",
+          "romPath": "ROMS/snes/Odd Names/Edition_3/Très bizarre fichier-028.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-028.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-028.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-028.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-028.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-028.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-028.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "ROM_RENAMED_CHAOS"
+          ]
+        },
+        {
+          "id": "demo01-029",
+          "romPath": "ROMS/snes/Odd Names/Edition_0/fichier-029.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-029.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-029.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-029.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-029.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-029.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-029.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "FICTIVE_DATE_PUBLISHER"
+          ]
+        },
+        {
+          "id": "demo01-030",
+          "romPath": "ROMS/n64/Odd Names/Edition_1/fichier-030.z64",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": true,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/n64/covers/demo01-030.png",
+              "exists": true
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/n64/thumbnails/demo01-030.png",
+              "exists": true
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/n64/logos/demo01-030.png",
+              "exists": true
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/n64/screenshots/demo01-030.png",
+              "exists": true
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/n64/backcovers/demo01-030.png",
+              "exists": true
+            },
+            "background": {
+              "relativePath": "MEDIAS/n64/backgrounds/demo01-030.png",
+              "exists": true
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "INVALID_XML_ISOLATED"
+          ]
+        }
+      ],
+      "counts": {
+        "canonicalGames": 30,
+        "physicalRomFiles": 33,
+        "esDeGameEntries": 30,
+        "pngFiles": 166,
+        "missingMainRomReferences": 2,
+        "duplicateCandidateFiles": 3,
+        "confirmedLogicalGamesByScanner": null
+      }
+    },
+    {
+      "name": "MYSTERY",
+      "xmlPaths": [],
+      "entries": [
+        {
+          "id": "demo01-001",
+          "romPath": "ROMS/gba/unclassified/À trier objet-001.gba",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/gba/covers/demo01-001.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/gba/thumbnails/demo01-001.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/gba/logos/demo01-001.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/gba/screenshots/demo01-001.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/gba/backcovers/demo01-001.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/gba/backgrounds/demo01-001.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "EDITION"
+          ]
+        },
+        {
+          "id": "demo01-002",
+          "romPath": "ROMS/ps2/unclassified/objet-002.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps2/covers/demo01-002.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps2/thumbnails/demo01-002.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps2/logos/demo01-002.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps2/screenshots/demo01-002.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps2/backcovers/demo01-002.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps2/backgrounds/demo01-002.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MULTIPLE_SCREENSHOTS"
+          ]
+        },
+        {
+          "id": "demo01-003",
+          "romPath": "ROMS/nes/unclassified/objet-003.nes",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/nes/covers/demo01-003.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/nes/thumbnails/demo01-003.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/nes/logos/demo01-003.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/nes/screenshots/demo01-003.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/nes/backcovers/demo01-003.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/nes/backgrounds/demo01-003.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "REGION_VERSION"
+          ]
+        },
+        {
+          "id": "demo01-004",
+          "romPath": "ROMS/psx/unclassified/objet-004.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-004.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-004.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-004.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-004.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-004.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-004.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MISSING_COVER"
+          ]
+        },
+        {
+          "id": "demo01-005",
+          "romPath": "ROMS/ps2/unclassified/À trier objet-005.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps2/covers/demo01-005.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps2/thumbnails/demo01-005.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps2/logos/demo01-005.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps2/screenshots/demo01-005.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps2/backcovers/demo01-005.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps2/backgrounds/demo01-005.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MISSING_ROM_CHAOS"
+          ]
+        },
+        {
+          "id": "demo01-006",
+          "romPath": "ROMS/snes/unclassified/objet-006.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-006.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-006.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-006.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-006.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-006.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-006.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "ACCENTS"
+          ]
+        },
+        {
+          "id": "demo01-007",
+          "romPath": "ROMS/megadrive/unclassified/objet-007.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/megadrive/covers/demo01-007.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/megadrive/thumbnails/demo01-007.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/megadrive/logos/demo01-007.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/megadrive/screenshots/demo01-007.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/megadrive/backcovers/demo01-007.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/megadrive/backgrounds/demo01-007.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": []
+        },
+        {
+          "id": "demo01-008",
+          "romPath": "ROMS/psx/unclassified/objet-008.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-008.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-008.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-008.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-008.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-008.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-008.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "COVER_VARIANT"
+          ]
+        },
+        {
+          "id": "demo01-009",
+          "romPath": "ROMS/psx/unclassified/À trier objet-009.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-009.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-009.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-009.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-009.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-009.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-009.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "LONG_DESCRIPTION"
+          ]
+        },
+        {
+          "id": "demo01-010",
+          "romPath": "ROMS/ps4/unclassified/objet-010.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps4/covers/demo01-010.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps4/thumbnails/demo01-010.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps4/logos/demo01-010.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps4/screenshots/demo01-010.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps4/backcovers/demo01-010.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps4/backgrounds/demo01-010.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "PARTIAL_METADATA"
+          ]
+        },
+        {
+          "id": "demo01-011",
+          "romPath": "ROMS/psx/unclassified/objet-011.m3u",
+          "romPresent": true,
+          "discPaths": [
+            "ROMS/psx/unclassified/demo01-011-disc1.chd",
+            "ROMS/psx/unclassified/demo01-011-disc2.chd"
+          ],
+          "discPresent": [
+            true,
+            true
+          ],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-011.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-011.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-011.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-011.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-011.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-011.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MULTIDISC"
+          ]
+        },
+        {
+          "id": "demo01-012",
+          "romPath": "ROMS/psx/unclassified/objet-012.chd",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/psx/covers/demo01-012.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/psx/thumbnails/demo01-012.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/psx/logos/demo01-012.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/psx/screenshots/demo01-012.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/psx/backcovers/demo01-012.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/psx/backgrounds/demo01-012.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "CORRUPT_IMAGE_ISOLATED"
+          ]
+        },
+        {
+          "id": "demo01-013",
+          "romPath": "ROMS/ps2/unclassified/À trier objet-013.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps2/covers/demo01-013.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps2/thumbnails/demo01-013.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps2/logos/demo01-013.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps2/screenshots/demo01-013.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps2/backcovers/demo01-013.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps2/backgrounds/demo01-013.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": []
+        },
+        {
+          "id": "demo01-014",
+          "romPath": "ROMS/pc/unclassified/objet-014.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-014.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-014.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-014.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-014.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-014.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-014.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "CROSS_PLATFORM"
+          ]
+        },
+        {
+          "id": "demo01-015",
+          "romPath": "ROMS/dos/unclassified/objet-015.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/dos/covers/demo01-015.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/dos/thumbnails/demo01-015.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/dos/logos/demo01-015.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/dos/screenshots/demo01-015.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/dos/backcovers/demo01-015.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/dos/backgrounds/demo01-015.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "SPACES_IN_PATH"
+          ]
+        },
+        {
+          "id": "demo01-016",
+          "romPath": "ROMS/xbox/unclassified/objet-016.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/xbox/covers/demo01-016.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/xbox/thumbnails/demo01-016.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/xbox/logos/demo01-016.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/xbox/screenshots/demo01-016.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/xbox/backcovers/demo01-016.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/xbox/backgrounds/demo01-016.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "XBOX_ORIGINAL",
+            "PUNCTUATION"
+          ]
+        },
+        {
+          "id": "demo01-017",
+          "romPath": "ROMS/pc/unclassified/À trier objet-017.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-017.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-017.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-017.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-017.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-017.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-017.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "MEDIA_MISSING"
+          ]
+        },
+        {
+          "id": "demo01-018",
+          "romPath": "ROMS/ps3/unclassified/objet-018.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-018.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-018.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-018.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-018.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-018.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-018.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "ODD_FILENAME"
+          ]
+        },
+        {
+          "id": "demo01-019",
+          "romPath": "ROMS/gamecube/unclassified/objet-019.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/gamecube/covers/demo01-019.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/gamecube/thumbnails/demo01-019.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/gamecube/logos/demo01-019.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/gamecube/screenshots/demo01-019.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/gamecube/backcovers/demo01-019.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/gamecube/backgrounds/demo01-019.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "NESTED_DIRECTORY"
+          ]
+        },
+        {
+          "id": "demo01-020",
+          "romPath": "ROMS/pc/unclassified/objet-020.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-020.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-020.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-020.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-020.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-020.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-020.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "THUMBNAIL_DISTINCT"
+          ]
+        },
+        {
+          "id": "demo01-021",
+          "romPath": "ROMS/ps3/unclassified/À trier objet-021.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-021.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-021.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-021.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-021.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-021.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-021.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "HOMONYM_FNAME"
+          ]
+        },
+        {
+          "id": "demo01-022",
+          "romPath": "ROMS/pc/unclassified/objet-022.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-022.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-022.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-022.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-022.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-022.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-022.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "SPECIAL_SAFE_CHARACTERS"
+          ]
+        },
+        {
+          "id": "demo01-023",
+          "romPath": "ROMS/ps3/unclassified/objet-023.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-023.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-023.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-023.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-023.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-023.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-023.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "EDITION"
+          ]
+        },
+        {
+          "id": "demo01-024",
+          "romPath": "ROMS/ps3/unclassified/objet-024.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/ps3/covers/demo01-024.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/ps3/thumbnails/demo01-024.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/ps3/logos/demo01-024.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/ps3/screenshots/demo01-024.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/ps3/backcovers/demo01-024.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/ps3/backgrounds/demo01-024.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "APOSTROPHE"
+          ]
+        },
+        {
+          "id": "demo01-025",
+          "romPath": "ROMS/pc/unclassified/À trier objet-025.bin",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/pc/covers/demo01-025.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/pc/thumbnails/demo01-025.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/pc/logos/demo01-025.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/pc/screenshots/demo01-025.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/pc/backcovers/demo01-025.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/pc/backgrounds/demo01-025.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "BACKGROUND_LOGO"
+          ]
+        },
+        {
+          "id": "demo01-026",
+          "romPath": "ROMS/snes/unclassified/objet-026.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-026.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-026.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-026.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-026.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-026.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-026.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "TWO_EDITIONS"
+          ]
+        },
+        {
+          "id": "demo01-027",
+          "romPath": "ROMS/snes/unclassified/objet-027.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-027.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-027.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-027.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-027.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-027.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-027.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "EXACT_DUPLICATE_CHAOS"
+          ]
+        },
+        {
+          "id": "demo01-028",
+          "romPath": "ROMS/snes/unclassified/objet-028.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-028.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-028.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-028.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-028.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-028.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-028.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "ROM_RENAMED_CHAOS"
+          ]
+        },
+        {
+          "id": "demo01-029",
+          "romPath": "ROMS/snes/unclassified/À trier objet-029.sfc",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/snes/covers/demo01-029.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/snes/thumbnails/demo01-029.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/snes/logos/demo01-029.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/snes/screenshots/demo01-029.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/snes/backcovers/demo01-029.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/snes/backgrounds/demo01-029.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "FICTIVE_DATE_PUBLISHER"
+          ]
+        },
+        {
+          "id": "demo01-030",
+          "romPath": "ROMS/n64/unclassified/objet-030.z64",
+          "romPresent": true,
+          "discPaths": [],
+          "discPresent": [],
+          "xmlEntryPresent": false,
+          "media": {
+            "image": {
+              "relativePath": "MEDIAS/n64/covers/demo01-030.png",
+              "exists": false
+            },
+            "thumbnail": {
+              "relativePath": "MEDIAS/n64/thumbnails/demo01-030.png",
+              "exists": false
+            },
+            "marquee": {
+              "relativePath": "MEDIAS/n64/logos/demo01-030.png",
+              "exists": false
+            },
+            "screenshot": {
+              "relativePath": "MEDIAS/n64/screenshots/demo01-030.png",
+              "exists": false
+            },
+            "backcover": {
+              "relativePath": "MEDIAS/n64/backcovers/demo01-030.png",
+              "exists": false
+            },
+            "background": {
+              "relativePath": "MEDIAS/n64/backgrounds/demo01-030.png",
+              "exists": false
+            }
+          },
+          "duplicatePath": null,
+          "caseTags": [
+            "INVALID_XML_ISOLATED"
+          ]
+        }
+      ],
+      "counts": {
+        "canonicalGames": 30,
+        "physicalRomFiles": 32,
+        "esDeGameEntries": 0,
+        "pngFiles": 0,
+        "missingMainRomReferences": 0,
+        "duplicateCandidateFiles": 0,
+        "confirmedLogicalGamesByScanner": null
+      }
+    }
+  ]
+}

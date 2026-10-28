@@ -1,5 +1,10 @@
 # Journal des changements
 
+## DEMO-LIBRARY-01 — catalogue canonique DEV 2 (PR Draft #72, 28.10.2026)
+
+- Le propriétaire a fixé **30 titres et 13 plateformes** dans [Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71). Les références de conception sous `contracts/demo-library-01/` et `docs/architecture/` contiennent métadonnées, médias projetés, scénarios IDEAL/CHAOS/MYSTERY et oracles arithmétiques. Le générateur DEV 1 #73 attend son alignement sur cette version canonique.
+- **Documentation exclusivement** : aucun fichier ROM, BIOS, image, XML ni test de génération sur ce catalogue livré ; aucune Release ni modification du produit.
+
 ## NEXT-01 / PR #64 — recette HEAD exact et hors ligne (28.10.2026)
 
 - Le ZIP Windows CI est construit depuis le HEAD courant de #64, vérifié par SHA, plutôt que l'ancien `e775cdd6` ; manifeste et sidecar SHA-256 exacts.
@@ -175,3 +180,7 @@ Les notes ci-dessous sont **conservées comme historique de rédaction des sprin
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.
+
+## DEMO-LIBRARY-01 — DEV 1 / PR #73 (DRAFT)
+
+- Générateur Node sans téléchargement ni dépendances supplémentaires, produisant des ROMs fictives en texte et de vrais PNG originaux sous destination explicitement choisie et inexistante. Source canonique stricte : PR DEV 2 #72, HEAD `968d1f61420a5d0b70eb5160e9d57d505560f2b7`, 30 titres et 13 plateformes (Xbox, PS2, PS3, PS4, PC compris). Oracles : IDEAL 32/30/180, CHAOS 33/30/166, MYSTERY 32/0/0. Tests synthétiques de génération, import ES-DE, inventaire, médias, sécurité et intégrité. Aucun merge ni Release.

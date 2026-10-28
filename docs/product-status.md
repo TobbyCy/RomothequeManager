@@ -1,5 +1,9 @@
 # État des fonctionnalités
 
+## DEMO-LIBRARY-01 — catalogue canonique candidat (PR Draft #72, sans effet produit)
+
+La [PR #72](https://github.com/TobbyCy/RomothequeManager/pull/72) documente **30 jeux entièrement fictifs, sur les 13 plateformes corrigées par le propriétaire** ([Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71), notamment Xbox, PS2, PS3, PS4, PC et DOS) ; catalogue de référence `contracts/demo-library-01/`, contrat et briefs sous `docs/architecture/`, variantes IDEAL/CHAOS/MYSTERY et oracles non exécutés. DEV 1 aligne son générateur [#73](https://github.com/TobbyCy/RomothequeManager/pull/73) sur cette source. **Aucune ROM, PNG, XML, bibliothèque générée ou fonctionnalité UI livrée par #72 ; aucun changement à l'intégration NEXT-01.**
+
 ## NEXT-01 / PR #64 — vérification du HEAD courant et du fonctionnement hors ligne
 
 - Workflow de recette : checkout strict du `github.event.pull_request.head.sha` au moment du run, vérifié avant restauration SDK et avant packaging. **Aucun ancien SHA `e775cdd6` épinglé** ; chaque artifact contient le manifeste du HEAD exact et le SHA-256 du ZIP `win-x64` autonome produit pour cette révision, sans Release.
@@ -174,3 +178,8 @@ La [PR #68](https://github.com/TobbyCy/RomothequeManager/pull/68), désormais fu
 
 
 **Revue DEV 2 — correctifs P1 de robustesse `.m3u` (PR #68 intégrée au code source).** Le moteur candidate applique un plafond d'octets et de lignes pendant la lecture ; l'annulation en cours de lecture rend `PARTIAL` avec diagnostic `CANCELLED` et conservation du dernier `Current` complet. La fermeture des flux est garantie dans le chemin normal et annulé, et l'indisponibilité liée à un verrou concurrent retourne un diagnostic sans inventer des suppressions. Les opérations `Scan` et `RelocateVerified` sont **single-flight, non thread-safe** : leur appelant futur devra sérialiser les appels ; le contrôle check-then-use des reparse points conserve des courses TOCTOU résiduelles, **aucune garantie de sûreté contre modifications adversariales simultanées et aucun GO scan réel**. Le test des symlinks est déclaré `NOT_TESTED` si l'hôte Windows ne permet pas leur création. Une relocalisation par empreinte de métadonnées n'est pas une preuve binaire d'identité physique ; aucune campagne de hachage n'est autorisée dans ce lot.
+
+
+## DEMO-LIBRARY-01 — générateur DEV 1 aligné au catalogue propriétaire (PR Draft #73)
+
+Contrat source de vérité : PR #72 HEAD `968d1f61420a5d0b70eb5160e9d57d505560f2b7` ; 30 jeux fictifs exacts, 13 plateformes, identités et médias/simulations décrits dans `contracts/demo-library-01/`. DEV 1 génère sous chemin local explicitement choisi et inexistant les scénarios IDEAL (32 ROMS/30 XML/180 PNG), CHAOS (33/30/166, deux ROMs absentes, 3 doublons candidats), MYSTERY (32/0/0). Images PNG réelles 100 % originales ; fausses ROMs texte non exécutables. Tests entièrement synthétiques ; fixtures historiques #64 conservées, aucun scan de bibliothèque réelle, téléchargement, suppression de données personnelles, merge ou Release. La PR reste soumise à la revue indépendante Agent.
