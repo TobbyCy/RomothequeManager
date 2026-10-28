@@ -160,6 +160,7 @@ public sealed class DemoLibraryGeneratorTests
         Assert.AreEqual(33, scan.ObservedFileCount);
         Assert.AreEqual(3, scan.PotentialDuplicates.Count);
         Assert.AreEqual(166, expected.GetProperty("mediaFiles").GetInt32());
+        Assert.AreEqual(14, expected.GetProperty("missingMediaFiles").GetInt32());
     }
 
     [TestMethod]
@@ -167,7 +168,8 @@ public sealed class DemoLibraryGeneratorTests
     {
         var root = Path.Combine(_first, "MYSTERY");
         Assert.AreEqual(0, Directory.GetFiles(root, "es-de-gamelist.xml", SearchOption.AllDirectories).Length);
-        Assert.AreEqual(12, Directory.GetFiles(Path.Combine(root, "MEDIAS"), "*.png", SearchOption.AllDirectories).Length);
+        Assert.IsFalse(Directory.Exists(Path.Combine(root, "MEDIAS")));
+        Assert.AreEqual(32, Directory.GetFiles(Path.Combine(root, "ROMS"), "*", SearchOption.AllDirectories).Length);
         Assert.ThrowsExactly<InvalidDataException>(() => EsDeCatalogueImporter.Read(root));
         var inventory = new InventorySession(new InventoryScope(root)).Scan();
         Assert.AreEqual(InventoryScanStatus.Complete, inventory.ScanStatus);
