@@ -2,7 +2,7 @@
 
 ## NEXT-03 / MVVM FOUNDATION — DEV 3 (branche Draft, non intégrée)
 
-Premiers composants **indépendants de l'interface graphique dans leur code source** : `InventoryViewModel` (notifications/commandes/provenances), `InventoryApplicationSeam` **provisoire conforme à la proposition DEV 1 #83**, tests unitaires en mémoire. **Aucun service de scan implémenté ni raccordement Avalonia/ROM** ; aucun changement de Dashboard, Collection, fiches, Bibliothèques ou import ES-DE. Dépendance `CommunityToolkit.Mvvm 8.4.2` évaluée, **non ajoutée** en attente de NuGet lock/avis licences/CI ; BCL `INotifyPropertyChanged`/`ICommand` utilisée pour la fondation. [ADR et limites](docs/ux/next03-mvvm-foundation.md). #75/#76/#77 restent à intégrer avant toute connexion au service et au moteur. Aucun scan réel, merge ou Release.
+Premiers composants **indépendants de l'interface graphique dans leur code source** : `InventoryViewModel` (notifications/commandes/provenances), `InventoryApplicationSeam` **provisoire conforme à la proposition DEV 1 #83**, tests unitaires en mémoire. **Aucun service de scan implémenté ni raccordement Avalonia/ROM** ; aucun changement de Dashboard, Collection, fiches, Bibliothèques ou import ES-DE. Dépendance `CommunityToolkit.Mvvm 8.4.2` évaluée, **non ajoutée** en attente de NuGet lock/avis licences/CI ; BCL `INotifyPropertyChanged`/`ICommand` utilisée pour la fondation. [ADR et limites](ux/next03-mvvm-foundation.md). #75/#76/#77 restent à intégrer avant toute connexion au service et au moteur. Aucun scan réel, merge ou Release.
 
 
 ## DEMO-LIBRARY-01 — catalogue canonique candidat (PR Draft #72, sans effet produit)
