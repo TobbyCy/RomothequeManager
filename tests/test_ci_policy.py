@@ -345,7 +345,8 @@ class DocumentTests(unittest.TestCase):
 
         # VISUAL67: original Pilotage bytes only, no alternate image or extension.
         for asset_path, (expected, length) in p.VISUAL67_ASSETS.items():
-            asset_data = (root / asset_path).read_bytes()
+            # Compare immutable Git blob bytes, not Windows checkout CRLF-converted SVG files.
+            asset_data = p.git(root, "cat-file", "blob", expected)
             self.assertEqual(length, len(asset_data))
             self.assertTrue(p.verify_visual67_asset(asset_path, expected, asset_data))
             with self.assertRaisesRegex(p.PolicyError, "VISUAL67_UNAPPROVED_BLOB"):
