@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-03 — service applicatif DEV 1 (PR Draft #85, 28.10.2026)
+
+- Service `IInventoryApplicationService` ajouté dans l'assembly V2 **existante**, sans extraire Core ni modifier l'unique moteur NEXT-02. Interfaces et coordination sans dépendance Avalonia/MVVM au niveau source.
+- Préflight limité à la sélection locale consentie, scan de fixture en tâche de fond, single-flight, annulation, `Current/LastAttempt`, observation/diagnostic/couverture et états d'origine. Le constructeur public bloque les scans de vraies bibliothèques.
+- Nouveaux tests synthétiques IDEAL/CHAOS/MYSTERY, annulation pendant playlist, concurrence, échec Offline, propagation de l'état Stale simulé et intégrité des fixtures. **PR Draft, aucun raccordement Avalonia, fusion ni Release.**
+
 ## DEMO-LIBRARY-01 — catalogue canonique DEV 2 (PR Draft #72, 28.10.2026)
 
 - Le propriétaire a fixé **30 titres et 13 plateformes** dans [Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71). Les références de conception sous `contracts/demo-library-01/` et `docs/architecture/` contiennent métadonnées, médias projetés, scénarios IDEAL/CHAOS/MYSTERY et oracles arithmétiques. Le générateur DEV 1 #73 attend son alignement sur cette version canonique.
