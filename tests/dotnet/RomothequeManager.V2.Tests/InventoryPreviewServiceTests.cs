@@ -16,7 +16,7 @@ public sealed class InventoryPreviewServiceTests
     public async Task P01_FolderSelectionDoesNotScanAndConsentIsRequired()
     {
         await using var service = new InventoryPreviewService();
-        var selected = service.PrepareSelection(UncreatedPath, new InventoryScope(UncreatedPath));
+        var selected = service.PrepareSelection(new InventoryScope(UncreatedPath));
         Assert.IsTrue(selected.Accepted);
         Assert.AreEqual(InventoryRunPhase.Ready, service.State.Phase);
         Assert.IsNull(service.State.LastAttempt);
@@ -30,7 +30,7 @@ public sealed class InventoryPreviewServiceTests
     public async Task P02_CancelPreservesPreviousCompleteAndDoesNotFabricateTotal()
     {
         await using var service = new InventoryPreviewService();
-        var sel = service.PrepareSelection(UncreatedPath, new InventoryScope(UncreatedPath));
+        var sel = service.PrepareSelection(new InventoryScope(UncreatedPath));
         var first = service.StartConfirmedScanAsync(new(sel.SelectionVersion, true));
         var concurrentWasRejected = false;
         try { await service.StartConfirmedScanAsync(new(sel.SelectionVersion, true)); }
@@ -55,7 +55,7 @@ public sealed class InventoryPreviewServiceTests
     public async Task P03_OfflineAndStaleAreDistinctFromScanStatus()
     {
         await using var service = new InventoryPreviewService();
-        var selected = service.PrepareSelection(UncreatedPath, new InventoryScope(UncreatedPath));
+        var selected = service.PrepareSelection(new InventoryScope(UncreatedPath));
         Assert.IsTrue(service.SelectPreviewOutcome(InventoryPreviewOutcome.Offline));
         var offlineRun = service.StartConfirmedScanAsync(new(selected.SelectionVersion, true));
         var offline = await offlineRun;

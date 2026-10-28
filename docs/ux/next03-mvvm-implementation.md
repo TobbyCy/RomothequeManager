@@ -22,3 +22,8 @@ Tests en mémoire : InventoryViewModelTests (confirmation requise, commande, Inc
 Recette Windows humaine et E2E du vrai service : **NOT_EXECUTED** dans ce lot, notamment souris/clavier, Tab/Shift+Tab, DPI 125–200 %, 760×480 et 1120×720, fermeture pendant scan, vrai .m3u, IDEAL/CHAOS/MYSTERY matérialisés. Les cas NX03-01..11 et NX03-RACE-01 de #82 exigent le service DEV 1 intégré et preuves distinctes ; NX03-16 reste BLOCKED pour vraie bibliothèque.
 
 CommunityToolkit.Mvvm 8.4.2 reste évalué mais NON installé : commandes BCL pour conserver locks, notices et distribution inchangés jusqu'à la revue des dépendances. Aucune refonte visuelle #78, fusion, Release ou scan réel.
+
+
+### Alignement de la signature DEV 1 (#85)
+
+Le service DEV 1 de la PR #85 a été inspecté : il expose PrepareSelection(InventoryScope selectedScope), et non deux arguments séparés. La fondation de #86 et le simulateur utilisent désormais exactement cette signature ; les autres membres State, StateChanged, StartConfirmedScanAsync, RequestCancellation, ClearSelection, DisposeAsync et les records de base restent compatibles. Le simulateur ne fait toujours aucune lecture de dossier, contrairement au préflight borné du vrai service. Les déclarations provisoires devront être retirées lors du raccordement final afin de ne conserver qu'une seule interface.

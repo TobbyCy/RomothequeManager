@@ -59,7 +59,7 @@ public partial class InventoryPreviewWindow : Window
             var path = folder.Path.LocalPath;
             // The VM delegates syntax validation to preview service, and DEV 1
             // will later own bounded preflight / fixture-only authority.
-            _vm.PrepareSelectedFolder(path, new InventoryScope(path));
+            _vm.PrepareSelectedFolder(new InventoryScope(path));
         }
         catch (Exception exception) when (exception is UnauthorizedAccessException or
             ArgumentException or IOException or InvalidOperationException)

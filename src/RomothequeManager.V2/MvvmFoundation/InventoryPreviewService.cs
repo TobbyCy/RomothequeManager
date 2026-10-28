@@ -32,15 +32,15 @@ internal sealed class InventoryPreviewService : IInventoryApplicationService
         }
     }
 
-    public InventorySelectionResult PrepareSelection(string root, InventoryScope settings)
+    public InventorySelectionResult PrepareSelection(InventoryScope settings)
     {
+        var root = settings.LibraryRoot;
         // Pure *syntax* validation. Even Directory.Exists would access a real
         // library, which this preview is prohibited from doing.
         if (string.IsNullOrWhiteSpace(root) || !Path.IsPathFullyQualified(root) ||
             root.Contains("://", StringComparison.Ordinal) ||
             root.StartsWith(@"\\", StringComparison.Ordinal) ||
-            root.StartsWith("//", StringComparison.Ordinal) ||
-            !string.Equals(root, settings.LibraryRoot, StringComparison.Ordinal))
+            root.StartsWith("//", StringComparison.Ordinal))
             return new(false, "SIMULATION_LOCAL_PATH_REQUIRED", State.SelectionVersion);
 
         InventoryApplicationState next;

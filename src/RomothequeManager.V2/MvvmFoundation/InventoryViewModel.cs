@@ -129,11 +129,11 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
 
     // Called ONLY after a native picker returned a candidate. The service checks the root,
     // without enumerating ROMS until separate consent. Reject preserves previous selection.
-    public InventorySelectionResult PrepareSelectedFolder(string path, InventoryScope scope)
+    public InventorySelectionResult PrepareSelectedFolder(InventoryScope scope)
     {
         if (!CanChangeFolder)
             return new(false, "SCAN_RUNNING", _latestVersion);
-        var result = _service.PrepareSelection(path, scope);
+        var result = _service.PrepareSelection(scope);
         if (result.Accepted)
         {
             _latestVersion = Math.Max(_latestVersion, result.SelectionVersion);

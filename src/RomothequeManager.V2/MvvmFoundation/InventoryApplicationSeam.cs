@@ -30,7 +30,7 @@ public interface IInventoryApplicationService : IAsyncDisposable
     InventoryApplicationState State { get; }
     event EventHandler<InventoryApplicationState>? StateChanged;
 
-    InventorySelectionResult PrepareSelection(string selectedLocalRoot, InventoryScope settings);
+    InventorySelectionResult PrepareSelection(InventoryScope selectedScope);
     Task<InventoryApplicationState> StartConfirmedScanAsync(
         InventoryRunRequest request, CancellationToken cancellationToken = default);
     bool RequestCancellation();
