@@ -1,0 +1,141 @@
+name: LIBRARY-UX-02 / Windows synthetic UI proof
+on:
+  push:
+    branches: [dev3/library-ux-02]
+permissions:
+  contents: read
+concurrency:
+  group: library-ux02-windows
+  cancel-in-progress: true
+jobs:
+  windows-visual:
+    name: Real Avalonia scenarios, frozen source and temporary owner ZIP
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.actor == 'TobbyCy' && github.ref == 'refs/heads/dev3/library-ux-02'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact head, no persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Require exact source and locked .NET SDK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne '${{ github.sha }}') { throw 'LIBRARY_UX02_SOURCE_MISMATCH' }
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Restore, run all tests and publish Windows UI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'LIBRARY_UX02_RESTORE_TESTS_FAILED' }
+          dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'LIBRARY_UX02_TESTS_FAILED' }
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'LIBRARY_UX02_RESTORE_WINDOWS_FAILED' }
+          $out = Join-Path $env:RUNNER_TEMP 'library-ux02-publish'
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $out
+          if ($LASTEXITCODE -ne 0) { throw 'LIBRARY_UX02_PUBLISH_FAILED' }
+          foreach ($f in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll','RM_V2_Favicon.ico','RM_V2_Horizontal_Fond_Sombre.png')) {
+            if (-not (Test-Path (Join-Path $out $f) -PathType Leaf)) { throw ('LIBRARY_UX02_ASSET_MISSING:' + $f) }
+          }
+          $bytes = [IO.File]::ReadAllBytes((Join-Path $out 'RomothequeManager.V2.exe'))
+          $offset = [BitConverter]::ToInt32($bytes, 60)
+          if ([BitConverter]::ToUInt16($bytes, $offset + 24 + 68) -ne 2) { throw 'LIBRARY_UX02_NOT_WINEXE' }
+          Write-Host ('LIBRARY_UX02_PUBLISH_PASS source=' + '${{ github.sha }}')
+      - name: Capture five attached Avalonia scenario screens on Windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $env:RUNNER_TEMP 'library-ux02-publish/RomothequeManager.V2.exe'
+          $info = [Diagnostics.ProcessStartInfo]::new()
+          $info.FileName = $exe
+          $info.Arguments = '--ci-library-ux02-capture'
+          $info.WorkingDirectory = Split-Path $exe
+          $info.UseShellExecute = $false
+          $p = [Diagnostics.Process]::Start($info)
+          if ($null -eq $p) { throw 'LIBRARY_UX02_PROCESS_NOT_STARTED' }
+          try {
+            if (-not $p.WaitForExit(100000)) { $p.Kill(); throw 'LIBRARY_UX02_CAPTURE_TIMEOUT' }
+            if ($p.ExitCode -ne 0) { throw ('LIBRARY_UX02_CAPTURE_FAILED:' + $p.ExitCode) }
+          } finally { $p.Dispose() }
+          $dir = Join-Path $env:RUNNER_TEMP 'library-ux02'
+          $images = @(Get-ChildItem -LiteralPath $dir -Filter '*.png' -File)
+          if ($images.Count -ne 5) { throw ('LIBRARY_UX02_PNG_COUNT:' + $images.Count) }
+          Add-Type -AssemblyName System.Drawing
+          foreach ($f in $images) {
+            $bmp = [Drawing.Bitmap]::FromFile($f.FullName)
+            try {
+              if ($bmp.Width -lt 760 -or $bmp.Height -lt 480 -or $f.Length -lt 4000) { throw ('LIBRARY_UX02_INVALID_PNG:' + $f.Name) }
+            } finally { $bmp.Dispose() }
+          }
+          Write-Host ('LIBRARY_UX02_WINDOWS_CAPTURE_PASS source=' + '${{ github.sha }}' + ' count=5')
+      - name: Package ZIP in quarantine, verify files and manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'library-ux02-publish'
+          $dir = Join-Path $env:RUNNER_TEMP 'library-ux02'
+          $verify = Join-Path $env:RUNNER_TEMP 'library-ux02-verify'
+          New-Item -ItemType Directory -Path $verify -Force | Out-Null
+          $inventory = 'docs/developer/lic-zip-01-inventory.md'
+          if (-not (Select-String -LiteralPath $inventory -Pattern 'LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED' -Quiet)) { throw 'LIBRARY_UX02_LICENCE_HOLD' }
+          foreach ($f in @('LICENSE','LEGAL.md','BRANDING.md')) { Copy-Item -LiteralPath $f -Destination $out }
+          Copy-Item -LiteralPath 'packaging/THIRD-PARTY-NOTICES.txt' -Destination (Join-Path $out 'THIRD-PARTY-NOTICES.txt')
+          Copy-Item -LiteralPath $inventory -Destination (Join-Path $out 'THIRD-PARTY-INVENTORY.md')
+          Copy-Item -LiteralPath 'packaging/licenses' -Destination (Join-Path $out 'licenses') -Recurse
+          $guide = @'
+          LIBRARY-UX-02 — RECETTE WINDOWS / DEMONSTRATION FICTIVE
+          1. Decompresser le ZIP. Demarrer RomothequeManager.V2.exe.
+          2. Mode Demonstration -> Bibliotheques & supports -> IDEAL, CHAOS, MYSTERY.
+          3. IDEAL/CHAOS : Dashboard -> Collection -> Fiche -> Retour ; media du contrat NON decodes.
+          4. MYSTERY : INCONNU, aucun jeu identifie, aucune fiche.
+          5. Choisir une racine de fixture DEMO-01 ES-DE en lecture seule pour les medias reels.
+          6. Tester sur Windows 1120x720 et 760x480, hors ligne, clavier, scroll.
+          7. Rapporter PASS/FAIL et captures sur la PR Draft. Aucune ROM reelle, aucune Release.
+          '@
+          [IO.File]::WriteAllText((Join-Path $out 'GUIDE-LIBRARY-UX02.txt'),$guide,[Text.UTF8Encoding]::new($false))
+          $manifest = [ordered]@{
+            sourceCommit='${{ github.sha }}';runtime='win-x64';selfContained=$true
+            syntheticOnly=$true;release=$false;scenarioContract='demo-library-01/1'
+          }
+          ($manifest | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $out 'LIBRARY-UX02-MANIFEST.json') -Encoding utf8
+          $files = @(Get-ChildItem -LiteralPath $out -Recurse -File)
+          foreach ($f in $files) {
+            if (@('.gba','.rom','.chd','.iso','.cue','.m3u','.sav','.nsp','.xci','.wad','.pfx','.pem','.key') -contains $f.Extension.ToLowerInvariant()) {
+              throw ('LIBRARY_UX02_FORBIDDEN_FILE:' + $f.Name)
+            }
+          }
+          $zip = Join-Path $dir ('RomothequeManager-LIBRARY-UX02-win-x64-' + '${{ github.sha }}'.Substring(0,8) + '.zip')
+          Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText(($zip + '.sha256'),($hash + '  ' + [IO.Path]::GetFileName($zip) + [Environment]::NewLine),[Text.Encoding]::ASCII)
+          Expand-Archive -LiteralPath $zip -DestinationPath $verify -Force
+          if (@(Get-ChildItem -LiteralPath $verify -Recurse -File).Count -ne $files.Count) { throw 'LIBRARY_UX02_ZIP_COUNT_MISMATCH' }
+          foreach ($f in $files) {
+            $rel = $f.FullName.Substring($out.Length + 1)
+            $copy = Join-Path $verify $rel
+            if (-not (Test-Path -LiteralPath $copy -PathType Leaf) -or
+                (Get-FileHash $copy -Algorithm SHA256).Hash -cne (Get-FileHash $f.FullName -Algorithm SHA256).Hash) { throw ('LIBRARY_UX02_ZIP_FILE_MISMATCH:' + $rel) }
+          }
+          $m = Get-Content -LiteralPath (Join-Path $verify 'LIBRARY-UX02-MANIFEST.json') -Raw | ConvertFrom-Json
+          if ($m.sourceCommit -cne '${{ github.sha }}' -or $m.release -or -not $m.syntheticOnly) { throw 'LIBRARY_UX02_ZIP_SOURCE_MISMATCH' }
+          Write-Host ('LIBRARY_UX02_ZIP_VERIFIED_PASS source=' + '${{ github.sha }}' + ' sha256=' + $hash + ' files=' + $files.Count + ' sizeBytes=' + (Get-Item $zip).Length)
+      - name: Upload temporary PNG captures and ZIP for owner only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: LIBRARY-UX02-Windows-Recipe
+          path: |
+            ${{ runner.temp }}/library-ux02/*.png
+            ${{ runner.temp }}/library-ux02/*.zip
+            ${{ runner.temp }}/library-ux02/*.zip.sha256
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6
