@@ -104,7 +104,9 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     public string LatestAttemptText => LastAttempt is null
         ? "Dernière tentative : aucune"
         : "Dernière tentative : " + LastAttempt.ScanStatus + " · " +
-            LastAttempt.CapturedAtUtc.ToString("u") + " · ROMS uniquement";
+            LastAttempt.CapturedAtUtc.ToString("u") + " · ROMS uniquement · " +
+            "Disponibilité à la capture : " + LastAttempt.Availability +
+            " · Fraîcheur à la capture : " + LastAttempt.Freshness;
     public string EmptyObservationsText => Observations.Count == 0
         ? DisplayedSnapshot is null ? "Aucun inventaire disponible. Aucune donnée n'a été observée." :
             DisplayedSnapshot.ScanStatus == InventoryScanStatus.Failed

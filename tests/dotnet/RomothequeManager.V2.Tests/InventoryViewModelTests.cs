@@ -270,6 +270,7 @@ public sealed class InventoryViewModelTests
         await second;
         Assert.AreSame(complete, vm.DisplayedSnapshot);
         Assert.IsTrue(vm.LatestAttemptText.Contains("Failed", StringComparison.Ordinal));
+        Assert.IsTrue(vm.LatestAttemptText.Contains("Disponibilité à la capture : Offline", StringComparison.Ordinal));
         Assert.IsTrue(vm.DisplayedGenerationText.Contains("complet", StringComparison.Ordinal));
         vm.ShowAttempt();
         Assert.AreSame(failed, vm.DisplayedSnapshot);

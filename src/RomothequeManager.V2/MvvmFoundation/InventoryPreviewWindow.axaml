@@ -77,9 +77,9 @@
           <TextBlock Text="{Binding IdentifiedGamesText}" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding SourceLabel}" TextWrapping="Wrap"/>
           <WrapPanel>
-            <TextBlock Text="Disponibilité : " Margin="0,0,5,4"/>
+            <TextBlock Text="Disponibilité à la capture : " Margin="0,0,5,4"/>
             <TextBlock Text="{Binding AvailabilityText}" Margin="0,0,20,4"/>
-            <TextBlock Text="Fraîcheur : " Margin="0,0,5,4"/>
+            <TextBlock Text="Fraîcheur à la capture : " Margin="0,0,5,4"/>
             <TextBlock Text="{Binding FreshnessText}" Margin="0,0,8,4"/>
           </WrapPanel>
           <TextBlock Text="Portées réellement couvertes PAR LA SIMULATION :" TextWrapping="Wrap"/>
