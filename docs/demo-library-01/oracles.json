@@ -1,0 +1,129 @@
+{
+  "syntheticOnly": true,
+  "referenceDate": "2026-10-28",
+  "status": "FORMAT_CANDIDATE_DEV1_ACK_PENDING",
+  "schemaVersion": "demo-library-01/oracles/0.1-candidate",
+  "testState": "NOT_EXECUTED",
+  "referenceIds": [
+    "demo01-001",
+    "demo01-002",
+    "demo01-003",
+    "demo01-004",
+    "demo01-005",
+    "demo01-006",
+    "demo01-007",
+    "demo01-008",
+    "demo01-009",
+    "demo01-010",
+    "demo01-011",
+    "demo01-012",
+    "demo01-013",
+    "demo01-014",
+    "demo01-015",
+    "demo01-016",
+    "demo01-017",
+    "demo01-018",
+    "demo01-019",
+    "demo01-020",
+    "demo01-021",
+    "demo01-022",
+    "demo01-023",
+    "demo01-024",
+    "demo01-025",
+    "demo01-026",
+    "demo01-027",
+    "demo01-028",
+    "demo01-029",
+    "demo01-030"
+  ],
+  "totalPlannedMediaSlots": 166,
+  "counts": {
+    "IDEAL": {
+      "canonicalGameIds": 30,
+      "romEntrypointFiles": 30,
+      "discFiles": 2,
+      "romsPhysicalFiles": 32,
+      "esDeReferencedGames": 30,
+      "mediaFiles": 166,
+      "missingXmlReferencedRom": 0,
+      "missingDiscMembers": 0,
+      "completeScopeFileCount": 32,
+      "confirmedLogicalGames": null,
+      "scanStatus": "COMPLETE"
+    },
+    "CHAOS": {
+      "canonicalGameIds": 30,
+      "romEntrypointFiles": 29,
+      "discFiles": 1,
+      "romsPhysicalFiles": 30,
+      "esDeReferencedGames": 24,
+      "mediaFiles": 160,
+      "missingXmlReferencedRom": 1,
+      "missingDiscMembers": 1,
+      "completeScopeFileCount": 30,
+      "confirmedLogicalGames": null,
+      "scanStatus": "COMPLETE"
+    },
+    "MYSTERY": {
+      "canonicalGameIds": 30,
+      "romEntrypointFiles": 30,
+      "discFiles": 2,
+      "romsPhysicalFiles": 32,
+      "esDeReferencedGames": 0,
+      "mediaFiles": 12,
+      "missingXmlReferencedRom": 0,
+      "missingDiscMembers": 0,
+      "completeScopeFileCount": 32,
+      "confirmedLogicalGames": null,
+      "scanStatus": "COMPLETE"
+    }
+  },
+  "expectedDiagnostics": {
+    "IDEAL": [],
+    "CHAOS": [
+      "ROM_MISSING:demo01-027",
+      "DISC_MISSING:demo01-016-disc2",
+      "MEDIA_MISSING:demo01-002-front",
+      "MEDIA_MISSING:demo01-005-logo"
+    ],
+    "MYSTERY": [
+      "ES_DE_XML_ABSENT_IF_IMPORT_ATTEMPTED"
+    ]
+  },
+  "expectedRules": [
+    "30 stable canonical demoId values in every variant; independently generated EsDeGameId values are not cross-variant stable.",
+    "IDEAL 32 ROMS files = 29 ordinary entrypoints + 1 playlist + 2 discs; 30 ES-DE game entries.",
+    "CHAOS 30 ROMS files = 28 ordinary entrypoints + 1 playlist + 1 disc; 24 ES-DE references. Missing main entrypoint or disc does not prove deletion.",
+    "MYSTERY 32 ROMS files and NO XML; ES-DE reader may reject import but NEXT-02 scanner remains independent.",
+    "Complete scope inventory counts files only: ConfirmedGameCount is null even when reference manifest declares 30 games.",
+    "Night Shift: demo01-023 (GB) and demo01-024 (Mega Drive) remain distinct logical identities.",
+    "Clockwork Snooze: 1 logical reference, playlist and two member files. No 3-game inference.",
+    "Missing media in CHAOS: 6 planned assets not materialized; only media kinds front/thumbnail/logo can be exposed through current ES-DE fields.",
+    "No joins inferred between variants from filename, platform, description, media similarity, file size or region. Only reference oracle demoId gives true mapping.",
+    "A blank XML metadata source is unknown game classification, not zero total games or deleted files; snapshots PARTIAL/FAILED never rewrite prior complete.",
+    "No scenario authorizes scan of real ROMs, commercial artwork reuse, write, upload, scraper, export or Release."
+  ],
+  "crossScenario": [
+    {
+      "left": "IDEAL",
+      "right": "CHAOS",
+      "oracleIdsInCommon": 30,
+      "unknownAutomaticMatches": true,
+      "knownMissingRomIds": [
+        "demo01-027"
+      ],
+      "knownMissingDiscGameIds": [
+        "demo01-016"
+      ],
+      "autoDeletedCount": null
+    },
+    {
+      "left": "IDEAL",
+      "right": "MYSTERY",
+      "oracleIdsInCommon": 30,
+      "unknownAutomaticMatches": true,
+      "metadataMissing": true,
+      "autoDeletedCount": null
+    }
+  ]
+}
