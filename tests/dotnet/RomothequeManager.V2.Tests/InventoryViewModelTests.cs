@@ -37,6 +37,7 @@ public sealed class InventoryViewModelTests
         var fake = new FakeInventoryService();
         using var vm = new InventoryViewModel(fake, action => action());
         vm.PrepareSelectedFolder(@"C:\fixture-synthetic", Scope());
+        vm.ConsentConfirmed = true;
         int canExecuteEvents = 0;
         vm.StartInventoryCommand.CanExecuteChanged += (_, _) => canExecuteEvents++;
         var running = vm.StartConfirmedAsync();
@@ -62,6 +63,7 @@ public sealed class InventoryViewModelTests
         var fake = new FakeInventoryService();
         using var vm = new InventoryViewModel(fake, action => action());
         vm.PrepareSelectedFolder(@"C:\fixture-synthetic", Scope());
+        vm.ConsentConfirmed = true;
         var first = vm.StartConfirmedAsync();
         var complete = Snapshot("old", InventoryScanStatus.Complete, 1);
         fake.Complete(complete, complete);
@@ -92,6 +94,7 @@ public sealed class InventoryViewModelTests
         var fake = new FakeInventoryService();
         using var vm = new InventoryViewModel(fake, action => action());
         vm.PrepareSelectedFolder(@"C:\fixture-synthetic", Scope());
+        vm.ConsentConfirmed = true;
         var running = vm.StartConfirmedAsync();
         var mystery = Snapshot("mystery", InventoryScanStatus.Complete, 32);
         fake.Complete(mystery, mystery);
@@ -113,6 +116,7 @@ public sealed class InventoryViewModelTests
         var pending = new Queue<Action>();
         using var vm = new InventoryViewModel(fake, action => pending.Enqueue(action));
         vm.PrepareSelectedFolder(@"C:\fixture-synthetic", Scope());
+        vm.ConsentConfirmed = true;
         var stale = fake.State;
         var running = vm.StartConfirmedAsync();
         var complete = Snapshot("a", InventoryScanStatus.Complete, 1);
@@ -137,6 +141,7 @@ public sealed class InventoryViewModelTests
         var fake = new FakeInventoryService();
         using var vm = new InventoryViewModel(fake, action => action());
         vm.PrepareSelectedFolder(@"C:\fixture-synthetic", Scope());
+        vm.ConsentConfirmed = true;
         var running = vm.StartConfirmedAsync();
         var failed = Snapshot("failed", InventoryScanStatus.Failed, 0);
         fake.Complete(null, failed);
@@ -153,6 +158,7 @@ public sealed class InventoryViewModelTests
         var fake = new FakeInventoryService { ThrowOnStart = true };
         using var vm = new InventoryViewModel(fake, action => action());
         vm.PrepareSelectedFolder(@"C:\fixture-synthetic", Scope());
+        vm.ConsentConfirmed = true;
         await vm.StartConfirmedAsync();
         Assert.IsNull(vm.Current);
         Assert.IsNull(vm.LastAttempt);
@@ -166,6 +172,7 @@ public sealed class InventoryViewModelTests
         var fake = new FakeInventoryService();
         var vm = new InventoryViewModel(fake, action => action());
         vm.PrepareSelectedFolder(@"C:\fixture-synthetic", Scope());
+        vm.ConsentConfirmed = true;
         fake.RejectNextSelection = true;
         var rejected = vm.PrepareSelectedFolder(@"\\remote\share", Scope());
         Assert.IsFalse(rejected.Accepted);
