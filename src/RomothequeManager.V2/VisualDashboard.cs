@@ -44,6 +44,10 @@ public static class SidebarNavigationPalette
 /// </summary>
 public static class VisualDashboard
 {
+    // Window-width threshold is deliberately based on logical pixels, not
+    // screenshot pixel scaling. Compact content stacks at 760 px.
+    public static bool IsCompact(double windowWidth) => windowWidth < 1000;
+
     private static readonly IBrush Card = Solid("#23262B");
     private static readonly IBrush BorderInk = Solid("#393C42");
     private static readonly IBrush Primary = Solid("#E8E6E3");

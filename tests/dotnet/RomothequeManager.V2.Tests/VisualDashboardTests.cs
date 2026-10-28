@@ -99,4 +99,14 @@ public sealed class VisualDashboardTests
         return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
     }
 
+
+    [TestMethod]
+    public void ResponsiveBreakpointUsesLogicalWindowSize()
+    {
+        Assert.IsTrue(VisualDashboard.IsCompact(760));
+        Assert.IsTrue(VisualDashboard.IsCompact(999));
+        Assert.IsFalse(VisualDashboard.IsCompact(1000));
+        Assert.IsFalse(VisualDashboard.IsCompact(1120));
+    }
+
 }

@@ -247,7 +247,7 @@ public sealed partial class MainWindow : Window
             _state.Catalogue, _libraryProjection,
             () => Navigate(POCView.Collection),
             () => Navigate(POCView.Libraries),
-            Width < 1000))
+            VisualDashboard.IsCompact(Width)))
             _page.Children.Add(section);
     }
 

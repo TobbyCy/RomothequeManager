@@ -134,7 +134,7 @@ public sealed partial class MainWindow
             snapshot, game => CoverFor(game, 65, 77),
             () => Navigate(POCView.Collection),
             () => Navigate(POCView.Libraries),
-            Width < 1000))
+            VisualDashboard.IsCompact(Width)))
             _page.Children.Add(section);
     }
 
