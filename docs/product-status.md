@@ -1,5 +1,11 @@
 # État des fonctionnalités
 
+## NEXT-03 — backend applicatif seul (PR Draft #85, pas de parcours UI raccordé)
+
+Le service `RomothequeManager.V2.Inventory.Application.IInventoryApplicationService` est implémenté dans **le projet Avalonia existant** mais **ne dépend d'aucune API Avalonia ou MVVM**. Il orchestre exclusivement `InventorySession.Scan(CancellationToken)`, avec sélection locale explicitement consentie, tâche asynchrone, annulation, single-flight, dernière génération complète `Current`, dernière tentative `LastAttempt` et projections d'état sans inférence. `InventorySnapshot` couvre uniquement les fichiers `ROMS/`, **pas les jeux confirmés ni les médias ES-DE**.
+
+Le constructeur public **refuse tout scan réel** ; seule l'assembly MSTest du dépôt peut autoriser ses propres racines synthétiques. L'écran Avalonia et le ViewModel NEXT-03 sont **non raccordés**, les PR #75/#76/#77 restent indépendantes, `NX03-16` scan réel HOLD. [Contrat API et tests](architecture/next03-backend-service.md). Aucune fusion ni Release.
+
 ## DEMO-LIBRARY-01 — catalogue canonique candidat (PR Draft #72, sans effet produit)
 
 La [PR #72](https://github.com/TobbyCy/RomothequeManager/pull/72) documente **30 jeux entièrement fictifs, sur les 13 plateformes corrigées par le propriétaire** ([Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71), notamment Xbox, PS2, PS3, PS4, PC et DOS) ; catalogue de référence `contracts/demo-library-01/`, contrat et briefs sous `docs/architecture/`, variantes IDEAL/CHAOS/MYSTERY et oracles non exécutés. DEV 1 aligne son générateur [#73](https://github.com/TobbyCy/RomothequeManager/pull/73) sur cette source. **Aucune ROM, PNG, XML, bibliothèque générée ou fonctionnalité UI livrée par #72 ; aucun changement à l'intégration NEXT-01.**
