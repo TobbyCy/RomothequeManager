@@ -1,5 +1,12 @@
 # État des fonctionnalités
 
+## LIBRARY-UX-02 — parcours de bibliothèques (PR Draft #77, 28.10.2026)
+
+- Nouvelle expérience Avalonia Darcula Retro **uniquement de présentation** : choix IDEAL / CHAOS / MYSTERY, Dashboard → Collection → Fiche, recherche dans la sélection et retour. Aucune lecture de ROM, collecte réseau, modification physique ou nouveau moteur.
+- Prévisualisations IDEAL/CHAOS basées sur les contrats canoniques **fictifs** intégrés à l'assembly ; tous les chiffres et médias affichés sont des attentes de scénario, non des constatations de fichier. MYSTERY **ne révèle ni titre, ni identité, ni total de jeux confirmé** malgré l'oracle synthétique.
+- Fiche importée ES-DE : affichage local en lecture seule des jaquettes, miniatures et logos réellement référencés (avec repli manquant/illisible/inconnu). Captures/dos/fonds hors contrat d'import restent sans aperçu inventé. Pagination désactivée si une seule page.
+- Capture réelle de cinq vues Avalonia sur runner Windows et ZIP temporaire autonome vérifié par SHA, sans Release, dans un workflow strictement limité à la branche DEV 3. Recette Windows et GO propriétaire **restent obligatoires** avant merge. [Procédure LIBRARY-UX-02](ux/library-ux-02.md).
+
 ## DEMO-LIBRARY-01 — catalogue canonique candidat (PR Draft #72, sans effet produit)
 
 La [PR #72](https://github.com/TobbyCy/RomothequeManager/pull/72) documente **30 jeux entièrement fictifs, sur les 13 plateformes corrigées par le propriétaire** ([Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71), notamment Xbox, PS2, PS3, PS4, PC et DOS) ; catalogue de référence `contracts/demo-library-01/`, contrat et briefs sous `docs/architecture/`, variantes IDEAL/CHAOS/MYSTERY et oracles non exécutés. DEV 1 aligne son générateur [#73](https://github.com/TobbyCy/RomothequeManager/pull/73) sur cette source. **Aucune ROM, PNG, XML, bibliothèque générée ou fonctionnalité UI livrée par #72 ; aucun changement à l'intégration NEXT-01.**
