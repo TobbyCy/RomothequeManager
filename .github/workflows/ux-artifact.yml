@@ -25,12 +25,12 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 1
-          ref: cc35abf70acc12120f7617f8e5ab0a8ea84b8801
+          ref: e775cdd64522d45ee2fb848df232fa1f19023326
       - name: Verify exact PR64 source commit
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $expected = 'cc35abf70acc12120f7617f8e5ab0a8ea84b8801'
+          $expected = 'e775cdd64522d45ee2fb848df232fa1f19023326'
           if ((git rev-parse HEAD).Trim() -cne $expected) { throw 'UX_RECIPE_SOURCE_SHA_MISMATCH' }
           if ((git status --porcelain --untracked-files=no).Count -ne 0) { throw 'UX_RECIPE_TRACKED_WORKTREE_DIRTY' }
           Write-Host ('UX_RECIPE_FROZEN_SOURCE=' + $expected)
@@ -43,7 +43,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $source = 'cc35abf70acc12120f7617f8e5ab0a8ea84b8801'
+          $source = 'e775cdd64522d45ee2fb848df232fa1f19023326'
           if ((dotnet --version).Trim() -cne '10.0.401') { throw 'UX_RECIPE_SDK_PIN_MISMATCH' }
           $inventory = 'docs/developer/lic-zip-01-inventory.md'
           if (-not (Select-String -LiteralPath $inventory -Pattern '^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED\r?$' -Quiet)) { throw 'UX_RECIPE_LEGAL_APPROVAL_REQUIRED' }
@@ -113,16 +113,19 @@ jobs:
           [IO.File]::WriteAllText((Join-Path $mediaDir 'metadata/es-de-gamelist.xml'),$xml,[Text.UTF8Encoding]::new($false))
           $guide = @'
           ROMOTHEQUE — RECETTE UX FICTIVE / PR #64
-          1. Decompresser le ZIP sous Windows x64, lancer RomothequeManager.V2.exe.
+          1. Decompresser le ZIP sous Windows x64 puis DOUBLE-CLIQUER RomothequeManager.V2.exe.
+             PASS : fenetre ROMotheque Manager seule ; PAS de console noire.
           2. Au depart : mode demonstration. Cliquer « Choisir une bibliotheque ES-DE ».
           3. Selectionner le dossier « fixture » (ROMS et MEDIAS), jamais une collection personnelle.
-          4. Dashboard : 4 jeux fictifs ; Collection : deux titres identiques, jaquette repli image vers miniature,
-             jaquette invalide et fichier ROM introuvable clairement annonces. Tester fiche/recherche/navigation.
+          4. Dashboard : 4 jeux fictifs ; Collection : homonymes, jaquette manquante -> miniature,
+             jaquette invalide et ROM introuvable. Les diagnostics doivent etre lisibles en FRANCAIS,
+             avec points a verifier distincts des informations. Tester fiche, recherche, navigation.
           5. Bibliotheques importees : A/B desactive. Basculer en demonstration : A/B fonctionne.
              Changer de bibliotheque demo : comparaison precedente effacee.
           6. Tester Tab / Shift+Tab / Entree / Espace, scroll et fenetre 760x480 puis 1120x720.
           7. Reimport : sauvegarder le XML fictif, le remplacer provisoirement par <gameList><game>,
-             cliquer Actualiser ; erreur visible, ancien catalogue conserve ; restaurer XML, reimporter.
+             cliquer Actualiser : erreur FRANCAISE, dernier catalogue conserve, aucune source supprimee.
+             Restaurer le XML, reimporter, verifier le retour a l'etat normal.
           8. Captures reelles sous Windows, uniquement des jeux fictifs, et retour PASS/FAIL sur la PR.
           Aucun media tiers ni ROM jouable. Aucune Release ou import automatique.
           '@
@@ -134,7 +137,7 @@ jobs:
           foreach ($file in $contents) {
             if ($forbidden -ccontains $file.Extension.ToLowerInvariant()) { throw ('UX_RECIPE_FORBIDDEN_FILE:' + $file.Name) }
           }
-          $zip = Join-Path $out 'RomothequeManager-UX-PR64-win-x64-cc35abf70acc.zip'
+          $zip = Join-Path $out 'RomothequeManager-UX-PR64-win-x64-e775cdd6.zip'
           Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal -Force
           $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
           $shaFile = $zip + '.sha256'
@@ -150,6 +153,18 @@ jobs:
           }
           $m = Get-Content -LiteralPath (Join-Path $extract 'UX-MANIFEST.json') -Raw | ConvertFrom-Json
           if ($m.sourceCommit -cne $source -or -not $m.syntheticOnly -or -not $m.selfContained -or $m.expectedGameCount -ne 4) { throw 'UX_RECIPE_MANIFEST_INVALID' }
+          # Check the executable extracted from the EXACT ZIP, not a build directory.
+          # Subsystem 2 = Windows GUI. Real Explorer double-click still needs owner testing.
+          $exePath = Join-Path $extract 'RomothequeManager.V2.exe'
+          $pe = [IO.File]::ReadAllBytes($exePath)
+          $offset = [BitConverter]::ToInt32($pe,60)
+          if ($offset -lt 64 -or $offset + 96 -ge $pe.Length -or
+              [Text.Encoding]::ASCII.GetString($pe,$offset,2) -cne 'PE') { throw 'UX_RECIPE_PE_HEADER_INVALID' }
+          $magic = [BitConverter]::ToUInt16($pe,$offset+24)
+          if ($magic -ne 0x20b -and $magic -ne 0x10b) { throw 'UX_RECIPE_PE_MAGIC_INVALID' }
+          $subsystem = [BitConverter]::ToUInt16($pe,$offset+24+68)
+          if ($subsystem -ne 2) { throw ('UX_RECIPE_CONSOLE_SUBSYSTEM_FOUND:' + $subsystem) }
+          Write-Host ('UX_RECIPE_WINEXE_GUI_PASS subsystem=2 source=' + $source)
           $start = [Diagnostics.ProcessStartInfo]::new()
           $start.FileName = Join-Path $extract 'RomothequeManager.V2.exe'
           $start.Arguments = '--smoke-window'
@@ -174,10 +189,10 @@ jobs:
       - name: Upload temporary checked artifact (no release)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: UX-PR64-win-x64-cc35abf70acc
+          name: UX-PR64-win-x64-e775cdd6
           path: |
-            ${{ runner.temp }}/ux64-out/RomothequeManager-UX-PR64-win-x64-cc35abf70acc.zip
-            ${{ runner.temp }}/ux64-out/RomothequeManager-UX-PR64-win-x64-cc35abf70acc.zip.sha256
+            ${{ runner.temp }}/ux64-out/RomothequeManager-UX-PR64-win-x64-e775cdd6.zip
+            ${{ runner.temp }}/ux64-out/RomothequeManager-UX-PR64-win-x64-e775cdd6.zip.sha256
           if-no-files-found: error
           retention-days: 3
           compression-level: 0

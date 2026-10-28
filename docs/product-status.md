@@ -1,5 +1,13 @@
 # État des fonctionnalités
 
+## NEXT-01-UX — recette du ZIP corrigé PR #64
+
+- Source applicative de référence : `e775cdd64522d45ee2fb848df232fa1f19023326`, comprenant WinExe et diagnostics ES-DE francisés. La prochaine PR de packaging porte uniquement la modification du workflow, ses canaris et la documentation : le ZIP embarque exactement le source applicatif ci-dessus.
+- L'ancien artifact figé `cc35abf7` **ne valide pas** les corrections. Le nouveau workflow conserve toutes les barrières de licence, source, SHA-256, interdiction de ROMs et timeout du smoke. Vérification ajoutée : PE subsystem Windows GUI = 2, sur le .exe du ZIP extrait.
+- Recette Windows Tobby : double-clic EXE, absence de console, import de fixture fictive et messages FR ROM/média absents, XML volontairement malformé puis reimport/reprise non destructive. Résultat manuel à reporter à la PR.
+- Publication ZIP temporaire sous GitHub Actions seulement : **aucune Release**, aucune bibliothèque réelle, aucun GO de merge présumé.
+
+
 ## NEXT-01-UX-FIX — correction suite à recette Windows (PR #64, 28 octobre 2026)
 
 - L'exécutable Avalonia de la PR est configuré en `WinExe`, pour ouvrir la fenêtre sans console au double-clic sous Windows. Le mode `--smoke-window` reste le contrôle automatisé de lancement ; la validation interactive de l'affichage relève de Tobby.

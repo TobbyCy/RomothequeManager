@@ -870,11 +870,15 @@ class Pr64UxArtifactPolicyTests(unittest.TestCase):
         self.assertIn("github.event.pull_request.number == 64", workflow)
         self.assertIn("github.actor == 'TobbyCy'", workflow)
         self.assertIn("github.event.pull_request.head.repo.full_name == 'TobbyCy/RomothequeManager'", workflow)
-        self.assertIn("ref: cc35abf70acc12120f7617f8e5ab0a8ea84b8801", workflow)
+        self.assertIn("ref: e775cdd64522d45ee2fb848df232fa1f19023326", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("retention-days: 3", workflow)
         self.assertIn("if-no-files-found: error", workflow)
         self.assertIn("UX_RECIPE_LEGAL_APPROVAL_REQUIRED", workflow)
+        self.assertIn("UX_RECIPE_WINEXE_GUI_PASS", workflow)
+        self.assertIn("UX_RECIPE_CONSOLE_SUBSYSTEM_FOUND", workflow)
+        self.assertNotIn("cc35abf70acc12120f7617f8e5ab0a8ea84b8801", workflow)
+        self.assertIn("UX-PR64-win-x64-e775cdd6", workflow)
         self.assertIn("UX_RECIPE_FILE_HASH_MISMATCH", workflow)
         self.assertIn("UX_RECIPE_FORBIDDEN_FILE", workflow)
         self.assertIn("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", workflow)
@@ -889,7 +893,7 @@ class Pr64UxArtifactPolicyTests(unittest.TestCase):
     def test_workflow_refuses_unreviewed_source_and_upload_gating_changes(self):
         workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/ux-artifact.yml").read_text(encoding="utf-8")
         for replacement, sentinel in (
-            ("ref: main", "ref: cc35abf70acc12120f7617f8e5ab0a8ea84b8801"),
+            ("ref: main", "ref: e775cdd64522d45ee2fb848df232fa1f19023326"),
             ("retention-days: 90", "retention-days: 3"),
             ("if-no-files-found: warn", "if-no-files-found: error"),
         ):

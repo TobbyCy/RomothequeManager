@@ -1,5 +1,12 @@
 # Journal des changements
 
+## En cours — NEXT-01-UX / ZIP corrigé WinExe (28 octobre 2026)
+
+- Recette UX-ARTIFACT-CI désormais **figée sur le source correctif `e775cdd64522d45ee2fb848df232fa1f19023326`**, et non plus l'ancien SHA `cc35abf7`. Les garde-fous PR #64 / acteur propriétaire / droits read-only / fixture fictive restent intacts.
+- ZIP autonome win-x64, licences et fichier .sha256, vérification à l'extraction, smoke et inspection PE du **sous-système Windows GUI** sur l'exécutable extrait. Guide Tobby actualisé : double-clic sans console et diagnostics d'import en français.
+- CI et artifact Actions requis avant livraison. Aucun merge, Release ou scan réel.
+
+
 ## En cours — NEXT-01-UX-FIX / PR #64 (28 octobre 2026)
 
 - Recette Windows propriétaire : l'exécutable Avalonia devient une application graphique `WinExe` pour éviter la console ouverte au double-clic. Le smoke Windows automatisé reste requis dans la CI.
