@@ -172,7 +172,7 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.IsFalse(state.TryImport(_root));
         Assert.IsFalse(state.IsImported);
         Assert.IsNull(state.Snapshot);
-        Assert.IsTrue(state.ErrorMessage!.Contains("InvalidDataException", StringComparison.Ordinal));
+        Assert.IsTrue(state.ErrorMessage!.Contains("gamelist ES-DE", StringComparison.OrdinalIgnoreCase));
     }
 
     [TestMethod]
@@ -271,6 +271,74 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.AreSame(accepted, state.Snapshot);
         Assert.IsTrue(state.IsImported);
         Assert.IsNotNull(state.ErrorMessage);
+    }
+
+
+    [TestMethod]
+    public void SyntheticImportDiagnosticsAreReadableAndPreserveSnapshotSemantics()
+    {
+        Gamelist("""
+            <folder><path>./ignored</path></folder>
+            <game><path>./Missing.gba</path><image>../covers/absent.png</image></game>
+            """);
+        var state = new ImportedCatalogueUiState();
+        Assert.IsTrue(state.TryImport(_root));
+        Assert.AreEqual(1, state.Snapshot!.Games.Count);
+        var diagnostics = state.Snapshot.Diagnostics;
+        Assert.AreEqual(4, diagnostics.Count); // folder, title fallback, ROM, cover
+        Assert.AreEqual(2, diagnostics.Count(EsDeDiagnosticPresentation.NeedsAttention));
+        Assert.IsTrue(EsDeDiagnosticPresentation.Summary(diagnostics).Contains("2 point(s) à vérifier",
+            StringComparison.Ordinal));
+        var rom = diagnostics.Single(d => d.Code == "ROM_MISSING");
+        Assert.AreEqual("ROM indisponible", EsDeDiagnosticPresentation.Title(rom));
+        Assert.IsTrue(EsDeDiagnosticPresentation.Context(rom).Contains("ROMS/gba/Missing.gba",
+            StringComparison.Ordinal));
+        Assert.IsTrue(EsDeDiagnosticPresentation.Explanation(rom).Contains("Aucune suppression",
+            StringComparison.Ordinal));
+        Assert.AreEqual("Média indisponible",
+            EsDeDiagnosticPresentation.Title(diagnostics.Single(d => d.Code == "MEDIA_MISSING")));
+        Assert.IsFalse(EsDeDiagnosticPresentation.NeedsAttention(
+            diagnostics.Single(d => d.Code == "TITLE_FALLBACK")));
+        Assert.IsFalse(state.Snapshot.Games.Single().RomExists);
+    }
+
+    [TestMethod]
+    public void FailedReimportUsesActionableFrenchErrorAndRetainsValidSnapshot()
+    {
+        Put("ROMS/gba/A.gba");
+        Gamelist("<game><path>./A.gba</path><name>A</name></game>");
+        var state = new ImportedCatalogueUiState();
+        Assert.IsTrue(state.TryImport(_root));
+        var accepted = state.Snapshot;
+        File.Delete(Path.Combine(_root, "MEDIAS", "gba", "metadata", "es-de-gamelist.xml"));
+        Assert.IsFalse(state.TryReimport());
+        Assert.AreSame(accepted, state.Snapshot);
+        Assert.IsTrue(state.IsImported);
+        Assert.IsTrue(state.ErrorMessage!.Contains("gamelist ES-DE", StringComparison.OrdinalIgnoreCase));
+        Assert.IsTrue(state.ErrorMessage.Contains("Dernier catalogue valide conservé", StringComparison.Ordinal));
+        Assert.IsTrue(state.ErrorMessage.Contains("Aucun fichier source modifié", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void InvalidXmlReportsReadableRefusalWithoutCreatingCatalogue()
+    {
+        Put("MEDIAS/gba/metadata/es-de-gamelist.xml", "<gameList><game><path>");
+        var state = new ImportedCatalogueUiState();
+        Assert.IsFalse(state.TryImport(_root));
+        Assert.IsNull(state.Snapshot);
+        Assert.IsTrue(state.ErrorMessage!.Contains("XML ES-DE est mal formé",
+            StringComparison.Ordinal));
+        Assert.IsTrue(state.ErrorMessage.Contains("Aucun catalogue chargé", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void UnknownDiagnosticCodeStillDisplaysCodeAndOriginalExplanation()
+    {
+        var unknown = new EsDeDiagnostic("FUTURE_WARNING", "gbc", "item", "Additional diagnostic");
+        Assert.AreEqual("Diagnostic ES-DE (FUTURE_WARNING)", EsDeDiagnosticPresentation.Title(unknown));
+        Assert.AreEqual("Additional diagnostic", EsDeDiagnosticPresentation.Explanation(unknown));
+        Assert.IsTrue(EsDeDiagnosticPresentation.Context(unknown).Contains("gbc", StringComparison.Ordinal));
+        Assert.IsFalse(EsDeDiagnosticPresentation.NeedsAttention(unknown));
     }
 
 }

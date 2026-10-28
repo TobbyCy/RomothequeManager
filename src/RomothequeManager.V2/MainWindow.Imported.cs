@@ -137,11 +137,26 @@ public sealed partial class MainWindow
         if (snapshot.Diagnostics.Count > 0)
         {
             _page.Children.Add(Text("Diagnostics de l'import", 20, true));
-            foreach (var diagnostic in snapshot.Diagnostics.Take(8))
-                _page.Children.Add(Text(diagnostic.Code + " · " + diagnostic.Platform +
-                    " · " + diagnostic.Entry, 13));
-            if (snapshot.Diagnostics.Count > 8)
-                _page.Children.Add(Text("Diagnostics supplémentaires : " + (snapshot.Diagnostics.Count - 8), 13));
+            _page.Children.Add(Text(EsDeDiagnosticPresentation.Summary(snapshot.Diagnostics), 15, true));
+            // Most actionable entries first; never imply that a missing ROM was deleted.
+            var ordered = snapshot.Diagnostics
+                .OrderByDescending(EsDeDiagnosticPresentation.NeedsAttention)
+                .ThenBy(x => x.Platform, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(x => x.Code, StringComparer.Ordinal)
+                .ToArray();
+            foreach (var diagnostic in ordered.Take(12))
+            {
+                var kind = EsDeDiagnosticPresentation.NeedsAttention(diagnostic)
+                    ? "À vérifier" : "Information";
+                _page.Children.Add(Panel(Group(
+                    Text(kind + " — " + EsDeDiagnosticPresentation.Title(diagnostic), 16, true),
+                    Text(EsDeDiagnosticPresentation.Context(diagnostic), 12),
+                    Text(EsDeDiagnosticPresentation.Explanation(diagnostic), 14)
+                )));
+            }
+            if (ordered.Length > 12)
+                _page.Children.Add(Text((ordered.Length - 12) +
+                    " autre(s) diagnostic(s) non affiché(s) ; aucun fichier n'a été modifié.", 13));
         }
         _page.Children.Add(Button("Parcourir la collection", () => Navigate(POCView.Collection)));
     }

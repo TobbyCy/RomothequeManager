@@ -1,5 +1,12 @@
 # État des fonctionnalités
 
+## NEXT-01-UX-FIX — correction suite à recette Windows (PR #64, 28 octobre 2026)
+
+- L'exécutable Avalonia de la PR est configuré en `WinExe`, pour ouvrir la fenêtre sans console au double-clic sous Windows. Le mode `--smoke-window` reste le contrôle automatisé de lancement ; la validation interactive de l'affichage relève de Tobby.
+- Le tableau de bord importé donne maintenant des diagnostics français explicites (catégorie à vérifier / information, plateforme, entrée et explication), triés par importance ; les refus d'import / réimport expliquent les problèmes courants (XML invalide, gamelist absente ou ambiguë, dossier inaccessible). Aucun scan supplémentaire, aucune modification de l'adaptateur de lecture seule ni conclusion de suppression.
+- Les tests synthétiques supplémentaires vérifient le sens des diagnostics et la conservation du catalogue valide après échec. Validation CI à rattacher au **nouveau HEAD** avant toute décision de merge. L'artifact UX provisoire antérieur, construit sur le SHA `cc35abf7…`, **ne démontre pas ces corrections** et ne doit pas être confondu avec un binaire corrigé.
+
+
 ## UX-ARTIFACT-CI — distribution de recette temporaire, PR #64 uniquement (24 octobre 2026)
 
 - Un workflow **distinct** `.github/workflows/ux-artifact.yml` est proposé **dans la PR #64 Draft uniquement**. Il exige une PR #64 du dépôt même, ouverte vers `main`, et le compte propriétaire `TobbyCy`; il ne s'exécute pas au démarrage de l'application et ne déclenche aucun scan réel.

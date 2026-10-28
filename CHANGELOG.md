@@ -1,5 +1,12 @@
 # Journal des changements
 
+## En cours — NEXT-01-UX-FIX / PR #64 (28 octobre 2026)
+
+- Recette Windows propriétaire : l'exécutable Avalonia devient une application graphique `WinExe` pour éviter la console ouverte au double-clic. Le smoke Windows automatisé reste requis dans la CI.
+- Diagnostics ES-DE : libellés français compréhensibles, regroupement « points à vérifier / informations », plateforme et entrée identifiables, sans assimiler une ROM ou un média indisponible à une suppression. Erreurs de gamelist, XML et réimport explicitées, dernier catalogue valide conservé.
+- Correctifs uniquement de présentation et de configuration Windows ; adaptateur ES-DE de lecture seule inchangé. Quatre canaris MSTest synthétiques ajoutés. La CI du nouveau HEAD et le verdict externe seront documentés sur [PR #64](https://github.com/TobbyCy/RomothequeManager/pull/64). Aucun merge ou Release autonome.
+
+
 ## En cours — NEXT-01-UX / Issue #61 (PR #64 Draft, pas sur main)
 
 - Sur la base de l'adaptateur [#62](https://github.com/TobbyCy/RomothequeManager/pull/62) désormais fusionné, présentation Avalonia de la bibliothèque explicitement sélectionnée : séparation démo/import, Dashboard/Collection/fiches et jaquettes locales via API de lecture seule. Les images invalides ou absentes peuvent céder la place à la miniature, puis à un message explicite ; A/B synthétique désactivé pour le catalogue importé.

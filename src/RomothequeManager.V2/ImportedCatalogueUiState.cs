@@ -88,8 +88,9 @@ public sealed class ImportedCatalogueUiState
         System.Xml.XmlException or System.Security.SecurityException or NotSupportedException;
 
     public void ImportFailed(Exception error) =>
-        ErrorMessage = "Import refusé (" + error.GetType().Name +
-            "). Dernier catalogue valide conservé ; aucune source modifiée.";
+        ErrorMessage = "Import non effectué : " + EsDeDiagnosticPresentation.ImportFailure(error) + " " +
+            (Snapshot is null ? "Aucun catalogue chargé." : "Dernier catalogue valide conservé.") +
+            " Aucun fichier source modifié.";
 
     public void ReportUnavailableFolder() =>
         ErrorMessage = "Sélectionnez un dossier local accessible. Aucun import effectué.";
@@ -158,4 +159,72 @@ public sealed class ImportedCatalogueUiState
         stream = null;
         return _session is not null && _session.TryOpenMedia(media, out stream);
     }
+}
+
+
+/// <summary>
+/// French read-only presentation of the ES-DE contract's diagnostic codes.
+/// No additional filesystem inspection; the original diagnostics remain intact.
+/// </summary>
+public static class EsDeDiagnosticPresentation
+{
+    public static bool NeedsAttention(EsDeDiagnostic diagnostic) =>
+        diagnostic.Code is "ROM_MISSING" or "MEDIA_MISSING" or "DISC_MISSING" or "XML_MISSING";
+
+    public static string Summary(IReadOnlyList<EsDeDiagnostic> diagnostics)
+    {
+        var attention = diagnostics.Count(NeedsAttention);
+        return attention + " point(s) à vérifier · " +
+            (diagnostics.Count - attention) + " information(s) · aucune suppression automatique.";
+    }
+
+    public static string Title(EsDeDiagnostic diagnostic) => diagnostic.Code switch
+    {
+        "XML_MISSING" => "Liste de jeux ES-DE absente",
+        "FOLDER_ENTRY" => "Dossier ignoré",
+        "IGNORED_ENTRY" => "Élément XML non reconnu",
+        "TITLE_FALLBACK" => "Titre repris du nom de fichier",
+        "ROM_MISSING" => "ROM indisponible",
+        "MEDIA_MISSING" => "Média indisponible",
+        "DISC_MISSING" => "Disque de playlist indisponible",
+        _ => "Diagnostic ES-DE (" + diagnostic.Code + ")"
+    };
+
+    public static string Context(EsDeDiagnostic diagnostic)
+    {
+        var platform = string.IsNullOrWhiteSpace(diagnostic.Platform)
+            ? "Plateforme non précisée" : "Plateforme : " + diagnostic.Platform;
+        return string.IsNullOrWhiteSpace(diagnostic.Entry)
+            ? platform : platform + " · Entrée : " + diagnostic.Entry;
+    }
+
+    public static string Explanation(EsDeDiagnostic diagnostic) => diagnostic.Code switch
+    {
+        "XML_MISSING" => "Aucun fichier gamelist.xml pris en charge pour cette plateforme. Les autres plateformes importées restent disponibles.",
+        "FOLDER_ENTRY" => "Une entrée de dossier n'est pas comptabilisée comme un jeu.",
+        "IGNORED_ENTRY" => "Cet élément n'est pas un jeu ES-DE reconnu : il a été ignoré.",
+        "TITLE_FALLBACK" => "Le XML ne donne pas de titre ; le nom du fichier sert de libellé.",
+        "ROM_MISSING" => "Fichier absent ou support indisponible lors de l'import. Aucune suppression de jeu n'est déduite.",
+        "MEDIA_MISSING" => "Média référencé introuvable. Aucune recherche réseau ni modification n'est effectuée.",
+        "DISC_MISSING" => "Un disque référencé par la playlist n'a pas été trouvé. Aucun fichier n'est modifié.",
+        _ => string.IsNullOrWhiteSpace(diagnostic.Message)
+            ? "Diagnostic conservé pour vérification." : diagnostic.Message
+    };
+
+    public static string ImportFailure(Exception error) => error switch
+    {
+        DirectoryNotFoundException => "Le dossier sélectionné ou son sous-dossier ROMS n'est pas accessible. Vérifiez le support.",
+        System.Xml.XmlException => "Le XML ES-DE est mal formé. Vérifiez la gamelist avant de réimporter.",
+        InvalidDataException e when e.Message.StartsWith("Ambiguous ES-DE source", StringComparison.Ordinal) =>
+            "Deux gamelists concurrentes ont été trouvées pour une plateforme (ROMS et MEDIAS). Conservez une source non ambiguë.",
+        InvalidDataException e when e.Message.StartsWith("No supported ES-DE gamelist", StringComparison.Ordinal) =>
+            "Aucune gamelist ES-DE prise en charge n'a été trouvée dans le dossier sélectionné.",
+        InvalidDataException => "Les métadonnées ES-DE ou leurs chemins ne respectent pas le format attendu.",
+        UnauthorizedAccessException => "Accès refusé au dossier ou aux métadonnées. Vérifiez les autorisations.",
+        IOException => "La lecture de fichiers ES-DE a échoué. Vérifiez la disponibilité du support.",
+        ArgumentException => "Le dossier ou un chemin de fichier est invalide.",
+        System.Security.SecurityException => "L'accès aux fichiers a été refusé par le système.",
+        NotSupportedException => "Le format ou le chemin demandé n'est pas pris en charge.",
+        _ => "Une erreur inattendue a empêché l'import."
+    };
 }
