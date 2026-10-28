@@ -24,13 +24,26 @@ public static class VisualDashboardData
             false, "ES-DE · données référencées, lecture seule");
 }
 
+/// <summary>Distinct menu states; every text/background pair has >=4.5:1 contrast.</summary>
+public readonly record struct SidebarNavigationColors(string Background, string Foreground, string Accent);
+
+public static class SidebarNavigationPalette
+{
+    public static SidebarNavigationColors Resolve(bool active, bool hovered, bool enabled)
+    {
+        if (!enabled) return new("#292C32", "#BEC4CC", "#41454B");
+        if (active) return new("#592B35", "#FFFFFF", "#B3202E");
+        if (hovered) return new("#3B414A", "#FFFFFF", "#8492A2");
+        return new("#292D34", "#E8E6E3", "#292D34");
+    }
+}
+
 /// <summary>
 /// Dashboard visual-only: no scan, export, storage, job or network requests.
 /// All imagery is either a locally opened ES-DE medium or an original text placeholder.
 /// </summary>
 public static class VisualDashboard
 {
-    private static readonly IBrush Base = Solid("#16181D");
     private static readonly IBrush Card = Solid("#23262B");
     private static readonly IBrush BorderInk = Solid("#393C42");
     private static readonly IBrush Primary = Solid("#E8E6E3");
@@ -48,7 +61,7 @@ public static class VisualDashboard
     };
     private static StackPanel Stack(params Control[] items)
     {
-        var panel = new StackPanel { Spacing = 8 };
+        var panel = new StackPanel { Spacing = 6 };
         foreach (var item in items) panel.Children.Add(item);
         return panel;
     }
@@ -57,8 +70,8 @@ public static class VisualDashboard
         Background = background ?? Card,
         BorderBrush = BorderInk,
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(10),
-        Padding = new Thickness(16),
+        CornerRadius = new CornerRadius(9),
+        Padding = new Thickness(13),
         MinHeight = minHeight,
         Child = child
     };
@@ -67,27 +80,27 @@ public static class VisualDashboard
         var button = new Button
         {
             Content = text, Background = Red, Foreground = Primary,
-            BorderThickness = new Thickness(0), Padding = new Thickness(14, 8),
-            HorizontalAlignment = HorizontalAlignment.Left, MinHeight = 36
+            BorderThickness = new Thickness(0), Padding = new Thickness(12, 7),
+            HorizontalAlignment = HorizontalAlignment.Left, MinHeight = 33
         };
         button.Click += (_, _) => handler();
         return button;
     }
     private static Border Placeholder(string title) => new()
     {
-        Width = 112, Height = 92,
+        Width = 100, Height = 72,
         Background = Soft,
         CornerRadius = new CornerRadius(8),
-        Padding = new Thickness(8),
+        Padding = new Thickness(7),
         Child = Stack(
-            Label("◆", 22, true, Red),
+            Label("◆", 17, true, Red),
             Label(title, 11, true, Primary))
     };
 
     private static Control Header(string subtitle)
     {
         var titleRow = new StackPanel { Spacing = 2 };
-        titleRow.Children.Add(Label("TABLEAU DE BORD", 29, true, Primary));
+        titleRow.Children.Add(Label("TABLEAU DE BORD", 25, true, Primary));
         titleRow.Children.Add(Label(subtitle, 13));
         return titleRow;
     }
@@ -140,21 +153,21 @@ public static class VisualDashboard
         IReadOnlyList<Control> preview, Control support, string diagnostic,
         Action openCollection, bool compact)
     {
-        var previewRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var previewRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7 };
         foreach (var item in preview) previewRow.Children.Add(item);
         var collection = Tile(Stack(
             Label("MA COLLECTION", 12, true, Red),
             Label(numbers.ReferencedGames + " jeux référencés  ·  " +
-                  numbers.KnownPlatforms + " plateformes connues", 21, true, Primary),
+                  numbers.KnownPlatforms + " plateformes connues", 19, true, Primary),
             Label(numbers.Synthetic
                 ? "Jeux inventés pour la démonstration ; aucune couverture réelle déduite."
                 : "Éléments du XML ES-DE uniquement ; la couverture totale reste inconnue."),
             preview.Count == 0 ? Label("Aucun jeu référencé dans les gamelists disponibles.") : previewRow,
             Action("Parcourir la collection", openCollection)
-        ), 240);
+        ), 0);
         var library = Tile(Stack(
             Label("BIBLIOTHÈQUES ET SUPPORTS", 12, true, Red),
-            support), 240);
+            support), 0);
         var exportButton = new Border
         {
             Background = Soft, CornerRadius = new CornerRadius(6),
@@ -165,19 +178,19 @@ public static class VisualDashboard
         var export = Tile(Stack(
             Label("PRÉPARATIONS D'EXPORT", 12, true, Red),
             Label("Fonctionnalité à venir — aucun plan ni copie n'est exécuté.", 14),
-            exportButton), 128);
+            exportButton), 0);
         var attention = Tile(Stack(
             Label("POINTS D'ATTENTION", 12, true, Red),
             Label(diagnostic, 13),
             Label(numbers.RomUnavailable > 0
                 ? numbers.RomUnavailable + " ROM(s) indisponible(s) au dernier import ; aucune suppression déduite."
                 : "Aucune conclusion physique à partir d'un inventaire ancien ou partiel.", 12)),
-            128);
+            0);
         var first = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions(compact ? "*" : "1.3*,1*"),
             RowDefinitions = new RowDefinitions(compact ? "Auto,Auto" : "Auto"),
-            ColumnSpacing = 12, RowSpacing = 12
+            ColumnSpacing = 10, RowSpacing = 10
         };
         first.Children.Add(collection);
         Grid.SetColumn(library, compact ? 0 : 1);
@@ -187,7 +200,7 @@ public static class VisualDashboard
         {
             ColumnDefinitions = new ColumnDefinitions(compact ? "*" : "1*,1.3*"),
             RowDefinitions = new RowDefinitions(compact ? "Auto,Auto" : "Auto"),
-            ColumnSpacing = 12, RowSpacing = 12
+            ColumnSpacing = 10, RowSpacing = 10
         };
         second.Children.Add(export);
         Grid.SetColumn(attention, compact ? 0 : 1);

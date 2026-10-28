@@ -54,4 +54,49 @@ public sealed class VisualDashboardTests
         Assert.AreEqual(0, model.Diagnostics);
         Assert.IsFalse(model.Synthetic);
     }
+
+    [TestMethod]
+    public void SidebarStatesHaveDistinctHighContrastText()
+    {
+        var active = SidebarNavigationPalette.Resolve(true, false, true);
+        var idle = SidebarNavigationPalette.Resolve(false, false, true);
+        var hovered = SidebarNavigationPalette.Resolve(false, true, true);
+        var disabled = SidebarNavigationPalette.Resolve(false, false, false);
+        Assert.AreEqual(active, SidebarNavigationPalette.Resolve(true, true, true));
+        Assert.AreEqual(disabled, SidebarNavigationPalette.Resolve(true, true, false));
+        Assert.AreNotEqual(active.Background, idle.Background);
+        Assert.AreNotEqual(hovered.Background, idle.Background);
+        Assert.AreNotEqual(disabled.Background, idle.Background);
+        Assert.AreNotEqual(active.Accent, idle.Accent);
+        Assert.AreNotEqual(active.Accent, hovered.Accent);
+        foreach (var pair in new[] { active, idle, hovered, disabled })
+            Assert.IsTrue(Contrast(pair.Background, pair.Foreground) >= 4.5,
+                $"Sidebar foreground/background contrast below 4.5:1: {pair}");
+    }
+
+    [TestMethod]
+    public void HoverAndDisabledRemainVisiblyDistinct()
+    {
+        var hovered = SidebarNavigationPalette.Resolve(false, true, true);
+        var disabled = SidebarNavigationPalette.Resolve(false, true, false);
+        Assert.AreNotEqual(hovered.Foreground, disabled.Foreground);
+        Assert.AreNotEqual(hovered.Accent, disabled.Accent);
+        Assert.IsTrue(Contrast(hovered.Background, hovered.Foreground) > 6.0);
+    }
+
+    private static double Contrast(string background, string foreground)
+    {
+        static double Luminance(string hex)
+        {
+            double[] rgb = Enumerable.Range(0, 3).Select(i =>
+            {
+                double value = Convert.ToInt32(hex.Substring(1 + i * 2, 2), 16) / 255.0;
+                return value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
+            }).ToArray();
+            return .2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2];
+        }
+        double a = Luminance(background), b = Luminance(foreground);
+        return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+    }
+
 }

@@ -90,7 +90,7 @@ jobs:
           } finally { $p.Dispose() }
           $dir = Join-Path $env:RUNNER_TEMP 'visual-poc-01'
           $screens = @(Get-ChildItem $dir -Filter 'Dashboard-*.png' -File)
-          if ($screens.Count -ne 4) { throw ('VISUAL_SCREENSHOT_COUNT_MISMATCH:' + $screens.Count) }
+          if ($screens.Count -ne 6) { throw ('VISUAL_SCREENSHOT_COUNT_MISMATCH:' + $screens.Count) }
           foreach ($file in $screens) {
             $bitmap = [Drawing.Bitmap]::FromFile($file.FullName)
             try {
@@ -108,7 +108,7 @@ jobs:
             exeSubsystem='Windows GUI'; officialIcon='RM_V2_Favicon.ico'
           }
           ($manifest | ConvertTo-Json -Depth 5) | Set-Content (Join-Path $dir 'CAPTURE-EVIDENCE.json') -Encoding utf8
-          Write-Host ('VISUAL_SCREENSHOTS_VERIFIED_PASS source=' + '${{ github.sha }}' + ' count=4')
+          Write-Host ('VISUAL_SCREENSHOTS_VERIFIED_PASS source=' + '${{ github.sha }}' + ' count=6')
       - name: Upload temporary PNG screenshots only
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

@@ -1,5 +1,13 @@
 # État des fonctionnalités
 
+## VISUAL-POC-01 — retouches de lisibilité et densité (retour propriétaire 28.10.2026)
+
+- Navigation : 4 états **actif, inactif, survolé, indisponible** explicitement contrastés, liseré d'état et vrais boutons conservant focus clavier ; seuil de contraste des textes >= 4,5:1 contrôlé par tests synthétiques.
+- Dashboard : marges, vignettes, cartes et espaces verticaux réduits sans supprimer les qualificatifs de disponibilité, d'origine fictive et de lecture seule. Aucun moteur ni import modifié.
+- À 760×480, la sidebar dispose de son défilement indépendant : les commandes basses ne sont plus coupées ; la page principale reste scrollable. Six captures Windows (760×480 et 1120×720 à échelles de rendu 100/125/150 %) et CI sont attendues sur le nouveau HEAD. Ces DPI **sont des échelles de rendu dans Avalonia**, pas des changements du DPI natif Windows.
+- Icône PE GUI et ressource ICO contrôlées automatiquement ; **Explorer Windows, barre des tâches, focus, hover et DPI système natif** restent à vérifier manuellement sur poste Windows par Tobby. Aucun merge, Release ou scan réel.
+
+
 - **Revue visuelle Windows réelle :** run #40675500153, 65 tests .NET PASS et captures 1120×720 / 760×480, DPI 100/125/150 %. Après inspection des PNG, correction de la grille large et du contraste navigation ; les contrôles Exports sont représentés comme éléments visuellement lisibles et **non interactifs**, sans fausse action.
 - **CI de clôture :** le changement final doit relancer Adaptive CI sur la PR temporairement ciblée `main`, puis être rebasé logiquement sur #64 pour isoler le delta avant toute revue/merge. Référencer le run final exact sur GitHub #69. Aucun droit de distribution en Release n'est accordé.
 

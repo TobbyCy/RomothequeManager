@@ -12,10 +12,21 @@ public sealed partial class MainWindow : Window
     private readonly NavigationState _state = new(ReadOnlyCatalogue.Synthetic());
     private readonly LibraryProjection _libraryProjection;
     private readonly LibraryViewState _libraryViewState;
-    private readonly StackPanel _page = new() { Spacing = 14 };
+    private readonly StackPanel _page = new() { Spacing = 10 };
     private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#E8E6E3"));
     private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#AAB2BF"));
     private static readonly IBrush Card = new SolidColorBrush(Color.Parse("#23262B"));
+
+    // Persistent visual state for sidebar buttons. Explicit foreground wins over
+    // the Fluent hover template which previously washed text out.
+    private sealed class SidebarVisual
+    {
+        public required Border Surface { get; init; }
+        public required TextBlock Label { get; init; }
+        public POCView? View { get; init; }
+        public bool Hovered { get; set; }
+    }
+    private readonly List<SidebarVisual> _sidebarVisuals = [];
 
     public POCView CurrentView => ActiveView;
 
@@ -66,48 +77,58 @@ public sealed partial class MainWindow : Window
 
         var root = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("236,*"),
+            ColumnDefinitions = new ColumnDefinitions("220,*"),
             Background = new SolidColorBrush(Color.Parse("#16181D"))
         };
-        var menu = new StackPanel { Spacing = 12, Margin = new Thickness(18, 24, 18, 18) };
+        var menu = new StackPanel { Spacing = 7, Margin = new Thickness(14, 14, 14, 12) };
         menu.Children.Add(new Image
         {
-            Source = logoBitmap, Width = 196, Height = 68,
+            Source = logoBitmap, Width = 188, Height = 58,
             Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left
         });
-        menu.Children.Add(Text("COLLECTION", 12, true));
-        menu.Children.Add(Button("Tableau de bord", () => Navigate(POCView.Dashboard)));
-        menu.Children.Add(Button("Collection", () => Navigate(POCView.Collection)));
-        menu.Children.Add(Text("BIBLIOTHÈQUES", 12, true));
-        menu.Children.Add(Button("Bibliothèques & supports", () => Navigate(POCView.Libraries)));
-        menu.Children.Add(Text("GESTION", 12, true));
+        menu.Children.Add(Text("COLLECTION", 11, true));
+        menu.Children.Add(SidebarButton("Tableau de bord", () => Navigate(POCView.Dashboard), POCView.Dashboard));
+        menu.Children.Add(SidebarButton("Collection", () => Navigate(POCView.Collection), POCView.Collection));
+        menu.Children.Add(Text("BIBLIOTHÈQUES", 11, true));
+        menu.Children.Add(SidebarButton("Bibliothèques & supports", () => Navigate(POCView.Libraries), POCView.Libraries));
+        menu.Children.Add(Text("GESTION", 11, true));
         // Readable, non-interactive placeholder: no disabled button with invisible text.
+        var disabledVisual = SidebarNavigationPalette.Resolve(false, false, false);
         menu.Children.Add(new Border
         {
-            Background = new SolidColorBrush(Color.Parse("#292C32")),
-            BorderBrush = new SolidColorBrush(Color.Parse("#393C42")),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(5),
-            Padding = new Thickness(13, 10),
-            Child = Text("Exports — indisponibles", 13)
+            Background = new SolidColorBrush(Color.Parse(disabledVisual.Background)),
+            BorderBrush = new SolidColorBrush(Color.Parse("#41454B")),
+            BorderThickness = new Thickness(3, 0, 0, 0),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(11, 9),
+            Child = new TextBlock
+            {
+                Text = "Exports · à venir", FontSize = 13, TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Color.Parse(disabledVisual.Foreground))
+            }
         });
-        menu.Children.Add(Text("OUTILS · LECTURE SEULE", 12, true));
-        menu.Children.Add(Button("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
-        menu.Children.Add(Button("Actualiser l'import", () => _ = RefreshImportAsync()));
-        menu.Children.Add(Button("Voir l'import", ShowImported));
-        menu.Children.Add(Button("Mode démonstration", ShowDemo));
-        menu.Children.Add(Text("Aucun scan au démarrage. L'import exige une sélection explicite.", 12));
+        menu.Children.Add(Text("OUTILS · LECTURE SEULE", 11, true));
+        menu.Children.Add(SidebarButton("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
+        menu.Children.Add(SidebarButton("Actualiser l'import", () => _ = RefreshImportAsync()));
+        menu.Children.Add(SidebarButton("Voir l'import", ShowImported));
+        menu.Children.Add(SidebarButton("Mode démonstration", ShowDemo));
+        menu.Children.Add(Text("Aucun scan au démarrage. Import sur sélection.", 11));
         var sidebar = new Border
         {
             Background = new SolidColorBrush(Color.Parse("#1D2025")),
             BorderBrush = new SolidColorBrush(Color.Parse("#35383E")),
             BorderThickness = new Thickness(0, 0, 1, 0),
-            Child = menu
+            Child = new ScrollViewer
+            {
+                Content = menu,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            }
         };
         root.Children.Add(sidebar);
         var scroll = new ScrollViewer
         {
-            Content = _page, Margin = new Thickness(22, 20, 22, 20),
+            Content = _page, Margin = new Thickness(16, 14, 16, 12),
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
         Grid.SetColumn(scroll, 1);
@@ -139,6 +160,49 @@ public sealed partial class MainWindow : Window
         return b;
     }
 
+    // Native button remains focusable/keyboard accessible. Label and surface colors
+    // are under our control for inactive, active and pointer-hover states.
+    private Button SidebarButton(string title, Action action, POCView? view = null)
+    {
+        var label = new TextBlock
+        {
+            Text = title, FontSize = 13, TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var surface = new Border
+        {
+            CornerRadius = new CornerRadius(6),
+            BorderThickness = new Thickness(3, 0, 0, 0),
+            Padding = new Thickness(10, 7), MinHeight = 34, Child = label
+        };
+        var state = new SidebarVisual { Surface = surface, Label = label, View = view };
+        _sidebarVisuals.Add(state);
+        var button = new Button
+        {
+            Content = surface, Background = new SolidColorBrush(Color.Parse("#1D2025")),
+            BorderThickness = new Thickness(0), Padding = new Thickness(0),
+            MinHeight = 36, HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch
+        };
+        button.PointerEntered += (_, _) => { state.Hovered = true; UpdateSidebarStyles(); };
+        button.PointerExited += (_, _) => { state.Hovered = false; UpdateSidebarStyles(); };
+        button.Click += (_, _) => action();
+        return button;
+    }
+
+    private void UpdateSidebarStyles()
+    {
+        foreach (var state in _sidebarVisuals)
+        {
+            bool active = state.View is POCView view && view == ActiveView;
+            var colors = SidebarNavigationPalette.Resolve(active, state.Hovered, true);
+            state.Surface.Background = new SolidColorBrush(Color.Parse(colors.Background));
+            state.Surface.BorderBrush = new SolidColorBrush(Color.Parse(colors.Accent));
+            state.Label.Foreground = new SolidColorBrush(Color.Parse(colors.Foreground));
+            state.Label.FontWeight = active ? FontWeight.SemiBold : FontWeight.Normal;
+        }
+    }
+
     private static Border Panel(Control content) => new()
     {
         Background = Card, CornerRadius = new CornerRadius(12),
@@ -154,6 +218,7 @@ public sealed partial class MainWindow : Window
 
     private void Render()
     {
+        UpdateSidebarStyles();
         _page.Children.Clear();
         ReleaseCoverImages();
         _importedList = null;

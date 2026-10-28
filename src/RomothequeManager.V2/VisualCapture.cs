@@ -19,7 +19,9 @@ internal static class VisualCapture
         Directory.CreateDirectory(folder);
         var cases = new (int Width, int Height, int Dpi)[]
         {
-            (1120, 720, 100), (760, 480, 100), (1120, 720, 125), (1120, 720, 150)
+            (1120, 720, 100), (760, 480, 100),
+            (1120, 720, 125), (1120, 720, 150),
+            (760, 480, 125), (760, 480, 150)
         };
         void Next(int index)
         {

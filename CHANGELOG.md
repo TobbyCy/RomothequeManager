@@ -1,5 +1,12 @@
 # Journal des changements
 
+## En cours — VISUAL-POC-01 retouches P1/P2 (28 octobre 2026)
+
+- Navigation latérale plus contrastée : active/inactive/survolée/indisponible, avec canaris de lisibilité des textes.
+- Cartes et marges moins hautes, sidebar déroulante à 760×480, six captures Windows à plusieurs échelles de rendu.
+- Pas de nouvelles fonctionnalités : mode ES-DE de lecture seule, droits branding réservés et gates de distribution inchangés.
+
+
 ## En cours — VISUAL-POC-01 / Issue #67 (28.10.2026)
 
 - Nouvelle PR Draft empilée sur #64 : Dashboard Darcula Retro centré sur la collection, accès bibliothèques, Exports désactivés et diagnostics avec états et origine explicites. Aucun moteur, scan automatique ni opération physique.
