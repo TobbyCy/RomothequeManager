@@ -117,6 +117,21 @@ public sealed partial class MainWindow
             !original.Diagnostics.Any(d => d.Code == "ROM_MISSING") ||
             !original.Diagnostics.Any(d => d.Code == "MEDIA_MISSING"))
             return false;
+        // Verify media decoding through the REAL Avalonia bitmap renderer.
+        // A: missing cover -> valid local thumbnail.
+        // B: valid local cover. C: intentionally corrupt file -> honest placeholder.
+        var gameA = original.Games.Single(g =>
+            g.RomRelativePath.EndsWith("A.fixture", StringComparison.OrdinalIgnoreCase));
+        var gameB = original.Games.Single(g =>
+            g.RomRelativePath.EndsWith("B.fixture", StringComparison.OrdinalIgnoreCase));
+        var gameC = original.Games.Single(g =>
+            g.RomRelativePath.EndsWith("C.fixture", StringComparison.OrdinalIgnoreCase));
+        if (CoverFor(gameA, 48, 64) is not Image ||
+            CoverFor(gameB, 48, 64) is not Image ||
+            CoverFor(gameC, 48, 64) is not TextBlock intentionallyCorrupt ||
+            !string.Equals(intentionallyCorrupt.Text, "Jaquette illisible / miniature indisponible",
+                StringComparison.Ordinal))
+            return false;
         Render();
         var dashboardText = SmokeVisibleTexts();
         if (!dashboardText.Contains("Diagnostics de l'import", StringComparison.Ordinal) ||

@@ -100,9 +100,13 @@ jobs:
           $mediaDir = Join-Path $fixture 'MEDIAS/gba'
           New-Item -ItemType Directory -Force -Path $romDir,(Join-Path $mediaDir 'metadata'),(Join-Path $mediaDir 'covers') | Out-Null
           foreach ($n in @('A.fixture','B.fixture','C.fixture')) { [IO.File]::WriteAllText((Join-Path $romDir $n),'FICTITIOUS TEXT ONLY; NOT A ROM') }
-          $onePixel = [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9oYMNz8AAAAASUVORK5CYII=')
-          [IO.File]::WriteAllBytes((Join-Path $mediaDir 'covers/cover.png'),$onePixel)
-          [IO.File]::WriteAllBytes((Join-Path $mediaDir 'covers/thumb.png'),$onePixel)
+          # The former 1x1 fixture was corrupted (invalid IDAT CRC and zlib Adler-32).
+          # These two independent, self-contained synthetic RGB PNGs are fully decodable.
+          # The third image (corrupt.png) remains deliberately invalid to exercise fallback.
+          $coverPng = [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAIAAACHPC9vAAAAUElEQVR42mOUkFJgoAZgYqASoJpBLHDWbDY+MvSn/vo0WL02jA1iwR8XWAHW+KWxi3DZjMelo9E/ahCtEyT+jEJfF5FR7I5G/1A0iHH4NiIAH+gM7ezTEpoAAAAASUVORK5CYII=')
+          $thumbPng = [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAIAAACHPC9vAAAAUElEQVR42mOUkFJgoAZgYqASoJpBLHCWdGU3GfqftpcOVq8NY4NY8McFVoA1fmnsIlw243HpaPSPGkTrBIk/o9DXRWQUu6PRPxQNYhy+jQgA9PkM7aOIpH8AAAAASUVORK5CYII=')
+          [IO.File]::WriteAllBytes((Join-Path $mediaDir 'covers/cover.png'),$coverPng)
+          [IO.File]::WriteAllBytes((Join-Path $mediaDir 'covers/thumb.png'),$thumbPng)
           [IO.File]::WriteAllText((Join-Path $mediaDir 'covers/corrupt.png'),'FICTITIOUS INVALID PNG')
           $xml = @'
           <gameList>
