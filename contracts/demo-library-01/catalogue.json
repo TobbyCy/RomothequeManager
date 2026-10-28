@@ -1,0 +1,749 @@
+{
+  "schemaVersion": "demo-library-01/1",
+  "status": "CANONICAL_FOR_AGENT_REVIEW",
+  "ownerIssue": 71,
+  "syntheticOnly": true,
+  "platformSlugs": [
+    "dos",
+    "gamecube",
+    "gba",
+    "megadrive",
+    "n64",
+    "nes",
+    "pc",
+    "ps2",
+    "ps3",
+    "ps4",
+    "psx",
+    "snes",
+    "xbox"
+  ],
+  "identityNote": "games[].id stable across scenarios, not EsDeGame.GameId or Inventory.FileObservation.ObservationId",
+  "games": [
+    {
+      "id": "demo01-001",
+      "title": "SacMon : Titane & Damas",
+      "platform": "gba",
+      "genre": "RPG de collection",
+      "year": 2004,
+      "description": "Des métallurgistes capturent des créatures bavardes pour participer au Grand Prix du sac rangé.",
+      "publisher": "Atelier Sacoche",
+      "region": "EU",
+      "edition": "Damas",
+      "romFile": "demo01-001.gba",
+      "media": {
+        "image": "MEDIAS/gba/covers/demo01-001.png",
+        "thumbnail": "MEDIAS/gba/thumbnails/demo01-001.png",
+        "marquee": "MEDIAS/gba/logos/demo01-001.png",
+        "screenshot": "MEDIAS/gba/screenshots/demo01-001.png",
+        "backcover": "MEDIAS/gba/backcovers/demo01-001.png",
+        "background": "MEDIAS/gba/backgrounds/demo01-001.png"
+      },
+      "caseTags": [
+        "EDITION"
+      ]
+    },
+    {
+      "id": "demo01-002",
+      "title": "Jaxson & Dex",
+      "platform": "ps2",
+      "genre": "Plateforme aventure",
+      "year": 2003,
+      "description": "Un mécanicien maladroit et une luciole syndiquée réparent des ascenseurs rebelles.",
+      "publisher": "Gribouille Interactive",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-002.bin",
+      "media": {
+        "image": "MEDIAS/ps2/covers/demo01-002.png",
+        "thumbnail": "MEDIAS/ps2/thumbnails/demo01-002.png",
+        "marquee": "MEDIAS/ps2/logos/demo01-002.png",
+        "screenshot": "MEDIAS/ps2/screenshots/demo01-002.png",
+        "backcover": "MEDIAS/ps2/backcovers/demo01-002.png",
+        "background": "MEDIAS/ps2/backgrounds/demo01-002.png"
+      },
+      "caseTags": [
+        "MULTIPLE_SCREENSHOTS"
+      ],
+      "additionalMedia": [
+        {
+          "kind": "screenshot2",
+          "relativePath": "MEDIAS/ps2/screenshots/demo01-002-02.png",
+          "materializedInBaseline": false
+        }
+      ]
+    },
+    {
+      "id": "demo01-003",
+      "title": "Average Anto Bros.",
+      "platform": "nes",
+      "genre": "Plateforme",
+      "year": 1989,
+      "description": "Deux réparateurs ordinaires sauvent une copropriété envahie de tuyaux capricieux.",
+      "publisher": "Plomberie Moyenne",
+      "region": "US",
+      "edition": "Version Nord",
+      "romFile": "demo01-003.nes",
+      "media": {
+        "image": "MEDIAS/nes/covers/demo01-003.png",
+        "thumbnail": "MEDIAS/nes/thumbnails/demo01-003.png",
+        "marquee": "MEDIAS/nes/logos/demo01-003.png",
+        "screenshot": "MEDIAS/nes/screenshots/demo01-003.png",
+        "backcover": "MEDIAS/nes/backcovers/demo01-003.png",
+        "background": "MEDIAS/nes/backgrounds/demo01-003.png"
+      },
+      "caseTags": [
+        "REGION_VERSION"
+      ],
+      "alternateReleases": [
+        {
+          "releaseId": "demo01-003-eu",
+          "platform": "nes",
+          "edition": "Version Europe",
+          "region": "EU",
+          "materializedInBaseline": false
+        }
+      ]
+    },
+    {
+      "id": "demo01-004",
+      "title": "Intern Vicious",
+      "platform": "psx",
+      "genre": "Survival humoristique",
+      "year": 1998,
+      "description": "Une stagiaire nocturne fuit des classeurs vivants en cherchant l'imprimante du dernier étage.",
+      "publisher": "Cafard Studios",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-004.chd",
+      "media": {
+        "image": "MEDIAS/psx/covers/demo01-004.png",
+        "thumbnail": "MEDIAS/psx/thumbnails/demo01-004.png",
+        "marquee": "MEDIAS/psx/logos/demo01-004.png",
+        "screenshot": "MEDIAS/psx/screenshots/demo01-004.png",
+        "backcover": "MEDIAS/psx/backcovers/demo01-004.png",
+        "background": "MEDIAS/psx/backgrounds/demo01-004.png"
+      },
+      "caseTags": [
+        "MISSING_COVER"
+      ]
+    },
+    {
+      "id": "demo01-005",
+      "title": "Little Theft Moto",
+      "platform": "ps2",
+      "genre": "Action ouverte",
+      "year": 2004,
+      "description": "Un coursier en mobylette récupère des colis égarés avant le dîner.",
+      "publisher": "Minuscule Trafic",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-005.bin",
+      "media": {
+        "image": "MEDIAS/ps2/covers/demo01-005.png",
+        "thumbnail": "MEDIAS/ps2/thumbnails/demo01-005.png",
+        "marquee": "MEDIAS/ps2/logos/demo01-005.png",
+        "screenshot": "MEDIAS/ps2/screenshots/demo01-005.png",
+        "backcover": "MEDIAS/ps2/backcovers/demo01-005.png",
+        "background": "MEDIAS/ps2/backgrounds/demo01-005.png"
+      },
+      "caseTags": [
+        "MISSING_ROM_CHAOS"
+      ]
+    },
+    {
+      "id": "demo01-006",
+      "title": "The Legend of Belda",
+      "platform": "snes",
+      "genre": "Aventure",
+      "year": 1994,
+      "description": "Bélda traverse la Vallée des Étiquettes pour retrouver la clé du placard municipal.",
+      "publisher": "Trousseau Mythique",
+      "region": "FR",
+      "edition": "Édition Émeraude",
+      "romFile": "demo01-006.sfc",
+      "media": {
+        "image": "MEDIAS/snes/covers/demo01-006.png",
+        "thumbnail": "MEDIAS/snes/thumbnails/demo01-006.png",
+        "marquee": "MEDIAS/snes/logos/demo01-006.png",
+        "screenshot": "MEDIAS/snes/screenshots/demo01-006.png",
+        "backcover": "MEDIAS/snes/backcovers/demo01-006.png",
+        "background": "MEDIAS/snes/backgrounds/demo01-006.png"
+      },
+      "caseTags": [
+        "ACCENTS"
+      ]
+    },
+    {
+      "id": "demo01-007",
+      "title": "Supersonic Hedgefund",
+      "platform": "megadrive",
+      "genre": "Course / plateforme",
+      "year": 1994,
+      "description": "Un gestionnaire très rapide ramasse des pièces imaginaires avant la clôture des marchés.",
+      "publisher": "Bourse Turbo",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-007.bin",
+      "media": {
+        "image": "MEDIAS/megadrive/covers/demo01-007.png",
+        "thumbnail": "MEDIAS/megadrive/thumbnails/demo01-007.png",
+        "marquee": "MEDIAS/megadrive/logos/demo01-007.png",
+        "screenshot": "MEDIAS/megadrive/screenshots/demo01-007.png",
+        "backcover": "MEDIAS/megadrive/backcovers/demo01-007.png",
+        "background": "MEDIAS/megadrive/backgrounds/demo01-007.png"
+      },
+      "caseTags": []
+    },
+    {
+      "id": "demo01-008",
+      "title": "Cash Bandicoot",
+      "platform": "psx",
+      "genre": "Plateforme",
+      "year": 1997,
+      "description": "Un marsupial comptable déboule dans une forêt de distributeurs de billets cassés.",
+      "publisher": "Billet Sauvage",
+      "region": "US",
+      "edition": "Édition Ticket",
+      "romFile": "demo01-008.chd",
+      "media": {
+        "image": "MEDIAS/psx/covers/demo01-008.png",
+        "thumbnail": "MEDIAS/psx/thumbnails/demo01-008.png",
+        "marquee": "MEDIAS/psx/logos/demo01-008.png",
+        "screenshot": "MEDIAS/psx/screenshots/demo01-008.png",
+        "backcover": "MEDIAS/psx/backcovers/demo01-008.png",
+        "background": "MEDIAS/psx/backgrounds/demo01-008.png"
+      },
+      "caseTags": [
+        "COVER_VARIANT"
+      ]
+    },
+    {
+      "id": "demo01-009",
+      "title": "Tomb Waiter",
+      "platform": "psx",
+      "genre": "Aventure",
+      "year": 1999,
+      "description": "Une archéologue devenue serveuse recherche un plateau légendaire dans un restaurant enseveli. La quête commence derrière une porte rouillée, traverse une salle de banquet remplie d'énigmes absurdes, puis mène à un menu en pierre que personne n'arrive à déchiffrer. Ses compagnons proposent des recettes contradictoires pendant que le responsable de salle insiste pour fermer avant minuit.",
+      "publisher": "Serveur Perdu",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-009.chd",
+      "media": {
+        "image": "MEDIAS/psx/covers/demo01-009.png",
+        "thumbnail": "MEDIAS/psx/thumbnails/demo01-009.png",
+        "marquee": "MEDIAS/psx/logos/demo01-009.png",
+        "screenshot": "MEDIAS/psx/screenshots/demo01-009.png",
+        "backcover": "MEDIAS/psx/backcovers/demo01-009.png",
+        "background": "MEDIAS/psx/backgrounds/demo01-009.png"
+      },
+      "caseTags": [
+        "LONG_DESCRIPTION"
+      ]
+    },
+    {
+      "id": "demo01-010",
+      "title": "Dad of Chores",
+      "platform": "ps4",
+      "genre": "Action domestique",
+      "year": 2017,
+      "description": "Un parent légendaire affronte un panier à linge insatiable et les jouets dissimulés sous le canapé.",
+      "publisher": "Vaisselle Épique",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-010.bin",
+      "media": {
+        "image": "MEDIAS/ps4/covers/demo01-010.png",
+        "thumbnail": "MEDIAS/ps4/thumbnails/demo01-010.png",
+        "marquee": "MEDIAS/ps4/logos/demo01-010.png",
+        "screenshot": "MEDIAS/ps4/screenshots/demo01-010.png",
+        "backcover": "MEDIAS/ps4/backcovers/demo01-010.png",
+        "background": "MEDIAS/ps4/backgrounds/demo01-010.png"
+      },
+      "caseTags": [
+        "PARTIAL_METADATA"
+      ]
+    },
+    {
+      "id": "demo01-011",
+      "title": "Metal Deer Salad",
+      "platform": "psx",
+      "genre": "Infiltration",
+      "year": 1999,
+      "description": "Un cerf espion infiltre deux bases frigorifiques afin de retrouver la recette d'une sauce secrète. L'aventure est répartie sur deux disques fictifs.",
+      "publisher": "Salade Tactique",
+      "region": "JP",
+      "edition": "Double Disque",
+      "romFile": "demo01-011.m3u",
+      "media": {
+        "image": "MEDIAS/psx/covers/demo01-011.png",
+        "thumbnail": "MEDIAS/psx/thumbnails/demo01-011.png",
+        "marquee": "MEDIAS/psx/logos/demo01-011.png",
+        "screenshot": "MEDIAS/psx/screenshots/demo01-011.png",
+        "backcover": "MEDIAS/psx/backcovers/demo01-011.png",
+        "background": "MEDIAS/psx/backgrounds/demo01-011.png"
+      },
+      "discs": [
+        "demo01-011-disc1.chd",
+        "demo01-011-disc2.chd"
+      ],
+      "caseTags": [
+        "MULTIDISC"
+      ]
+    },
+    {
+      "id": "demo01-012",
+      "title": "Final Tax Return",
+      "platform": "psx",
+      "genre": "RPG fiscal",
+      "year": 1999,
+      "description": "Une comptable collecte des reçus antiques pour vaincre un formulaire d'impôt final.",
+      "publisher": "Compta Fantaisie",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-012.chd",
+      "media": {
+        "image": "MEDIAS/psx/covers/demo01-012.png",
+        "thumbnail": "MEDIAS/psx/thumbnails/demo01-012.png",
+        "marquee": "MEDIAS/psx/logos/demo01-012.png",
+        "screenshot": "MEDIAS/psx/screenshots/demo01-012.png",
+        "backcover": "MEDIAS/psx/backcovers/demo01-012.png",
+        "background": "MEDIAS/psx/backgrounds/demo01-012.png"
+      },
+      "caseTags": [
+        "CORRUPT_IMAGE_ISOLATED"
+      ]
+    },
+    {
+      "id": "demo01-013",
+      "title": "Need for Sleep",
+      "platform": "ps2",
+      "genre": "Course nocturne",
+      "year": 2005,
+      "description": "Des pilotes épuisés parcourent de longs circuits entre les cités de la sieste.",
+      "publisher": "Oreiller Turbo",
+      "region": "EU",
+      "edition": "Édition Insomnie",
+      "romFile": "demo01-013.bin",
+      "media": {
+        "image": "MEDIAS/ps2/covers/demo01-013.png",
+        "thumbnail": "MEDIAS/ps2/thumbnails/demo01-013.png",
+        "marquee": "MEDIAS/ps2/logos/demo01-013.png",
+        "screenshot": "MEDIAS/ps2/screenshots/demo01-013.png",
+        "backcover": "MEDIAS/ps2/backcovers/demo01-013.png",
+        "background": "MEDIAS/ps2/backgrounds/demo01-013.png"
+      },
+      "caseTags": []
+    },
+    {
+      "id": "demo01-014",
+      "title": "The Shrims",
+      "platform": "pc",
+      "genre": "Simulation de vie",
+      "year": 2002,
+      "description": "Des crevettes miniatures aménagent leur aquarium et négocient les règles de colocation.",
+      "publisher": "Crevette & Compagnie",
+      "region": "US",
+      "edition": "Standard",
+      "romFile": "demo01-014.bin",
+      "media": {
+        "image": "MEDIAS/pc/covers/demo01-014.png",
+        "thumbnail": "MEDIAS/pc/thumbnails/demo01-014.png",
+        "marquee": "MEDIAS/pc/logos/demo01-014.png",
+        "screenshot": "MEDIAS/pc/screenshots/demo01-014.png",
+        "backcover": "MEDIAS/pc/backcovers/demo01-014.png",
+        "background": "MEDIAS/pc/backgrounds/demo01-014.png"
+      },
+      "caseTags": [
+        "CROSS_PLATFORM"
+      ],
+      "alternateReleases": [
+        {
+          "releaseId": "demo01-014-ps2",
+          "platform": "ps2",
+          "edition": "Édition Console",
+          "region": "EU",
+          "materializedInBaseline": false
+        }
+      ]
+    },
+    {
+      "id": "demo01-015",
+      "title": "Room",
+      "platform": "dos",
+      "genre": "Action",
+      "year": 1993,
+      "description": "Un héros explore des salles de réunion infernales pour retrouver la sortie du bureau.",
+      "publisher": "Pièce Rouge",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-015.bin",
+      "media": {
+        "image": "MEDIAS/dos/covers/demo01-015.png",
+        "thumbnail": "MEDIAS/dos/thumbnails/demo01-015.png",
+        "marquee": "MEDIAS/dos/logos/demo01-015.png",
+        "screenshot": "MEDIAS/dos/screenshots/demo01-015.png",
+        "backcover": "MEDIAS/dos/backcovers/demo01-015.png",
+        "background": "MEDIAS/dos/backgrounds/demo01-015.png"
+      },
+      "caseTags": [
+        "SPACES_IN_PATH"
+      ]
+    },
+    {
+      "id": "demo01-016",
+      "title": "Hello!",
+      "platform": "xbox",
+      "genre": "FPS",
+      "year": 2003,
+      "description": "Un gardien de station spatiale accueille des visiteurs extraterrestres avec un enthousiasme excessif.",
+      "publisher": "Brouhaha Orbital",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-016.bin",
+      "media": {
+        "image": "MEDIAS/xbox/covers/demo01-016.png",
+        "thumbnail": "MEDIAS/xbox/thumbnails/demo01-016.png",
+        "marquee": "MEDIAS/xbox/logos/demo01-016.png",
+        "screenshot": "MEDIAS/xbox/screenshots/demo01-016.png",
+        "backcover": "MEDIAS/xbox/backcovers/demo01-016.png",
+        "background": "MEDIAS/xbox/backgrounds/demo01-016.png"
+      },
+      "caseTags": [
+        "XBOX_ORIGINAL",
+        "PUNCTUATION"
+      ]
+    },
+    {
+      "id": "demo01-017",
+      "title": "Minorcraft",
+      "platform": "pc",
+      "genre": "Construction",
+      "year": 2012,
+      "description": "Un ingénieur construit des cabanes cubiques et d'interminables escaliers.",
+      "publisher": "Bloc Mineur",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-017.bin",
+      "media": {
+        "image": "MEDIAS/pc/covers/demo01-017.png",
+        "thumbnail": "MEDIAS/pc/thumbnails/demo01-017.png",
+        "marquee": "MEDIAS/pc/logos/demo01-017.png",
+        "screenshot": "MEDIAS/pc/screenshots/demo01-017.png",
+        "backcover": "MEDIAS/pc/backcovers/demo01-017.png",
+        "background": "MEDIAS/pc/backgrounds/demo01-017.png"
+      },
+      "caseTags": [
+        "MEDIA_MISSING"
+      ]
+    },
+    {
+      "id": "demo01-018",
+      "title": "Damp Soles",
+      "platform": "ps3",
+      "genre": "RPG fantastique",
+      "year": 2009,
+      "description": "Un aventurier aux chaussures trempées négocie avec des chaussettes spectrales.",
+      "publisher": "Semelle Sombre",
+      "region": "JP",
+      "edition": "Standard",
+      "romFile": "demo01-018.bin",
+      "media": {
+        "image": "MEDIAS/ps3/covers/demo01-018.png",
+        "thumbnail": "MEDIAS/ps3/thumbnails/demo01-018.png",
+        "marquee": "MEDIAS/ps3/logos/demo01-018.png",
+        "screenshot": "MEDIAS/ps3/screenshots/demo01-018.png",
+        "backcover": "MEDIAS/ps3/backcovers/demo01-018.png",
+        "background": "MEDIAS/ps3/backgrounds/demo01-018.png"
+      },
+      "caseTags": [
+        "ODD_FILENAME"
+      ]
+    },
+    {
+      "id": "demo01-019",
+      "title": "Animal Parking",
+      "platform": "gamecube",
+      "genre": "Simulation",
+      "year": 2004,
+      "description": "Des animaux forestiers organisent un parking où chacun a oublié son permis.",
+      "publisher": "Garage Animalier",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-019.bin",
+      "media": {
+        "image": "MEDIAS/gamecube/covers/demo01-019.png",
+        "thumbnail": "MEDIAS/gamecube/thumbnails/demo01-019.png",
+        "marquee": "MEDIAS/gamecube/logos/demo01-019.png",
+        "screenshot": "MEDIAS/gamecube/screenshots/demo01-019.png",
+        "backcover": "MEDIAS/gamecube/backcovers/demo01-019.png",
+        "background": "MEDIAS/gamecube/backgrounds/demo01-019.png"
+      },
+      "caseTags": [
+        "NESTED_DIRECTORY"
+      ]
+    },
+    {
+      "id": "demo01-020",
+      "title": "Stardust Alley",
+      "platform": "pc",
+      "genre": "Gestion",
+      "year": 2016,
+      "description": "Une jardinière cultive des lucioles sur une avenue de la Voie lactée.",
+      "publisher": "Étoile du Jardin",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-020.bin",
+      "media": {
+        "image": "MEDIAS/pc/covers/demo01-020.png",
+        "thumbnail": "MEDIAS/pc/thumbnails/demo01-020.png",
+        "marquee": "MEDIAS/pc/logos/demo01-020.png",
+        "screenshot": "MEDIAS/pc/screenshots/demo01-020.png",
+        "backcover": "MEDIAS/pc/backcovers/demo01-020.png",
+        "background": "MEDIAS/pc/backgrounds/demo01-020.png"
+      },
+      "caseTags": [
+        "THUMBNAIL_DISTINCT"
+      ]
+    },
+    {
+      "id": "demo01-021",
+      "title": "The Rest of Us",
+      "platform": "ps3",
+      "genre": "Aventure narrative",
+      "year": 2013,
+      "description": "Des voisins traversent une ville désertée pour retrouver la boîte à outils collective.",
+      "publisher": "Derniers Copains",
+      "region": "US",
+      "edition": "Standard",
+      "romFile": "demo01-021.bin",
+      "media": {
+        "image": "MEDIAS/ps3/covers/demo01-021.png",
+        "thumbnail": "MEDIAS/ps3/thumbnails/demo01-021.png",
+        "marquee": "MEDIAS/ps3/logos/demo01-021.png",
+        "screenshot": "MEDIAS/ps3/screenshots/demo01-021.png",
+        "backcover": "MEDIAS/ps3/backcovers/demo01-021.png",
+        "background": "MEDIAS/ps3/backgrounds/demo01-021.png"
+      },
+      "caseTags": [
+        "HOMONYM_FNAME"
+      ]
+    },
+    {
+      "id": "demo01-022",
+      "title": "Cyberplonk 2077",
+      "platform": "pc",
+      "genre": "RPG futuriste",
+      "year": 2020,
+      "description": "Une livreuse de néons enquête sur des distributeurs de boissons conspirateurs.",
+      "publisher": "Plonk Numérique",
+      "region": "EU",
+      "edition": "Édition Prisme",
+      "romFile": "demo01-022.bin",
+      "media": {
+        "image": "MEDIAS/pc/covers/demo01-022.png",
+        "thumbnail": "MEDIAS/pc/thumbnails/demo01-022.png",
+        "marquee": "MEDIAS/pc/logos/demo01-022.png",
+        "screenshot": "MEDIAS/pc/screenshots/demo01-022.png",
+        "backcover": "MEDIAS/pc/backcovers/demo01-022.png",
+        "background": "MEDIAS/pc/backgrounds/demo01-022.png"
+      },
+      "caseTags": [
+        "SPECIAL_SAFE_CHARACTERS"
+      ]
+    },
+    {
+      "id": "demo01-023",
+      "title": "Red Bread Redemption",
+      "platform": "ps3",
+      "genre": "Action aventure",
+      "year": 2011,
+      "description": "Un ancien boulanger traverse une plaine envahie de baguettes rebelles.",
+      "publisher": "Farine du Far West",
+      "region": "US",
+      "edition": "Édition Croûte Dorée",
+      "romFile": "demo01-023.bin",
+      "media": {
+        "image": "MEDIAS/ps3/covers/demo01-023.png",
+        "thumbnail": "MEDIAS/ps3/thumbnails/demo01-023.png",
+        "marquee": "MEDIAS/ps3/logos/demo01-023.png",
+        "screenshot": "MEDIAS/ps3/screenshots/demo01-023.png",
+        "backcover": "MEDIAS/ps3/backcovers/demo01-023.png",
+        "background": "MEDIAS/ps3/backgrounds/demo01-023.png"
+      },
+      "caseTags": [
+        "EDITION"
+      ]
+    },
+    {
+      "id": "demo01-024",
+      "title": "Assistant's Creed",
+      "platform": "ps3",
+      "genre": "Infiltration",
+      "year": 2010,
+      "description": "Une archiviste court sur les toits pour récupérer un agenda disparu.",
+      "publisher": "Guilde des Secrétaires",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-024.bin",
+      "media": {
+        "image": "MEDIAS/ps3/covers/demo01-024.png",
+        "thumbnail": "MEDIAS/ps3/thumbnails/demo01-024.png",
+        "marquee": "MEDIAS/ps3/logos/demo01-024.png",
+        "screenshot": "MEDIAS/ps3/screenshots/demo01-024.png",
+        "backcover": "MEDIAS/ps3/backcovers/demo01-024.png",
+        "background": "MEDIAS/ps3/backgrounds/demo01-024.png"
+      },
+      "caseTags": [
+        "APOSTROPHE"
+      ]
+    },
+    {
+      "id": "demo01-025",
+      "title": "Wardrobe",
+      "platform": "pc",
+      "genre": "Action science-fiction",
+      "year": 2017,
+      "description": "Une exploratrice franchit des placards cosmiques aux manteaux dimensionnels.",
+      "publisher": "Armoire Orbitale",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-025.bin",
+      "media": {
+        "image": "MEDIAS/pc/covers/demo01-025.png",
+        "thumbnail": "MEDIAS/pc/thumbnails/demo01-025.png",
+        "marquee": "MEDIAS/pc/logos/demo01-025.png",
+        "screenshot": "MEDIAS/pc/screenshots/demo01-025.png",
+        "backcover": "MEDIAS/pc/backcovers/demo01-025.png",
+        "background": "MEDIAS/pc/backgrounds/demo01-025.png"
+      },
+      "caseTags": [
+        "BACKGROUND_LOGO"
+      ]
+    },
+    {
+      "id": "demo01-026",
+      "title": "Pasta Kombat",
+      "platform": "snes",
+      "genre": "Combat",
+      "year": 1995,
+      "description": "Des chefs champions se battent à coups de pâtes volantes et d'ustensiles.",
+      "publisher": "Pâtes & Poings",
+      "region": "EU",
+      "edition": "Édition Classique",
+      "romFile": "demo01-026.sfc",
+      "media": {
+        "image": "MEDIAS/snes/covers/demo01-026.png",
+        "thumbnail": "MEDIAS/snes/thumbnails/demo01-026.png",
+        "marquee": "MEDIAS/snes/logos/demo01-026.png",
+        "screenshot": "MEDIAS/snes/screenshots/demo01-026.png",
+        "backcover": "MEDIAS/snes/backcovers/demo01-026.png",
+        "background": "MEDIAS/snes/backgrounds/demo01-026.png"
+      },
+      "caseTags": [
+        "TWO_EDITIONS"
+      ],
+      "alternateReleases": [
+        {
+          "releaseId": "demo01-026-tournament",
+          "platform": "snes",
+          "edition": "Édition Tournoi",
+          "region": "US",
+          "materializedInBaseline": false
+        }
+      ]
+    },
+    {
+      "id": "demo01-027",
+      "title": "Street Fritter II",
+      "platform": "snes",
+      "genre": "Combat",
+      "year": 1994,
+      "description": "Des vendeurs de beignets rivalisent pour obtenir le meilleur emplacement du marché.",
+      "publisher": "Beignet Urbain",
+      "region": "US",
+      "edition": "Standard",
+      "romFile": "demo01-027.sfc",
+      "media": {
+        "image": "MEDIAS/snes/covers/demo01-027.png",
+        "thumbnail": "MEDIAS/snes/thumbnails/demo01-027.png",
+        "marquee": "MEDIAS/snes/logos/demo01-027.png",
+        "screenshot": "MEDIAS/snes/screenshots/demo01-027.png",
+        "backcover": "MEDIAS/snes/backcovers/demo01-027.png",
+        "background": "MEDIAS/snes/backgrounds/demo01-027.png"
+      },
+      "caseTags": [
+        "EXACT_DUPLICATE_CHAOS"
+      ]
+    },
+    {
+      "id": "demo01-028",
+      "title": "Donkey Konk",
+      "platform": "snes",
+      "genre": "Plateforme",
+      "year": 1995,
+      "description": "Un primate percussionniste traverse une île de tambours glissants.",
+      "publisher": "Banane Bancale",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-028.sfc",
+      "media": {
+        "image": "MEDIAS/snes/covers/demo01-028.png",
+        "thumbnail": "MEDIAS/snes/thumbnails/demo01-028.png",
+        "marquee": "MEDIAS/snes/logos/demo01-028.png",
+        "screenshot": "MEDIAS/snes/screenshots/demo01-028.png",
+        "backcover": "MEDIAS/snes/backcovers/demo01-028.png",
+        "background": "MEDIAS/snes/backgrounds/demo01-028.png"
+      },
+      "caseTags": [
+        "ROM_RENAMED_CHAOS"
+      ]
+    },
+    {
+      "id": "demo01-029",
+      "title": "Chrono Triggered",
+      "platform": "snes",
+      "genre": "RPG",
+      "year": 1996,
+      "description": "Un horloger maladroit provoque des paradoxes en réparant des réveils d'occasion.",
+      "publisher": "Horloge Dormante",
+      "region": "JP",
+      "edition": "Standard",
+      "romFile": "demo01-029.sfc",
+      "media": {
+        "image": "MEDIAS/snes/covers/demo01-029.png",
+        "thumbnail": "MEDIAS/snes/thumbnails/demo01-029.png",
+        "marquee": "MEDIAS/snes/logos/demo01-029.png",
+        "screenshot": "MEDIAS/snes/screenshots/demo01-029.png",
+        "backcover": "MEDIAS/snes/backcovers/demo01-029.png",
+        "background": "MEDIAS/snes/backgrounds/demo01-029.png"
+      },
+      "caseTags": [
+        "FICTIVE_DATE_PUBLISHER"
+      ]
+    },
+    {
+      "id": "demo01-030",
+      "title": "Paper Plumber",
+      "platform": "n64",
+      "genre": "RPG papier",
+      "year": 2001,
+      "description": "Un plombier en papier traverse des dossiers suspendus pour sauver une agrafe enchantée.",
+      "publisher": "Carton Courage",
+      "region": "EU",
+      "edition": "Standard",
+      "romFile": "demo01-030.z64",
+      "media": {
+        "image": "MEDIAS/n64/covers/demo01-030.png",
+        "thumbnail": "MEDIAS/n64/thumbnails/demo01-030.png",
+        "marquee": "MEDIAS/n64/logos/demo01-030.png",
+        "screenshot": "MEDIAS/n64/screenshots/demo01-030.png",
+        "backcover": "MEDIAS/n64/backcovers/demo01-030.png",
+        "background": "MEDIAS/n64/backgrounds/demo01-030.png"
+      },
+      "caseTags": [
+        "INVALID_XML_ISOLATED"
+      ]
+    }
+  ]
+}

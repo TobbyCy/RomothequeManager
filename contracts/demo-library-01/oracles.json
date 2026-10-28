@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "demo-library-01/oracles/1",
+  "status": "NOT_EXECUTED_WITH_OWNER_CATALOGUE",
+  "sourceIssue": 71,
+  "counts": {
+    "IDEAL": {
+      "canonicalGames": 30,
+      "physicalRomFiles": 32,
+      "esDeGameEntries": 30,
+      "pngFiles": 180,
+      "missingMainRomReferences": 0,
+      "duplicateCandidateFiles": 0,
+      "confirmedLogicalGamesByScanner": null
+    },
+    "CHAOS": {
+      "canonicalGames": 30,
+      "physicalRomFiles": 33,
+      "esDeGameEntries": 30,
+      "pngFiles": 166,
+      "missingMainRomReferences": 2,
+      "duplicateCandidateFiles": 3,
+      "confirmedLogicalGamesByScanner": null
+    },
+    "MYSTERY": {
+      "canonicalGames": 30,
+      "physicalRomFiles": 32,
+      "esDeGameEntries": 0,
+      "pngFiles": 0,
+      "missingMainRomReferences": 0,
+      "duplicateCandidateFiles": 0,
+      "confirmedLogicalGamesByScanner": null
+    }
+  },
+  "assertions": [
+    "30 stable IDs identical between variants and titles/platforms exactly match Issue #71.",
+    "13 primary platforms; Hello! xbox, Jaxson & Dex ps2, Dad of Chores ps4, Need for Sleep ps2, PC/DOS/PS3/GameCube included.",
+    "IDEAL 30 references in valid XML, 32 ROMS physical files (30 main entrypoints including playlist plus 2 discs), 180 PNG media.",
+    "CHAOS 30 XML entries even when 2 referenced main ROMs are unavailable; 33 ROMS physical files including 3 duplicate candidates (IDs 004, 013, 027); 166 PNG, 14 missing.",
+    "MYSTERY no XML or media; 32 physical ROMS files for 30 canonical games, ConfirmedGameCount must stay null.",
+    "Multidisc Metal Deer Salad is one canonical game ID demo01-011, not three games; missing media never implies deletion.",
+    "CHAOS contains missing primary ROMs demo01-005 and demo01-017, distinct media missing and an exact duplicate for Street Fritter II demo01-027.",
+    "Only image, thumbnail and marquee map to imported ES-DE fields; backcover/screenshot/background remain manifest fields.",
+    "Invalid XML Paper Plumber and corrupted PNG Final Tax Return are isolated negative fixtures, not parts of nominal IDEAL/CHAOS XML.",
+    "Multi-platform The Shrims PS2 variant, Pasta Kombat Tournament edition and second Jaxson & Dex screenshot are declared but not materialized by generator V1.",
+    "Generator PR #73 must update old homonym assertions and its candidate catalogue before merge.",
+    "No scan real libraries, executable ROM/BIOS, artwork from commercial games, scraping or release."
+  ],
+  "negativeFixtures": [
+    {
+      "id": "NEG_XML_PAPER_PLUMBER",
+      "gameId": "demo01-030",
+      "isolated": true,
+      "generated": false
+    },
+    {
+      "id": "NEG_PNG_FINAL_TAX_RETURN",
+      "gameId": "demo01-012",
+      "isolated": true,
+      "generated": false
+    }
+  ]
+}

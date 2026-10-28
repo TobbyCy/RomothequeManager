@@ -1,5 +1,9 @@
 # État des fonctionnalités
 
+## DEMO-LIBRARY-01 — catalogue canonique candidat (PR Draft #72, sans effet produit)
+
+La [PR #72](https://github.com/TobbyCy/RomothequeManager/pull/72) documente **30 jeux entièrement fictifs, sur les 13 plateformes corrigées par le propriétaire** ([Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71), notamment Xbox, PS2, PS3, PS4, PC et DOS) ; catalogue de référence `contracts/demo-library-01/`, contrat et briefs sous `docs/architecture/`, variantes IDEAL/CHAOS/MYSTERY et oracles non exécutés. DEV 1 aligne son générateur [#73](https://github.com/TobbyCy/RomothequeManager/pull/73) sur cette source. **Aucune ROM, PNG, XML, bibliothèque générée ou fonctionnalité UI livrée par #72 ; aucun changement à l'intégration NEXT-01.**
+
 ## NEXT-01 / PR #64 — vérification du HEAD courant et du fonctionnement hors ligne
 
 - Workflow de recette : checkout strict du `github.event.pull_request.head.sha` au moment du run, vérifié avant restauration SDK et avant packaging. **Aucun ancien SHA `e775cdd6` épinglé** ; chaque artifact contient le manifeste du HEAD exact et le SHA-256 du ZIP `win-x64` autonome produit pour cette révision, sans Release.

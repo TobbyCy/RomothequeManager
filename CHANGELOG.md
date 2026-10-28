@@ -1,5 +1,10 @@
 # Journal des changements
 
+## DEMO-LIBRARY-01 — catalogue canonique DEV 2 (PR Draft #72, 28.10.2026)
+
+- Le propriétaire a fixé **30 titres et 13 plateformes** dans [Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71). Les références de conception sous `contracts/demo-library-01/` et `docs/architecture/` contiennent métadonnées, médias projetés, scénarios IDEAL/CHAOS/MYSTERY et oracles arithmétiques. Le générateur DEV 1 #73 attend son alignement sur cette version canonique.
+- **Documentation exclusivement** : aucun fichier ROM, BIOS, image, XML ni test de génération sur ce catalogue livré ; aucune Release ni modification du produit.
+
 ## NEXT-01 / PR #64 — recette HEAD exact et hors ligne (28.10.2026)
 
 - Le ZIP Windows CI est construit depuis le HEAD courant de #64, vérifié par SHA, plutôt que l'ancien `e775cdd6` ; manifeste et sidecar SHA-256 exacts.
