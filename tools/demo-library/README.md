@@ -38,3 +38,5 @@ La sortie préexistante est refusée, sans nettoyage ni overwrite. Un arrêt peu
 Tests MSTest dans `tests/dotnet/RomothequeManager.V2.Tests/DemoLibraryGeneratorTests.cs` : 30 IDs identiques, oracles de la PR #72, import ES-DE IDEAL/CHAOS, anomalies connues, inventaire MYSTERY, images PNG locales, même sortie binaire à deux destinations, refus de sortie existante, catalogue invalide, contrôles SHA. Les fixtures historiques #64 sont strictement inchangées.
 
 **Chaîne de PR : #72 (contrat DEV 2) → #73 (générateur DEV 1).** Cette branche contient le contrat de #72 uniquement pour valider son exécution ; aucun merge vers `main` ni Release ne sont autorisés par cela. `FORMAT_ACK` et contre-revue restent requis avant le gel du contrat.
+
+**CI / PR superposées :** la PR #73 cible temporairement `main` parce que le workflow Adaptive CI ne déclenche pas les PR dont la base est la branche DEV 2 #72. La branche #73 contient les contrats #72 comme dépendance parent Git, sans les modifier ; **fusionner d'abord #72** sous GO distinct, puis resynchroniser #73 avec `main` et recontrôler son diff avant une éventuelle fusion (non autorisée par ce mandat).
