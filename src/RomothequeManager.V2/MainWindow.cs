@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 
 namespace RomothequeManager.V2;
 
@@ -12,9 +13,9 @@ public sealed partial class MainWindow : Window
     private readonly LibraryProjection _libraryProjection;
     private readonly LibraryViewState _libraryViewState;
     private readonly StackPanel _page = new() { Spacing = 14 };
-    private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#E9EEF6"));
-    private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#A9B8CD"));
-    private static readonly IBrush Card = new SolidColorBrush(Color.Parse("#202B3D"));
+    private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#E8E6E3"));
+    private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#AAB2BF"));
+    private static readonly IBrush Card = new SolidColorBrush(Color.Parse("#23262B"));
 
     public POCView CurrentView => ActiveView;
 
@@ -43,31 +44,59 @@ public sealed partial class MainWindow : Window
     {
         _libraryProjection = LibraryProjection.LoadSynthetic(_state.Catalogue);
         _libraryViewState = new LibraryViewState(_libraryProjection);
-        SizeChanged += (_, _) => { if (ActiveView == POCView.Libraries) Render(); };
-        Title = "ROMothèque Manager — POC synthétique";
+        SizeChanged += (_, _) =>
+        {
+            if (ActiveView is POCView.Dashboard or POCView.Libraries)
+                Render();
+        };
+        Title = "ROMothèque Manager";
         Width = 1120; Height = 720; MinWidth = 760; MinHeight = 480;
-        Background = new SolidColorBrush(Color.Parse("#121B2A"));
-        var root = new Grid { ColumnDefinitions = new ColumnDefinitions("220,*") };
-        var menu = new StackPanel { Spacing = 18, Margin = new Thickness(20) };
-        menu.Children.Add(Text("ROMOTHÈQUE", 22, true));
-        menu.Children.Add(Text("MANAGER · POC V2", 12));
+        Background = new SolidColorBrush(Color.Parse("#16181D"));
+
+        // Both resources come from the official byte-for-byte approved branding pack.
+        // The EXE also embeds the same multiresolution ICO via ApplicationIcon.
+        var brandingRoot = AppContext.BaseDirectory;
+        var logoPath = Path.Combine(brandingRoot, "RM_V2_Horizontal_Fond_Sombre.png");
+        var iconPath = Path.Combine(brandingRoot, "RM_V2_Favicon.ico");
+        if (!File.Exists(logoPath) || !File.Exists(iconPath))
+            throw new InvalidDataException("Official application branding is missing.");
+        Icon = new WindowIcon(iconPath);
+        var logoBitmap = new Bitmap(logoPath);
+        Closed += (_, _) => logoBitmap.Dispose();
+
+        var root = new Grid { ColumnDefinitions = new ColumnDefinitions("236,*") };
+        var menu = new StackPanel { Spacing = 12, Margin = new Thickness(18, 24, 18, 18) };
+        menu.Children.Add(new Image
+        {
+            Source = logoBitmap, Width = 196, Height = 68,
+            Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left
+        });
+        menu.Children.Add(Text("COLLECTION", 12, true));
         menu.Children.Add(Button("Tableau de bord", () => Navigate(POCView.Dashboard)));
         menu.Children.Add(Button("Collection", () => Navigate(POCView.Collection)));
-        menu.Children.Add(Button("Bibliothèques & snapshots", () => Navigate(POCView.Libraries)));
-        menu.Children.Add(Text("LECTURE SEULE", 13, true));
+        menu.Children.Add(Text("BIBLIOTHÈQUES", 12, true));
+        menu.Children.Add(Button("Bibliothèques & supports", () => Navigate(POCView.Libraries)));
+        menu.Children.Add(Text("GESTION", 12, true));
+        var unavailableExport = Button("Exports — à venir", () => { });
+        unavailableExport.IsEnabled = false;
+        menu.Children.Add(unavailableExport);
+        menu.Children.Add(Text("OUTILS · LECTURE SEULE", 12, true));
         menu.Children.Add(Button("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
         menu.Children.Add(Button("Actualiser l'import", () => _ = RefreshImportAsync()));
         menu.Children.Add(Button("Voir l'import", ShowImported));
         menu.Children.Add(Button("Mode démonstration", ShowDemo));
-        menu.Children.Add(Text("Mode démo au démarrage ; l'import requiert votre sélection.", 12));
+        menu.Children.Add(Text("Aucun scan au démarrage. L'import exige une sélection explicite.", 12));
         var sidebar = new Border
         {
-            Background = new SolidColorBrush(Color.Parse("#192439")), Child = menu
+            Background = new SolidColorBrush(Color.Parse("#1D2025")),
+            BorderBrush = new SolidColorBrush(Color.Parse("#35383E")),
+            BorderThickness = new Thickness(0, 0, 1, 0),
+            Child = menu
         };
         root.Children.Add(sidebar);
         var scroll = new ScrollViewer
         {
-            Content = _page, Margin = new Thickness(30),
+            Content = _page, Margin = new Thickness(22, 20, 22, 20),
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
         Grid.SetColumn(scroll, 1);
@@ -113,8 +142,8 @@ public sealed partial class MainWindow : Window
         _page.Children.Clear();
         ReleaseCoverImages();
         _importedList = null;
-        Title = _importedUi.IsImported ? "ROMothèque Manager — Bibliothèque importée" :
-            "ROMothèque Manager — POC synthétique";
+        Title = "ROMothèque Manager" + (_importedUi.IsImported ?
+            " — Bibliothèque ES-DE" : " — Démonstration");
         if (_importedUi.ErrorMessage is not null)
             _page.Children.Add(Text(_importedUi.ErrorMessage, 14, true));
         if (_importBusy) _page.Children.Add(Text("Lecture en cours ; aucune source modifiée.", 14, true));
@@ -134,13 +163,12 @@ public sealed partial class MainWindow : Window
 
     private void Dashboard()
     {
-        _page.Children.Add(Text("Tableau de bord", 30, true));
-        _page.Children.Add(Text("Un premier regard sur une collection fictive, sans aucun accès à vos ROM.", 15));
-        _page.Children.Add(Panel(Group(Text("6 jeux inventés", 25, true),
-            Text("3 bibliothèques fictives · 1 ONLINE · 1 OFFLINE · 1 UNKNOWN"),
-            Text("Dernière observation simulée : 22.10.2026 à 12:15 UTC"),
-            Text("OFFLINE ne signifie jamais que les jeux ont été supprimés.", 14, true))));
-        _page.Children.Add(Button("Parcourir la collection", () => { _state.ShowCollection(); Render(); }));
+        foreach (var section in VisualDashboard.BuildDemo(
+            _state.Catalogue, _libraryProjection,
+            () => Navigate(POCView.Collection),
+            () => Navigate(POCView.Libraries),
+            Bounds.Width < 1040))
+            _page.Children.Add(section);
     }
 
     private void Collection()

@@ -112,6 +112,11 @@ public sealed partial class MainWindow
             _page.Children.Add(Text("Aucune bibliothèque importée.", 18, true));
             return;
         }
+        if (_importedUi.CurrentView == POCView.Dashboard)
+        {
+            ImportedDashboard(snapshot);
+            return;
+        }
         _page.Children.Add(Text("BIBLIOTHÈQUE IMPORTÉE · ES-DE · LECTURE SEULE", 13, true));
         _page.Children.Add(Text("Cette vue reflète uniquement les gamelists trouvées. Aucun scan complet, aucune suppression déduite.", 13));
         switch (_importedUi.CurrentView)
@@ -125,40 +130,12 @@ public sealed partial class MainWindow
 
     private void ImportedDashboard(EsDeCatalogueSnapshot snapshot)
     {
-        _page.Children.Add(Text("Tableau de bord", 30, true));
-        var romMissing = snapshot.Games.Count(x => !x.RomExists);
-        var platforms = snapshot.Games.Select(x => x.Platform).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        _page.Children.Add(Panel(Group(
-            Text(snapshot.Games.Count + " jeu(x) référencé(s)", 25, true),
-            Text(platforms + " plateforme(s) · " + romMissing + " ROM(s) indisponible(s) au dernier import"),
-            Text(snapshot.Diagnostics.Count + " diagnostic(s) · origine " + snapshot.SourceKind),
-            Text("Un fichier indisponible ou un support retiré ne signifie pas qu'un jeu a été supprimé.", 14, true)
-        )));
-        if (snapshot.Diagnostics.Count > 0)
-        {
-            _page.Children.Add(Text("Diagnostics de l'import", 20, true));
-            _page.Children.Add(Text(EsDeDiagnosticPresentation.Summary(snapshot.Diagnostics), 15, true));
-            // Most actionable entries first; never imply that a missing ROM was deleted.
-            var ordered = snapshot.Diagnostics
-                .OrderByDescending(EsDeDiagnosticPresentation.NeedsAttention)
-                .ThenBy(x => x.Platform, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(x => x.Code, StringComparer.Ordinal)
-                .ToArray();
-            foreach (var diagnostic in ordered.Take(12))
-            {
-                var kind = EsDeDiagnosticPresentation.NeedsAttention(diagnostic)
-                    ? "À vérifier" : "Information";
-                _page.Children.Add(Panel(Group(
-                    Text(kind + " — " + EsDeDiagnosticPresentation.Title(diagnostic), 16, true),
-                    Text(EsDeDiagnosticPresentation.Context(diagnostic), 12),
-                    Text(EsDeDiagnosticPresentation.Explanation(diagnostic), 14)
-                )));
-            }
-            if (ordered.Length > 12)
-                _page.Children.Add(Text((ordered.Length - 12) +
-                    " autre(s) diagnostic(s) non affiché(s) ; aucun fichier n'a été modifié.", 13));
-        }
-        _page.Children.Add(Button("Parcourir la collection", () => Navigate(POCView.Collection)));
+        foreach (var section in VisualDashboard.BuildImported(
+            snapshot, game => CoverFor(game, 65, 77),
+            () => Navigate(POCView.Collection),
+            () => Navigate(POCView.Libraries),
+            Bounds.Width < 1040))
+            _page.Children.Add(section);
     }
 
     private void ImportedCollection()
