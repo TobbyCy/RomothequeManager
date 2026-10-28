@@ -79,21 +79,6 @@ function relative(p){
 if(typeof p!=='string'||!p||p.length>220||p.includes('\\')||p.includes(':')||p.startsWith('/')||p.includes('\0')||p.split('/').some(s=>!s||s==='.'||s==='..'||/[<>:"|?*\u0000-\u001f]/.test(s)||/[. ]$/.test(s)))throw Error('Unsafe relative path');
 return p;
 }
-function readCatalog(file){
-const source=fs.readFileSync(file);if(source.length>1048576)throw Error('Catalogue too large');
-const data=JSON.parse(source.toString('utf8'));if(data.schemaVersion!=='demo-library-01/1'||!Array.isArray(data.games)||data.games.length!==30)throw Error('Exactly 30 canonical games required');
-const ids=new Set(),files=new Set();
-for(const g of data.games){
-if(!/^demo01-[0-9]{3}$/.test(g.id)||ids.has(g.id))throw Error('Invalid/duplicate ID');ids.add(g.id);
-if(!/^[a-z0-9_-]{2,20}$/.test(g.platform))throw Error('Invalid platform');
-for(const field of ['title','description','genre','publisher','region','edition'])if(typeof g[field]!=='string'||!g[field].trim()||g[field].length>1200)throw Error('Invalid '+field);
-if(!Number.isInteger(g.year)||g.year<1980||g.year>2099)throw Error('Invalid year');
-relative(g.romFile);if(g.romFile.includes('/')||!/\.(gb|gba|nes|sfc|bin|z64|chd|m3u)$/i.test(g.romFile))throw Error('Invalid ROM extension');
-if(files.has(g.platform+'/'+g.romFile))throw Error('Duplicate ROM path');files.add(g.platform+'/'+g.romFile);
-if(g.discs!==undefined){if(!g.romFile.endsWith('.m3u')||!Array.isArray(g.discs)||g.discs.length<2||g.discs.length>4)throw Error('Invalid discs');for(const d of g.discs){relative(d);if(d.includes('/')||!d.endsWith('.chd'))throw Error('Invalid disc name');}}
-}
-return {data,source};
-}
 function safeOutput(value){
 if(typeof value!=='string'||!path.isAbsolute(value)||/^[\\/]{2}/.test(value)||value.includes('://')||value.includes('\0'))throw Error('Explicit absolute local --output required');
 const target=path.resolve(value), parent=path.dirname(target);
@@ -106,81 +91,6 @@ return target;
 }
 const xml=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 function generate(target,catalog){
-const schema=JSON.parse(fs.readFileSync(catalog,'utf8')).schemaVersion;
-if(schema==='demo-library-01/catalogue/0.1-candidate')return canonicalGenerate(target,catalog);
-const output=safeOutput(target),{data,source}=readCatalog(catalog),plan=new Map(),summaries=[];
-function add(p,content,kind,id=null){relative(p);const key=p.toLowerCase();if(plan.has(key))throw Error('Case-insensitive collision '+p);plan.set(key,{path:p,bytes:Buffer.isBuffer(content)?content:Buffer.from(content,'utf8'),kind,id});}
-for(const variant of ['IDEAL','CHAOS','MYSTERY']){
-const gameRecords=[],xmlByPlatform=new Map();let missingRom=0,missingMedia=0,duplicates=0;
-for(let i=0;i<data.games.length;i++){
-const g=data.games[i],plat=g.platform,short=g.romFile;
-const variantName=variant==='IDEAL'?short:variant==='CHAOS'?'Odd Names/Edition_'+i%4+'/'+(i%3===0?'Très bizarre ':'')+short.replace('demo01-','fichier-'):'unclassified/'+(i%4===0?'À trier ':'')+short.replace('demo01-','objet-');
-const romPath=variant+'/ROMS/'+plat+'/'+variantName, absent=variant==='CHAOS'&&(i===4||i===16);
-const payload=MARK+'\n'+'game-id='+g.id+'\n'+'fictional='+short+'\n';
-if(!absent)add(romPath,g.discs?g.discs.join('\n')+'\n':payload,g.discs?'playlist':'synthetic-rom',g.id);else missingRom++;
-const discs=[];
-if(g.discs)for(const d of g.discs){
-const dirname=path.posix.dirname(variantName),p=variant+'/ROMS/'+plat+'/'+(dirname==='.'?'':dirname+'/')+d;
-add(p,MARK+'\n'+'disc='+d+'\n'+'game-id='+g.id+'\n','synthetic-disc',g.id);discs.push(p.slice(variant.length+1));
-}
-const medias={},refs={};
-if(variant!=='MYSTERY'){
-for(const [kind,folder,w,h] of types){
-const filepath='MEDIAS/'+plat+'/'+folder+'/'+g.id+'.png',ref='../'+folder+'/'+g.id+'.png';
-const unavailable=variant==='CHAOS'&&((kind==='image'&&i%7===0)||(kind==='screenshot'&&i%5===1)||(kind==='thumbnail'&&i%11===2));
-if(unavailable)missingMedia++;else add(variant+'/'+filepath,art(g,kind,w,h),'media-'+kind,g.id);
-medias[kind]={path:filepath,exists:!unavailable};refs[kind]=ref;
-}
-const entry=['  <game>',
-'    <path>./'+xml(variantName)+'</path>',
-'    <name>'+xml(g.title)+'</name>',
-'    <desc>'+xml(g.description)+'</desc>',
-'    <developer>'+xml(g.publisher)+'</developer>',
-'    <genre>'+xml(g.genre)+'</genre>',
-'    <releasedate>'+g.year+'0101T000000</releasedate>',
-'    <image>'+xml(refs.image)+'</image>',
-'    <thumbnail>'+xml(refs.thumbnail)+'</thumbnail>',
-'    <marquee>'+xml(refs.marquee)+'</marquee>','  </game>'].join('\n');
-if(!xmlByPlatform.has(plat))xmlByPlatform.set(plat,[]);
-xmlByPlatform.get(plat).push(entry);
-}
-if(variant==='CHAOS'&&i%9===3&&!absent&&!g.discs){
-const p=variant+'/ROMS/'+plat+'/EXTRAS/'+path.posix.basename(variantName);
-add(p,payload,'duplicate-candidate',g.id);duplicates++;
-}
-gameRecords.push({id:g.id,title:g.title,platform:plat,region:g.region,edition:g.edition,
-romPath:romPath.slice(variant.length+1),romExists:!absent,discs,media:medias});
-}
-if(variant!=='MYSTERY')for(const [plat,entries] of xmlByPlatform){
-const folder=variant==='CHAOS'?'  <folder><path>./Odd Names</path><name>Dossier fictif</name></folder>\n':'';
-add(variant+'/MEDIAS/'+plat+'/metadata/es-de-gamelist.xml',
-'<?xml version="1.0" encoding="UTF-8"?>\n<gameList>\n'+folder+entries.join('\n')+'\n</gameList>\n','esde-xml');
-}
-const fileRecords=Array.from(plan.values()).filter(x=>x.path.startsWith(variant+'/'))
-.sort((a,b)=>a.path.localeCompare(b.path,'en')).map(x=>({path:x.path.slice(variant.length+1),kind:x.kind,gameId:x.id,byteLength:x.bytes.length,sha256:sha(x.bytes)}));
-const expected={catalogueGameCount:30,esdeGameEntries:variant==='MYSTERY'?0:30,
-xmlImportSupported:variant!=='MYSTERY',missingRomEntries:missingRom,missingMediaFiles:missingMedia,
-duplicateCandidateFiles:duplicates,observedFileCount:fileRecords.filter(x=>x.path.startsWith('ROMS/')).length,
-availableGameRomCount:gameRecords.filter(x=>x.romExists).length};
-const manifest={schemaVersion:'demo-library-manifest/1',variant,synthetic:true,
-sourceKind:'DEMO01_SYNTHETIC_NON_EXECUTABLE',catalogueSha256:sha(source),expected,
-games:gameRecords,files:fileRecords};
-const manifestBytes=Buffer.from(JSON.stringify(manifest,null,2)+'\n');
-add(variant+'/manifest.json',manifestBytes,'manifest');
-summaries.push({name:variant,manifestSha256:sha(manifestBytes),...expected});
-}
-fs.mkdirSync(output,{recursive:false});
-for(const item of plan.values()){
-const filename=path.join(output,...item.path.split('/'));
-fs.mkdirSync(path.dirname(filename),{recursive:true});
-fs.writeFileSync(filename,item.bytes,{flag:'wx'});
-}
-fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify({
-schemaVersion:'demo-library-root/1',synthetic:true,catalogueSha256:sha(source),variants:summaries
-},null,2)+'\n',{flag:'wx'});
-return {root:output,variants:summaries};
-}
-function canonicalGenerate(target,catalog){
   const output=safeOutput(target);
   const bytes=fs.readFileSync(catalog);
   if(bytes.length>1024*1024)throw Error('Canonical catalogue too large');
