@@ -1,0 +1,266 @@
+name: UX-ARTIFACT-CI / PR64 synthetic Windows recipe
+
+# Only this PR is authorized; this workflow is not a Release mechanism.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+permissions:
+  contents: read
+concurrency:
+  group: ux-artifact-pr64
+  cancel-in-progress: false
+
+jobs:
+  recipe:
+    name: HEAD PR64 self-contained UX artifact / offline synthetic tests
+    if: github.event.pull_request.number == 64 && github.actor == 'TobbyCy' && github.event.pull_request.head.repo.full_name == 'TobbyCy/RomothequeManager' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'dev3/next-01-ux'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact owner PR64 HEAD without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Verify checked-out PR64 HEAD is the event source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = '${{ github.event.pull_request.head.sha }}'
+          if ($expected -notmatch '^[0-9a-f]{40}$') { throw 'UX_RECIPE_INVALID_HEAD_SHA' }
+          if ((git rev-parse HEAD).Trim() -cne $expected) { throw 'UX_RECIPE_SOURCE_SHA_MISMATCH' }
+          if ((git status --porcelain --untracked-files=no).Count -ne 0) { throw 'UX_RECIPE_TRACKED_WORKTREE_DIRTY' }
+          Write-Host ('UX_RECIPE_FROZEN_SOURCE=' + $expected)
+      - name: Provision exact .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Locked restore, test, synthetic fixture, notices, zip, hash and extracted smoke
+        id: build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = '${{ github.event.pull_request.head.sha }}'
+          if ((git rev-parse HEAD).Trim() -cne $source) { throw 'UX_RECIPE_UNVERIFIED_BUILD_SOURCE' }
+          if ((dotnet --version).Trim() -cne '10.0.401') { throw 'UX_RECIPE_SDK_PIN_MISMATCH' }
+          $inventory = 'docs/developer/lic-zip-01-inventory.md'
+          if (-not (Select-String -LiteralPath $inventory -Pattern '^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED\r?$' -Quiet)) { throw 'UX_RECIPE_LEGAL_APPROVAL_REQUIRED' }
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          $tests = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          dotnet restore $tests --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_LOCKED_TEST_RESTORE_FAILED' }
+          dotnet test $tests -c Release --no-restore -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_TESTS_FAILED' }
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_LOCKED_RESTORE_FAILED' }
+          $out = Join-Path $env:RUNNER_TEMP 'ux64-out'
+          $publish = Join-Path $env:RUNNER_TEMP 'ux64-app'
+          $extract = Join-Path $env:RUNNER_TEMP 'ux64-verify'
+          New-Item -ItemType Directory -Force -Path $out,$publish,$extract | Out-Null
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:ContinuousIntegrationBuild=true -p:TreatWarningsAsErrors=true -o $publish
+          if ($LASTEXITCODE -ne 0) { throw 'UX_RECIPE_PUBLISH_FAILED' }
+          foreach ($n in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $publish $n) -PathType Leaf)) { throw ('UX_RECIPE_SELFCONTAINED_MISSING:' + $n) }
+          }
+          $fxr = (Get-Item (Join-Path $publish 'hostfxr.dll')).VersionInfo.ProductVersion
+          if (-not $fxr.StartsWith('10.0.12')) { throw ('UX_RECIPE_RUNTIME_VERSION_UNEXPECTED:' + $fxr) }
+          foreach ($n in @('LICENSE','LEGAL.md','BRANDING.md')) { Copy-Item -LiteralPath $n -Destination $publish }
+          Copy-Item -LiteralPath 'packaging/THIRD-PARTY-NOTICES.txt' -Destination (Join-Path $publish 'THIRD-PARTY-NOTICES.txt')
+          Copy-Item -LiteralPath $inventory -Destination (Join-Path $publish 'THIRD-PARTY-INVENTORY.md')
+          Copy-Item -LiteralPath 'packaging/licenses' -Destination (Join-Path $publish 'licenses') -Recurse
+          $required = @('ANGLE-LICENSE.txt','ANGLE-xxHash-LICENSE.txt','Avalonia-LICENSE.txt','Avalonia-NOTICE.txt','HarfBuzz-COPYING.txt','MicroCom-LICENSE.txt','Skia-LICENSE.txt','SkiaSharp-LICENSE.txt','SkiaSharp-THIRD-PARTY-NOTICES.txt','Tmds.DBus-COPYING.txt')
+          foreach ($n in $required) {
+            $p = Join-Path $publish ('licenses/' + $n)
+            if (-not (Test-Path -LiteralPath $p -PathType Leaf) -or (Get-Item $p).Length -lt 100) { throw ('UX_RECIPE_LEGAL_FILE_MISSING:' + $n) }
+          }
+          $nugetRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages' }
+          $runtime = Join-Path $nugetRoot 'microsoft.netcore.app.runtime.win-x64/10.0.12'
+          if (-not (Test-Path $runtime -PathType Container)) { throw 'UX_RECIPE_RUNTIME_PACK_MISSING' }
+          $lic = @(Get-ChildItem $runtime -Recurse -File | Where-Object { $_.Name -ceq 'LICENSE.TXT' })
+          $not = @(Get-ChildItem $runtime -Recurse -File | Where-Object { $_.Name -ceq 'THIRD-PARTY-NOTICES.TXT' })
+          if ($lic.Count -ne 1 -or $not.Count -ne 1 -or $lic[0].Length -lt 500 -or $not[0].Length -lt 500) { throw 'UX_RECIPE_RUNTIME_NOTICES_UNVERIFIED' }
+          $runtimeDest = Join-Path $publish 'licenses/dotnet-runtime'
+          New-Item -ItemType Directory -Force -Path $runtimeDest | Out-Null
+          Copy-Item -LiteralPath $lic[0].FullName -Destination (Join-Path $runtimeDest 'LICENSE.TXT')
+          Copy-Item -LiteralPath $not[0].FullName -Destination (Join-Path $runtimeDest 'THIRD-PARTY-NOTICES.TXT')
+          $legalProvenance = [ordered]@{
+            package='Microsoft.NETCore.App.Runtime.win-x64';version='10.0.12'
+            licenseSha256=(Get-FileHash $lic[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            thirdPartyNoticesSha256=(Get-FileHash $not[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          }
+          ($legalProvenance | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $runtimeDest 'PROVENANCE.json') -Encoding utf8
+
+          # Entire fixture generated within the isolated runner. No ROM extension or playable content.
+          $fixture = Join-Path $publish 'fixture'
+          $romDir = Join-Path $fixture 'ROMS/gba'
+          $mediaDir = Join-Path $fixture 'MEDIAS/gba'
+          New-Item -ItemType Directory -Force -Path $romDir,(Join-Path $mediaDir 'metadata'),(Join-Path $mediaDir 'covers') | Out-Null
+          foreach ($n in @('A.fixture','B.fixture','C.fixture')) { [IO.File]::WriteAllText((Join-Path $romDir $n),'FICTITIOUS TEXT ONLY; NOT A ROM') }
+          # The former 1x1 fixture was corrupted (invalid IDAT CRC and zlib Adler-32).
+          # These two independent, self-contained synthetic RGB PNGs are fully decodable.
+          # The third image (corrupt.png) remains deliberately invalid to exercise fallback.
+          $coverPng = [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAIAAACHPC9vAAAAUElEQVR42mOUkFJgoAZgYqASoJpBLHDWbDY+MvSn/vo0WL02jA1iwR8XWAHW+KWxi3DZjMelo9E/ahCtEyT+jEJfF5FR7I5G/1A0iHH4NiIAH+gM7ezTEpoAAAAASUVORK5CYII=')
+          $thumbPng = [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAIAAACHPC9vAAAAUElEQVR42mOUkFJgoAZgYqASoJpBLHCWdGU3GfqftpcOVq8NY4NY8McFVoA1fmnsIlw243HpaPSPGkTrBIk/o9DXRWQUu6PRPxQNYhy+jQgA9PkM7aOIpH8AAAAASUVORK5CYII=')
+          [IO.File]::WriteAllBytes((Join-Path $mediaDir 'covers/cover.png'),$coverPng)
+          [IO.File]::WriteAllBytes((Join-Path $mediaDir 'covers/thumb.png'),$thumbPng)
+          [IO.File]::WriteAllText((Join-Path $mediaDir 'covers/corrupt.png'),'FICTITIOUS INVALID PNG')
+          $xml = @'
+          <gameList>
+            <game><path>./A.fixture</path><name>Même titre</name><image>../covers/absent.png</image><thumbnail>../covers/thumb.png</thumbnail></game>
+            <game><path>./B.fixture</path><name>Même titre</name><image>../covers/cover.png</image></game>
+            <game><path>./C.fixture</path><name>Jaquette illisible</name><image>../covers/corrupt.png</image></game>
+            <game><path>./Missing.fixture</path><name>ROM indisponible</name></game>
+          </gameList>
+          '@
+          [IO.File]::WriteAllText((Join-Path $mediaDir 'metadata/es-de-gamelist.xml'),$xml,[Text.UTF8Encoding]::new($false))
+          $guide = @'
+          ROMOTHEQUE — RECETTE UX FICTIVE / PR #64
+          1. Decompresser le ZIP sous Windows x64 puis DOUBLE-CLIQUER RomothequeManager.V2.exe.
+             PASS : fenetre ROMotheque Manager seule ; PAS de console noire.
+          2. Au depart : mode demonstration. Cliquer « Choisir une bibliotheque ES-DE ».
+          3. Selectionner le dossier « fixture » (ROMS et MEDIAS), jamais une collection personnelle.
+          4. Dashboard : 4 jeux fictifs ; Collection : homonymes, jaquette manquante -> miniature,
+             jaquette invalide et ROM introuvable. Les diagnostics doivent etre lisibles en FRANCAIS,
+             avec points a verifier distincts des informations. Tester fiche, recherche, navigation.
+          5. Bibliotheques importees : A/B desactive. Basculer en demonstration : A/B fonctionne.
+             Changer de bibliotheque demo : comparaison precedente effacee.
+          6. Tester Tab / Shift+Tab / Entree / Espace, scroll et fenetre 760x480 puis 1120x720.
+          7. Reimport : sauvegarder le XML fictif, le remplacer provisoirement par <gameList><game>,
+             cliquer Actualiser : erreur FRANCAISE, dernier catalogue conserve, aucune source supprimee.
+             Restaurer le XML, reimporter, verifier le retour a l'etat normal.
+          8. Essai HORS INTERNET sur le PC : couper le Wi-Fi/debrancher Ethernet AVANT le lancement,
+             verifier mode demonstration, navigation, import de la fixture et miniatures locales.
+             Ne jamais utiliser de vrais dossiers de ROMs.
+          9. Captures reelles sous Windows, uniquement des jeux fictifs, et retour PASS/FAIL sur la PR.
+          Aucun media tiers ni ROM jouable. Aucune Release ou import automatique.
+          '@
+          [IO.File]::WriteAllText((Join-Path $publish 'GUIDE-UX.txt'),$guide,[Text.UTF8Encoding]::new($false))
+          $manifest = [ordered]@{ sourceCommit=$source; pr=64; runtime='win-x64'; selfContained=$true; syntheticOnly=$true; expectedGameCount=4; fixture='text-and-generated-images-only'; release=$false }
+          ($manifest | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $publish 'UX-MANIFEST.json') -Encoding utf8
+          $forbidden = @('.gba','.rom','.chd','.iso','.cue','.gdi','.cdi','.nes','.sfc','.smc','.gbc','.n64','.z64','.nsp','.xci','.wad','.sav','.srm','.pfx','.pem','.p12','.snk','.key')
+          $contents = @(Get-ChildItem -LiteralPath $publish -Recurse -File)
+          foreach ($file in $contents) {
+            if ($forbidden -ccontains $file.Extension.ToLowerInvariant()) { throw ('UX_RECIPE_FORBIDDEN_FILE:' + $file.Name) }
+          }
+          $zip = Join-Path $out ('RomothequeManager-UX-PR64-win-x64-' + $source.Substring(0,8) + '.zip')
+          Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $shaFile = $zip + '.sha256'
+          [IO.File]::WriteAllText($shaFile,($hash + '  ' + [IO.Path]::GetFileName($zip) + [Environment]::NewLine),[Text.Encoding]::ASCII)
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          $inside = @(Get-ChildItem -LiteralPath $extract -Recurse -File)
+          if ($inside.Count -ne $contents.Count) { throw 'UX_RECIPE_FILE_COUNT_MISMATCH' }
+          foreach ($file in $contents) {
+            $relative = $file.FullName.Substring($publish.Length + 1)
+            $copy = Join-Path $extract $relative
+            if (-not (Test-Path -LiteralPath $copy -PathType Leaf)) { throw ('UX_RECIPE_FILE_MISSING:' + $relative) }
+            if ((Get-FileHash $file.FullName -Algorithm SHA256).Hash -cne (Get-FileHash $copy -Algorithm SHA256).Hash) { throw ('UX_RECIPE_FILE_HASH_MISMATCH:' + $relative) }
+          }
+          $m = Get-Content -LiteralPath (Join-Path $extract 'UX-MANIFEST.json') -Raw | ConvertFrom-Json
+          if ($m.sourceCommit -cne $source -or -not $m.syntheticOnly -or -not $m.selfContained -or $m.expectedGameCount -ne 4) { throw 'UX_RECIPE_MANIFEST_INVALID' }
+          # Check the executable extracted from the EXACT ZIP, not a build directory.
+          # Subsystem 2 = Windows GUI. Real Explorer double-click still needs owner testing.
+          $exePath = Join-Path $extract 'RomothequeManager.V2.exe'
+          $pe = [IO.File]::ReadAllBytes($exePath)
+          $offset = [BitConverter]::ToInt32($pe,60)
+          if ($offset -lt 64 -or $offset + 96 -ge $pe.Length -or
+              [Text.Encoding]::ASCII.GetString($pe,$offset,2) -cne 'PE') { throw 'UX_RECIPE_PE_HEADER_INVALID' }
+          $magic = [BitConverter]::ToUInt16($pe,$offset+24)
+          if ($magic -ne 0x20b -and $magic -ne 0x10b) { throw 'UX_RECIPE_PE_MAGIC_INVALID' }
+          $subsystem = [BitConverter]::ToUInt16($pe,$offset+24+68)
+          if ($subsystem -ne 2) { throw ('UX_RECIPE_CONSOLE_SUBSYSTEM_FOUND:' + $subsystem) }
+          Write-Host ('UX_RECIPE_WINEXE_GUI_PASS subsystem=2 source=' + $source)
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = Join-Path $extract 'RomothequeManager.V2.exe'
+          $start.Arguments = '--smoke-window'
+          $start.WorkingDirectory = $extract
+          $start.UseShellExecute = $false
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $start.Environment['DOTNET_ROOT'] = Join-Path $env:RUNNER_TEMP 'sdk-deliberately-not-present'
+          $start.Environment['DOTNET_MULTILEVEL_LOOKUP'] = '0'
+          $p = [Diagnostics.Process]::Start($start)
+          try {
+            $stdout = $p.StandardOutput.ReadToEndAsync()
+            $stderr = $p.StandardError.ReadToEndAsync()
+            if (-not $p.WaitForExit(30000)) { $p.Kill(); throw 'UX_RECIPE_SMOKE_TIMEOUT' }
+            if ($p.ExitCode -ne 0 -or -not $stdout.Result.Contains('POC_WINDOW_OPENED_PASS')) {
+              throw ('UX_RECIPE_EXTRACTED_SMOKE_FAILED:' + $stdout.Result + $stderr.Result)
+            }
+          } finally { $p.Dispose() }
+          # True Windows outbound-block rule scoped exclusively to the extracted EXE.
+          # Never disable the runner's adapter/network; preserve CI access and cleanup.
+          $fwName = 'Romotheque-UX64-CI-OFFLINE-' + $source.Substring(0,8)
+          $firewallAdded = $false
+          try {
+            New-NetFirewallRule -DisplayName $fwName -Direction Outbound -Program $exePath -Action Block -Profile Any -Enabled True -ErrorAction Stop | Out-Null
+            $firewallAdded = $true
+            $rule = Get-NetFirewallRule -DisplayName $fwName -ErrorAction Stop
+            if ($rule.Enabled -ne 'True' -or $rule.Action -ne 'Block' -or $rule.Direction -ne 'Outbound') { throw 'UX_RECIPE_OFFLINE_FIREWALL_NOT_ENFORCED' }
+            $filter = Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $rule -ErrorAction Stop
+            if ($filter.Program -cne $exePath) { throw 'UX_RECIPE_OFFLINE_FIREWALL_PROGRAM_MISMATCH' }
+            Write-Host ('UX_RECIPE_OFFLINE_FIREWALL_ACTIVE program=' + $exePath)
+            $offline = [Diagnostics.ProcessStartInfo]::new()
+            $offline.FileName = $exePath
+            $offline.Arguments = '--ci-ux-offline-fixture "' + (Join-Path $extract 'fixture') + '"'
+            $offline.WorkingDirectory = $extract
+            $offline.UseShellExecute = $false
+            $offline.RedirectStandardOutput = $true
+            $offline.RedirectStandardError = $true
+            $offline.Environment['DOTNET_ROOT'] = Join-Path $env:RUNNER_TEMP 'sdk-deliberately-not-present'
+            $offline.Environment['DOTNET_MULTILEVEL_LOOKUP'] = '0'
+            $offlineProcess = [Diagnostics.Process]::Start($offline)
+            try {
+              $offlineStdOut = $offlineProcess.StandardOutput.ReadToEndAsync()
+              $offlineStdErr = $offlineProcess.StandardError.ReadToEndAsync()
+              if (-not $offlineProcess.WaitForExit(60000)) { $offlineProcess.Kill(); throw 'UX_RECIPE_OFFLINE_TIMEOUT' }
+              if ($offlineProcess.ExitCode -ne 0 -or -not $offlineStdOut.Result.Contains('UX_RECIPE_OFFLINE_ESDE_GUI_PASS')) {
+                throw ('UX_RECIPE_OFFLINE_ESDE_GUI_FAILED:' + $offlineStdOut.Result + $offlineStdErr.Result)
+              }
+              Write-Host $offlineStdOut.Result.Trim()
+            } finally { $offlineProcess.Dispose() }
+            # ShellExecute follows the same Windows shell launch mechanism as a double-click,
+            # but this is NOT a human Explorer double-click nor a native UI automation suite.
+            $shell = [Diagnostics.ProcessStartInfo]::new()
+            $shell.FileName = $exePath
+            $shell.WorkingDirectory = $extract
+            $shell.UseShellExecute = $true
+            $shellProcess = [Diagnostics.Process]::Start($shell)
+            if ($null -eq $shellProcess) { throw 'UX_RECIPE_SHELL_START_FAILED' }
+            try {
+              if ($shellProcess.HasExited) { throw 'UX_RECIPE_SHELL_PREMATURE_EXIT' }
+              if (-not $shellProcess.WaitForInputIdle(20000)) { throw 'UX_RECIPE_SHELL_NO_INPUT_IDLE' }
+              $found = $false
+              for ($i=0; $i -lt 40; $i++) {
+                Start-Sleep -Milliseconds 250
+                $shellProcess.Refresh()
+                if ($shellProcess.HasExited) { break }
+                if ($shellProcess.MainWindowHandle -ne [IntPtr]::Zero -and
+                    $shellProcess.MainWindowTitle -like '*ROMothèque Manager*') { $found = $true; break }
+              }
+              if (-not $found) { throw 'UX_RECIPE_SHELL_WINDOW_NOT_OBSERVED' }
+              Write-Host ('UX_RECIPE_SHELL_GUI_WINDOW_PASS source=' + $source)
+            } finally {
+              if (-not $shellProcess.HasExited) { $shellProcess.Kill() }
+              $shellProcess.Dispose()
+            }
+          } finally {
+            if ($firewallAdded) { Remove-NetFirewallRule -DisplayName $fwName -ErrorAction Stop }
+          }
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -cne $hash) { throw 'UX_RECIPE_SHA_MISMATCH' }
+          Write-Host ('UX_RECIPE_ZIP_VERIFIED_PASS source=' + $source + ' sha256=' + $hash + ' sizeBytes=' + (Get-Item $zip).Length + ' files=' + $contents.Count)
+          "sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Upload temporary checked artifact (no release)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: UX-PR64-win-x64-${{ github.event.pull_request.head.sha }}
+          path: |
+            ${{ runner.temp }}/ux64-out/RomothequeManager-UX-PR64-win-x64-*.zip
+            ${{ runner.temp }}/ux64-out/RomothequeManager-UX-PR64-win-x64-*.zip.sha256
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0

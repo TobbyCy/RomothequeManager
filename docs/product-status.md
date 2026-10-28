@@ -1,5 +1,14 @@
 # État des fonctionnalités
 
+## NEXT-01 / PR #64 — vérification du HEAD courant et du fonctionnement hors ligne
+
+- Workflow de recette : checkout strict du `github.event.pull_request.head.sha` au moment du run, vérifié avant restauration SDK et avant packaging. **Aucun ancien SHA `e775cdd6` épinglé** ; chaque artifact contient le manifeste du HEAD exact et le SHA-256 du ZIP `win-x64` autonome produit pour cette révision, sans Release.
+- Windows CI : sur le véritable EXE extrait, vérification du sous-système PE GUI = 2, lancement `--smoke-window` avec runtime système volontairement indisponible, lancement ShellExecute (équivalent technique de la voie d'ouverture Windows ; **ce n'est pas un double-clic humain dans l'Explorateur**).
+- Recette hors ligne : règle Windows Firewall temporaire bloquant le trafic **sortant de l'EXE exact** (pas de coupure du réseau du runner), vérification de la règle puis démarrage Avalonia. Contrôle des quatre jeux fictifs ES-DE, des médias locaux, de la navigation, des libellés français affichés, et du réimport de XML malformé avec conservation du catalogue, puis restauration de la fixture. La règle est retirée même en cas d'échec. Aucun réseau nécessaire à la logique métier testée.
+- Limites à faire valider par Tobby : véritable double-clic Explorer, absence de console perceptible, gestes souris/clavier, rendu des diagnostics et médias, puis essai **sur son PC réellement déconnecté d'Internet** ; les essais CI ne démontrent pas l'état du réseau d'un poste externe.
+- **Gates** : résultats exacts du workflow et CI avant verdict ; aucune fusion ni Release sans GO propriétaire. Aucun code NEXT-02 modifié.
+
+
 ## État public actuel — 28 octobre 2026
 
 La [première Pre-release Windows V2-01C a été publiée le 23.10.2026](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec) depuis `main=4cf475fbd1ece16b138403d3bd967a56d295ee54`. Le [ZIP Windows x64 autonome](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip) (243 fichiers ; runtime .NET inclus) et son [fichier de contrôle SHA-256](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip.sha256) sont **téléchargeables**. Son empreinte de référence est `22328d682b7c93edcdeeb735c9913880e68dec64c54b159bd6e6de77bcc7eaaf`.
@@ -11,6 +20,50 @@ La [première Pre-release Windows V2-01C a été publiée le 23.10.2026](https:/
 **Distinction des versions :** cette Pre-release a été construite depuis le commit historique `4cf475fb…`, **avant les intégrations NEXT-01-A (#62), NEXT-02-CONTRACT (#66) et NEXT-02 moteur (#68)**. Le `main` actuel possède ces sources et leurs tests synthétiques, **mais le moteur d'inventaire NEXT-02 n'est pas accessible depuis l'interface Windows et ne fait pas partie de ce ZIP publié**.
 
 **Hors périmètre actuel :** aucune Release stable ni installateur signé, pas de scan réel, d'import ES-DE dans l'interface, de persistance de collections, de scraper, de synchronisation ou d'export/copie physique. La compatibilité SteamOS/USB et une recette Windows externe exhaustive restent à qualifier. **La réussite du POC n'autorise aucun traitement de ROM personnelles.**
+
+## NEXT-01-UX — PR #64 en revue, hors `main` (28 octobre 2026)
+
+Les sections de NEXT-01 ci-dessous décrivent **une PR non fusionnée**, soumise à la recette humaine et au GO propriétaire. Elles n'annulent pas la Pre-release V2-01C historique décrite plus haut. La synchronisation de la branche de #64 conserve l'inventaire NEXT-02 et les mises à jour DOC-P1 de `main` ; la preuve ZIP applicative demeure figée sur le source corrigé `e775cdd6`.
+
+### Preuve binaire du ZIP corrigé (source `e775cdd6`)
+
+- [Workflow Windows #40689889760 — SUCCESS](https://github.com/TobbyCy/RomothequeManager/actions/runs/40689889760), artifact temporaire [#12816457518](https://github.com/TobbyCy/RomothequeManager/actions/runs/40689889760/artifacts/12816457518) (jusqu'au **31.10.2026 12:43 UTC**).
+- Source exacte de compilation (figée, malgré les commits documentaires du workflow) : `e775cdd64522d45ee2fb848df232fa1f19023326`, vérifiée par `UX_RECIPE_FROZEN_SOURCE` et `UX-MANIFEST.json`. ZIP applicatif `RomothequeManager-UX-PR64-win-x64-e775cdd6.zip` : **75 362 552 octets**, **250 fichiers**, SHA-256 **`fe6a4d59adfae5ea171c229838d17fdeef4bd23a41e03924d2e5a93f6c407364`**. Le fichier annexe `.zip.sha256` concorde ; le hash a été recalculé indépendamment après téléchargement de l'artifact Actions (dont le digest externe est un autre fichier).
+- 62/62 tests .NET PASS, licences/runtime inclus et contrôlés, ZIP extrait/recomparé et smoke de la fenêtre Avalonia PASS. `UX_RECIPE_WINEXE_GUI_PASS subsystem=2` vérifie le PE GUI de l'exécutable **extrait de ce ZIP** ; cela ne prouve pas un double-clic interactif dans l'Explorateur.
+- La fixture fictive intégrée permet de contrôler manuellement le résumé de diagnostics en français, la ROM/le média absent et l'échec XML suivi de la conservation du dernier catalogue valide. **Recette Windows humaine toujours requise** avant GO de fusion.
+- **CI adaptative** : le premier run sur la mise à jour du workflow a rencontré `CLASSIFICATION_SCOPE_UNPROVEN / MERGE_PARENTS_INVALID` en raison d'un décalage entre le SHA de base de la PR et le HEAD de `main` pendant une intégration concurrente. Il ne s'agit pas d'un PASS de la CI générale : relancer un contrôle complet sur une base cohérente, sans affaiblir le contrôle des parents.
+- **Aucune fusion ni Release ;** cette preuve est un artifact de recette temporaire, jamais une nouvelle publication publique.
+
+## NEXT-01-UX — recette du ZIP corrigé PR #64
+
+- Source applicative de référence : `e775cdd64522d45ee2fb848df232fa1f19023326`, comprenant WinExe et diagnostics ES-DE francisés. La prochaine PR de packaging porte uniquement la modification du workflow, ses canaris et la documentation : le ZIP embarque exactement le source applicatif ci-dessus.
+- L'ancien artifact figé `cc35abf7` **ne valide pas** les corrections. Le nouveau workflow conserve toutes les barrières de licence, source, SHA-256, interdiction de ROMs et timeout du smoke. Vérification ajoutée : PE subsystem Windows GUI = 2, sur le .exe du ZIP extrait.
+- Recette Windows Tobby : double-clic EXE, absence de console, import de fixture fictive et messages FR ROM/média absents, XML volontairement malformé puis reimport/reprise non destructive. Résultat manuel à reporter à la PR.
+- Publication ZIP temporaire sous GitHub Actions seulement : **aucune Release**, aucune bibliothèque réelle, aucun GO de merge présumé.
+
+
+## NEXT-01-UX-FIX — correction suite à recette Windows (PR #64, 28 octobre 2026)
+
+- L'exécutable Avalonia de la PR est configuré en `WinExe`, pour ouvrir la fenêtre sans console au double-clic sous Windows. Le mode `--smoke-window` reste le contrôle automatisé de lancement ; la validation interactive de l'affichage relève de Tobby.
+- Le tableau de bord importé donne maintenant des diagnostics français explicites (catégorie à vérifier / information, plateforme, entrée et explication), triés par importance ; les refus d'import / réimport expliquent les problèmes courants (XML invalide, gamelist absente ou ambiguë, dossier inaccessible). Aucun scan supplémentaire, aucune modification de l'adaptateur de lecture seule ni conclusion de suppression.
+- Les tests synthétiques supplémentaires vérifient le sens des diagnostics et la conservation du catalogue valide après échec. Validation CI à rattacher au **nouveau HEAD** avant toute décision de merge. L'artifact UX provisoire antérieur, construit sur le SHA `cc35abf7…`, **ne démontre pas ces corrections** et ne doit pas être confondu avec un binaire corrigé.
+
+
+## UX-ARTIFACT-CI — distribution de recette temporaire, PR #64 uniquement (24 octobre 2026)
+
+- Un workflow **distinct** `.github/workflows/ux-artifact.yml` est proposé **dans la PR #64 Draft uniquement**. Il exige une PR #64 du dépôt même, ouverte vers `main`, et le compte propriétaire `TobbyCy`; il ne s'exécute pas au démarrage de l'application et ne déclenche aucun scan réel.
+- La compilation est **figée** au commit déjà validé `cc35abf70acc12120f7617f8e5ab0a8ea84b8801`, indépendamment du commit portant le workflow. SDK `.NET 10.0.401`, restauration NuGet verrouillée, tests, `win-x64 --self-contained`, licences/notices exactes du runtime 10.0.12, inventaire juridique et marqueur LIC-ZIP-01 requis avant toute création de téléchargement.
+- Une bibliothèque ES-DE générée **exclusivement dans le runner** contient quatre jeux fictifs, des fichiers texte `.fixture` non exécutables et des mini-images PNG synthétiques, avec cas de jaquette absente/illisible et média manquant. **Aucune ROM/BIOS, aucun média tiers, aucun chemin ou contenu personnel.**
+- L'archive est extraite et contrôlée fichier par fichier (SHA-256), ainsi qu'au moyen du smoke Avalonia avec runtime externe volontairement indisponible. La seule sortie distribuable autorisée est l'**artifact GitHub Actions** temporaire de 3 jours contenant ZIP + `.sha256`; **aucun workflow Release, aucun tag, aucune fusion automatique**. Les canaris et la liste blanche CI sont étendus à ce chemin exact, tandis que l'interdiction d'upload du workflow principal `ci.yml` est inchangée.
+- Statut courant : **workflow proposé sur la branche, CI et artifact à vérifier avant tout lien de téléchargement**. Un ZIP ne doit pas être annoncé livré sans un run SUCCESS et son artifact disponible. La recette UX clavier/focus/défilement/redimensionnement reste `NOT_TESTED` sans essai humain sous Windows.
+
+
+## NEXT-01-UX — candidate Avalonia sur bibliothèque ES-DE (PR #64 en revue, non fusionnée)
+
+- La [PR #64](https://github.com/TobbyCy/RomothequeManager/pull/64), dépendante du contrat de lecture seule [PR #62](https://github.com/TobbyCy/RomothequeManager/pull/62) désormais fusionné, propose **sur une branche non distribuée** deux modes clairement distincts : POC fictif et bibliothèque ES-DE importée sur sélection explicite du dossier racine.
+- Dashboard, Collection, fiche et Bibliothèques consomment le même catalogue importé ; recherche et pagination de 50 jeux, identités distinctes pour les titres homonymes, jaquette locale avec tentative de miniature de repli, diagnostics et refus de réimport non destructif. Les comparaisons A/B restent **fictives et indisponibles en mode importé**.
+- Les tests du lot sont **exclusivement synthétiques** (y compris une fixture de 2 000 entrées), sans scan de collection privée, ROM réelle, scraper, export ou modification des sources. La CI .NET et les captures interactives Windows doivent être qualifiées sur le HEAD exact de la PR avant toute approbation ; **aucune fonctionnalité NEXT-01-UX n'est intégrée sur `main` ni distribuée par cette PR**.
+- Cette note de branche sert à la traçabilité du changement de code ; l'actualisation transversale des autres états historiques et de la Pre-release relève séparément du chantier documentaire [PR #63](https://github.com/TobbyCy/RomothequeManager/pull/63).
 
 ## Historique de préparation (états au 23 octobre 2026, avant publication)
 

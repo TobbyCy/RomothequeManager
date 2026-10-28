@@ -1,0 +1,230 @@
+namespace RomothequeManager.V2;
+
+// UI-only selection, search, paging and mode. The ES-DE importer remains the sole
+// authority for XML parsing, media paths and read-only file access.
+public enum CatalogueMode { Demonstration, Imported }
+
+public sealed class ImportedCatalogueUiState
+{
+    private EsDeImportSession? _session;
+    public CatalogueMode Mode { get; private set; } = CatalogueMode.Demonstration;
+    public EsDeCatalogueSnapshot? Snapshot => _session?.Current;
+    public bool IsImported => Mode == CatalogueMode.Imported && Snapshot is not null;
+    public string? ErrorMessage { get; private set; }
+    public string SearchText { get; private set; } = "";
+    public string? SelectedGameId { get; private set; }
+    public EsDeGame? Selected => Snapshot?.Games.FirstOrDefault(game =>
+        string.Equals(game.GameId, SelectedGameId, StringComparison.Ordinal));
+    public const int PageSize = 50;
+    public int PageIndex { get; private set; }
+    public POCView CurrentView { get; private set; } = POCView.Dashboard;
+    public int TotalCount => FilteredGames.Count;
+    public int PageCount => Math.Max(1, (TotalCount + PageSize - 1) / PageSize);
+    public IReadOnlyList<EsDeGame> PageGames => FilteredGames.Skip(PageIndex * PageSize).Take(PageSize).ToArray();
+
+    public IReadOnlyList<EsDeGame> FilteredGames => Snapshot?.Games.Where(game =>
+        string.IsNullOrWhiteSpace(SearchText) ||
+        game.Title.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
+        game.Platform.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
+        game.RomRelativePath.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase)).ToArray()
+        ?? Array.Empty<EsDeGame>();
+
+    // A prepared import is adopted only after EsDeImportSession.Import completed.
+    public void Adopt(EsDeImportSession prepared)
+    {
+        if (prepared?.Current is null)
+            throw new ArgumentException("A validated import is required.", nameof(prepared));
+        _session = prepared;
+        Mode = CatalogueMode.Imported;
+        SearchText = "";
+        PageIndex = 0;
+        SelectedGameId = null;
+        CurrentView = POCView.Dashboard;
+        ErrorMessage = null;
+    }
+
+    public bool TryImport(string selectedRoot)
+    {
+        try
+        {
+            var staged = new EsDeImportSession(selectedRoot);
+            staged.Import();
+            Adopt(staged);
+            return true;
+        }
+        catch (Exception error) when (IsExpectedImportError(error))
+        {
+            ImportFailed(error);
+            return false;
+        }
+    }
+
+    public bool TryReimport()
+    {
+        if (_session is null)
+        {
+            ErrorMessage = "Aucune bibliothèque importée à actualiser.";
+            return false;
+        }
+        try
+        {
+            var updated = _session.Import();
+            SelectedGameId = updated.Games.Any(g => g.GameId == SelectedGameId) ? SelectedGameId : null;
+            if (SelectedGameId is null && CurrentView == POCView.GameDetail)
+                CurrentView = POCView.Collection;
+            PageIndex = Math.Min(PageIndex, PageCount - 1);
+            ErrorMessage = null;
+            return true;
+        }
+        catch (Exception error) when (IsExpectedImportError(error))
+        {
+            ImportFailed(error);
+            return false;
+        }
+    }
+
+    public static bool IsExpectedImportError(Exception error) =>
+        error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or
+        System.Xml.XmlException or System.Security.SecurityException or NotSupportedException;
+
+    public void ImportFailed(Exception error) =>
+        ErrorMessage = "Import non effectué : " + EsDeDiagnosticPresentation.ImportFailure(error) + " " +
+            (Snapshot is null ? "Aucun catalogue chargé." : "Dernier catalogue valide conservé.") +
+            " Aucun fichier source modifié.";
+
+    public void ReportUnavailableFolder() =>
+        ErrorMessage = "Sélectionnez un dossier local accessible. Aucun import effectué.";
+
+    public void ShowDemo()
+    {
+        Mode = CatalogueMode.Demonstration;
+        SelectedGameId = null;
+        CurrentView = POCView.Dashboard;
+    }
+
+    public bool ShowImported()
+    {
+        if (Snapshot is null)
+        {
+            ErrorMessage = "Aucune bibliothèque importée disponible.";
+            return false;
+        }
+        Mode = CatalogueMode.Imported;
+        CurrentView = POCView.Dashboard;
+        return true;
+    }
+
+    // Imported navigation never points to an unselected game's details.
+    public void Navigate(POCView view)
+    {
+        CurrentView = view == POCView.GameDetail && Selected is null
+            ? POCView.Collection : view;
+    }
+
+    public static IReadOnlyList<EsDeMedia> CoverCandidates(EsDeGame game) =>
+        game.Media.Where(media => media.Kind is "image" or "thumbnail")
+            .OrderBy(media => media.Kind == "image" ? 0 : 1).ToArray();
+
+    public void Search(string? search)
+    {
+        SearchText = search ?? "";
+        PageIndex = 0;
+    }
+
+    public bool NextPage()
+    {
+        if (PageIndex + 1 >= PageCount) return false;
+        PageIndex++;
+        return true;
+    }
+
+    public bool PreviousPage()
+    {
+        if (PageIndex == 0) return false;
+        PageIndex--;
+        return true;
+    }
+
+    public bool Open(string? gameId)
+    {
+        if (Snapshot?.Games.Any(game => string.Equals(game.GameId, gameId, StringComparison.Ordinal)) != true)
+            return false;
+        SelectedGameId = gameId;
+        CurrentView = POCView.GameDetail;
+        return true;
+    }
+
+    public bool TryOpenMedia(EsDeMedia media, out Stream? stream)
+    {
+        stream = null;
+        return _session is not null && _session.TryOpenMedia(media, out stream);
+    }
+}
+
+
+/// <summary>
+/// French read-only presentation of the ES-DE contract's diagnostic codes.
+/// No additional filesystem inspection; the original diagnostics remain intact.
+/// </summary>
+public static class EsDeDiagnosticPresentation
+{
+    public static bool NeedsAttention(EsDeDiagnostic diagnostic) =>
+        diagnostic.Code is "ROM_MISSING" or "MEDIA_MISSING" or "DISC_MISSING" or "XML_MISSING";
+
+    public static string Summary(IReadOnlyList<EsDeDiagnostic> diagnostics)
+    {
+        var attention = diagnostics.Count(NeedsAttention);
+        return attention + " point(s) à vérifier · " +
+            (diagnostics.Count - attention) + " information(s) · aucune suppression automatique.";
+    }
+
+    public static string Title(EsDeDiagnostic diagnostic) => diagnostic.Code switch
+    {
+        "XML_MISSING" => "Liste de jeux ES-DE absente",
+        "FOLDER_ENTRY" => "Dossier ignoré",
+        "IGNORED_ENTRY" => "Élément XML non reconnu",
+        "TITLE_FALLBACK" => "Titre repris du nom de fichier",
+        "ROM_MISSING" => "ROM indisponible",
+        "MEDIA_MISSING" => "Média indisponible",
+        "DISC_MISSING" => "Disque de playlist indisponible",
+        _ => "Diagnostic ES-DE (" + diagnostic.Code + ")"
+    };
+
+    public static string Context(EsDeDiagnostic diagnostic)
+    {
+        var platform = string.IsNullOrWhiteSpace(diagnostic.Platform)
+            ? "Plateforme non précisée" : "Plateforme : " + diagnostic.Platform;
+        return string.IsNullOrWhiteSpace(diagnostic.Entry)
+            ? platform : platform + " · Entrée : " + diagnostic.Entry;
+    }
+
+    public static string Explanation(EsDeDiagnostic diagnostic) => diagnostic.Code switch
+    {
+        "XML_MISSING" => "Aucun fichier gamelist.xml pris en charge pour cette plateforme. Les autres plateformes importées restent disponibles.",
+        "FOLDER_ENTRY" => "Une entrée de dossier n'est pas comptabilisée comme un jeu.",
+        "IGNORED_ENTRY" => "Cet élément n'est pas un jeu ES-DE reconnu : il a été ignoré.",
+        "TITLE_FALLBACK" => "Le XML ne donne pas de titre ; le nom du fichier sert de libellé.",
+        "ROM_MISSING" => "Fichier absent ou support indisponible lors de l'import. Aucune suppression de jeu n'est déduite.",
+        "MEDIA_MISSING" => "Média référencé introuvable. Aucune recherche réseau ni modification n'est effectuée.",
+        "DISC_MISSING" => "Un disque référencé par la playlist n'a pas été trouvé. Aucun fichier n'est modifié.",
+        _ => string.IsNullOrWhiteSpace(diagnostic.Message)
+            ? "Diagnostic conservé pour vérification." : diagnostic.Message
+    };
+
+    public static string ImportFailure(Exception error) => error switch
+    {
+        DirectoryNotFoundException => "Le dossier sélectionné ou son sous-dossier ROMS n'est pas accessible. Vérifiez le support.",
+        System.Xml.XmlException => "Le XML ES-DE est mal formé. Vérifiez la gamelist avant de réimporter.",
+        InvalidDataException e when e.Message.StartsWith("Ambiguous ES-DE source", StringComparison.Ordinal) =>
+            "Deux gamelists concurrentes ont été trouvées pour une plateforme (ROMS et MEDIAS). Conservez une source non ambiguë.",
+        InvalidDataException e when e.Message.StartsWith("No supported ES-DE gamelist", StringComparison.Ordinal) =>
+            "Aucune gamelist ES-DE prise en charge n'a été trouvée dans le dossier sélectionné.",
+        InvalidDataException => "Les métadonnées ES-DE ou leurs chemins ne respectent pas le format attendu.",
+        UnauthorizedAccessException => "Accès refusé au dossier ou aux métadonnées. Vérifiez les autorisations.",
+        IOException => "La lecture de fichiers ES-DE a échoué. Vérifiez la disponibilité du support.",
+        ArgumentException => "Le dossier ou un chemin de fichier est invalide.",
+        System.Security.SecurityException => "L'accès aux fichiers a été refusé par le système.",
+        NotSupportedException => "Le format ou le chemin demandé n'est pas pris en charge.",
+        _ => "Une erreur inattendue a empêché l'import."
+    };
+}
