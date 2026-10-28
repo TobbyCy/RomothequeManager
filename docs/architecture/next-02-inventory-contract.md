@@ -36,6 +36,8 @@ Les noms ci-dessous correspondent à la **candidate implémentée dans PR #68 HE
 
 Lecture seule des métadonnées de fichiers et, pour `.m3u` seulement, du texte borné ; aucune ouverture de contenu ROM pour hachage/comparaison. Refus des liens symboliques/jonctions/reparse points à l'énumération, racines UNC/URI et chemins de playlists hors portée. Contrôle des limites et de l'annulation **pendant** l'énumération et les lectures auxiliaires, sans charger un fichier texte devenu énorme après le contrôle de taille. Les courses du système de fichiers doivent être converties en diagnostics/`Partial` plutôt qu'en plantage non traité ; la protection complète face à une substitution concurrente de reparse point reste une **réserve avant toute utilisation sur SSD réel**, pas un motif pour inventer une sécurité démontrée.
 
+**Concurrence / relocalisation (limites P1) :** `InventorySession` fonctionne en **single-flight** : `Scan` et `RelocateVerified` ne doivent pas être appelées simultanément sur la même session ; leur sérialisation relève du futur appelant, aucune garantie thread-safe n'est revendiquée. `RelocateVerified` vérifie l'égalité d'une **projection de métadonnées**, et non des octets ou l'identité du support : ne pas la présenter comme preuve de relocalisation physique. Une protection complète contre les changements concurrents de liens/chemins reste hors de la preuve synthétique initiale et conditionne tout GO ultérieur d'utilisation réelle.
+
 ## 3. Acceptation de la première PR moteur (fixtures synthétiques uniquement)
 
 | Oracle P1 | Attendu |
