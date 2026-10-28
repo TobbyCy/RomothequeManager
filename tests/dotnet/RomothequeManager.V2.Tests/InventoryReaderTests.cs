@@ -96,7 +96,7 @@ public sealed class InventoryReaderTests
     public void T05_CandidateDuplicatesAreReversibleAndNotBinaryProof()
     {
         Put("ROMS/gba/editionA/Game.gba", "same size invented");
-        Put("ROMS/gba/editionB/Game.gba", "different bytes!!");
+        Put("ROMS/gba/editionB/Game.gba", "different bytes!!!");
         var result = new InventorySession(Scope()).Scan();
         Assert.AreEqual(2, result.Observations.Count);
         Assert.AreEqual(1, result.PotentialDuplicates.Count);
