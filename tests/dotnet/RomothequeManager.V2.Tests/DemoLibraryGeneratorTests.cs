@@ -127,6 +127,8 @@ public sealed class DemoLibraryGeneratorTests
         Assert.AreEqual(expected.GetProperty("observedFileCount").GetInt32(),
             scan.ObservedFileCount);
         Assert.IsTrue(expected.GetProperty("duplicateCandidateFiles").GetInt32() > 0);
+        Assert.AreEqual(expected.GetProperty("duplicateCandidateFiles").GetInt32(),
+            scan.PotentialDuplicates.Count, "CHAOS duplicate-candidate oracles must be discoverable.");
     }
 
     [TestMethod]
