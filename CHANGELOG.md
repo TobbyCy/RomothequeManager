@@ -1,5 +1,12 @@
 # Journal des changements
 
+## LIBRARY-UX-02 — sélection des scénarios et médias ES-DE (PR Draft #77, 28.10.2026)
+
+- Sélection explicitement fictive IDEAL, CHAOS, MYSTERY ; navigation par Dashboard, Collection et fiche. Scénarios IDEAL/CHAOS décrits par contrats, mais non revendiqués comme des fichiers observés ; MYSTERY ne présente **aucun jeu identifié**.
+- Galerie d'images limitée aux types pris en charge par l'import ES-DE existant : jaquette, miniature, logo ; badges honnêtes pour média introuvable, illisible, non renseigné, provenance du contrat et ROM seulement prévue. Pas de scraping, scan, export ou gestion de bibliothèque réelle.
+- Tests unitaires du contrat de présentation, capture Windows cinq vues aux deux tailles et artifact ZIP de démonstration avec provenance SHA. Workflow nouveau ajouté à la liste de chemins autorisés **exactement par son nom**, avec contrôles de sécurité associés ; protections de Release et baseline historique inchangées.
+- **En cours de revue** : aucune fusion ni Release avant CI complète et recette propriétaire.
+
 ## DEMO-LIBRARY-01 — catalogue canonique DEV 2 (PR Draft #72, 28.10.2026)
 
 - Le propriétaire a fixé **30 titres et 13 plateformes** dans [Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71). Les références de conception sous `contracts/demo-library-01/` et `docs/architecture/` contiennent métadonnées, médias projetés, scénarios IDEAL/CHAOS/MYSTERY et oracles arithmétiques. Le générateur DEV 1 #73 attend son alignement sur cette version canonique.
