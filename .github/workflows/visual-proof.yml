@@ -1,5 +1,5 @@
 name: VISUAL-POC-01 / Windows real Avalonia render
-# Strictly scoped synthetic Windows evidence, never a Release or ZIP publication.
+# Strictly scoped synthetic Windows evidence, never a Release. Temporary test-only ZIP allowed.
 on:
   push:
     branches: [dev3/visual-poc-01]
@@ -109,13 +109,84 @@ jobs:
           }
           ($manifest | ConvertTo-Json -Depth 5) | Set-Content (Join-Path $dir 'CAPTURE-EVIDENCE.json') -Encoding utf8
           Write-Host ('VISUAL_SCREENSHOTS_VERIFIED_PASS source=' + '${{ github.sha }}' + ' count=6')
-      - name: Upload temporary PNG screenshots only
+
+      - name: Verify and package self-contained Windows Dashboard test ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = '${{ github.sha }}'
+          if ((git rev-parse HEAD).Trim() -cne $source) { throw 'VISUAL_ZIP_SOURCE_MISMATCH' }
+          $publish = Join-Path $env:RUNNER_TEMP 'visual-app'
+          $out = Join-Path $env:RUNNER_TEMP 'visual-poc-01'
+          $extract = Join-Path $env:RUNNER_TEMP 'visual-extracted'
+          New-Item -ItemType Directory -Force -Path $extract | Out-Null
+          foreach ($name in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll','RM_V2_Favicon.ico')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $publish $name) -PathType Leaf)) { throw ('VISUAL_ZIP_RUNTIME_MISSING:' + $name) }
+          }
+          $inventory = 'docs/developer/lic-zip-01-inventory.md'
+          if (-not (Select-String -LiteralPath $inventory -Pattern '^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED\r?$' -Quiet)) { throw 'VISUAL_ZIP_LICENCE_HOLD' }
+          foreach ($name in @('LICENSE','LEGAL.md','BRANDING.md')) { Copy-Item -LiteralPath $name -Destination $publish }
+          Copy-Item -LiteralPath 'packaging/THIRD-PARTY-NOTICES.txt' -Destination (Join-Path $publish 'THIRD-PARTY-NOTICES.txt')
+          Copy-Item -LiteralPath $inventory -Destination (Join-Path $publish 'THIRD-PARTY-INVENTORY.md')
+          Copy-Item -LiteralPath 'packaging/licenses' -Destination (Join-Path $publish 'licenses') -Recurse
+          $nuget = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages' }
+          $runtime = Join-Path $nuget 'microsoft.netcore.app.runtime.win-x64/10.0.12'
+          $rt = Join-Path $publish 'licenses/dotnet-runtime'
+          New-Item -ItemType Directory -Force -Path $rt | Out-Null
+          foreach ($name in @('LICENSE.TXT','THIRD-PARTY-NOTICES.TXT')) {
+            $found = @(Get-ChildItem -LiteralPath $runtime -Recurse -File | Where-Object Name -CEQ $name)
+            if ($found.Count -ne 1 -or $found[0].Length -lt 500) { throw ('VISUAL_ZIP_RUNTIME_NOTICE_INVALID:' + $name) }
+            Copy-Item -LiteralPath $found[0].FullName -Destination (Join-Path $rt $name)
+          }
+          $fx = Join-Path $publish 'fixture'
+          $rom = Join-Path $fx 'ROMS/gba'
+          $media = Join-Path $fx 'MEDIAS/gba'
+          New-Item -ItemType Directory -Force -Path $rom,(Join-Path $media 'metadata'),(Join-Path $media 'covers') | Out-Null
+          foreach ($name in @('A.fixture','B.fixture','C.fixture')) { [IO.File]::WriteAllText((Join-Path $rom $name),'SYNTHETIC TEXT; NOT A ROM') }
+          [IO.File]::WriteAllBytes((Join-Path $media 'covers/cover.png'),[Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAIAAACHPC9vAAAAUElEQVR42mOUkFJgoAZgYqASoJpBLHDWbDY+MvSn/vo0WL02jA1iwR8XWAHW+KWxi3DZjMelo9E/ahCtEyT+jEJfF5FR7I5G/1A0iHH4NiIAH+gM7ezTEpoAAAAASUVORK5CYII='))
+          [IO.File]::WriteAllBytes((Join-Path $media 'covers/thumb.png'),[Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAIAAACHPC9vAAAAUElEQVR42mOUkFJgoAZgYqASoJpBLHCWdGU3GfqftpcOVq8NY4NY8McFVoA1fmnsIlw243HpaPSPGkTrBIk/o9DXRWQUu6PRPxQNYhy+jQgA9PkM7aOIpH8AAAAASUVORK5CYII='))
+          [IO.File]::WriteAllText((Join-Path $media 'covers/corrupt.png'),'DELIBERATELY INVALID PNG')
+          $xml = @'
+          <gameList>
+          <game><path>./A.fixture</path><name>Même titre</name><image>../covers/absent.png</image><thumbnail>../covers/thumb.png</thumbnail></game>
+          <game><path>./B.fixture</path><name>Même titre</name><image>../covers/cover.png</image></game>
+          <game><path>./C.fixture</path><name>Jaquette illisible</name><image>../covers/corrupt.png</image></game>
+          <game><path>./Missing.fixture</path><name>ROM indisponible</name></game>
+          </gameList>
+          '@
+          [IO.File]::WriteAllText((Join-Path $media 'metadata/es-de-gamelist.xml'),$xml,[Text.UTF8Encoding]::new($false))
+          $guide = 'Extraire le ZIP; lancer RomothequeManager.V2.exe; tester Dashboard Darcula Retro, navigation/clavier, 760x480 et 1120x720, icone Windows; importer seulement fixture fictive; verifier A/B/C; tester hors ligne; reporter PASS/FAIL sur PR #69. Aucune ROM reelle ni Release.'
+          [IO.File]::WriteAllText((Join-Path $publish 'GUIDE-VISUAL-RECETTE.txt'),$guide,[Text.UTF8Encoding]::new($false))
+          $manifest = [ordered]@{sourceCommit=$source;pr=69;runtime='win-x64';selfContained=$true;syntheticOnly=$true;release=$false;expectedGameCount=4}
+          ($manifest | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $publish 'VISUAL-MANIFEST.json') -Encoding utf8
+          $contents = @(Get-ChildItem -LiteralPath $publish -Recurse -File)
+          $forbidden = @('.gba','.rom','.chd','.iso','.cue','.gdi','.cdi','.nes','.sfc','.smc','.gbc','.n64','.z64','.nsp','.xci','.wad','.sav','.srm','.pfx','.pem','.p12','.snk','.key')
+          foreach ($f in $contents) { if ($forbidden -ccontains $f.Extension.ToLowerInvariant()) { throw ('VISUAL_ZIP_FORBIDDEN:' + $f.Name) } }
+          $zip = Join-Path $out ('RomothequeManager-VISUAL-PR69-win-x64-' + $source.Substring(0,8) + '.zip')
+          Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText(($zip + '.sha256'),($hash + '  ' + [IO.Path]::GetFileName($zip) + [Environment]::NewLine),[Text.Encoding]::ASCII)
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          if (@(Get-ChildItem -LiteralPath $extract -Recurse -File).Count -ne $contents.Count) { throw 'VISUAL_ZIP_COUNT_MISMATCH' }
+          foreach ($f in $contents) {
+            $rel = $f.FullName.Substring($publish.Length + 1)
+            $copy = Join-Path $extract $rel
+            if (-not (Test-Path -LiteralPath $copy -PathType Leaf)) { throw ('VISUAL_ZIP_MISSING:' + $rel) }
+            if ((Get-FileHash -LiteralPath $copy -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash) { throw ('VISUAL_ZIP_HASH_MISMATCH:' + $rel) }
+          }
+          $m = Get-Content -LiteralPath (Join-Path $extract 'VISUAL-MANIFEST.json') -Raw | ConvertFrom-Json
+          if ($m.sourceCommit -cne $source -or -not $m.selfContained -or -not $m.syntheticOnly -or $m.release) { throw 'VISUAL_ZIP_MANIFEST_INVALID' }
+          Write-Host ('VISUAL_ZIP_VERIFIED_PASS source=' + $source + ' sha256=' + $hash + ' files=' + $contents.Count + ' sizeBytes=' + (Get-Item $zip).Length)
+
+      - name: Upload temporary screenshots and test ZIP
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: VISUAL-POC-01-Windows-Dashboard
           path: |
             ${{ runner.temp }}/visual-poc-01/*.png
             ${{ runner.temp }}/visual-poc-01/CAPTURE-EVIDENCE.json
+            ${{ runner.temp }}/visual-poc-01/*.zip
+            ${{ runner.temp }}/visual-poc-01/*.zip.sha256
           if-no-files-found: error
           retention-days: 3
           compression-level: 6
