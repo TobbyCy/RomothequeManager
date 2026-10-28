@@ -104,7 +104,7 @@ public static class VisualDashboard
             Label("Une source OFFLINE ne signifie pas que ses jeux ont été supprimés."),
             Action("Voir les bibliothèques", openLibraries));
         return Build(numbers,
-            "Démonstration synthétique · lecture seule · aucun accès à vos ROM",
+            "Démo fictive · lecture seule · aucun scan",
             previews, status, "Aucune anomalie physique contrôlée : valeurs de démonstration uniquement.",
             openCollection, compact);
     }

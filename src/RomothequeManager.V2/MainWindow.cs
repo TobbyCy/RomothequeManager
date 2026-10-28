@@ -64,7 +64,11 @@ public sealed partial class MainWindow : Window
         var logoBitmap = new Bitmap(logoPath);
         Closed += (_, _) => logoBitmap.Dispose();
 
-        var root = new Grid { ColumnDefinitions = new ColumnDefinitions("236,*") };
+        var root = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("236,*"),
+            Background = new SolidColorBrush(Color.Parse("#16181D"))
+        };
         var menu = new StackPanel { Spacing = 12, Margin = new Thickness(18, 24, 18, 18) };
         menu.Children.Add(new Image
         {
@@ -118,7 +122,11 @@ public sealed partial class MainWindow : Window
         {
             Content = label, HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Left,
-            Padding = new Thickness(14, 10), MinHeight = 40
+            Padding = new Thickness(14, 10), MinHeight = 40,
+            Foreground = Ink,
+            Background = new SolidColorBrush(Color.Parse("#2D3036")),
+            BorderBrush = new SolidColorBrush(Color.Parse("#44474E")),
+            BorderThickness = new Thickness(1)
         };
         b.Click += (_, _) => handler();
         return b;
@@ -167,7 +175,7 @@ public sealed partial class MainWindow : Window
             _state.Catalogue, _libraryProjection,
             () => Navigate(POCView.Collection),
             () => Navigate(POCView.Libraries),
-            Bounds.Width < 1040))
+            Width < 1000))
             _page.Children.Add(section);
     }
 
