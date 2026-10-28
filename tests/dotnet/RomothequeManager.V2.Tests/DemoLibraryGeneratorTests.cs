@@ -403,4 +403,79 @@ public sealed class DemoLibraryGeneratorTests
         }
     }
 
+    [TestMethod]
+    public void Demo02_WindowsRecipeRunsAgainstOnlyAnExplicitNewSyntheticRoot()
+    {
+        if (!OperatingSystem.IsWindows())
+            Assert.Inconclusive("Windows PowerShell 5.1 recipe must execute on Windows CI.");
+        var script = Path.Combine(_repo, "tools", "demo-library", "Invoke-Demo02Recipe.ps1");
+        Assert.IsTrue(File.Exists(script));
+        var selected = Path.Combine(_temporary, "demo02-recipe-" + Guid.NewGuid().ToString("N"));
+        var start = new ProcessStartInfo("powershell.exe")
+        {
+            WorkingDirectory = _repo,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        foreach (var arg in new[] {
+            "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+            "-File", script, "-OutputRoot", selected, "-SkipDotNetTests"
+        }) start.ArgumentList.Add(arg);
+        static (int Exit, string Output) Execute(ProcessStartInfo command)
+        {
+            using var proc = Process.Start(command);
+            Assert.IsNotNull(proc);
+            var outputTask = proc.StandardOutput.ReadToEndAsync();
+            var errorTask = proc.StandardError.ReadToEndAsync();
+            if (!proc.WaitForExit(120_000))
+            {
+                proc.Kill(entireProcessTree: true);
+                Assert.Fail("DEMO-02 Windows recipe exceeded synthetic test timeout.");
+            }
+            return (proc.ExitCode, outputTask.GetAwaiter().GetResult() +
+                errorTask.GetAwaiter().GetResult());
+        }
+        var result = Execute(start);
+        Assert.AreEqual(0, result.Exit, result.Output);
+        StringAssert.Contains(result.Output, "[DEMO02] PASS");
+        foreach (var (variant, roms, xml, png) in new[] {
+            ("IDEAL", 32, 30, 180), ("CHAOS", 33, 30, 166), ("MYSTERY", 32, 0, 0)
+        })
+        {
+            var manifestPath = Path.Combine(selected, variant, "manifest.json");
+            using var doc = JsonDocument.Parse(File.ReadAllText(manifestPath));
+            var expected = doc.RootElement.GetProperty("expected");
+            Assert.AreEqual(roms, expected.GetProperty("romsPhysicalFiles").GetInt32());
+            Assert.AreEqual(xml, expected.GetProperty("esdeGameEntries").GetInt32());
+            Assert.AreEqual(png, expected.GetProperty("mediaFiles").GetInt32());
+        }
+        var rootManifest = Path.Combine(selected, "manifest.json");
+        var before = SHA256.HashData(File.ReadAllBytes(rootManifest));
+        var refusal = Execute(start);
+        Assert.AreNotEqual(0, refusal.Exit, "Existing destination must fail closed.");
+        CollectionAssert.AreEqual(before, SHA256.HashData(File.ReadAllBytes(rootManifest)),
+            "A second recipe launch must not overwrite its previous synthetic output.");
+        // The test class owns the GUID-scoped temp parent and cleans only that parent.
+    }
+
+    [TestMethod]
+    public void Demo02_CancelledSyntheticNext02AttemptPreservesLastComplete()
+    {
+        var root = Path.Combine(_first, "IDEAL");
+        var session = new InventorySession(new InventoryScope(root));
+        var complete = session.Scan();
+        Assert.AreEqual(InventoryScanStatus.Complete, complete.ScanStatus);
+        Assert.AreEqual(32, complete.ObservedFileCount);
+        var cancelled = session.Scan(new CancellationToken(canceled: true));
+        Assert.AreEqual(InventoryScanStatus.Partial, cancelled.ScanStatus);
+        Assert.IsNull(cancelled.TotalFileCount);
+        Assert.IsTrue(cancelled.Diagnostics.Any(d => d.Code == "CANCELLED"));
+        Assert.AreSame(complete, session.Current,
+            "A partial attempt must never overwrite the last complete snapshot.");
+        Assert.AreSame(cancelled, session.LastAttempt);
+        Assert.IsNull(session.Current!.ConfirmedGameCount);
+    }
+
 }
