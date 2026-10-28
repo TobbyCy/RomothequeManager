@@ -1,40 +1,41 @@
-# DEMO-LIBRARY-01 — briefs de médias entièrement originaux
+# DEMO-LIBRARY-01 — briefs médias originaux
 
-Cette PR fournit **des chemins et intentions**, aucun PNG ni capture réelle. Tous les visuels futurs doivent être originaux ; pas de jaquette, logo, personnage ou screenshot commercial, ni reprise de palette/composition distinctive d'une licence existante.
+**Aucun visuel binaire dans cette PR.** Les images futures devront être entièrement créées pour la démonstration, sans jaquette, personnage, logo, capture, marque ou composition commerciale reprise.
 
-Rôles par jeu : `front.png` (jaquette avant), `back.png` (jaquette arrière), `logo.png` (typographie propre), `screenshot.png` (mise en scène de gameplay *inventé*), `thumbnail.png` (miniature lisible) et, quand le champ n'est pas `null`, `background.png` (fond large). Les cinq premiers rôles sont prévus pour les 30 titres et les fonds uniquement quand pertinents. Les dimensions, couleurs, silhouettes et licences des images seront validées **dans un mandat médias distinct**.
+Le générateur candidat DEV 1 #73 prévoit six images PNG originales par jeu : `image` (jaquette avant, 240×336), `backcover` (arrière, 240×336), `marquee` (logo, 320×96), `screenshot` (capture fictive, 320×180), `thumbnail` (miniature, 120×168), `background` (fond, 480×270). Les dimensions sont celles du générateur candidat, **pas des exigences générales du Produit**. Dans ES-DE, l'import actuel ne référence que `image`, `thumbnail` et `marquee`. Les fichiers sont planifiés sous `MEDIAS/<platform>/<covers|backcovers|logos|screenshots|thumbnails|backgrounds>/<id>.png`.
 
-## Prompts éditoriaux non graphiques, jeu par jeu
+## Direction créative de chaque jeu
 
-- **demo01-001 — SacMon : Titane & Damas** (gba) : illustration originale d'un univers « RPG collection » ; Des forgerons capturent des alliages bavards pour gagner le concours du sac le mieux rangé.
-- **demo01-002 — Jaxson & Dex** (psx) : illustration originale d'un univers « Plateforme coopérative » ; Un mécanicien optimiste et une luciole syndiquée réparent des ascenseurs têtus.
-- **demo01-003 — Average Anto Bros.** (nes) : illustration originale d'un univers « Plateforme » ; Deux plombiers moyens sauvent la réunion du syndic contre des tuyaux capricieux.
-- **demo01-004 — Intern Vicious** (psx) : illustration originale d'un univers « Survival administratif » ; Une stagiaire nocturne cherche une imprimante pendant que les classeurs prennent vie.
-- **demo01-005 — Little Theft Moto** (gba) : illustration originale d'un univers « Aventure urbaine » ; Un coursier récupère des bicyclettes abandonnées pour rendre des colis avant la fermeture.
-- **demo01-006 — Dad of Chores** (psx) : illustration originale d'un univers « Action domestique » ; Un parent légendaire affronte le panier à linge éternel et le jouet sous le pied.
-- **demo01-007 — Need for Sleep** (megadrive) : illustration originale d'un univers « Course de sieste » ; Des pilotes épuisés roulent sur des pistes de coussins à coups de chocolat chaud.
-- **demo01-008 — Final Tax Return** (snes) : illustration originale d'un univers « RPG fiscal » ; Une comptable rassemble des reçus antiques pour vaincre le formulaire final.
-- **demo01-009 — Bricks of Regret** (gb) : illustration originale d'un univers « Puzzle » ; Empilez des briques bancales sous les yeux d'un architecte sans règle.
-- **demo01-010 — Turbo Snail GP** (n64) : illustration originale d'un univers « Course » ; Une ligue d'escargots fait la course sur des pistes de salade détrempée.
-- **demo01-011 — The Legend of the Lost Keys** (snes) : illustration originale d'un univers « Aventure » ; Une gardienne explore des donjons de tiroirs pour retrouver la clé du placard.
-- **demo01-012 — Sidewalk Debaters** (megadrive) : illustration originale d'un univers « Combat courtois » ; Huit orateurs se défient à coups de métaphores et de grammaire irréprochable.
-- **demo01-013 — Professor Pudding's Paradox** (gba) : illustration originale d'un univers « Puzzle narratif » ; Un savant construit une machine temporelle qui exige du dessert comme carburant.
-- **demo01-014 — Galactic Janitor 3000** (nes) : illustration originale d'un univers « Tir spatial » ; Un agent de nettoyage spatial combat une pluie de miettes interstellaires.
-- **demo01-015 — Count Spreadsheet** (snes) : illustration originale d'un univers « Plateforme gothique » ; Un vampire comptable grimpe une tour de bilans et collecte des cellules formatées.
-- **demo01-016 — Clockwork Snooze** (psx) : illustration originale d'un univers « RPG multidisque » ; Un héros ayant raté son réveil traverse trois siècles de réunions interminables.
-- **demo01-017 — Dungeon of Unpaid Bills** (gb) : illustration originale d'un univers « Donjon » ; Un aventurier descend aux archives municipales combattre des factures vivantes.
-- **demo01-018 — Pizza Panic 64** (n64) : illustration originale d'un univers « Plateforme festive » ; Une livreuse en patins traverse des immeubles mouvants avant que la pizza refroidisse.
-- **demo01-019 — Parcel Delivery Extreme** (dreamcast) : illustration originale d'un univers « Arcade » ; Un facteur acrobate livre des paquets fragiles sur les toits de la ville.
-- **demo01-020 — Captain Cucumber** (nes) : illustration originale d'un univers « Plateforme » ; Un capitaine végétal défend son jardin contre des conserves périmées.
-- **demo01-021 — Space Llamas Are Calling** (dreamcast) : illustration originale d'un univers « Tir spatial » ; Un équipage de lamas capte une émission radio venue d'une ferme galactique.
-- **demo01-022 — Kaiju Kindergarten** (gba) : illustration originale d'un univers « Stratégie » ; Des monstres géants négocient la répartition des feutres et l'heure du goûter.
-- **demo01-023 — Night Shift** (gb) : illustration originale d'un univers « Puzzle logistique » ; Un veilleur trie des caisses dont les étiquettes changent après minuit.
-- **demo01-024 — Night Shift** (megadrive) : illustration originale d'un univers « Infiltration » ; Des cambrioleurs silencieux dérobent une ampoule sans réveiller la ville.
-- **demo01-025 — Bureaucracy Kart** (n64) : illustration originale d'un univers « Course de bureau » ; Des secrétaires lancent des tampons encreurs dans une course motorisée absurde.
-- **demo01-026 — The Great Sock Heist** (snes) : illustration originale d'un univers « Stratégie » ; Deux chaussettes fugitives échappent aux tapis roulants d'une blanchisserie.
-- **demo01-027 — Rainy Day Samurai** (gba) : illustration originale d'un univers « Combat poétique » ; Un samouraï protège son parapluie ancestral contre des adversaires pressés.
-- **demo01-028 — Operation Teapot** (nes) : illustration originale d'un univers « Infiltration » ; Un agent infiltre une cérémonie du thé où chaque tasse cache un indice.
-- **demo01-029 — Pixel & Pretzel** (megadrive) : illustration originale d'un univers « Coopération » ; Une artiste et un boulanger assemblent des mondes en pixels pour sauver la foire.
-- **demo01-030 — Épopée du Fromage Bleu** (gb) : illustration originale d'un univers « Aventure culinaire » ; Une héroïne parcourt des caves labyrinthiques pour sauver une meule susceptible.
+- **demo01-001 — SacMon : Titane & Damas** (gba) : Des métallurgistes capturent des créatures bavardes pour participer au Grand Prix du sac rangé. Créer une identité graphique autonome.
+- **demo01-002 — Jaxson & Dex** (ps2) : Un mécanicien maladroit et une luciole syndiquée réparent des ascenseurs rebelles. Créer une identité graphique autonome.
+- **demo01-003 — Average Anto Bros.** (nes) : Deux réparateurs ordinaires sauvent une copropriété envahie de tuyaux capricieux. Créer une identité graphique autonome.
+- **demo01-004 — Intern Vicious** (psx) : Une stagiaire nocturne fuit des classeurs vivants en cherchant l'imprimante du dernier étage. Créer une identité graphique autonome.
+- **demo01-005 — Little Theft Moto** (ps2) : Un coursier en mobylette récupère des colis égarés avant le dîner. Créer une identité graphique autonome.
+- **demo01-006 — The Legend of Belda** (snes) : Bélda traverse la Vallée des Étiquettes pour retrouver la clé du placard municipal. Créer une identité graphique autonome.
+- **demo01-007 — Supersonic Hedgefund** (megadrive) : Un gestionnaire très rapide ramasse des pièces imaginaires avant la clôture des marchés. Créer une identité graphique autonome.
+- **demo01-008 — Cash Bandicoot** (psx) : Un marsupial comptable déboule dans une forêt de distributeurs de billets cassés. Créer une identité graphique autonome.
+- **demo01-009 — Tomb Waiter** (psx) : Une archéologue devenue serveuse recherche un plateau légendaire dans un restaurant enseveli. Créer une identité graphique autonome.
+- **demo01-010 — Dad of Chores** (ps4) : Un parent légendaire affronte un panier à linge insatiable et les jouets dissimulés sous le canapé. Créer une identité graphique autonome.
+- **demo01-011 — Metal Deer Salad** (psx) : Un cerf espion infiltre deux bases frigorifiques afin de retrouver la recette d'une sauce secrète. Créer une identité graphique autonome.
+- **demo01-012 — Final Tax Return** (psx) : Une comptable collecte des reçus antiques pour vaincre un formulaire d'impôt final. Créer une identité graphique autonome.
+- **demo01-013 — Need for Sleep** (ps2) : Des pilotes épuisés parcourent de longs circuits entre les cités de la sieste. Créer une identité graphique autonome.
+- **demo01-014 — The Shrims** (pc) : Des crevettes miniatures aménagent leur aquarium et négocient les règles de colocation. Créer une identité graphique autonome.
+- **demo01-015 — Room** (dos) : Un héros explore des salles de réunion infernales pour retrouver la sortie du bureau. Créer une identité graphique autonome.
+- **demo01-016 — Hello!** (xbox) : Un gardien de station spatiale accueille des visiteurs extraterrestres avec un enthousiasme excessif. Créer une identité graphique autonome.
+- **demo01-017 — Minorcraft** (pc) : Un ingénieur construit des cabanes cubiques et d'interminables escaliers. Créer une identité graphique autonome.
+- **demo01-018 — Damp Soles** (ps3) : Un aventurier aux chaussures trempées négocie avec des chaussettes spectrales. Créer une identité graphique autonome.
+- **demo01-019 — Animal Parking** (gamecube) : Des animaux forestiers organisent un parking où chacun a oublié son permis. Créer une identité graphique autonome.
+- **demo01-020 — Stardust Alley** (pc) : Une jardinière cultive des lucioles sur une avenue de la Voie lactée. Créer une identité graphique autonome.
+- **demo01-021 — The Rest of Us** (ps3) : Des voisins traversent une ville désertée pour retrouver la boîte à outils collective. Créer une identité graphique autonome.
+- **demo01-022 — Cyberplonk 2077** (pc) : Une livreuse de néons enquête sur des distributeurs de boissons conspirateurs. Créer une identité graphique autonome.
+- **demo01-023 — Red Bread Redemption** (ps3) : Un ancien boulanger traverse une plaine envahie de baguettes rebelles. Créer une identité graphique autonome.
+- **demo01-024 — Assistant's Creed** (ps3) : Une archiviste court sur les toits pour récupérer un agenda disparu. Créer une identité graphique autonome.
+- **demo01-025 — Wardrobe** (pc) : Une exploratrice franchit des placards cosmiques aux manteaux dimensionnels. Créer une identité graphique autonome.
+- **demo01-026 — Pasta Kombat** (snes) : Des chefs champions se battent à coups de pâtes volantes et d'ustensiles. Créer une identité graphique autonome.
+- **demo01-027 — Street Fritter II** (snes) : Des vendeurs de beignets rivalisent pour obtenir le meilleur emplacement du marché. Créer une identité graphique autonome.
+- **demo01-028 — Donkey Konk** (snes) : Un primate percussionniste traverse une île de tambours glissants. Créer une identité graphique autonome.
+- **demo01-029 — Chrono Triggered** (snes) : Un horloger maladroit provoque des paradoxes en réparant des réveils d'occasion. Créer une identité graphique autonome.
+- **demo01-030 — Paper Plumber** (n64) : Un plombier en papier traverse des dossiers suspendus pour sauver une agrafe enchantée. Créer une identité graphique autonome.
 
-Les médias sont définis par `MEDIAS/<platform>/games/<demoId>/<kind>.png`, à matérialiser plus tard uniquement avec du contenu créé pour la démonstration. `CHAOS` omet six images prévues ; `MYSTERY` conserve douze couvertures sans XML et sans liaison d'identité garantie. Les chemins sont des déclarations, pas une preuve d'existence.
+IDEAL : 180 médias présents après matérialisation future ; CHAOS : 166 médias valides avec 14 manques contrôlés ; MYSTERY : aucun média. Jaxson & Dex prévoit une seconde capture **supplémentaire non générée dans V1**. Final Tax Return prévoit une PNG corrompue **uniquement dans une fixture négative isolée**.
+
