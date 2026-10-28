@@ -1,5 +1,14 @@
 # État des fonctionnalités
 
+## NEXT-01 / PR #64 — vérification du HEAD courant et du fonctionnement hors ligne
+
+- Workflow de recette : checkout strict du `github.event.pull_request.head.sha` au moment du run, vérifié avant restauration SDK et avant packaging. **Aucun ancien SHA `e775cdd6` épinglé** ; chaque artifact contient le manifeste du HEAD exact et le SHA-256 du ZIP `win-x64` autonome produit pour cette révision, sans Release.
+- Windows CI : sur le véritable EXE extrait, vérification du sous-système PE GUI = 2, lancement `--smoke-window` avec runtime système volontairement indisponible, lancement ShellExecute (équivalent technique de la voie d'ouverture Windows ; **ce n'est pas un double-clic humain dans l'Explorateur**).
+- Recette hors ligne : règle Windows Firewall temporaire bloquant le trafic **sortant de l'EXE exact** (pas de coupure du réseau du runner), vérification de la règle puis démarrage Avalonia. Contrôle des quatre jeux fictifs ES-DE, des médias locaux, de la navigation, des libellés français affichés, et du réimport de XML malformé avec conservation du catalogue, puis restauration de la fixture. La règle est retirée même en cas d'échec. Aucun réseau nécessaire à la logique métier testée.
+- Limites à faire valider par Tobby : véritable double-clic Explorer, absence de console perceptible, gestes souris/clavier, rendu des diagnostics et médias, puis essai **sur son PC réellement déconnecté d'Internet** ; les essais CI ne démontrent pas l'état du réseau d'un poste externe.
+- **Gates** : résultats exacts du workflow et CI avant verdict ; aucune fusion ni Release sans GO propriétaire. Aucun code NEXT-02 modifié.
+
+
 ## État public actuel — 28 octobre 2026
 
 La [première Pre-release Windows V2-01C a été publiée le 23.10.2026](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec) depuis `main=4cf475fbd1ece16b138403d3bd967a56d295ee54`. Le [ZIP Windows x64 autonome](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip) (243 fichiers ; runtime .NET inclus) et son [fichier de contrôle SHA-256](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip.sha256) sont **téléchargeables**. Son empreinte de référence est `22328d682b7c93edcdeeb735c9913880e68dec64c54b159bd6e6de77bcc7eaaf`.

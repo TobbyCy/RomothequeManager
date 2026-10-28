@@ -104,6 +104,90 @@ public sealed partial class MainWindow
         _coverImages.Clear();
     }
 
+
+    // Test-only exercise of the REAL imported Avalonia visual tree on disposable CI
+    // fixtures. Never invoked during normal launch; no network, real ROM or scraping.
+    // This verifies the labels actually presented, unlike a model-only unit test.
+    public bool SmokeExerciseOfflineImportedFixture(string fixtureRoot)
+    {
+        if (!_importedUi.TryImport(fixtureRoot) || !_importedUi.IsImported)
+            return false;
+        var original = _importedUi.Snapshot;
+        if (original?.Games.Count != 4 ||
+            !original.Diagnostics.Any(d => d.Code == "ROM_MISSING") ||
+            !original.Diagnostics.Any(d => d.Code == "MEDIA_MISSING"))
+            return false;
+        Render();
+        var dashboardText = SmokeVisibleTexts();
+        if (!dashboardText.Contains("Diagnostics de l'import", StringComparison.Ordinal) ||
+            !dashboardText.Contains("ROM indisponible", StringComparison.Ordinal) ||
+            !dashboardText.Contains("Média indisponible", StringComparison.Ordinal) ||
+            !dashboardText.Contains("À vérifier", StringComparison.Ordinal))
+            return false;
+
+        _importedUi.Navigate(POCView.Collection);
+        Render();
+        if (!SmokeVisibleTexts().Contains("4 résultat(s) importé(s)", StringComparison.Ordinal))
+            return false;
+        var first = original.Games[0];
+        if (!_importedUi.Open(first.GameId))
+            return false;
+        Render();
+        if (!SmokeVisibleTexts().Contains("Médias référencés", StringComparison.Ordinal))
+            return false;
+        _importedUi.Navigate(POCView.Libraries);
+        Render();
+        if (!SmokeVisibleTexts().Contains("Comparaison A/B désactivée", StringComparison.Ordinal))
+            return false;
+
+        // Mutate only the synthetic gamelist in RUNNER_TEMP, always restore it.
+        var xmlPath = Path.Combine(fixtureRoot, "MEDIAS", "gba", "metadata", "es-de-gamelist.xml");
+        var saved = File.ReadAllBytes(xmlPath);
+        var rejected = false;
+        try
+        {
+            File.WriteAllText(xmlPath, "<gameList><game>", new System.Text.UTF8Encoding(false));
+            rejected = !_importedUi.TryReimport() &&
+                ReferenceEquals(original, _importedUi.Snapshot) &&
+                _importedUi.ErrorMessage is string message &&
+                message.Contains("XML ES-DE est mal formé", StringComparison.Ordinal) &&
+                message.Contains("Dernier catalogue valide conservé", StringComparison.Ordinal);
+            Render();
+            rejected &= SmokeVisibleTexts().Contains("Dernier catalogue valide conservé", StringComparison.Ordinal);
+        }
+        finally { File.WriteAllBytes(xmlPath, saved); }
+        if (!rejected || !_importedUi.TryReimport() || _importedUi.Snapshot?.Games.Count != 4)
+            return false;
+
+        _importedUi.ShowDemo();
+        Render();
+        return _state.CurrentView == POCView.Dashboard || _page.Children.Count >= 3;
+    }
+
+    private string SmokeVisibleTexts()
+    {
+        return string.Join("\n", _page.Children.SelectMany(SmokeText));
+    }
+
+    private static IEnumerable<string> SmokeText(Control control)
+    {
+        if (control is TextBlock text)
+        {
+            yield return text.Text ?? "";
+            yield break;
+        }
+        IEnumerable<Control> children = control switch
+        {
+            Panel panel => panel.Children.OfType<Control>(),
+            Decorator decorator when decorator.Child is Control child => new[] { child },
+            ContentControl content when content.Content is Control child => new[] { child },
+            _ => Array.Empty<Control>()
+        };
+        foreach (var child in children)
+            foreach (var value in SmokeText(child))
+                yield return value;
+    }
+
     private void RenderImported()
     {
         var snapshot = _importedUi.Snapshot;

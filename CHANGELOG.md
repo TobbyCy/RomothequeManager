@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-01 / PR #64 — recette HEAD exact et hors ligne (28.10.2026)
+
+- Le ZIP Windows CI est construit depuis le HEAD courant de #64, vérifié par SHA, plutôt que l'ancien `e775cdd6` ; manifeste et sidecar SHA-256 exacts.
+- Vérifications spécifiques Windows et fixtures fictives : PE WinExe, ouverture via ShellExecute, lancement offline sous blocage Windows Firewall sortant pour l'exécutable, import/diagnostics visibles dans l'arbre Avalonia, supports locaux, XML malformé et restauration.
+- La recette manuelle de Tobby (Explorer, clavier/GUI et déconnexion réelle du PC) reste distincte ; aucun moteur NEXT-02, scan réel, merge ou Release.
+
+
 Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
 
 
