@@ -1,5 +1,8 @@
 # Journal des changements
 
+Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
+
+
 ## Vérification de packaging de recette — NEXT-01-UX (28 octobre 2026)
 
 - Workflow GitHub Actions [#40689889760](https://github.com/TobbyCy/RomothequeManager/actions/runs/40689889760) : ZIP autonome corrigé figé sur `e775cdd64522d45ee2fb848df232fa1f19023326` et [artifact #12816457518](https://github.com/TobbyCy/RomothequeManager/actions/runs/40689889760/artifacts/12816457518). Le ZIP applicatif pèse **75 362 552 octets** et son SHA-256 vérifié indépendamment est **`fe6a4d59adfae5ea171c229838d17fdeef4bd23a41e03924d2e5a93f6c407364`** ; manifeste embarqué et 62 tests .NET PASS.
@@ -22,13 +25,19 @@
 - Correctifs uniquement de présentation et de configuration Windows ; adaptateur ES-DE de lecture seule inchangé. Quatre canaris MSTest synthétiques ajoutés. La CI du nouveau HEAD et le verdict externe seront documentés sur [PR #64](https://github.com/TobbyCy/RomothequeManager/pull/64). Aucun merge ou Release autonome.
 
 
-## En cours — NEXT-01-UX / Issue #61 (PR #64 Draft, pas sur main)
+## En cours — NEXT-01-UX / Issue #61 (PR #64 prête pour revue, pas sur main)
 
 - Sur la base de l'adaptateur [#62](https://github.com/TobbyCy/RomothequeManager/pull/62) désormais fusionné, présentation Avalonia de la bibliothèque explicitement sélectionnée : séparation démo/import, Dashboard/Collection/fiches et jaquettes locales via API de lecture seule. Les images invalides ou absentes peuvent céder la place à la miniature, puis à un message explicite ; A/B synthétique désactivé pour le catalogue importé.
 - Recherche et pagination à 50 jeux ; navigation conservant les identités et refus des erreurs de chargement/réimport sans perdre le dernier catalogue validé. Douze tests sources synthétiques NEXT-01-UX, incluant 2 000 entrées fictives et l'isolation de la comparaison A/B.
 - **CI/captures à valider sur le HEAD exact après reciblage sur main** ; ce lot n'est ni fusionné, ni distribué, ni autorisé à scanner le SSD personnel. Aucune ROM/BIOS/média tiers n'entre dans GitHub.
 
-Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
+## En cours — NEXT-02-INVENTORY / Issue #65 (PR Draft, fixtures exclusivement synthétiques)
+
+- Correctif P1 de la PR #68 : lecture `.m3u` bornée **pendant** les I/O (octets/lignes), annulation effective transformée en `PARTIAL/CANCELLED`, handle refermé ; accès fichiers concurrents traités conservativement en `PARTIAL/UNREADABLE_ENTRY` ; nouveaux tests synthétiques. Le contrôle de taille préalable seul n'est plus considéré suffisant.
+
+- Moteur candidat .NET en lecture seule, autonome d'ES-DE, avec sélection explicite de racine `ROMS/`, observation de fichiers distincte des identités de jeux, plateformes/alias explicitement configurés, extensions conservatrices, relations `.m3u`, groupes de doublons seulement potentiels et limites de ressources.
+- `InventorySnapshot` indépendant, `COMPLETE/PARTIAL/FAILED`, couverture, disponibilités, compteurs inconnus et conservation du dernier snapshot complet lorsque le scan suivant échoue. Aucun scan automatique au lancement, aucune opération sur ROMothèque réelle.
+- Dix-huit tests MSTest synthétiques proposés/exécutables sur répertoires temporaires ; preuves CI et revue DEV 2 à rattacher au HEAD exact. Contrat candidat : PR documentaire #66, non gelé sans revue.
 
 ## En cours — NEXT-01-A / Issue #61 (PR Draft, données synthétiques)
 
