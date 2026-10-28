@@ -1,5 +1,14 @@
 # État des fonctionnalités
 
+### Preuve binaire du ZIP corrigé (source `e775cdd6`)
+
+- [Workflow Windows #40689889760 — SUCCESS](https://github.com/TobbyCy/RomothequeManager/actions/runs/40689889760), artifact temporaire [#12816457518](https://github.com/TobbyCy/RomothequeManager/actions/runs/40689889760/artifacts/12816457518) (jusqu'au **31.10.2026 12:43 UTC**).
+- Source exacte de compilation (figée, malgré les commits documentaires du workflow) : `e775cdd64522d45ee2fb848df232fa1f19023326`, vérifiée par `UX_RECIPE_FROZEN_SOURCE` et `UX-MANIFEST.json`. ZIP applicatif `RomothequeManager-UX-PR64-win-x64-e775cdd6.zip` : **75 362 552 octets**, **250 fichiers**, SHA-256 **`fe6a4d59adfae5ea171c229838d17fdeef4bd23a41e03924d2e5a93f6c407364`**. Le fichier annexe `.zip.sha256` concorde ; le hash a été recalculé indépendamment après téléchargement de l'artifact Actions (dont le digest externe est un autre fichier).
+- 62/62 tests .NET PASS, licences/runtime inclus et contrôlés, ZIP extrait/recomparé et smoke de la fenêtre Avalonia PASS. `UX_RECIPE_WINEXE_GUI_PASS subsystem=2` vérifie le PE GUI de l'exécutable **extrait de ce ZIP** ; cela ne prouve pas un double-clic interactif dans l'Explorateur.
+- La fixture fictive intégrée permet de contrôler manuellement le résumé de diagnostics en français, la ROM/le média absent et l'échec XML suivi de la conservation du dernier catalogue valide. **Recette Windows humaine toujours requise** avant GO de fusion.
+- **CI adaptative** : le premier run sur la mise à jour du workflow a rencontré `CLASSIFICATION_SCOPE_UNPROVEN / MERGE_PARENTS_INVALID` en raison d'un décalage entre le SHA de base de la PR et le HEAD de `main` pendant une intégration concurrente. Il ne s'agit pas d'un PASS de la CI générale : relancer un contrôle complet sur une base cohérente, sans affaiblir le contrôle des parents.
+- **Aucune fusion ni Release ;** cette preuve est un artifact de recette temporaire, jamais une nouvelle publication publique.
+
 ## NEXT-01-UX — recette du ZIP corrigé PR #64
 
 - Source applicative de référence : `e775cdd64522d45ee2fb848df232fa1f19023326`, comprenant WinExe et diagnostics ES-DE francisés. La prochaine PR de packaging porte uniquement la modification du workflow, ses canaris et la documentation : le ZIP embarque exactement le source applicatif ci-dessus.
