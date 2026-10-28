@@ -1,5 +1,7 @@
 # Journal des changements
 
+- DEMO-02 revue croisée avec la recette DEV 2 #76 (28 scénarios) et la UI Draft DEV 3 #77 : matrice détaillée des preuves moteur versus tests UI, état NOT_EXECUTED/NOT_IMPLEMENTED pour les parcours absents. Deux tests ajoutés pour exécuter le script Windows en sortie temporaire et tester l'annulation NEXT-02 sans perdre le dernier complet. Aucun moteur, fixture canonique, scan réel ou Release modifié.
+
 ## DEMO-02 — recettes synthétiques E2E (DEV 1 / PR Draft #75, 28.10.2026)
 
 - Procédure Windows PowerShell 5.1 opt-in pour générer et vérifier IDEAL/CHAOS/MYSTERY à destination locale nouvelle et explicitement choisie ; aucun écrasement, téléchargement, scan réel ni Release.
