@@ -879,7 +879,7 @@ class Pr64UxArtifactPolicyTests(unittest.TestCase):
         self.assertIn("$coverPng = [Convert]::FromBase64String(", workflow)
         self.assertIn("$thumbPng = [Convert]::FromBase64String(", workflow)
         self.assertIn("'covers/corrupt.png'", workflow)
-        self.assertNotIn("$onePixel", workflow))
+        self.assertNotIn("$onePixel", workflow)
         self.assertIn("UX_RECIPE_SHELL_GUI_WINDOW_PASS", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("retention-days: 3", workflow)
