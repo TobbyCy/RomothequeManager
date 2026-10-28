@@ -672,8 +672,8 @@ class WorkflowTests(unittest.TestCase):
                     "contents: write", "secrets.", "continue-on-error:"):
             self.assertNotIn(bad, workflow)
         rules, _ = p.path_rules(root)
-        self.assertTrue(any(re.fullmatch(rule, ".github/workflows/library-ux02-proof.yml") for rule in rules))
-        self.assertFalse(any(re.fullmatch(rule, ".github/workflows/library-ux02-other.yml") for rule in rules))
+        self.assertTrue(any(p.re.fullmatch(rule, ".github/workflows/library-ux02-proof.yml") for rule in rules))
+        self.assertFalse(any(p.re.fullmatch(rule, ".github/workflows/library-ux02-other.yml") for rule in rules))
 
     def test_product_integrity_guard_has_locked_baseline(self):
         root = Path(__file__).resolve().parent.parent
