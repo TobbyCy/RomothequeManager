@@ -282,4 +282,125 @@ public sealed class DemoLibraryGeneratorTests
             }
         }
     }
+    // DEMO-02: exercise the real NEXT-01/NEXT-02 engines against the canonical
+    // DEMO-01 materialization. No alternative reader, no real-library traversal.
+    private static InventorySnapshot Demo02Inventory(string variant)
+    {
+        using var canonical = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(_repo, "contracts", "demo-library-01", "catalogue.json")));
+        var aliases = canonical.RootElement.GetProperty("platformSlugs").EnumerateArray()
+            .Select(x => x.GetString()!)
+            .ToDictionary(x => x, x => x, StringComparer.OrdinalIgnoreCase);
+        return new InventorySession(new InventoryScope(Path.Combine(_first, variant),
+            PlatformAliases: aliases)).Scan();
+    }
+
+    [TestMethod]
+    public void Demo02_ThreeSyntheticLibrariesMatchContractWithBothExistingEngines()
+    {
+        using var contract = JsonDocument.Parse(File.ReadAllText(Path.Combine(
+            _repo, "contracts", "demo-library-01", "oracles.json")));
+        foreach (var variant in new[] { "IDEAL", "CHAOS", "MYSTERY" })
+        {
+            var oracle = contract.RootElement.GetProperty("counts").GetProperty(variant);
+            var root = Path.Combine(_first, variant);
+            var scan = Demo02Inventory(variant);
+            Assert.AreEqual(InventoryScanStatus.Complete, scan.ScanStatus, variant);
+            Assert.AreEqual(InventoryAvailability.Online, scan.Availability, variant);
+            Assert.AreEqual(oracle.GetProperty("physicalRomFiles").GetInt32(),
+                scan.ObservedFileCount, variant + " NEXT-02 file count");
+            Assert.AreEqual(13, scan.Observations.Select(x => x.PlatformKey)
+                .Distinct(StringComparer.Ordinal).Count(), variant + " platforms");
+            Assert.IsFalse(scan.Observations.Any(x => x.PlatformKey == "UNKNOWN"),
+                variant + " platform aliases must be explicit");
+            Assert.IsNull(scan.ConfirmedGameCount, "Inventory must never invent GameId");
+            Assert.AreEqual(oracle.GetProperty("duplicateCandidateFiles").GetInt32(),
+                scan.PotentialDuplicates.Count, variant + " duplicate candidates");
+            Assert.AreEqual(1, scan.Playlists.Count, variant + " playlist observation");
+            Assert.AreEqual(2, scan.Playlists.Single().Members.Count,
+                variant + " two synthetic disc references");
+
+            if (variant == "MYSTERY")
+            {
+                Assert.ThrowsExactly<InvalidDataException>(() => EsDeCatalogueImporter.Read(root),
+                    "No XML must not be misrepresented as an empty successful import");
+            }
+            else
+            {
+                var imported = EsDeCatalogueImporter.Read(root);
+                Assert.AreEqual(oracle.GetProperty("esDeGameEntries").GetInt32(),
+                    imported.Games.Count, variant + " NEXT-01 XML count");
+                Assert.AreEqual(13, imported.Games.Select(x => x.Platform)
+                    .Distinct(StringComparer.Ordinal).Count(), variant + " imported platforms");
+                Assert.AreEqual(oracle.GetProperty("missingMainRomReferences").GetInt32(),
+                    imported.Games.Count(x => !x.RomExists), variant + " missing ROMs");
+                Assert.AreEqual(30, imported.Games.Select(x => x.GameId)
+                    .Distinct(StringComparer.Ordinal).Count(), variant + " ES-DE identities");
+            }
+        }
+    }
+
+    [TestMethod]
+    public void Demo02_MissingMediaAndMissingRomsHaveSeparateReadableDiagnostics()
+    {
+        var root = Path.Combine(_first, "CHAOS");
+        var imported = EsDeCatalogueImporter.Read(root);
+        Assert.AreEqual(2, imported.Diagnostics.Count(x => x.Code == "ROM_MISSING"),
+            "Two canonical main ROM references must remain missing.");
+        Assert.IsTrue(imported.Diagnostics.Any(x => x.Code == "MEDIA_MISSING"),
+            "Missing ES-DE referenced media must be diagnosed, never fetched.");
+        var missingIds = imported.Games.Where(x => !x.RomExists)
+            .Select(x => x.Title).ToArray();
+        Assert.AreEqual(2, missingIds.Length);
+        using var manifest = Manifest("CHAOS");
+        Assert.AreEqual(14, manifest.RootElement.GetProperty("expected")
+            .GetProperty("missingMediaFiles").GetInt32(),
+            "All six media kinds are counted by the manifest, not by ES-DE.");
+        var scan = Demo02Inventory("CHAOS");
+        Assert.AreEqual(3, scan.PotentialDuplicates.Count);
+        Assert.AreEqual(3, scan.Diagnostics.Count(x => x.Code == "POTENTIAL_DUPLICATE"));
+        Assert.IsTrue(scan.PotentialDuplicates.All(x =>
+            x.Reason.Contains("NOT a binary match", StringComparison.Ordinal)));
+        Assert.IsNull(scan.ConfirmedGameCount);
+    }
+
+    [TestMethod]
+    public void Demo02_MultidiscRemainsOneImportedGameWithTwoObservedMembers()
+    {
+        var root = Path.Combine(_first, "IDEAL");
+        var imported = EsDeCatalogueImporter.Read(root);
+        var game = imported.Games.Single(x => x.Title == "Metal Deer Salad");
+        Assert.AreEqual(2, game.DiscPaths.Count);
+        Assert.AreEqual(30, imported.Games.Count, "Playlist must not inflate game count.");
+        var scan = Demo02Inventory("IDEAL");
+        Assert.AreEqual(1, scan.Playlists.Count);
+        Assert.AreEqual(2, scan.Playlists.Single().Members.Count);
+        Assert.IsTrue(scan.Playlists.Single().Members.All(x => x.Exists));
+        Assert.AreEqual(32, scan.ObservedFileCount);
+    }
+
+    [TestMethod]
+    public void Demo02_RepeatReadDoesNotMutateSyntheticLibraryOrInventIdentities()
+    {
+        foreach (var variant in new[] { "IDEAL", "CHAOS", "MYSTERY" })
+        {
+            var root = Path.Combine(_first, variant);
+            var manifestPath = Path.Combine(root, "manifest.json");
+            var before = SHA256.HashData(File.ReadAllBytes(manifestPath));
+            var first = Demo02Inventory(variant);
+            var second = Demo02Inventory(variant);
+            Assert.AreEqual(first.ContentFingerprint, second.ContentFingerprint,
+                variant + " inventory projection must be stable");
+            CollectionAssert.AreEqual(before, SHA256.HashData(File.ReadAllBytes(manifestPath)));
+            if (variant != "MYSTERY")
+            {
+                var session = new EsDeImportSession(root);
+                var a = session.Import();
+                var b = session.Import();
+                Assert.AreEqual(a.ContentFingerprint, b.ContentFingerprint,
+                    variant + " ES-DE reimport must be idempotent");
+            }
+        }
+    }
+
 }
