@@ -97,8 +97,8 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
             // Freeze aliases against mutation by the picker/calling ViewModel.
             var aliases = selectedScope.PlatformAliases is null
                 ? null
-                : new Dictionary<string, string>(selectedScope.PlatformAliases,
-                    StringComparer.OrdinalIgnoreCase);
+                : selectedScope.PlatformAliases.ToDictionary(
+                    pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
             safeScope = selectedScope with { LibraryRoot = root, PlatformAliases = aliases };
             candidate = new InventorySession(safeScope);
         }
