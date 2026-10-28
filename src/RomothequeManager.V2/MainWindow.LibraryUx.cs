@@ -97,7 +97,7 @@ public sealed partial class MainWindow
                 Navigate(POCView.Dashboard);
                 string mysteryDashboard = SmokeVisibleTexts();
                 if (!mysteryDashboard.Contains("Jeux identifiés : INCONNU", StringComparison.Ordinal) ||
-                    !mysteryDashboard.Contains("Comprendre les données inconnues", StringComparison.Ordinal))
+                    !mysteryDashboard.Contains("L'oracle privé connaît l'origine", StringComparison.Ordinal))
                     return false;
                 continue;
             }
