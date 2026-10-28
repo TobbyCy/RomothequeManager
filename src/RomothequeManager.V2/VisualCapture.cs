@@ -41,7 +41,7 @@ internal static class VisualCapture
                         new Vector(96 * scale, 96 * scale));
                     frame.Render(visual);
                     string path = Path.Combine(folder, $"Dashboard-{item.Width}x{item.Height}-DPI{item.Dpi}.png");
-                    frame.Save(path);
+                    frame.Save(path, PngBitmapEncoderOptions.Default);
                     if (new FileInfo(path).Length < 4000)
                         throw new InvalidDataException("VISUAL_CAPTURE_EMPTY_RENDER");
                     Console.WriteLine("VISUAL_CAPTURE_PASS " + Path.GetFileName(path));
