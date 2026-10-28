@@ -1,42 +1,40 @@
-# DEMO-LIBRARY-01 — générateur de ROMothèque fictive
+# DEMO-LIBRARY-01 — générateur fictif (DEV 1)
 
-**Dépendance contractuelle : DEV 2 / [PR Draft #72](https://github.com/TobbyCy/RomothequeManager/pull/72).** Les fichiers de vérité terrain sont `contracts/demo-library-01/catalogue.json`, `scenarios.json` et `oracles.json`, repris à l'identique dans cette branche. Les identités `demoId` restent distinctes des identités ES-DE et des observations NEXT-02. Aucun fichier commercial, BIOS, scraper ni contenu tiers.
+**Catalogue canonique : [PR #72, HEAD 968d1f61420a5d0b70eb5160e9d57d505560f2b7](https://github.com/TobbyCy/RomothequeManager/pull/72)**. Les fichiers `contracts/demo-library-01/catalogue.json`, `scenarios.json`, `oracles.json` contiennent les **30 titres exacts**, 13 plateformes, identifiants, métadonnées et scénarios validés pour l'alignement. Aucun catalogue parallèle n'est maintenu.
 
-## Exécution explicite
+## Exécution volontaire
 
-Environnement : **Node.js 20+**, aucun paquet npm ou dépendance Internet. Depuis la racine du dépôt, sous PowerShell ou terminal :
+Environnement : **Node.js 20+**, aucune dépendance npm ni accès Internet.
 
 ```powershell
 node tools/demo-library/generate.cjs --output "C:\temp\demo01-nouveau-dossier"
 node tools/demo-library/generate.cjs --verify "C:\temp\demo01-nouveau-dossier"
 ```
 
-Le dossier ciblé doit être **absolu, local, inexistant**, avec un parent déjà existant. Interdiction des chemins UNC/URL, destinations dans le dépôt, liens symboliques de la chaîne parente et overwrites. Le chemin fourni autorise exclusivement la création de cette sortie ; aucun scan de ROMothèque personnelle. L'option `--catalog /chemin/absolu/contracts/demo-library-01/catalogue.json` sélectionne explicitement un autre exemplaire **accompagné des deux contrats `scenarios.json` et `oracles.json`** du même dossier.
+Il faut spécifier un chemin absolu local vers un dossier final **inexistant**, sous un parent déjà existant. Refus des chemins UNC, des sorties dans le dépôt de l'application, des liens dans la chaîne de dossiers existante, et des destinations déjà présentes. Le programme n'explore ni n'altère une ROMothèque réelle. `--catalog` accepte un autre exemplaire **complet** du contrat (catalogue, scénarios, oracles) dans un même dossier. Le générateur ne modifie jamais ces contrats.
 
-## Résultats contractuels DEV 2
+## Oracles de génération (ROMS physiques / entrées XML ES-DE / vrais PNG)
 
-| Variante | Identifiants de référence | Fichiers sous ROMS | Entrées ES-DE | PNG locaux |
-|---|---:|---:|---:|---:|
-| IDEAL | 30 | 32 | 30 | 166 |
-| CHAOS | 30 | 30 | 24 | 160 |
-| MYSTERY | 30 | 32 | 0 | 12 |
+| Variante | ROMS | ES-DE | PNG |
+|---|---:|---:|---:|
+| IDEAL | **32** | **30** | **180** |
+| CHAOS | **33** | **30** | **166** |
+| MYSTERY | **32** | **0** | **0** |
 
-- **IDEAL** : arborescence `ROMS/<platform>` et `MEDIAS/<platform>/metadata/es-de-gamelist.xml`, vraies jaquettes/logo/vignettes/captures/arrière-plans PNG, faux contenus ROM texte, un jeu multidisque (`demo01-016` et deux faux disques) ; 8 plateformes.
-- **CHAOS** : noms variables, sous-dossiers et accents, six entrées sans XML, une ROM de jeu référencée mais absente (`demo01-027`), un second disque déclaré mais absent (`demo01-016`), six médias absents et deux faux fichiers de contenus volontairement identiques sans déduction d'identité automatique. XML demeure valide pour tester les diagnostics.
-- **MYSTERY** : 30 fichiers de référence sans XML ES-DE et douze couvertures isolées non automatiquement reliées à des jeux ; inventaire autonome NEXT-02 uniquement.
+13 plateformes normatives : `dos`, `gamecube`, `gba`, `megadrive`, `n64`, `nes`, `pc`, `ps2`, `ps3`, `ps4`, `psx`, `snes`, `xbox`. **Hello! sur Xbox**, **Jaxson & Dex sur PS2**, **Dad of Chores sur PS4**. Les extensions `.bin` sont des marqueurs fictifs, non exécutables et non adaptés à un véritable émulateur.
 
-Les médias `front→image`, `thumbnail→thumbnail`, `logo→marquee` sont référencés dans ES-DE ; les autres restent dans le manifest (l'importeur ne les connaît pas). Les images sont **de vrais PNG originaux**, dessinés hors ligne par code et lettrage bitmap local, sans marque/personnage commercial. Les pseudo-ROMs et faux disques sont du texte avec l'en-tête `DEMO01_SIMULATED_NON_EXECUTABLE_NO_ROM_OR_BIOS_CONTENT` ; une playlist `.m3u` est un simple texte, pas une ROM exécutable.
+- **IDEAL :** 30 jeux fictifs complets, métadonnées XML ES-DE par plateforme, vrais PNG 100 % originaux, et la playlist multidisque de *Metal Deer Salad* (`demo01-011`) avec deux faux disques. L'importateur ES-DE ne lit que image/thumbnail/marquee ; les 3 autres catégories restent dans les manifests.
+- **CHAOS :** les mêmes 30 jeux dans des chemins complexes, deux ROMs principales référencées et manquantes (`demo01-005`, `demo01-017`), trois fichiers supplémentaires doublons candidats (`demo01-004`, `demo01-013`, `demo01-027` *Street Fritter II*), et 14 médias volontairement absents. Les 30 entrées XML restent nominalement **valides**.
+- **MYSTERY :** 30 jeux de référence représentant 32 fichiers ROMS (dont un jeu multidisque), **sans XML ni média local**, à observer avec NEXT-02 sans présumer l'identité des jeux.
 
-## Manifests et intégrité
+Les fichiers factices ressemblant à des ROMs/disques sont du texte lisible avec marqueur `DEMO01_SIMULATED_NON_EXECUTABLE_NO_ROM_OR_BIOS_CONTENT`. Les PNG sont de vrais fichiers raster générés hors ligne par une routine graphique originale avec lettrage bitmap original ; aucun artwork, personnage ou logo commercial. Les cas négatifs *Paper Plumber XML* et *Final Tax Return PNG* sont déclarés dans le contrat mais **ne sont pas injectés dans les scénarios normaux**. Les variantes secondaires et captures additionnelles uniquement déclarées ne sont pas générées.
 
-Un `manifest.json` par variante et un manifest racine rassemblent les chemins relatifs, identifiants stables, disponibilités, résultats attendus, tailles et SHA-256 des **seules données fictives créées**. Un run sur même catalogue/Node/zlib est déterministe, sans timestamp ni chemin absolu incorporé au contenu. `--verify` contrôle fichiers déclarés, empreintes et signatures PNG ; ne modifie rien.
+## Manifestes, contrôles et précautions
 
-La sortie préexistante est refusée, sans nettoyage ni overwrite. Un arrêt peut laisser une nouvelle sortie partielle ; sans manifest racine final valide, elle est **incomplète**. Relancer sur une nouvelle sortie choisie. Protection atomique contre toutes les mutations concurrentes de chemins non prouvée : **aucun GO sur collection réelle**.
+Un manifeste JSON racine et un manifeste par scénario contiennent les identifiants de référence, les chemins et états, les résultats attendus et les SHA-256 des **fichiers synthétiques nouvellement générés**. `--verify` compare tailles, SHA et signature PNG. La sortie est reproductible à runtime Node/zlib identique et ne contient aucun timestamp ni chemin de destination.
 
-## Contrôle et gouvernance
+Les tests .NET/MSTest sur répertoires temporaires contrôlent les 30 IDs/titres/plateformes exacts, import ES-DE, 13 plateformes, oracles arithmétiques, diagnostic ROM/média manquant, vrais PNG ouvrables, les doublons candidats, l'inventaire MYSTERY, la reproductibilité et le refus d'écraser une destination.
 
-Tests MSTest dans `tests/dotnet/RomothequeManager.V2.Tests/DemoLibraryGeneratorTests.cs` : 30 IDs identiques, oracles de la PR #72, import ES-DE IDEAL/CHAOS, anomalies connues, inventaire MYSTERY, images PNG locales, même sortie binaire à deux destinations, refus de sortie existante, catalogue invalide, contrôles SHA. Les fixtures historiques #64 sont strictement inchangées.
+Une interruption peut laisser un **nouveau** dossier partiel ; il n'est pas considéré comme livraison tant que le manifeste final n'est pas vérifié. Ne pas réutiliser ce dossier : choisir une autre destination. Aucune garantie atomique face aux remplacements concurrents de chemins, aucun GO de scan réel. Les fixtures historiques de la PR #64 restent intactes.
 
-**Chaîne de PR : #72 (contrat DEV 2) → #73 (générateur DEV 1).** Cette branche contient le contrat de #72 uniquement pour valider son exécution ; aucun merge vers `main` ni Release ne sont autorisés par cela. `FORMAT_ACK` et contre-revue restent requis avant le gel du contrat.
-
-**CI / PR superposées :** la PR #73 cible temporairement `main` parce que le workflow Adaptive CI ne déclenche pas les PR dont la base est la branche DEV 2 #72. La branche #73 contient les contrats #72 comme dépendance parent Git, sans les modifier ; **fusionner d'abord #72** sous GO distinct, puis resynchroniser #73 avec `main` et recontrôler son diff avant une éventuelle fusion (non autorisée par ce mandat).
+**Gouvernance :** PR #73 Draft, contrat canonique #72 indépendant. Aucun merge ni Release autonome, validation indépendante Agent avant décision d'intégration.
