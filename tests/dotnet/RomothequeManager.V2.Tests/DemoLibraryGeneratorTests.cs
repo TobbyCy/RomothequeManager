@@ -96,8 +96,8 @@ public sealed class DemoLibraryGeneratorTests
         Assert.IsTrue(snapshot.Games.All(g => g.RomExists));
         Assert.IsTrue(snapshot.Games.All(g => g.Media.Count == 3 && g.Media.All(m => m.Exists)));
         Assert.IsTrue(snapshot.Games.Any(g => g.DiscPaths.Count == 2));
-        Assert.AreEqual(2, snapshot.Games.Count(g => g.Title == "Average Anto"));
-        Assert.AreEqual(2, snapshot.Games.Count(g => g.Title == "SacMon : Titane Damas"));
+        Assert.AreEqual(2, snapshot.Games.Count(g => g.Title == "Night Shift"));
+        Assert.IsTrue(snapshot.Games.Any(g => g.Title == "Clockwork Snooze" && g.DiscPaths.Count == 2));
         var image = snapshot.Games.First().Media.First(m => m.Kind == "image");
         Assert.IsTrue(session.TryOpenMedia(image, out var stream));
         Assert.IsNotNull(stream);
@@ -115,8 +115,9 @@ public sealed class DemoLibraryGeneratorTests
     {
         var root = Path.Combine(_first, "CHAOS");
         var result = EsDeCatalogueImporter.Read(root);
-        Assert.AreEqual(30, result.Games.Count);
-        Assert.AreEqual(2, result.Games.Count(g => !g.RomExists));
+        Assert.AreEqual(24, result.Games.Count);
+        Assert.AreEqual(1, result.Games.Count(g => !g.RomExists));
+        Assert.IsTrue(result.Diagnostics.Any(x => x.Code == "DISC_MISSING"));
         Assert.IsTrue(result.Diagnostics.Any(x => x.Code == "MEDIA_MISSING"));
         Assert.IsTrue(result.Diagnostics.Any(x => x.Code == "FOLDER_ENTRY"));
         var scan = new InventorySession(new InventoryScope(root)).Scan();
@@ -126,16 +127,16 @@ public sealed class DemoLibraryGeneratorTests
         var expected = doc.RootElement.GetProperty("expected");
         Assert.AreEqual(expected.GetProperty("observedFileCount").GetInt32(),
             scan.ObservedFileCount);
-        Assert.IsTrue(expected.GetProperty("duplicateCandidateFiles").GetInt32() > 0);
-        Assert.AreEqual(expected.GetProperty("duplicateCandidateFiles").GetInt32(),
-            scan.PotentialDuplicates.Count, "CHAOS duplicate-candidate oracles must be discoverable.");
+        Assert.AreEqual(30, scan.ObservedFileCount);
+        Assert.AreEqual(160, expected.GetProperty("mediaFiles").GetInt32());
     }
 
     [TestMethod]
     public void Demo01_MysteryIsInventoriableWithoutAnyEsDeXml()
     {
         var root = Path.Combine(_first, "MYSTERY");
-        Assert.IsFalse(Directory.Exists(Path.Combine(root, "MEDIAS")));
+        Assert.AreEqual(0, Directory.GetFiles(root, "es-de-gamelist.xml", SearchOption.AllDirectories).Length);
+        Assert.AreEqual(12, Directory.GetFiles(Path.Combine(root, "MEDIAS"), "*.png", SearchOption.AllDirectories).Length);
         Assert.ThrowsExactly<InvalidDataException>(() => EsDeCatalogueImporter.Read(root));
         var inventory = new InventorySession(new InventoryScope(root)).Scan();
         Assert.AreEqual(InventoryScanStatus.Complete, inventory.ScanStatus);
@@ -160,6 +161,44 @@ public sealed class DemoLibraryGeneratorTests
                 SHA256.HashData(File.ReadAllBytes(Path.Combine(_first, variant, "manifest.json"))),
                 SHA256.HashData(File.ReadAllBytes(Path.Combine(_second, variant, "manifest.json"))));
         }
+    }
+
+    [TestMethod]
+    public void Demo01_Dev2ContractOracleCountsAreMaterializedExactly()
+    {
+        var contract = Path.Combine(_repo, "contracts", "demo-library-01");
+        using var oracles = JsonDocument.Parse(File.ReadAllText(Path.Combine(contract, "oracles.json")));
+        foreach (var variant in new[] { "IDEAL", "CHAOS", "MYSTERY" })
+        {
+            var oracle = oracles.RootElement.GetProperty("counts").GetProperty(variant);
+            using var manifest = Manifest(variant);
+            var expected = manifest.RootElement.GetProperty("expected");
+            Assert.AreEqual(oracle.GetProperty("romsPhysicalFiles").GetInt32(),
+                expected.GetProperty("observedFileCount").GetInt32());
+            Assert.AreEqual(oracle.GetProperty("mediaFiles").GetInt32(),
+                expected.GetProperty("mediaFiles").GetInt32());
+            Assert.AreEqual(oracle.GetProperty("esDeReferencedGames").GetInt32(),
+                expected.GetProperty("esdeGameEntries").GetInt32());
+            Assert.AreEqual(oracle.GetProperty("missingXmlReferencedRom").GetInt32(),
+                expected.GetProperty("missingRomEntries").GetInt32());
+        }
+    }
+
+    [TestMethod]
+    public void Demo01_ChaosContainsTwoEqualFictionalPayloadsWithoutAutomaticGameJoin()
+    {
+        using var manifest = Manifest("CHAOS");
+        var games = manifest.RootElement.GetProperty("games").EnumerateArray().ToArray();
+        var one = games.Single(g => g.GetProperty("id").GetString() == "demo01-003");
+        var two = games.Single(g => g.GetProperty("id").GetString() == "demo01-009");
+        var onePath = Path.Combine(_first, "CHAOS", one.GetProperty("romPath").GetString()!
+            .Replace('/', Path.DirectorySeparatorChar));
+        var twoPath = Path.Combine(_first, "CHAOS", two.GetProperty("romPath").GetString()!
+            .Replace('/', Path.DirectorySeparatorChar));
+        CollectionAssert.AreEqual(SHA256.HashData(File.ReadAllBytes(onePath)),
+            SHA256.HashData(File.ReadAllBytes(twoPath)));
+        Assert.AreNotEqual(one.GetProperty("id").GetString(), two.GetProperty("id").GetString());
+        // Equal synthetic bytes are not evidence that distinct reference games are identical.
     }
 
     [TestMethod]
