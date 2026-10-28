@@ -1,30 +1,40 @@
-# DEMO-LIBRARY-01 — générateur synthétique
+# DEMO-LIBRARY-01 — générateur de ROMothèque fictive
 
-**Candidat DEV 1 en attente de revue du catalogue DEV 2 — Issue #71.** Les 30 titres sont fictifs. Aucun contenu commercial, BIOS, API, scraper ni téléchargement.
+**Dépendance contractuelle : DEV 2 / [PR Draft #72](https://github.com/TobbyCy/RomothequeManager/pull/72).** Les fichiers de vérité terrain sont `contracts/demo-library-01/catalogue.json`, `scenarios.json` et `oracles.json`, repris à l'identique dans cette branche. Les identités `demoId` restent distinctes des identités ES-DE et des observations NEXT-02. Aucun fichier commercial, BIOS, scraper ni contenu tiers.
 
 ## Exécution explicite
-Nécessite **Node.js 20+** et aucun module npm tiers.
 
-Sous PowerShell ou bash, depuis le dépôt :
-- Générer : node tools/demo-library/generate.cjs --output "C:\temp\demo01-inexistant"
-- Vérifier en lecture seule : node tools/demo-library/generate.cjs --verify "C:\temp\demo01-inexistant"
+Environnement : **Node.js 20+**, aucun paquet npm ou dépendance Internet. Depuis la racine du dépôt, sous PowerShell ou terminal :
 
-La cible doit être un chemin absolu local vers un dossier **qui n'existe pas** ; son parent doit exister. Le programme refuse les chemins UNC, un dossier sous le dépôt de l'application, les liens symboliques dans la chaîne parente et tout écrasement de sortie existante. Le chemin fourni est l'autorisation explicite de créer exclusivement la nouvelle démo. Aucun scan de bibliothèque existante. Catalogue alternatif : argument --catalog avec un JSON contenant exactement 30 jeux et schemaVersion demo-library-01/1.
+```powershell
+node tools/demo-library/generate.cjs --output "C:\temp\demo01-nouveau-dossier"
+node tools/demo-library/generate.cjs --verify "C:\temp\demo01-nouveau-dossier"
+```
 
-## Trois variantes
-- **IDEAL** : ROMS/platform + MEDIAS/platform/metadata/es-de-gamelist.xml ; 30 jeux importables, descriptions, genres, éditeurs/années fictifs, médias PNG locaux réels (covers, thumbnails, logos, screenshots, backcovers, backgrounds).
-- **CHAOS** : mêmes 30 identifiants, dossiers complexes, caractères accentués, ROMs et médias intentionnellement absents, quelques doublons candidats supplémentaires et entrées folder. XML reste syntaxiquement correct afin de produire des diagnostics.
-- **MYSTERY** : mêmes 30 identifiants manifestés, noms de fichiers peu significatifs, pas de XML ES-DE, aucun média. Test exclusif de l'inventaire fichier NEXT-02.
+Le dossier ciblé doit être **absolu, local, inexistant**, avec un parent déjà existant. Interdiction des chemins UNC/URL, destinations dans le dépôt, liens symboliques de la chaîne parente et overwrites. Le chemin fourni autorise exclusivement la création de cette sortie ; aucun scan de ROMothèque personnelle. L'option `--catalog /chemin/absolu/contracts/demo-library-01/catalogue.json` sélectionne explicitement un autre exemplaire **accompagné des deux contrats `scenarios.json` et `oracles.json`** du même dossier.
 
-Chaque variante possède un manifest JSON : identités, fichiers, états attendus et SHA-256 **des seules fixtures générées**. Le manifest racine pointe vers les trois manifests par hash.
+## Résultats contractuels DEV 2
 
-Les fichiers ROM factices sont du texte en clair avec le préfixe DEMO01_SIMULATED_NON_EXECUTABLE_NO_ROM_OR_BIOS_CONTENT, jamais des ROMs exécutables. Une playlist .m3u texte référence deux faux disques .chd. Les PNG sont des images raster générées localement par code bitmap original (titres et couleurs distincts, sans œuvres ou polices tierces).
+| Variante | Identifiants de référence | Fichiers sous ROMS | Entrées ES-DE | PNG locaux |
+|---|---:|---:|---:|---:|
+| IDEAL | 30 | 32 | 30 | 166 |
+| CHAOS | 30 | 30 | 24 | 160 |
+| MYSTERY | 30 | 32 | 0 | 12 |
 
-## Sécurité et limites
-Aucune suppression, aucun overwrite ni nettoyage automatique. Les chemins sont vérifiés **avant** la première écriture. Une interruption peut laisser une nouvelle sortie incomplète ; sans manifest racine valide elle ne constitue pas une livraison. Générer dans un **autre** nouveau dossier au prochain essai. Aucune écriture dans des dossiers personnels non choisis ni dans la distribution de l'application. Pas de protection atomique complète contre les remplacements concurrents de chemins : ne pas utiliser sur bibliothèque réelle.
+- **IDEAL** : arborescence `ROMS/<platform>` et `MEDIAS/<platform>/metadata/es-de-gamelist.xml`, vraies jaquettes/logo/vignettes/captures/arrière-plans PNG, faux contenus ROM texte, un jeu multidisque (`demo01-016` et deux faux disques) ; 8 plateformes.
+- **CHAOS** : noms variables, sous-dossiers et accents, six entrées sans XML, une ROM de jeu référencée mais absente (`demo01-027`), un second disque déclaré mais absent (`demo01-016`), six médias absents et deux faux fichiers de contenus volontairement identiques sans déduction d'identité automatique. XML demeure valide pour tester les diagnostics.
+- **MYSTERY** : 30 fichiers de référence sans XML ES-DE et douze couvertures isolées non automatiquement reliées à des jeux ; inventaire autonome NEXT-02 uniquement.
 
-Pour un catalogue, runtime Node et version zlib identiques, la sortie est reproductible (aucun timestamp/chemin absolu intégré aux fixtures). --verify vérifie SHA, taille et signatures PNG. Les fixtures historiques #64 ne sont jamais ouvertes en écriture.
+Les médias `front→image`, `thumbnail→thumbnail`, `logo→marquee` sont référencés dans ES-DE ; les autres restent dans le manifest (l'importeur ne les connaît pas). Les images sont **de vrais PNG originaux**, dessinés hors ligne par code et lettrage bitmap local, sans marque/personnage commercial. Les pseudo-ROMs et faux disques sont du texte avec l'en-tête `DEMO01_SIMULATED_NON_EXECUTABLE_NO_ROM_OR_BIOS_CONTENT` ; une playlist `.m3u` est un simple texte, pas une ROM exécutable.
 
-Les tests MSTest dédiés vérifient import ES-DE, inventaire NEXT-02, images locales, hashes, homonymes, multidisque, cas manquants, sorties déterministes et refus de chemins incorrects. Tests réalisés exclusivement dans des dossiers temporaires synthétiques.
+## Manifests et intégrité
 
-**Aucun merge, scan réel ni Release dans cette PR Draft.** Le contrat DEV 2 demeure à approuver.
+Un `manifest.json` par variante et un manifest racine rassemblent les chemins relatifs, identifiants stables, disponibilités, résultats attendus, tailles et SHA-256 des **seules données fictives créées**. Un run sur même catalogue/Node/zlib est déterministe, sans timestamp ni chemin absolu incorporé au contenu. `--verify` contrôle fichiers déclarés, empreintes et signatures PNG ; ne modifie rien.
+
+La sortie préexistante est refusée, sans nettoyage ni overwrite. Un arrêt peut laisser une nouvelle sortie partielle ; sans manifest racine final valide, elle est **incomplète**. Relancer sur une nouvelle sortie choisie. Protection atomique contre toutes les mutations concurrentes de chemins non prouvée : **aucun GO sur collection réelle**.
+
+## Contrôle et gouvernance
+
+Tests MSTest dans `tests/dotnet/RomothequeManager.V2.Tests/DemoLibraryGeneratorTests.cs` : 30 IDs identiques, oracles de la PR #72, import ES-DE IDEAL/CHAOS, anomalies connues, inventaire MYSTERY, images PNG locales, même sortie binaire à deux destinations, refus de sortie existante, catalogue invalide, contrôles SHA. Les fixtures historiques #64 sont strictement inchangées.
+
+**Chaîne de PR : #72 (contrat DEV 2) → #73 (générateur DEV 1).** Cette branche contient le contrat de #72 uniquement pour valider son exécution ; aucun merge vers `main` ni Release ne sont autorisés par cela. `FORMAT_ACK` et contre-revue restent requis avant le gel du contrat.
