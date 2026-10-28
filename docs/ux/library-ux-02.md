@@ -13,6 +13,12 @@ Dans le mode Démonstration, ouvrir « Bibliothèques & supports », choisir IDE
 
 IDEAL présente la spécification de 30 jeux/13 plateformes et six médias **prévus** par fiche. CHAOS présente les mêmes 30 entrées XML avec des anomalies annoncées sans qualifier les doublons de confirmés. MYSTERY n'expose aucun titre ni fiche ; la Collection affiche un état « identité inconnue » sans compteur de jeux à zéro.
 
+## Couverture automatisée du parcours
+
+Le smoke Windows réel `LIBRARY_UX02_JOURNEYS_PASS` vérifie séparément IDEAL et CHAOS : Tableau de bord → Collection → Fiche → Retour Collection → Tableau de bord, provenance fictive, ROM absente prévue pour CHAOS et invalidation de la fiche précédente après changement de scénario. Pour MYSTERY, il vérifie Tableau de bord → Collection → refus d'une fiche non identifiée → retour, absence de titre/ID oracle. **Le refus de fiche est le comportement correct pour MYSTERY**, pas un défaut de navigation.
+
+Huit captures de rendu Avalonia sont vérifiées aux formats 1120×720 / 760×480 (dont les détails IDEAL et CHAOS, accueil et Collection MYSTERY). Ces scénarios ne constituent ni un test de vrai clic souris, ni un scan NEXT-02, ni une preuve d'observation de fichiers. Le libellé MYSTERY « Comprendre les données inconnues » ne promet pas une liste de fichiers tant que le raccordement des observations NEXT-02 n'existe pas.
+
 ## Recette propriétaire — PASS/FAIL
 
 1. Sous Windows x64, vérifier Dashboard Darcula Retro, logo et icône officiels, menu et panneaux défilants à 1120×720 puis 760×480 ; vérifier Tab, focus et survol. Aucune fonction d'export active.

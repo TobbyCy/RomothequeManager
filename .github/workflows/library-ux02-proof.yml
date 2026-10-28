@@ -68,7 +68,7 @@ jobs:
           } finally { $p.Dispose() }
           $dir = Join-Path $env:RUNNER_TEMP 'library-ux02'
           $images = @(Get-ChildItem -LiteralPath $dir -Filter '*.png' -File)
-          if ($images.Count -ne 5) { throw ('LIBRARY_UX02_PNG_COUNT:' + $images.Count) }
+          if ($images.Count -ne 8) { throw ('LIBRARY_UX02_PNG_COUNT:' + $images.Count) }
           Add-Type -AssemblyName System.Drawing
           foreach ($f in $images) {
             $bmp = [Drawing.Bitmap]::FromFile($f.FullName)
@@ -76,7 +76,7 @@ jobs:
               if ($bmp.Width -lt 760 -or $bmp.Height -lt 480 -or $f.Length -lt 4000) { throw ('LIBRARY_UX02_INVALID_PNG:' + $f.Name) }
             } finally { $bmp.Dispose() }
           }
-          Write-Host ('LIBRARY_UX02_WINDOWS_CAPTURE_PASS source=' + '${{ github.sha }}' + ' count=5')
+          Write-Host ('LIBRARY_UX02_WINDOWS_CAPTURE_PASS source=' + '${{ github.sha }}' + ' count=8')
       - name: Package ZIP in quarantine, verify files and manifest
         shell: pwsh
         run: |

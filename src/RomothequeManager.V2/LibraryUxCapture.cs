@@ -21,8 +21,11 @@ internal static class LibraryUxCapture
         var cases = new (string Scenario, POCView View, int Width, int Height)[]
         {
             ("IDEAL", POCView.Dashboard, 1120, 720),
+            ("IDEAL", POCView.Collection, 1120, 720),
             ("IDEAL", POCView.GameDetail, 1120, 720),
             ("CHAOS", POCView.Collection, 760, 480),
+            ("CHAOS", POCView.GameDetail, 1120, 720),
+            ("MYSTERY", POCView.Dashboard, 1120, 720),
             ("MYSTERY", POCView.Collection, 760, 480),
             ("IDEAL", POCView.Libraries, 760, 480)
         };
@@ -63,6 +66,17 @@ internal static class LibraryUxCapture
             }, DispatcherPriority.Background);
         }
         window.Opened += (_, _) =>
-            Dispatcher.UIThread.Post(() => RenderNext(0), DispatcherPriority.Background);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!window.SmokeExerciseScenarioJourneys())
+                {
+                    Console.Error.WriteLine("LIBRARY_UX02_JOURNEYS_FAIL");
+                    Environment.ExitCode = 32;
+                    window.Close();
+                    return;
+                }
+                Console.WriteLine("LIBRARY_UX02_JOURNEYS_PASS ideal=1 chaos=1 mystery_refused=1 returns=1");
+                RenderNext(0);
+            }, DispatcherPriority.Background);
     }
 }

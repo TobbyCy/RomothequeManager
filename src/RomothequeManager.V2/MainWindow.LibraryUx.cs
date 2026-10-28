@@ -66,6 +66,80 @@ public sealed partial class MainWindow
         return true;
     }
 
+    // Windows CI: exercise each rendered Dashboard -> Collection -> Detail -> Return
+    // route on the real Avalonia controls. MYSTERY must refuse a game detail.
+    // Does not certify pointer/keyboard input or NEXT-02 inventory integration.
+    internal bool SmokeExerciseScenarioJourneys()
+    {
+        foreach (var scenario in DemoScenarioUiState.Choices)
+        {
+            SelectScenario(scenario);
+            if (!_scenarioUi.Active || ActiveView != POCView.Dashboard ||
+                !SmokeVisibleTexts().Contains(scenario, StringComparison.Ordinal))
+                return false;
+
+            Navigate(POCView.Collection);
+            string collection = SmokeVisibleTexts();
+            if (ActiveView != POCView.Collection ||
+                !collection.Contains("Collection — " + scenario, StringComparison.Ordinal))
+                return false;
+
+            if (scenario == "MYSTERY")
+            {
+                if (_scenarioUi.IdentityKnown ||
+                    _scenarioUi.Open("demo01-011") ||
+                    _scenarioUi.SelectedGame is not null ||
+                    !collection.Contains("Jeux identifiés : INCONNU", StringComparison.Ordinal) ||
+                    !collection.Contains("Aucune fiche de jeu", StringComparison.Ordinal) ||
+                    collection.Contains("Metal Deer Salad", StringComparison.Ordinal) ||
+                    collection.Contains("demo01-011", StringComparison.Ordinal))
+                    return false;
+                Navigate(POCView.Dashboard);
+                string mysteryDashboard = SmokeVisibleTexts();
+                if (!mysteryDashboard.Contains("Jeux identifiés : INCONNU", StringComparison.Ordinal) ||
+                    !mysteryDashboard.Contains("Comprendre les données inconnues", StringComparison.Ordinal))
+                    return false;
+                continue;
+            }
+
+            string gameId = scenario == "CHAOS" ? "demo01-005" : "demo01-011";
+            if (!_scenarioUi.Open(gameId)) return false;
+            _scenarioDetail = true;
+            Render();
+            string detail = SmokeVisibleTexts();
+            if (ActiveView != POCView.GameDetail ||
+                !detail.Contains("Identifiant du contrat fictif : " + gameId, StringComparison.Ordinal) ||
+                !detail.Contains("Médias du scénario", StringComparison.Ordinal) ||
+                !detail.Contains("non observé", StringComparison.Ordinal))
+                return false;
+            if (scenario == "CHAOS" &&
+                !detail.Contains("ROM absente selon le scénario", StringComparison.Ordinal))
+                return false;
+            if (scenario == "IDEAL" &&
+                !detail.Contains("Metal Deer Salad", StringComparison.Ordinal))
+                return false;
+
+            Navigate(POCView.Collection);
+            if (ActiveView != POCView.Collection || _scenarioDetail ||
+                !SmokeVisibleTexts().Contains("Collection — " + scenario, StringComparison.Ordinal))
+                return false;
+            Navigate(POCView.Dashboard);
+            if (ActiveView != POCView.Dashboard ||
+                !SmokeVisibleTexts().Contains(scenario, StringComparison.Ordinal))
+                return false;
+        }
+        // A scenario switch must not retain an old game identity/filter.
+        if (!_scenarioUi.Select("IDEAL") || !_scenarioUi.Open("demo01-001"))
+            return false;
+        if (!_scenarioUi.Select("CHAOS") || _scenarioUi.SelectedGame is not null)
+            return false;
+        _scenarioUi.Clear();
+        _scenarioDetail = false;
+        _state.ShowDashboard();
+        Render();
+        return !_scenarioUi.Active && ActiveView == POCView.Dashboard;
+    }
+
     private void RenderScenario()
     {
         _page.Children.Add(Text("DÉMONSTRATION · LECTURE SEULE · AUCUN SCAN", 12, true));
@@ -103,7 +177,7 @@ public sealed partial class MainWindow
         {
             summary.Children.Add(Text("Jeux identifiés : INCONNU · Métadonnées : NON DISPONIBLES", 18, true));
             summary.Children.Add(Text("L'oracle privé connaît l'origine des fichiers fictifs, mais l'application ne peut pas la déduire.", 14));
-            summary.Children.Add(Button("Voir les éléments non identifiés →", () => Navigate(POCView.Collection)));
+            summary.Children.Add(Button("Comprendre les données inconnues →", () => Navigate(POCView.Collection)));
         }
         _page.Children.Add(Panel(summary));
         _page.Children.Add(Button("Changer de bibliothèque", () => Navigate(POCView.Libraries)));
