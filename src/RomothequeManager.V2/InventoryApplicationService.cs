@@ -163,42 +163,65 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
     public Task<InventoryApplicationState> StartConfirmedScanAsync(
         InventoryRunRequest request, CancellationToken cancellationToken = default)
     {
-        InventorySession session;
-        CancellationTokenSource cts;
-        TaskCompletionSource<bool> completion;
-        InventoryApplicationState runningState;
+        InventorySession? session = null;
+        CancellationTokenSource? cts = null;
+        TaskCompletionSource<bool>? completion = null;
+        InventoryApplicationState? runningState = null;
+        InventoryApplicationState? rejectedState = null;
+        bool notifyRejection = false;
 
         lock (_gate)
         {
-            // A rejected second start must NOT change Running/CancelRequested into Rejected.
-            if (_disposed) return Task.FromResult(Rejected("SERVICE_DISPOSED"));
-            if (_running) return Task.FromResult(Rejected("SCAN_ALREADY_RUNNING"));
-            if (_session is null || _scope is null)
-                return Task.FromResult(Rejected("NO_EXPLICIT_SELECTION"));
-            if (request.SelectionVersion != _version || !request.ExplicitUserConsent)
-                return Task.FromResult(Rejected("CONSENT_OR_SELECTION_REQUIRED"));
-            bool permitted;
-            try { permitted = _syntheticPermission(_scope); }
-            catch (Exception) { permitted = false; }
-            if (!permitted)
-                return Task.FromResult(Rejected("REAL_LIBRARY_SCAN_HOLD"));
+            string? refusal = null;
+            if (_disposed) refusal = "SERVICE_DISPOSED";
+            else if (_running) refusal = "SCAN_ALREADY_RUNNING";
+            else if (_session is null || _scope is null) refusal = "NO_EXPLICIT_SELECTION";
+            else if (request.SelectionVersion != _version || !request.ExplicitUserConsent)
+                refusal = "CONSENT_OR_SELECTION_REQUIRED";
+            else
+            {
+                bool permitted;
+                try { permitted = _syntheticPermission(_scope); }
+                catch (Exception) { permitted = false; }
+                if (!permitted) refusal = "REAL_LIBRARY_SCAN_HOLD";
+            }
 
-            cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            completion = new TaskCompletionSource<bool>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-            _activeCancellation = cts;
-            _finished = completion;
-            _running = true;
-            session = _session;
-            runningState = _state = _state with {
-                Phase = InventoryRunPhase.Running,
-                SafeDiagnosticCode = null,
-                ProgressIsIndeterminate = true
-            };
+            if (refusal is not null)
+            {
+                rejectedState = Rejected(refusal);
+                // A refused attempt must be observable, but must never downgrade
+                // Running/CancellationRequested or mutate a disposed service.
+                if (!_running && !_disposed)
+                {
+                    _state = rejectedState;
+                    notifyRejection = true;
+                }
+            }
+            else
+            {
+                cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                completion = new TaskCompletionSource<bool>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                _activeCancellation = cts;
+                _finished = completion;
+                _running = true;
+                session = _session!;
+                runningState = _state = _state with {
+                    Phase = InventoryRunPhase.Running,
+                    SafeDiagnosticCode = null,
+                    ProgressIsIndeterminate = true
+                };
+            }
         }
 
-        Publish(runningState);
-        return ExecuteAsync(session, cts, completion, runningState.SelectionVersion);
+        if (rejectedState is not null)
+        {
+            if (notifyRejection) Publish(rejectedState);
+            return Task.FromResult(rejectedState);
+        }
+
+        Publish(runningState!);
+        return ExecuteAsync(session!, cts!, completion!, runningState!.SelectionVersion);
     }
 
     private InventoryApplicationState Rejected(string code) =>
@@ -297,7 +320,11 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
 
     private void Publish(InventoryApplicationState state)
     {
-        if (_disposed) return;
+        // A fast completion or cancellation can supersede a pending state event.
+        lock (_gate)
+        {
+            if (_disposed || !ReferenceEquals(_state, state)) return;
+        }
         var listeners = StateChanged;
         if (listeners is null) return;
         foreach (EventHandler<InventoryApplicationState> listener in listeners.GetInvocationList())
