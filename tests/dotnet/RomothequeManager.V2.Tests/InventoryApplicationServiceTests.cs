@@ -204,6 +204,43 @@ public sealed class InventoryApplicationServiceTests
         Console.WriteLine("NEXT03_SINGLE_FLIGHT_PASS noSecondScan=1");
     }
 
+    private static async Task TestReentrantNotificationOrder(
+        string root, IReadOnlyDictionary<string, string> aliases,
+        HashSet<string> permittedRoots)
+    {
+        await using var service = new InventoryApplicationService(
+            scope => permittedRoots.Contains(scope.LibraryRoot));
+        var phases = new List<InventoryRunPhase>();
+        bool cancelledByObserver = false;
+        // Reentrant observers must not cause a later listener to see
+        // CancellationRequested before the Running notification.
+        service.StateChanged += (_, state) =>
+        {
+            if (!cancelledByObserver && state.Phase == InventoryRunPhase.Running)
+            {
+                cancelledByObserver = true;
+                Require(service.RequestCancellation(), "OBSERVER_CANCEL_REFUSED");
+            }
+        };
+        service.StateChanged += (_, state) => phases.Add(state.Phase);
+        var selected = service.PrepareSelection(new InventoryScope(root, aliases));
+        Require(selected.Accepted, "OBSERVER_SELECTION_REFUSED");
+        var completed = await service.StartConfirmedScanAsync(
+            new InventoryRunRequest(selected.SelectionVersion, true));
+        Require(cancelledByObserver &&
+                phases.SequenceEqual(new[]
+                {
+                    InventoryRunPhase.Ready,
+                    InventoryRunPhase.Running,
+                    InventoryRunPhase.CancellationRequested,
+                    InventoryRunPhase.Completed
+                }) &&
+                completed.LastAttempt?.ScanStatus == InventoryScanStatus.Partial &&
+                completed.LastAttempt.Diagnostics.Any(x => x.Code == "CANCELLED"),
+            "OBSERVER_NOTIFICATION_ORDER_WRONG");
+        Console.WriteLine("NEXT03_REENTRANT_EVENT_ORDER_PASS");
+    }
+
     private static async Task TestDefaultFailClosed(
         string root, IReadOnlyDictionary<string, string> aliases)
     {
@@ -295,6 +332,7 @@ public sealed class InventoryApplicationServiceTests
             await TestVariant(roots["MYSTERY"], "MYSTERY", 32, 0, aliases, permitted);
             await TestCancellation(roots["IDEAL"], aliases, permitted);
             await TestConcurrent(roots["IDEAL"], aliases, permitted);
+            await TestReentrantNotificationOrder(roots["IDEAL"], aliases, permitted);
             await TestUnavailableAfterComplete(roots["IDEAL"], aliases, permitted);
             AssertUnchanged(originalHashes, Fingerprints(output));
             Console.WriteLine("NEXT03_BACKEND_SMOKE_PASS immutableSyntheticFixture=1");
