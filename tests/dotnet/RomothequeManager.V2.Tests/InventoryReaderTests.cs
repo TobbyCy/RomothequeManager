@@ -157,7 +157,8 @@ public sealed class InventoryReaderTests
         try { File.CreateSymbolicLink(link, target); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
         {
-            return; // Host disallows symlinks; other safety tests remain mandatory.
+            Console.WriteLine("T09_REPARSE_ASSERTION_NOT_TESTED: Windows host disallows symlink creation.");
+            return; // Explicitly not counted as evidence of reparse rejection.
         }
         var result = new InventorySession(Scope()).Scan();
         Assert.AreEqual(InventoryScanStatus.Partial, result.ScanStatus);
@@ -282,4 +283,110 @@ public sealed class InventoryReaderTests
         Assert.IsNull(result.ConfirmedGameCount);
         Assert.IsTrue(result.Observations.All(o => o.SourceKind == "FILESYSTEM_OBSERVATION"));
     }
+    [TestMethod]
+    public void P1_CancelDuringPlaylistReadReturnsPartialAndReleasesHandle()
+    {
+        Put("ROMS/psx/stable.chd");
+        var cancel = new CancellationTokenSource();
+        var scope = Scope() with { PlaylistChunkObserved = _ => cancel.Cancel() };
+        var session = new InventorySession(scope);
+        var accepted = session.Scan();
+        var playlist = Put("ROMS/psx/new.m3u", new string('x', 6000));
+        var attempt = session.Scan(cancel.Token);
+        Assert.AreEqual(InventoryScanStatus.Complete, accepted.ScanStatus);
+        Assert.AreEqual(InventoryScanStatus.Partial, attempt.ScanStatus);
+        Assert.IsNull(attempt.TotalFileCount);
+        Assert.AreSame(accepted, session.Current);
+        Assert.AreSame(attempt, session.LastAttempt);
+        Assert.IsTrue(attempt.Diagnostics.Any(x => x.Code == "CANCELLED"));
+        // On Windows this exclusive open also proves the cancelled reader disposed its handle.
+        using var reopened = File.Open(playlist, FileMode.Open, FileAccess.Read, FileShare.None);
+        Assert.IsTrue(reopened.CanRead);
+    }
+
+    [TestMethod]
+    public void P1_PlaylistByteLimitAppliesToActualReadAndPreservesLastComplete()
+    {
+        Put("ROMS/psx/stable.chd");
+        var session = new InventorySession(Scope() with { MaxPlaylistBytes = 64 });
+        var accepted = session.Scan();
+        Put("ROMS/psx/oversized.m3u", new string('q', 10000));
+        var attempt = session.Scan();
+        Assert.AreEqual(InventoryScanStatus.Partial, attempt.ScanStatus);
+        Assert.IsNull(attempt.TotalFileCount);
+        Assert.AreSame(accepted, session.Current);
+        Assert.AreSame(attempt, session.LastAttempt);
+        Assert.IsTrue(attempt.Diagnostics.Any(x => x.Code == "PLAYLIST_LIMIT"));
+        Assert.AreEqual(0, attempt.Playlists.Single().Members.Count);
+    }
+
+    [TestMethod]
+    public void P1_StreamingReaderRejectsGrowthEvenIfSizeMetadataLies()
+    {
+        var payload = Encoding.UTF8.GetBytes(new string('x', 4096));
+        using var growing = new MisleadingSizeStream(payload);
+        Assert.ThrowsExactly<InvalidDataException>(() =>
+            InventoryReader.ReadBoundedPlaylistBytes(growing, 32, 256, CancellationToken.None));
+        Assert.IsTrue(growing.BytesRead <= 33,
+            "The reader must never fetch an unbounded amount before rejecting growth.");
+    }
+
+    [TestMethod]
+    public void P1_StreamingReaderBoundsLineCountDuringIo()
+    {
+        var payload = Encoding.UTF8.GetBytes("one\ntwo\nthree\nfour\n");
+        using var stream = new MemoryStream(payload);
+        Assert.ThrowsExactly<InvalidDataException>(() =>
+            InventoryReader.ReadBoundedPlaylistBytes(stream, 1024, 2, CancellationToken.None));
+    }
+
+    [TestMethod]
+    public void P1_ConcurrentExclusiveOpenBecomesPartialNotComplete()
+    {
+        if (!OperatingSystem.IsWindows()) return; // Windows file-share semantics only.
+        Put("ROMS/psx/stable.chd");
+        var session = new InventorySession(Scope());
+        var accepted = session.Scan();
+        var playlist = Put("ROMS/psx/locked.m3u", "stable.chd\n");
+        using var writer = File.Open(playlist, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        var attempt = session.Scan();
+        Assert.AreEqual(InventoryScanStatus.Partial, attempt.ScanStatus);
+        Assert.IsNull(attempt.TotalFileCount);
+        Assert.AreSame(accepted, session.Current);
+        Assert.AreSame(attempt, session.LastAttempt);
+        Assert.IsTrue(attempt.Diagnostics.Any(d => d.Code == "UNREADABLE_ENTRY"));
+    }
+
+    // Stream pretends to be empty in its metadata but supplies more bytes on read,
+    // emulating the check/usage race without touching any real user data.
+    private sealed class MisleadingSizeStream : Stream
+    {
+        private readonly MemoryStream _payload;
+        public int BytesRead { get; private set; }
+        internal MisleadingSizeStream(byte[] bytes) => _payload = new MemoryStream(bytes, writable: false);
+        public override long Length => 0;
+        public override long Position { get => _payload.Position; set => throw new NotSupportedException(); }
+        public override bool CanRead => true;
+        public override bool CanWrite => false;
+        public override bool CanSeek => false;
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException("Use cancellable async reading.");
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var count = _payload.Read(buffer.Span);
+            BytesRead += count;
+            return ValueTask.FromResult(count);
+        }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) _payload.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+
 }
