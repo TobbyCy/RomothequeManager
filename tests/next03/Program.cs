@@ -83,7 +83,7 @@ internal static class Program
             new InventoryRunRequest(selected.SelectionVersion, true));
         var scan = result.LastAttempt ?? throw new InvalidOperationException(variant + "_NO_LAST_ATTEMPT");
         Require(result.Phase == InventoryRunPhase.Completed &&
-                scan?.ScanStatus == InventoryScanStatus.Complete, variant + "_NOT_COMPLETE");
+                scan.ScanStatus == InventoryScanStatus.Complete, variant + "_NOT_COMPLETE");
         Require(scan.ObservedFileCount == expectedCount &&
                 scan.TotalFileCount == expectedCount &&
                 scan.Observations.Count == expectedCount,
