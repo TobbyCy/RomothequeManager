@@ -2,7 +2,7 @@
 
 ## DEMO-LIBRARY-01 — référentiel de démonstration candidat (documentation, non livré)
 
-La [PR Draft #72](https://github.com/TobbyCy/RomothequeManager/pull/72) propose un catalogue **entièrement fictif de 30 jeux** sur huit plateformes, des manifestes de scénarios `IDEAL`, `CHAOS` et `MYSTERY` avec oracles arithmétiques, et des briefs de médias originaux. Le catalogue est stocké sous `contracts/demo-library-01/`, avec le [contrat de conception](architecture/demo-library-01.md) et les [briefs médias](architecture/demo-library-01-media-brief.md). **Aucune ROM, XML, image ou fixture exécutable n'est incluse, aucun jeu n'est ajouté à l'interface ni à une Release.** Le schéma attend la revue de format de DEV 1 dans [#70](https://github.com/TobbyCy/RomothequeManager/issues/70) ; aucune approbation ni fusion présumée.
+La [PR Draft #72](https://github.com/TobbyCy/RomothequeManager/pull/72) propose un catalogue **entièrement fictif de 30 jeux** sur treize plateformes, selon les corrections du propriétaire (dont Xbox, PS2, PS3, PS4, PC et DOS), des manifestes de scénarios `IDEAL`, `CHAOS` et `MYSTERY` avec oracles arithmétiques, et des briefs de médias originaux. Le catalogue est stocké sous `contracts/demo-library-01/`, avec le [contrat de conception](architecture/demo-library-01.md) et les [briefs médias](architecture/demo-library-01-media-brief.md). **Aucune ROM, XML, image ou fixture exécutable n'est incluse, aucun jeu n'est ajouté à l'interface ni à une Release.** Le schéma attend la revue de format de DEV 1 dans [#70](https://github.com/TobbyCy/RomothequeManager/issues/70) ; aucune approbation ni fusion présumée.
 
 ## État public actuel — 28 octobre 2026
 
