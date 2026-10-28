@@ -640,6 +640,22 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("Input.dispatchMouseEvent", script)
         self.assertIn("Network.setBlockedURLs", script)
 
+
+    def test_visual67_capture_workflow_stays_branch_only_and_release_free(self):
+        root = Path(__file__).resolve().parent.parent
+        source = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
+        self.assertIn("branches: [dev3/visual-poc-01]", source)
+        self.assertIn("github.actor == 'TobbyCy'", source)
+        self.assertIn("permissions:\n  contents: read", source)
+        self.assertIn("retention-days: 3", source)
+        self.assertIn("VISUAL_SCREENSHOTS_VERIFIED_PASS", source)
+        self.assertIn("if-no-files-found: error", source)
+        for bad in ("pull_request_target:", "workflow_run:", "gh release",
+                    "contents: write", "secrets.", "continue-on-error:"):
+            self.assertNotIn(bad, source)
+        self.assertEqual(source.count("actions/upload-artifact@"), 1)
+        self.assertIn("dotnet publish", source)
+
     def test_product_integrity_guard_has_locked_baseline(self):
         root = Path(__file__).resolve().parent.parent
         import hashlib

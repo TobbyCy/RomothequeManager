@@ -1,5 +1,13 @@
 # État des fonctionnalités
 
+## VISUAL-POC-01 — Dashboard Darcula Retro / [Issue #67](https://github.com/TobbyCy/RomothequeManager/issues/67) (PR Draft)
+
+- GO propriétaire explicite 28.10.2026 : intégration dans le Produit des **5 assets officiels** (bandeau PNG préexistant + 4 SVG/ICO intacts du Pilotage), y compris logo dans l'interface, `WindowIcon` et `ApplicationIcon` Windows. Droits réservés distincts de MIT ; pas de Release sans accord séparé.
+- PR dédiée **empilée sur #64** pour isoler le delta visuel. Palette Darcula Retro `#16181D` / `#B3202E` / `#AAB2BF` / `#E8E6E3`, collection prioritaire, bibliothèques/supports, Exports explicitement désactivés, diagnostics prudents ; données fictives ou ES-DE uniquement sur sélection volontaire. Aucun nouveau moteur, scan/écriture/copie.
+- Contrôles d'empreinte des originaux Pilotage et garde CI exacts ; captures du rendu réel Avalonia Windows à produire et publier comme **rendu attaché**, non comme capture native de la barre des tâches. La vérification dans l'Explorateur et la taskbar Windows **nécessite toujours la recette propriétaire**. La maquette PNG historique manque pour une correspondance pixel par pixel.
+- Aucune fusion, Release, ROM/BIOS ni média de tiers. Les preuves .NET / capture doivent citer le SHA et run effectifs, sans verdict présumé.
+
+
 ## NEXT-01-UX-FIX — correction suite à recette Windows (PR #64, 28 octobre 2026)
 
 - L'exécutable Avalonia de la PR est configuré en `WinExe`, pour ouvrir la fenêtre sans console au double-clic sous Windows. Le mode `--smoke-window` reste le contrôle automatisé de lancement ; la validation interactive de l'affichage relève de Tobby.

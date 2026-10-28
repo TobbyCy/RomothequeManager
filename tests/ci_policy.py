@@ -467,6 +467,16 @@ def documents(root, plan):
     require(all(path in entries for path in VISUAL67_ASSETS), "VISUAL67_ASSETS_REQUIRED")
     rules, static = path_rules(root)
     verify_public_ci_guard(root)
+    visual_workflow = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
+    require("branches: [dev3/visual-poc-01]" in visual_workflow and
+            "github.actor == 'TobbyCy'" in visual_workflow and
+            "retention-days: 3" in visual_workflow and
+            "if-no-files-found: error" in visual_workflow and
+            visual_workflow.count("actions/upload-artifact@") == 1,
+            "VISUAL_PROOF_WORKFLOW_GUARDS")
+    for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
+                   "gh release", "secrets.", "continue-on-error:"):
+        require(unsafe not in visual_workflow, "VISUAL_PROOF_WORKFLOW_UNSAFE:" + unsafe)
     audit_entries(root, entries, rules)
     audit_baseline(root, static, entries)
     check_currency(plan["context"]["changes"], entries)
