@@ -1,3 +1,4 @@
+using RomothequeManager.V2.MvvmFoundation;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -285,6 +286,9 @@ public sealed partial class MainWindow : Window
     private void Libraries()
     {
         _page.Children.Add(Text("Bibliothèques & snapshots", 30, true));
+        _page.Children.Add(Button("NEXT-03 · Prévisualisation MVVM (SIMULATION)", () =>
+            new InventoryPreviewWindow().Show(this)));
+        _page.Children.Add(Text("NEXT-03 : aperçu indépendant, aucune lecture de dossier et aucun inventaire réel.", 12));
         _page.Children.Add(LibraryPage.Build(_libraryProjection, _libraryViewState,
             Render, Bounds.Width < 1000));
     }

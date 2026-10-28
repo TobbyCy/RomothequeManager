@@ -21,6 +21,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     private InventoryApplicationState _state;
     private long _latestVersion;
     private bool _disposed;
+    private bool _consentConfirmed;
     private bool _preferLastAttempt;
     private string? _localErrorCode;
     private FileObservation? _selectedObservation;
@@ -54,7 +55,19 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     public string? SelectedLocalRoot => _state.SelectedLocalRoot; // local UI only; NEVER log
     public bool IsBusy => Phase is InventoryRunPhase.Running or InventoryRunPhase.CancellationRequested;
     public bool CanChangeFolder => !_disposed && !IsBusy;
-    public bool CanStart => !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(SelectedLocalRoot) &&
+    public bool ConsentConfirmed
+    {
+        get => _consentConfirmed;
+        set
+        {
+            if (_disposed || IsBusy || value == _consentConfirmed) return;
+            _consentConfirmed = value;
+            Changed();
+            Changed(nameof(CanStart));
+            _start.NotifyCanExecuteChanged();
+        }
+    }
+    public bool CanStart => !_disposed && _consentConfirmed && !IsBusy && !string.IsNullOrWhiteSpace(SelectedLocalRoot) &&
         Phase is InventoryRunPhase.Ready or InventoryRunPhase.Completed or
             InventoryRunPhase.Rejected or InventoryRunPhase.Faulted;
     public bool CanCancel => !_disposed && Phase == InventoryRunPhase.Running;
@@ -71,8 +84,18 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         DisplayedSnapshot?.Diagnostics ?? Array.Empty<InventoryDiagnostic>();
     public IReadOnlyList<InventoryCoverage> Coverage =>
         DisplayedSnapshot?.CoverageProof ?? Array.Empty<InventoryCoverage>();
-    public FileObservation? SelectedObservation => _selectedObservation;
-    public string SourceLabel => DisplayedSnapshot is null ? "Non observé" : "FILESYSTEM_OBSERVATION";
+    public FileObservation? SelectedObservation
+    {
+        get => _selectedObservation;
+        set
+        {
+            if (value is not null && !Observations.Any(x => x.ObservationId == value.ObservationId)) return;
+            if (ReferenceEquals(_selectedObservation, value)) return;
+            _selectedObservation = value;
+            Changed();
+        }
+    }
+    public string SourceLabel => DisplayedSnapshot?.Observations.FirstOrDefault()?.SourceKind ?? "Non observé";
     public string ObservedFilesText => DisplayedSnapshot is null
         ? "Fichiers observés : Inconnu"
         : "Fichiers observés : " + DisplayedSnapshot.ObservedFileCount;
@@ -114,6 +137,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         if (result.Accepted)
         {
             _latestVersion = Math.Max(_latestVersion, result.SelectionVersion);
+            _consentConfirmed = false;
             _preferLastAttempt = false;
             _selectedObservation = null;
             _localErrorCode = null;
@@ -132,6 +156,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     {
         if (!CanStart) return;
         _localErrorCode = null;
+        _consentConfirmed = false; // consent is one-shot, even if the service refuses.
         NotifyAll();
         try
         {
@@ -182,9 +207,8 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     private void SelectObservation(object? candidate)
     {
         if (candidate is not FileObservation observation) return;
-        _selectedObservation = Observations.FirstOrDefault(x =>
+        SelectedObservation = Observations.FirstOrDefault(x =>
             x.ObservationId == observation.ObservationId);
-        Changed(nameof(SelectedObservation));
     }
 
     private void OnServiceChanged(object? sender, InventoryApplicationState state) =>
@@ -219,7 +243,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     {
         foreach (var property in new[]
         {
-            nameof(Phase), nameof(SelectedLocalRoot), nameof(IsBusy),
+            nameof(Phase), nameof(SelectedLocalRoot), nameof(ConsentConfirmed), nameof(IsBusy),
             nameof(CanChangeFolder), nameof(CanStart), nameof(CanCancel),
             nameof(IsProgressIndeterminate), nameof(Current), nameof(LastAttempt),
             nameof(ShowingLastAttempt), nameof(DisplayedSnapshot), nameof(Observations),

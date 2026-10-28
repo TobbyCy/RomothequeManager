@@ -24,6 +24,8 @@ public sealed class InventoryViewModelTests
         Assert.IsTrue(selection.Accepted);
         Assert.AreEqual(0, fake.StartCalls);
         Assert.AreEqual(1, fake.PrepareCalls);
+        Assert.IsFalse(vm.StartInventoryCommand.CanExecute(null));
+        vm.ConsentConfirmed = true;
         Assert.IsTrue(vm.StartInventoryCommand.CanExecute(null));
         Assert.AreEqual(InventoryRunPhase.Ready, vm.Phase);
         Assert.IsFalse(vm.IsProgressIndeterminate);
@@ -65,6 +67,7 @@ public sealed class InventoryViewModelTests
         fake.Complete(complete, complete);
         await first;
 
+        vm.ConsentConfirmed = true;
         var second = vm.StartConfirmedAsync();
         Assert.IsTrue(vm.CancelInventoryCommand.CanExecute(null));
         Assert.IsTrue(vm.RequestCancellation());

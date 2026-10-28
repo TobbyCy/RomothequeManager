@@ -1,5 +1,10 @@
 # État des fonctionnalités
 
+## NEXT-03 / Avalonia MVVM — aperçu simulé (PR Draft, non livré)
+
+Fenêtre MVVM accessible dans Bibliothèques, sélecteur de chemin sans lecture de dossier, confirmation distincte et simulation en mémoire des états, couverture, observations et diagnostics. Aucun appel à InventorySession ni bibliothèque personnelle ; les données affichées sont marquées SIMULATION. Code source historique inchangé hors ajout du bouton dans Bibliothèques ; import ES-DE indépendant. Voir [recette de prévisualisation](ux/next03-mvvm-implementation.md). Attente de #75/#76/#77 et du vrai service DEV 1 #83, sans GO de fusion ni Release.
+
+
 ## NEXT-03 / MVVM FOUNDATION — DEV 3 (branche Draft, non intégrée)
 
 Premiers composants **indépendants de l'interface graphique dans leur code source** : `InventoryViewModel` (notifications/commandes/provenances), `InventoryApplicationSeam` **provisoire conforme à la proposition DEV 1 #83**, tests unitaires en mémoire. **Aucun service de scan implémenté ni raccordement Avalonia/ROM** ; aucun changement de Dashboard, Collection, fiches, Bibliothèques ou import ES-DE. Dépendance `CommunityToolkit.Mvvm 8.4.2` évaluée, **non ajoutée** en attente de NuGet lock/avis licences/CI ; BCL `INotifyPropertyChanged`/`ICommand` utilisée pour la fondation. [ADR et limites](ux/next03-mvvm-foundation.md). #75/#76/#77 restent à intégrer avant toute connexion au service et au moteur. Aucun scan réel, merge ou Release.

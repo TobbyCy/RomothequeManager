@@ -1,5 +1,10 @@
 # Journal des changements
 
+## NEXT-03 / MVVM Avalonia — aperçu simulé (28.10.2026, Draft)
+
+Ajout d'une fenêtre Avalonia typée dédiée, picker natif de chemin sans scan, confirmation à usage unique, commandes ViewModel, chargement/annulation, états Complete/Partial/Failed/Offline/Stale et inspecteur Observation fictifs. InventoryPreviewService est un simulateur sans accès aux données et non un deuxième moteur. Tests ViewModel / service simulé ; contrats #82/#83 et intégration #75/#76/#77 toujours en attente. Aucune Release ni bibliothèque réelle.
+
+
 ## NEXT-03 — Fondation MVVM isolée DEV 3 (28.10.2026 ; Draft)
 
 - Ajout d'un `InventoryViewModel` **non raccordé** à Avalonia, notifications `INotifyPropertyChanged`, commandes `ICommand` et projections `Current/LastAttempt`, observations, diagnostics et compteurs `null` = Inconnu. Le service applicatif #83 est simulé pour les tests ; aucune nouvelle énumération ou lecture de disque.
