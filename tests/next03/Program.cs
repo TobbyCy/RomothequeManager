@@ -101,8 +101,10 @@ internal static class Program
         {
             Require(!File.Exists(Path.Combine(root, "gamelist.xml")),
                 "MYSTERY_UNEXPECTED_XML");
-            Require(!Directory.EnumerateFiles(Path.Combine(root, "MEDIAS"), "*.png",
-                    SearchOption.AllDirectories).Any(), "MYSTERY_MEDIA_PRESENT");
+            var mediaRoot = Path.Combine(root, "MEDIAS");
+            Require(!Directory.Exists(mediaRoot) ||
+                    !Directory.EnumerateFiles(mediaRoot, "*.png",
+                        SearchOption.AllDirectories).Any(), "MYSTERY_MEDIA_PRESENT");
         }
         Require(service.ClearSelection(), variant + "_CLEAR_FAILED");
         Require(service.State.LastAttempt is null && service.State.Current is null,
