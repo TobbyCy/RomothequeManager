@@ -155,12 +155,12 @@ public static class VisualDashboard
         var library = Tile(Stack(
             Label("BIBLIOTHÈQUES ET SUPPORTS", 12, true, Red),
             support), 240);
-        var exportButton = new Button
+        var exportButton = new Border
         {
-            Content = "Préparer un export — indisponible",
-            IsEnabled = false,
-            Padding = new Thickness(12, 7),
-            HorizontalAlignment = HorizontalAlignment.Left
+            Background = Soft, CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(12, 8),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Child = Label("Préparer un export — indisponible", 12, true, Muted)
         };
         var export = Tile(Stack(
             Label("PRÉPARATIONS D'EXPORT", 12, true, Red),

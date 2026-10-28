@@ -81,9 +81,16 @@ public sealed partial class MainWindow : Window
         menu.Children.Add(Text("BIBLIOTHÈQUES", 12, true));
         menu.Children.Add(Button("Bibliothèques & supports", () => Navigate(POCView.Libraries)));
         menu.Children.Add(Text("GESTION", 12, true));
-        var unavailableExport = Button("Exports — à venir", () => { });
-        unavailableExport.IsEnabled = false;
-        menu.Children.Add(unavailableExport);
+        // Readable, non-interactive placeholder: no disabled button with invisible text.
+        menu.Children.Add(new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#292C32")),
+            BorderBrush = new SolidColorBrush(Color.Parse("#393C42")),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(13, 10),
+            Child = Text("Exports — indisponibles", 13)
+        });
         menu.Children.Add(Text("OUTILS · LECTURE SEULE", 12, true));
         menu.Children.Add(Button("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
         menu.Children.Add(Button("Actualiser l'import", () => _ = RefreshImportAsync()));

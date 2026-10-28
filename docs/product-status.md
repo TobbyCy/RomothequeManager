@@ -1,5 +1,8 @@
 # État des fonctionnalités
 
+- **Revue visuelle Windows réelle :** run #40675500153, 65 tests .NET PASS et captures 1120×720 / 760×480, DPI 100/125/150 %. Après inspection des PNG, correction de la grille large et du contraste navigation ; les contrôles Exports sont représentés comme éléments visuellement lisibles et **non interactifs**, sans fausse action.
+- **CI de clôture :** le changement final doit relancer Adaptive CI sur la PR temporairement ciblée `main`, puis être rebasé logiquement sur #64 pour isoler le delta avant toute revue/merge. Référencer le run final exact sur GitHub #69. Aucun droit de distribution en Release n'est accordé.
+
 ## VISUAL-POC-01 — Dashboard Darcula Retro / [Issue #67](https://github.com/TobbyCy/RomothequeManager/issues/67) (PR Draft)
 
 - GO propriétaire explicite 28.10.2026 : intégration dans le Produit des **5 assets officiels** (bandeau PNG préexistant + 4 SVG/ICO intacts du Pilotage), y compris logo dans l'interface, `WindowIcon` et `ApplicationIcon` Windows. Droits réservés distincts de MIT ; pas de Release sans accord séparé.
