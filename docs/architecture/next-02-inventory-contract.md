@@ -124,3 +124,101 @@ La **compatibilité de lecture avec le POC synthétique** doit être maintenue. 
 Ce contrat **ne livre ni scanner utilisable, ni catalogue persistant, ni mapping complet des consoles, ni détection binaire des doublons, ni scraper, ni collection personnelle, ni export/copie/suppression, ni upload, ni Release**. Il ne décide pas SQLite, stockage entre redémarrages, politique complète des médias sans XML, recherche exhaustive d'archives ni valeur définitive des bornes. L'inventaire sur une ROMothèque réelle ne sera envisagé **qu'après validation des fixtures et GO propriétaire explicite**.
 
 **Livrable DEV 2 :** contrat proposé pour revue et alignement DEV 1 ; aucune modification de code et aucun remplacement automatique des contrats normatifs existants.
+
+
+## 11. NEXT-02-INTEGRATION : revue de compatibilité des interfaces (28.10.2026)
+
+**Références vérifiées :** main au commit `2e828c7eaab0aa11385f98080183dada5455c982` ; HEAD #64 `e775cdd64522d45ee2fb848df232fa1f19023326` ; contrats T3/T4 du catalogue commun **candidats et non normatifs**. Les signatures de cette section sont **proposées, non implémentées** ; DEV 1 doit encore les confirmer avant gel. Aucune modification à #64, à VISUAL-POC-01 #67 ni aux contrats historiques.
+
+| Interface existante | Ce qui est vérifié | Adaptation prévue / responsable |
+| --- | --- | --- |
+| `EsDeCatalogueImporter.Read` et `EsDeImportSession.Import` | Exigent un XML ES-DE pris en charge. Les données sont préparées avant substitution. | **DEV 1** : moteur `InventorySnapshot` autonome ; ES-DE reste une source de métadonnées optionnelle, jamais le scanner sans XML. |
+| `EsDeCatalogueSnapshot` | `LibraryId, SourceKind, ContentFingerprint, Games, Diagnostics` ; `EsDeGame` : `GameId, VariantId, Platform, Title, RomRelativePath, RomExists, Description, Media, DiscPaths`. Aucun `FileObservation[]` ni couverture exhaustive. | **DEV 2** : adaptateur distinct `EsDeCatalogueSnapshot → MetadataEvidence[] + EsDeReferencedGame[]`. `Games.Count` compte les entrées ES-DE, pas les fichiers ni tous les jeux physiques. |
+| `EsDeImportSession.TryOpenMedia` | Vérifie la provenance d'un `EsDeMedia` du snapshot et revalide le confinement à l'ouverture en lecture seule. | **DEV 1 + DEV 2** : conserver l'autorité du service source sur ses propres médias ; ne pas accepter arbitrairement une référence inventaire comme `EsDeMedia`. |
+| `ImportedCatalogueUiState`, `MainWindow.Imported.cs` (#64) | Deux modes `Demonstration/Imported` ; `Snapshot` ES-DE, recherche/pages de 50, sélection `GameId` ; Dashboard/Collection/fiche/Bibliothèques lisent la même projection ES-DE ; A/B importé désactivé. | **DEV 2** : future façade neutre ; **DEV 3 ultérieurement** : adapter un mode explicite « Inventaire de fichiers » et de nouveaux états, sans changer #64 dans ce mandat. |
+| DTO T3/T4 `0.2.0-ui-catalogue-candidate` et comparateur historique | Modèles conçus autour d'objets `games[]`, `romUnitId`, `snapshotId` / `generationId` et preuves de couverture ; version toujours candidate. | Ne pas convertir arbitrairement les fichiers inconnus en `games[]` ou `romUnitId` ; pas de substitution silencieuse au DTO 0.2 ou de provenance `SYNTHETIC_SNAPSHOT` sur données réelles. |
+
+**Verdict de compatibilité :** `COMPATIBLE_BY_ADAPTER / NOT_TYPE_COMPATIBLE_AS_IS`. Un `InventorySnapshot` ne peut pas être affecté à la propriété ES-DE `Snapshot` de #64 ; il faut une façade nouvelle **versionnée**, consommable sans Avalonia, et des tests de parité séparés. Le lecteur ES-DE ne doit pas modifier ses invariants pour accueillir le moteur FS.
+
+### 11.1 Interface proposée à DEV 1 (à valider, pas de code)
+
+Signature candidate : `StartAsync(InventoryScope scope, IProgress<InventoryProgress>? progress, CancellationToken cancellationToken) → Task<InventoryRunResult>`.
+
+- `InventoryScope` : racine et domaines validés après confirmation explicite ; stratégie/version plateformes et extensions, limites, choix de la portée. Aucun parcours avant confirmation.
+- `InventoryProgress` : `scanId, phase, processedEntries, observedFiles, diagnosticCount, expectedEntries?, percent?, observedAtUtc`. Phases candidates `VALIDATING_SCOPE, ENUMERATING, CLASSIFYING, BUILDING_OBSERVATIONS, FINALIZING`. Compteurs monotones pour une même phase ; `percent=null` tant que le dénominateur exact n'est pas démontré ; pas de faux « 100 % ». Événements bornés/coalescés ; aucune dépendance Avalonia ou callback UI dans le moteur.
+- `InventoryRunResult` : `runStatus=COMPLETED|PARTIAL|FAILED|CANCELED`, `stagedSnapshot?`, `diagnostics[]` et référence distincte du dernier snapshot utile. **`CANCELED` décrit le job**, pas un quatrième `scanStatus` ; une tentative annulée produit au plus des observations `PARTIAL` ou rien.
+- `InventorySnapshot` : `scanStatus=COMPLETE|PARTIAL|FAILED`, état de support/fraîcheur et preuves de couverture ; un échec initial n'est jamais un snapshot vide complet. Publier un nouveau résultat complet seulement après validation de sa portée. Tout `PARTIAL` se consulte comme aperçu séparé, sans remplacer automatiquement le dernier `COMPLETE`.
+- `CancellationToken` : arrêter au prochain point sûr, fermer les handles, conserver l'état historique ; **aucune promesse d'annulation instantanée**. Les valeurs numériques des limites, la cadence des événements et le schéma C# exact sont à fixer par DEV 1 avec oracles synthétiques.
+- Une exception attendue d'accès/permission/éjection devient un diagnostic contextualisé et un `PARTIAL/FAILED` ; elle ne devient jamais un compteur zéro ou une suppression de fichier.
+
+### 11.2 Façade de présentation indépendante d'Avalonia (cible candidate)
+
+`InventoryPresentation(schemaVersion, sourceMode, librarySessionId, observedAtUtc, scanStatus, coverageProof, availability, freshness, observedFiles[], esDeReferencedGames[], gameCandidates[], mediaReferences[], diagnostics[], counts)`.
+
+L'adaptateur ne lit **aucun** dossier et ne parse **aucun** XML : il convertit des résultats déjà qualifiés. `sourceMode=DEMONSTRATION|ES_DE_REFERENCES|FILESYSTEM_INVENTORY|COMBINED` est **nouveau et candidat**, pas un ajout immédiat à l'énumération `CatalogueMode` de #64.
+
+| Champ de présentation | Règle vérifiable |
+| --- | --- |
+| `observedFilesCount` | Nombre **effectivement observé**, même pendant un résultat partiel ; toujours affiché « fichiers observés » et daté, pas « total connu de la ROMothèque ». |
+| `totalFilesKnown / totalFileCount?` | `true` et entier uniquement si toutes les partitions de la portée sont `COMPLETE` ; sinon `false/null`. |
+| `esDeReferencedGamesCount?` | Entrées `EsDeGame` **référencées par le XML** seulement si import ES-DE effectué ; `null` en l'absence de XML, jamais zéro implicite. |
+| `gameCandidatesCount` | Groupes potentiels, distincts des fichiers et des jeux référencés. L'égalité entre ces compteurs n'est pas présumée. |
+| `confirmedLogicalGameCount?` | `null` tant qu'une règle d'identité vérifiée ne permet pas de démontrer ce total logique ; ne jamais inventer un `GameId` à partir d'une extension ou d'un titre. |
+| `mediaAvailableCount?` | Uniquement le périmètre de médias réellement observé ; zéro média ES-DE ne signifie pas zéro média sur le disque. |
+| `lastAcceptedSnapshot / currentAttempt / currentAvailability` | Trois axes indépendants, chacun avec sa date et son périmètre ; support débranché ≠ suppression du catalogue historique. |
+
+**Rapprochement ES-DE optionnel :** uniquement sous bibliothèque, plateforme, domaine et chemin relatif canonique vérifiés ; statut `MATCHED|REFERENCED_NOT_OBSERVED|OBSERVED_UNREFERENCED|AMBIGUOUS`, deux provenances conservées. Les titres, descriptions, variantes et médias ES-DE sont **des métadonnées importées**, pas des faits vérifiés par le scanner. Une ROM citée dans le XML et indisponible reste référencée ; un fichier non décrit par XML reste observé. Le mode sans XML conserve `FILESYSTEM_OBSERVATION` et aucune jaquette implicite. Toute collision reste un diagnostic.
+
+## 12. Contrat fonctionnel du futur parcours utilisateur (aucune UI implémentée)
+
+| Étape | Action explicite et état attendu | Erreur et protection |
+| --- | --- | --- |
+| UX-01 — Accueil | Démonstration ou dernier catalogue connu identifiés ; aucun scan au démarrage. États OFFLINE/STALE et historique datés. | Pas de « collection vide » si source absente. |
+| UX-02 — Sélection | « Choisir une bibliothèque… » : sélecteur local ; racine logique ROMS, MEDIAS facultatif et domaines autorisés. | Annuler ne change rien ; UNC/URL, lien/jonction ou racine inaccessible = refus sûr. |
+| UX-03 — Prévalidation | Afficher la portée, versions plateformes/extensions, lecture seule, limites et exclusions ; aucun scan. | Si périmètre invalide, « Démarrer » désactivé et explication claire. |
+| UX-04 — Consentement | **« Inventorier en lecture seule »** : seul ce clic lance le scanner. L'import ES-DE, si choisi, est optionnel et identifié séparément. | Ni sélectionner un dossier, ni actualiser une carte, ni changer de lettre USB ne lance automatiquement un scan. |
+| UX-05 — Progression | Phase courante, fichiers observés, diagnostics, bouton d'annulation et statut « en cours ». Progression **indéterminée** si total inconnu. | Pas de nombre définitif, faux pourcentage ou « jeux confirmés » pendant une lecture partielle. |
+| UX-06 — Fin complète | `COMPLETE`, date et portée ; fichiers observés, plateformes, références ES-DE, candidats et médias **dans des rubriques distinctes**. | Dossier vide intégralement parcouru = « zéro fichier observé dans cette portée », pas « aucun jeu existant ». |
+| UX-07 — Partiel/annulé | `PARTIAL/CANCELED`, zones non couvertes, causes, nombre observé non exhaustif ; « Réessayer » volontaire. | Ancien snapshot complet conservé et daté ; aperçu partiel séparé. |
+| UX-08 — Échec | `FAILED` avec diagnostic actionnable (disque retiré, accès refusé, chemin dangereux, limite atteinte). | Aucun catalogue écrasé, aucun « zéro jeu », pas d'exception brute ni de chemin privé dans la preuve publique. |
+| UX-09 — Consultation | Onglets « Fichiers observés », « Jeux référencés ES-DE » si import, « Groupes candidats », « Médias » si observés, « Diagnostics ». | Un fichier n'acquiert pas une fiche de jeu ni `GameId/VariantId` par simple présence. Une fiche fichier reste possible. |
+| UX-10 — Réinventaire | « Réinventorier » et « Choisir un nouvel emplacement » restent deux actions confirmées ; réassociation vérifiée. | Relocalisation/échec ne provoquent ni scan caché ni inférence de suppression. |
+| UX-11 — Médias | Ouvrir seulement après revalidation d'origine et confinement ; placeholder local pour média absent/illisible. | Aucun scraping, accès réseau ni liaison automatique sur nom proche. |
+| UX-12 — Diagnostics | Codes stables, catégories `INFO|WARNING|ERROR`, résumé en français, contexte scope/plateforme, action sûre. | Éviter messages bruts, secrets, faux états « supprimé » et alarmisme. |
+
+### 12.1 Frontière UI et dépendance DEV 3
+
+- Réutiliser **ultérieurement** les pratiques de #64 : sélecteur explicite, mode démo isolé, recherche, pagination **50 éléments**, réimport conservateur, repli jaquettes et source unique entre vues. Ne **pas** faire passer une observation FS brute dans `EsDeCatalogueSnapshot` ni modifier `MainWindow` maintenant.
+- Le futur Dashboard, Collection, Fiche, Bibliothèques et Diagnostics devront consommer **le même `InventoryPresentation` figé** ; les compteurs inconnus restent `null` et les jeux candidats n'apparaissent pas comme jeux confirmés. Les fichiers bruts ont une fiche fichier si besoin, pas une fausse fiche jeu.
+- Progression et annulation représentent **un job transitoire**, distinct de la santé du support et des cartes du Dashboard. Ne pas intégrer de bouton ou de compteur à VISUAL-POC-01 #67 dans cette PR. Placement visuel, charte, logo/icônes et composition de la vue restent sous l'autorité de DEV 3 et du mandat #67.
+- A/B réel reste désactivé tant que la correspondance `romUnitId` entre snapshots et la couverture intégrale comparée n'est pas démontrée. Les snapshots du mode Démonstration restent `SYNTHETIC_SNAPSHOT` uniquement.
+- Pas d'exécution concurrente de deux scans du même scope ; boutons incompatibles désactivés, possibilité d'annuler, traitement explicite de la fermeture de la fenêtre. Focalisation clavier, information textuelle indépendante de la couleur, états accessibles au redimensionnement et diagnostics entièrement consultables sont des critères d'une **future** revue UX, pas des tests PASS aujourd'hui.
+
+**Séquence des dépendances :** DEV 1 fige moteur/progression/couverture après revue → DEV 2 vérifie l'adaptateur et des fixtures de présentation → DEV 3 valide la consommation du contrat sans toucher au Dashboard #67 → Contrôleur autorise séparément, si opportun, l'implémentation UI. Aucune nouvelle branche UX ni changement à #64/#67 par DEV 2.
+
+## 13. Scénarios de réception d'intégration, NON EXÉCUTÉS
+
+| Cas | Résultat attendu sur fixtures 100 % inventées |
+| --- | --- |
+| INT-01 | Sans XML : fichiers visibles, `esDeReferencedGamesCount=null` et aucun `GameId` déduit ; aucune dépendance au parseur ES-DE. |
+| INT-02 | Avec XML : références ≠ observations ; provenance de chaque valeur, fichier non référencé préservé et référence introuvable non supprimée. |
+| INT-03 | Deux homonymes, playlist + deux disques : fichiers distincts, candidats explicites, pas 3 jeux imposés. |
+| INT-04 | Modes démonstration, import ES-DE, inventaire FS et combiné isolés ; #64 et ses fixtures inchangées ; A/B fictif non présenté comme réel. |
+| INT-05 | Dossier vide complet = 0 fichiers ; disque absent/partiel = total inconnu et non 0 ; dernier complet affichable. |
+| INT-06 | Sélecteur annulé, racine invalide, retour arrière : aucun scan démarré ; consentement explicite obligatoire. |
+| INT-07 | 2 000 fichiers inventés : phases, compteurs monotones, `percent=null` sans dénominateur prouvé ; mesures de cadence et mémoire seulement après run. |
+| INT-08 | Annulation, éjection, limite et refus d'accès : handles libérés, résultat partiel/échec, diagnostics, dernière observation complète préservée. |
+| INT-09 | Relocalisation simulée d'un SSD : validation avant réassociation ; pas de disparition de jeux ni d'auto-scan. |
+| INT-10 | Média présent/illisible/absent/forgé : ouverture seulement via service source read-only, placeholder, pas de réseau. |
+| INT-11 | Diagnostics en français, contextualisés, sans chemin privé, explication non alarmiste et `PARTIAL` honnête. |
+| INT-12 | Non-régression des 15 cas ES-DE (#62), de la PR #64 (62 MSTest au HEAD de correctif lorsque démontrés) et des invariants historiques ; **les futurs PASS exigent un run sur le nouveau HEAD**. |
+| INT-13 | Fichier sans jeu logique confirmé : fiche fichier possible, `confirmedLogicalGameCount=null`, aucun `romUnitId` fabriqué. |
+| INT-14 | Recette Windows future : Tab/Shift+Tab, défilement, 760×480, 1120×720, DPI et annonces textuelles ; **NOT_TESTED**, mandat UI distinct requis. |
+
+## 14. Revue croisée à obtenir avant gel
+
+**À confirmer par DEV 1 sur #66/#65 :** signature moteur (`InventoryScope, InventoryProgress, InventoryRunResult`), états terminal/annulation, source du snapshot accepté/partiel, identité `observationId` vs `locationKey`, politique d'alias/extension et limites, rapprochements ES-DE sans création de `GameId`, 14 oracles INT. La confirmation vaut accord de contrat, **pas GO de scan réel**.
+
+**À confirmer par DEV 3 (sans travaux sur VISUAL-POC-01) :** consommabilité future de `InventoryPresentation`, statuts de progression et d'erreur, présentation des compteurs séparés, pagination, source unique entre vues et absence de réutilisation d'A/B synthétique.
+
+**Verdict DEV 2 à ce stade :** `INTEGRATION_CONTRACT_PROPOSED / PEER_ACK_PENDING`. Ce contrat documentaire ne fige aucune signature en désaccord, ne constitue pas un test du moteur et n'autorise ni changement UX, ni merge, ni Release, ni scan réel.
