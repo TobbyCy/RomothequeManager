@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-03 — Fondation MVVM isolée DEV 3 (28.10.2026 ; Draft)
+
+- Ajout d'un `InventoryViewModel` **non raccordé** à Avalonia, notifications `INotifyPropertyChanged`, commandes `ICommand` et projections `Current/LastAttempt`, observations, diagnostics et compteurs `null` = Inconnu. Le service applicatif #83 est simulé pour les tests ; aucune nouvelle énumération ou lecture de disque.
+- Contrat provisoire de passage en attente de DEV 1 et ADR `docs/ux/next03-mvvm-foundation.md`. `CommunityToolkit.Mvvm` évalué mais **pas encore introduit** (aucun changement de packages.lock ou licence ZIP) ; bindings typés prévus pour la future vue locale. Aucun changement des écrans, aucune fusion, Release ou ROM personnelle.
+
+
 ## DEMO-LIBRARY-01 — catalogue canonique DEV 2 (PR Draft #72, 28.10.2026)
 
 - Le propriétaire a fixé **30 titres et 13 plateformes** dans [Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71). Les références de conception sous `contracts/demo-library-01/` et `docs/architecture/` contiennent métadonnées, médias projetés, scénarios IDEAL/CHAOS/MYSTERY et oracles arithmétiques. Le générateur DEV 1 #73 attend son alignement sur cette version canonique.

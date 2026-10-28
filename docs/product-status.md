@@ -1,5 +1,10 @@
 # État des fonctionnalités
 
+## NEXT-03 / MVVM FOUNDATION — DEV 3 (branche Draft, non intégrée)
+
+Premiers composants **indépendants de l'interface graphique dans leur code source** : `InventoryViewModel` (notifications/commandes/provenances), `InventoryApplicationSeam` **provisoire conforme à la proposition DEV 1 #83**, tests unitaires en mémoire. **Aucun service de scan implémenté ni raccordement Avalonia/ROM** ; aucun changement de Dashboard, Collection, fiches, Bibliothèques ou import ES-DE. Dépendance `CommunityToolkit.Mvvm 8.4.2` évaluée, **non ajoutée** en attente de NuGet lock/avis licences/CI ; BCL `INotifyPropertyChanged`/`ICommand` utilisée pour la fondation. [ADR et limites](docs/ux/next03-mvvm-foundation.md). #75/#76/#77 restent à intégrer avant toute connexion au service et au moteur. Aucun scan réel, merge ou Release.
+
+
 ## DEMO-LIBRARY-01 — catalogue canonique candidat (PR Draft #72, sans effet produit)
 
 La [PR #72](https://github.com/TobbyCy/RomothequeManager/pull/72) documente **30 jeux entièrement fictifs, sur les 13 plateformes corrigées par le propriétaire** ([Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71), notamment Xbox, PS2, PS3, PS4, PC et DOS) ; catalogue de référence `contracts/demo-library-01/`, contrat et briefs sous `docs/architecture/`, variantes IDEAL/CHAOS/MYSTERY et oracles non exécutés. DEV 1 aligne son générateur [#73](https://github.com/TobbyCy/RomothequeManager/pull/73) sur cette source. **Aucune ROM, PNG, XML, bibliothèque générée ou fonctionnalité UI livrée par #72 ; aucun changement à l'intégration NEXT-01.**
