@@ -58,6 +58,8 @@ public interface IInventoryApplicationService : IAsyncDisposable
 public sealed class InventoryApplicationService : IInventoryApplicationService
 {
     private readonly object _gate = new();
+    private readonly Queue<InventoryApplicationState> _pendingNotifications = new();
+    private bool _publishingNotifications;
     private readonly Func<InventoryScope, bool> _syntheticPermission;
     private InventorySession? _session;
     private InventoryScope? _scope;
@@ -320,17 +322,44 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
 
     private void Publish(InventoryApplicationState state)
     {
-        // A fast completion or cancellation can supersede a pending state event.
         lock (_gate)
         {
+            // Keep callbacks ordered even if an observer asks for cancellation
+            // from inside a Running callback. Do not emit superseded states.
             if (_disposed || !ReferenceEquals(_state, state)) return;
+            _pendingNotifications.Enqueue(state);
+            if (_publishingNotifications) return;
+            _publishingNotifications = true;
         }
-        var listeners = StateChanged;
-        if (listeners is null) return;
-        foreach (EventHandler<InventoryApplicationState> listener in listeners.GetInvocationList())
+
+        while (true)
         {
-            try { listener(this, state); }
-            catch (Exception) { /* Observers cannot alter scanner state or fail a run. */ }
+            EventHandler<InventoryApplicationState>? listeners;
+            InventoryApplicationState next;
+            lock (_gate)
+            {
+                if (_disposed)
+                {
+                    _pendingNotifications.Clear();
+                    _publishingNotifications = false;
+                    return;
+                }
+                if (_pendingNotifications.Count == 0)
+                {
+                    _publishingNotifications = false;
+                    return;
+                }
+                next = _pendingNotifications.Dequeue();
+                if (!ReferenceEquals(_state, next)) continue;
+                listeners = StateChanged;
+            }
+
+            if (listeners is null) continue;
+            foreach (EventHandler<InventoryApplicationState> listener in listeners.GetInvocationList())
+            {
+                try { listener(this, next); }
+                catch (Exception) { /* An observer cannot break or reenter the scan engine. */ }
+            }
         }
     }
 }
