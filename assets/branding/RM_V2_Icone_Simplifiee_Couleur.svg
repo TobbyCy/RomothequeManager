@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="Romothèque Manager V2 — Icone_Simplifiee Couleur"><title>Romothèque Manager V2 — Icone_Simplifiee Couleur</title><g>
+      <path d="M10 2H22Q24 2 24 4V5H27Q29 5 29 7V26Q29 27 27 27H25V29Q25 30 24 30H8Q7 30 7 29V27H5Q3 27 3 25V7Q3 5 5 5H8V4Q8 2 10 2Z" fill="#16181D" stroke="#E8E6E3" stroke-width="2" stroke-linejoin="round"/>
+      <g fill="#AAB2BF"><rect x="7" y="9" width="3" height="6" rx=".5"/><rect x="12" y="8" width="6" height="7" rx=".5"/><rect x="20" y="9" width="5" height="6" rx=".5"/>
+      <rect x="7" y="16.5" width="18" height="1.5" rx=".5"/><rect x="7" y="21" width="6" height="4" rx=".5"/><rect x="7" y="26" width="18" height="1" rx=".5"/></g>
+      <path d="M17 24L24 20M19 20H24V24" fill="none" stroke="#B3202E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </g></svg>
