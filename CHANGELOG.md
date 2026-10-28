@@ -1,5 +1,10 @@
 # Journal des changements
 
+## DEMO-02 — recettes synthétiques E2E (DEV 1 / PR Draft #75, 28.10.2026)
+
+- Procédure Windows PowerShell 5.1 opt-in pour générer et vérifier IDEAL/CHAOS/MYSTERY à destination locale nouvelle et explicitement choisie ; aucun écrasement, téléchargement, scan réel ni Release.
+- Quatre tests E2E supplémentaires exécutent les moteurs existants NEXT-01 et NEXT-02 sur les fixtures DEMO-01, avec les 30 titres, 13 plateformes, oracles 32/30/180, 33/30/166, 32/0/0, diagnostics de fichiers/médias absents, 3 doublons candidats, playlist multidisque et stabilité de relecture. Aucun nouveau moteur ni modification de la génération historique.
+
 ## DEMO-LIBRARY-01 — catalogue canonique DEV 2 (PR Draft #72, 28.10.2026)
 
 - Le propriétaire a fixé **30 titres et 13 plateformes** dans [Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71). Les références de conception sous `contracts/demo-library-01/` et `docs/architecture/` contiennent métadonnées, médias projetés, scénarios IDEAL/CHAOS/MYSTERY et oracles arithmétiques. Le générateur DEV 1 #73 attend son alignement sur cette version canonique.
