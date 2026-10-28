@@ -1,0 +1,121 @@
+name: VISUAL-POC-01 / Windows real Avalonia render
+# Strictly scoped synthetic Windows evidence, never a Release or ZIP publication.
+on:
+  push:
+    branches: [dev3/visual-poc-01]
+permissions:
+  contents: read
+concurrency:
+  group: visual-poc-01-evidence
+  cancel-in-progress: true
+jobs:
+  capture:
+    name: Pinned SDK / synthetic tests / real Avalonia render
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev3/visual-poc-01' && github.actor == 'TobbyCy'
+    runs-on: windows-2022
+    timeout-minutes: 28
+    steps:
+      - name: Checkout exact source without credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check source and original Pilotage branding blobs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne '${{ github.sha }}') { throw 'VISUAL_SOURCE_SHA_MISMATCH' }
+          $expected = @{
+            'RM_V2_Horizontal_Fond_Sombre.png' = 'e594b9602bb7d44a01a9408c8d189d74ee5180b4'
+            'RM_V2_Horizontal_Couleur.svg' = '0dffbc85ae90aa88096b61fcc36c8d47c427b4e6'
+            'RM_V2_Icone_Detaillee_Couleur.svg' = 'b34a97950a8124c093bedf62730315af9c17c5fa'
+            'RM_V2_Icone_Simplifiee_Couleur.svg' = 'c6266232e5e99407164cfc2197b80e3c784d947a'
+            'RM_V2_Favicon.ico' = '158dc727e1c82e6a1afa003d1ca79a35ec229138'
+          }
+          foreach ($record in $expected.GetEnumerator()) {
+            $file = 'assets/branding/' + $record.Key
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (git hash-object -- $file).Trim() -cne $record.Value) {
+              throw ('VISUAL_BRANDING_BYTES_UNVERIFIED:' + $file)
+            }
+          }
+          Write-Host ('VISUAL_SOURCE_AND_BRANDING_VERIFIED sha=' + '${{ github.sha }}' + ' assets=' + $expected.Count)
+      - name: Setup exact .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Execute fail-closed policy canaries and synthetic .NET tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -B -m unittest discover -s tests -p test_ci_policy.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'VISUAL_POLICY_FAILED' }
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'VISUAL_LOCKED_TEST_RESTORE_FAILED' }
+          dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'VISUAL_TESTS_FAILED' }
+      - name: Self-contained Windows publish, EXE icon and attached Avalonia screenshots
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          $output = Join-Path $env:RUNNER_TEMP 'visual-app'
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'VISUAL_LOCKED_PUBLISH_RESTORE_FAILED' }
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $output
+          if ($LASTEXITCODE -ne 0) { throw 'VISUAL_WINDOWS_PUBLISH_FAILED' }
+          foreach ($item in @('RomothequeManager.V2.exe','RM_V2_Horizontal_Fond_Sombre.png','RM_V2_Favicon.ico','coreclr.dll','hostfxr.dll')) {
+            if (-not (Test-Path (Join-Path $output $item) -PathType Leaf)) { throw ('VISUAL_MISSING_PUBLISH_ASSET:' + $item) }
+          }
+          $exe = Join-Path $output 'RomothequeManager.V2.exe'
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          $offset = [BitConverter]::ToInt32($bytes, 60)
+          $guiSubsystem = [BitConverter]::ToUInt16($bytes, $offset + 24 + 68)
+          if ($guiSubsystem -ne 2) { throw ('VISUAL_NOT_GUI_EXE:' + $guiSubsystem) }
+          Add-Type -AssemblyName System.Drawing
+          $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)
+          if ($null -eq $icon) { throw 'VISUAL_EXE_ICON_ABSENT' }
+          $icon.Dispose()
+          Write-Host 'VISUAL_WINDOWS_GUI_EXE_ICON_PASS'
+          $procInfo = [Diagnostics.ProcessStartInfo]::new()
+          $procInfo.FileName = $exe
+          $procInfo.Arguments = '--ci-visual-capture'
+          $procInfo.WorkingDirectory = $output
+          $procInfo.UseShellExecute = $false
+          $p = [Diagnostics.Process]::Start($procInfo)
+          if ($null -eq $p) { throw 'VISUAL_START_FAILED' }
+          try {
+            if (-not $p.WaitForExit(90000)) { $p.Kill(); throw 'VISUAL_CAPTURE_TIMEOUT' }
+            if ($p.ExitCode -ne 0) { throw ('VISUAL_CAPTURE_PROCESS_FAILED:' + $p.ExitCode) }
+          } finally { $p.Dispose() }
+          $dir = Join-Path $env:RUNNER_TEMP 'visual-poc-01'
+          $screens = @(Get-ChildItem $dir -Filter 'Dashboard-*.png' -File)
+          if ($screens.Count -ne 4) { throw ('VISUAL_SCREENSHOT_COUNT_MISMATCH:' + $screens.Count) }
+          foreach ($file in $screens) {
+            $bitmap = [Drawing.Bitmap]::FromFile($file.FullName)
+            try {
+              if ($bitmap.Width -lt 760 -or $bitmap.Height -lt 480 -or $file.Length -lt 4000) {
+                throw ('VISUAL_CAPTURE_INVALID:' + $file.Name)
+              }
+            } finally { $bitmap.Dispose() }
+          }
+          $manifest = [ordered]@{
+            sourceCommit='${{ github.sha }}'; scope='synthetic only'; release=$false
+            screenshotType='real attached Avalonia visual rendered on Windows runner (not native taskbar/Explorer capture)'
+            captures=@($screens | ForEach-Object { [ordered]@{
+              file=$_.Name; bytes=$_.Length; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            }})
+            exeSubsystem='Windows GUI'; officialIcon='RM_V2_Favicon.ico'
+          }
+          ($manifest | ConvertTo-Json -Depth 5) | Set-Content (Join-Path $dir 'CAPTURE-EVIDENCE.json') -Encoding utf8
+          Write-Host ('VISUAL_SCREENSHOTS_VERIFIED_PASS source=' + '${{ github.sha }}' + ' count=4')
+      - name: Upload temporary PNG screenshots only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: VISUAL-POC-01-Windows-Dashboard
+          path: |
+            ${{ runner.temp }}/visual-poc-01/*.png
+            ${{ runner.temp }}/visual-poc-01/CAPTURE-EVIDENCE.json
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6
