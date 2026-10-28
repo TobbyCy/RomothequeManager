@@ -1,5 +1,10 @@
 # Journal des changements
 
+## DEMO-LIBRARY-01 — conception candidate DEV 2 (PR Draft #72, 28.10.2026)
+
+- Référentiel de **30 jeux fictifs** originaux et trois variantes `IDEAL`/`CHAOS`/`MYSTERY`, fichiers JSON de contrat et oracles sous `contracts/demo-library-01/` et guides sous `docs/architecture/` ; aucune ROM/BIOS, image, fixture XML, fonction d'interface ou Release livrée.
+- Les comptes et scénarios sont des **attendus de conception non exécutés** ; contrat en attente de `FORMAT_ACK` de DEV 1 dans [#70](https://github.com/TobbyCy/RomothequeManager/issues/70). Une CI verte de la PR ne vaudra pas test du catalogue dans l'application.
+
 Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
 
 

@@ -1,5 +1,9 @@
 # État des fonctionnalités
 
+## DEMO-LIBRARY-01 — référentiel de démonstration candidat (documentation, non livré)
+
+La [PR Draft #72](https://github.com/TobbyCy/RomothequeManager/pull/72) propose un catalogue **entièrement fictif de 30 jeux** sur huit plateformes, des manifestes de scénarios `IDEAL`, `CHAOS` et `MYSTERY` avec oracles arithmétiques, et des briefs de médias originaux. Le catalogue est stocké sous `contracts/demo-library-01/`, avec le [contrat de conception](architecture/demo-library-01.md) et les [briefs médias](architecture/demo-library-01-media-brief.md). **Aucune ROM, XML, image ou fixture exécutable n'est incluse, aucun jeu n'est ajouté à l'interface ni à une Release.** Le schéma attend la revue de format de DEV 1 dans [#70](https://github.com/TobbyCy/RomothequeManager/issues/70) ; aucune approbation ni fusion présumée.
+
 ## État public actuel — 28 octobre 2026
 
 La [première Pre-release Windows V2-01C a été publiée le 23.10.2026](https://github.com/TobbyCy/RomothequeManager/releases/tag/poc-v2-01c-20261023-4cf475fbd1ec) depuis `main=4cf475fbd1ece16b138403d3bd967a56d295ee54`. Le [ZIP Windows x64 autonome](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip) (243 fichiers ; runtime .NET inclus) et son [fichier de contrôle SHA-256](https://github.com/TobbyCy/RomothequeManager/releases/download/poc-v2-01c-20261023-4cf475fbd1ec/RomothequeManager-V2-01C-win-x64-4cf475fbd1ec.zip.sha256) sont **téléchargeables**. Son empreinte de référence est `22328d682b7c93edcdeeb735c9913880e68dec64c54b159bd6e6de77bcc7eaaf`.

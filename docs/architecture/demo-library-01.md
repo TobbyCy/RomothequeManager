@@ -6,10 +6,10 @@ La présente PR n'embarque **aucun fichier ROM, XML ES-DE, image ni média**. Le
 
 ## Référentiel
 
-- [`catalogue.json`](catalogue.json) : 30 `demoId` stables, titre humoristique, plateforme, genre, année fictive, description, éditeur fictif, édition, région, chemin de ROM, disques et médias à créer.
-- [`scenarios.json`](scenarios.json) : 30 entrées avec les **mêmes identifiants** dans chacun des scénarios `IDEAL`, `CHAOS`, `MYSTERY`, chemins physiques **prévus**, références XML et disponibilités des médias.
-- [`oracles.json`](oracles.json) : assertions de structure et résultats attendus, sans prétendre avoir exécuté un scanner ou généré des fixtures.
-- [`media-brief.md`](media-brief.md) : consignes artistiques strictement originales pour des créations futures.
+- [`catalogue.json`](../../contracts/demo-library-01/catalogue.json) : 30 `demoId` stables, titre humoristique, plateforme, genre, année fictive, description, éditeur fictif, édition, région, chemin de ROM, disques et médias à créer.
+- [`scenarios.json`](../../contracts/demo-library-01/scenarios.json) : 30 entrées avec les **mêmes identifiants** dans chacun des scénarios `IDEAL`, `CHAOS`, `MYSTERY`, chemins physiques **prévus**, références XML et disponibilités des médias.
+- [`oracles.json`](../../contracts/demo-library-01/oracles.json) : assertions de structure et résultats attendus, sans prétendre avoir exécuté un scanner ou généré des fixtures.
+- [`media-brief.md`](demo-library-01-media-brief.md) : consignes artistiques strictement originales pour des créations futures.
 
 **Identités :** `demoId` identifie un jeu fictif dans le référentiel, alors que NEXT-01-A génère un `EsDeGame.GameId` fondé sur plateforme/chemin, susceptible de varier après renommage, et NEXT-02 génère des `FileObservation.ObservationId` liés à un scan. Aucune conversion automatique `fichier = jeu`, aucune déduction d'un ID depuis le titre.
 
