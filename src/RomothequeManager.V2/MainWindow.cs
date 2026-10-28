@@ -6,7 +6,7 @@ using Avalonia.Media;
 
 namespace RomothequeManager.V2;
 
-public sealed class MainWindow : Window
+public sealed partial class MainWindow : Window
 {
     private readonly NavigationState _state = new(ReadOnlyCatalogue.Synthetic());
     private readonly LibraryProjection _libraryProjection;
@@ -16,7 +16,7 @@ public sealed class MainWindow : Window
     private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#A9B8CD"));
     private static readonly IBrush Card = new SolidColorBrush(Color.Parse("#202B3D"));
 
-    public POCView CurrentView => _state.CurrentView;
+    public POCView CurrentView => ActiveView;
 
     // Exercises the three real Avalonia visual trees after the window opens.
     // The normal UI still uses actual buttons/textbox for human interaction.
@@ -43,7 +43,7 @@ public sealed class MainWindow : Window
     {
         _libraryProjection = LibraryProjection.LoadSynthetic(_state.Catalogue);
         _libraryViewState = new LibraryViewState(_libraryProjection);
-        SizeChanged += (_, _) => { if (_state.CurrentView == POCView.Libraries) Render(); };
+        SizeChanged += (_, _) => { if (ActiveView == POCView.Libraries) Render(); };
         Title = "ROMothèque Manager — POC synthétique";
         Width = 1120; Height = 720; MinWidth = 760; MinHeight = 480;
         Background = new SolidColorBrush(Color.Parse("#121B2A"));
@@ -51,11 +51,15 @@ public sealed class MainWindow : Window
         var menu = new StackPanel { Spacing = 18, Margin = new Thickness(20) };
         menu.Children.Add(Text("ROMOTHÈQUE", 22, true));
         menu.Children.Add(Text("MANAGER · POC V2", 12));
-        menu.Children.Add(Button("Tableau de bord", () => { _state.ShowDashboard(); Render(); }));
-        menu.Children.Add(Button("Collection", () => { _state.ShowCollection(); Render(); }));
-        menu.Children.Add(Button("Bibliothèques & snapshots", () => { _state.ShowLibraries(); Render(); }));
+        menu.Children.Add(Button("Tableau de bord", () => Navigate(POCView.Dashboard)));
+        menu.Children.Add(Button("Collection", () => Navigate(POCView.Collection)));
+        menu.Children.Add(Button("Bibliothèques & snapshots", () => Navigate(POCView.Libraries)));
         menu.Children.Add(Text("LECTURE SEULE", 13, true));
-        menu.Children.Add(Text("Jeux, dates et bibliothèques 100 % fictifs.", 13));
+        menu.Children.Add(Button("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
+        menu.Children.Add(Button("Actualiser l'import", () => _ = RefreshImportAsync()));
+        menu.Children.Add(Button("Voir l'import", ShowImported));
+        menu.Children.Add(Button("Mode démonstration", ShowDemo));
+        menu.Children.Add(Text("Mode démo au démarrage ; l'import requiert votre sélection.", 12));
         var sidebar = new Border
         {
             Background = new SolidColorBrush(Color.Parse("#192439")), Child = menu
@@ -107,6 +111,18 @@ public sealed class MainWindow : Window
     private void Render()
     {
         _page.Children.Clear();
+        ReleaseCoverImages();
+        _importedList = null;
+        Title = _importedUi.IsImported ? "ROMothèque Manager — Bibliothèque importée" :
+            "ROMothèque Manager — POC synthétique";
+        if (_importedUi.ErrorMessage is not null)
+            _page.Children.Add(Text(_importedUi.ErrorMessage, 14, true));
+        if (_importBusy) _page.Children.Add(Text("Lecture en cours ; aucune source modifiée.", 14, true));
+        if (_importedUi.IsImported)
+        {
+            RenderImported();
+            return;
+        }
         switch (_state.CurrentView)
         {
             case POCView.Dashboard: Dashboard(); break;
