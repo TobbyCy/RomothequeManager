@@ -91,176 +91,196 @@ return target;
 }
 const xml=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 function generate(target,catalog){
-  const output=safeOutput(target);
-  const bytes=fs.readFileSync(catalog);
-  if(bytes.length>1024*1024)throw Error('Canonical catalogue too large');
-  const data=JSON.parse(bytes.toString('utf8'));
-  const contractDir=path.dirname(catalog);
-  const scenarioBytes=fs.readFileSync(path.join(contractDir,'scenarios.json'));
-  const oracleBytes=fs.readFileSync(path.join(contractDir,'oracles.json'));
-  const scenarios=JSON.parse(scenarioBytes.toString('utf8'));
-  const oracles=JSON.parse(oracleBytes.toString('utf8'));
-  if(data.schemaVersion!=='demo-library-01/catalogue/0.1-candidate'||
-     scenarios.schemaVersion!=='demo-library-01/scenarios/0.1-candidate'||
-     oracles.schemaVersion!=='demo-library-01/oracles/0.1-candidate'||
-     !Array.isArray(data.games)||data.games.length!==30||!Array.isArray(scenarios.variants)||
-     scenarios.variants.length!==3)throw Error('DEV2 canonical contract invalid');
-  const gamesById=new Map(),seenRom=new Set();
-  for(const g of data.games){
-    if(!/^demo01-[0-9]{3}$/.test(g.demoId)||gamesById.has(g.demoId)||
-       !/^[a-z0-9_-]{2,20}$/.test(g.platform))throw Error('Invalid canonical identity');
-    for(const key of ['title','genre','description','fictionalPublisher','edition','region'])
-      if(typeof g[key]!=='string'||!g[key].trim()||g[key].length>1200)throw Error('Invalid canonical '+key);
-    if(!Number.isInteger(g.fictionalReleaseYear))throw Error('Missing fictional year');
-    relative(g.rom.relativePath);
-    if(!g.rom.relativePath.startsWith('ROMS/'+g.platform+'/')||
-       seenRom.has(g.rom.relativePath.toLowerCase()))throw Error('Unsafe/duplicate canonical ROM path');
-    seenRom.add(g.rom.relativePath.toLowerCase());
-    for(const disk of g.rom.discPaths){relative(disk);if(!disk.startsWith('ROMS/'+g.platform+'/'))throw Error('Unsafe disc');}
-    for(const media of Object.values(g.media)){if(media!==null){relative(media);if(!media.startsWith('MEDIAS/'+g.platform+'/'))throw Error('Unsafe media');}}
-    gamesById.set(g.demoId,g);
-  }
-  const plan=new Map(),summaries=[],scenarioNames=new Set(),pictureSizes={
-    front:[240,336],back:[240,336],logo:[320,96],
-    screenshot:[320,180],thumbnail:[120,168],background:[480,270]
-  };
-  function add(file,data,kind,id=null){
-    relative(file);
-    const key=file.toLowerCase();
-    if(plan.has(key))throw Error('Case-insensitive output collision '+file);
-    plan.set(key,{path:file,bytes:Buffer.isBuffer(data)?data:Buffer.from(data,'utf8'),kind,id});
-  }
-  const expectedIds=[...gamesById.keys()].sort();
-  for(const variant of scenarios.variants){
-    if(!['IDEAL','CHAOS','MYSTERY'].includes(variant.name)||scenarioNames.has(variant.name))
-      throw Error('Invalid scenario');
-    scenarioNames.add(variant.name);
-    const name=variant.name,entries=variant.entries;
-    if(!Array.isArray(entries)||entries.length!==30||!Array.isArray(variant.mediaPresent))
-      throw Error('Invalid variant entries');
-    const discoveredIds=entries.map(e=>e.demoId).sort();
-    if(JSON.stringify(discoveredIds)!==JSON.stringify(expectedIds))throw Error('Scenario identity set mismatch');
-    const mediaPaths=new Set();
-    for(const media of variant.mediaPresent){
-      const g=gamesById.get(media.demoId);
-      if(!g||!pictureSizes[media.kind]||!relative(media.relativePath)||
-         !media.relativePath.startsWith('MEDIAS/'+g.platform+'/')||
-         mediaPaths.has(media.relativePath.toLowerCase()))throw Error('Invalid scenario media');
-      mediaPaths.add(media.relativePath.toLowerCase());
-    }
-    const refs=new Map(),xmlByPlatform=new Map(),gameRows=[];
-    const orac=oracles.counts[name];
-    if(!orac)throw Error('Missing oracle for '+name);
-    for(const entry of entries){
-      const g=gamesById.get(entry.demoId),platform=g.platform;
-      relative(entry.romRelativePath);
-      if(!entry.romRelativePath.startsWith('ROMS/'+platform+'/'))throw Error('Scenario escaped platform');
-      const romPhysical=name+'/'+entry.romRelativePath;
-      const discPaths=entry.discRelativePaths;
-      if(!Array.isArray(discPaths)||discPaths.length!==entry.discPresent.length)
-        throw Error('Invalid disc scenario');
-      let content=MARK+'\n'+'demo-id='+g.demoId+'\n'+'file='+path.posix.basename(entry.romRelativePath)+'\n';
-      if(name==='CHAOS'&&(g.demoId==='demo01-003'||g.demoId==='demo01-009'))
-        content=MARK+'\n'+'CHAOS_SYNTHETIC_DUPLICATE_CONTENT_PAIR\n';
-      if(g.rom.kind==='PLAYLIST'){
-        content=discPaths.map(x=>{
-          relative(x);
-          if(!x.startsWith('ROMS/'+platform+'/'))throw Error('Disc outside platform');
-          const rel=path.posix.relative(path.posix.dirname(entry.romRelativePath),x);
-          if(rel.startsWith('../'))throw Error('Playlist member outside folder');
-          return rel;
-        }).join('\n')+'\n';
-      }
-      if(entry.romPresent)add(romPhysical,content,g.rom.kind==='PLAYLIST'?'playlist':'synthetic-rom',g.demoId);
-      const discRefs=[];
-      for(let j=0;j<discPaths.length;j++){
-        const disc=relative(discPaths[j]);
-        if(!disc.startsWith('ROMS/'+platform+'/'))throw Error('Disc outside platform');
-        if(entry.discPresent[j])add(name+'/'+disc,MARK+'\n'+'demo-id='+g.demoId+'\n'+'disc='+j+'\n','synthetic-disc',g.demoId);
-        discRefs.push(disc);
-      }
-      const media={};
-      for(const [kind,rel] of Object.entries(g.media)){
-        if(rel!==null)media[kind]={path:rel,exists:mediaPaths.has(rel.toLowerCase())};
-      }
-      if(entry.xmlEntryPresent){
-        if(name==='MYSTERY')throw Error('MYSTERY cannot contain XML entries');
-        if(!xmlByPlatform.has(platform))xmlByPlatform.set(platform,[]);
-        const short=entry.romRelativePath.slice(('ROMS/'+platform+'/').length);
-        const line=['  <game>','    <path>./'+xml(short)+'</path>'];
-        if(entry.xmlTitlePresent)line.push('    <name>'+xml(g.title)+'</name>');
-        line.push('    <desc>'+xml(g.description)+'</desc>',
-          '    <developer>'+xml(g.fictionalPublisher)+'</developer>',
-          '    <genre>'+xml(g.genre)+'</genre>',
-          '    <releasedate>'+g.fictionalReleaseYear+'0101T000000</releasedate>');
-        const m={front:'image',thumbnail:'thumbnail',logo:'marquee'};
-        for(const [kind,tag] of Object.entries(m)){
-          const f=g.media[kind];
-          if(f!==null){
-            const metadataDir='MEDIAS/'+platform+'/metadata';
-            const mediaRef=path.posix.relative(metadataDir,f);
-            if(mediaRef.startsWith('../../'))throw Error('Media outside platform');
-            line.push('    <'+tag+'>'+xml(mediaRef)+'</'+tag+'>');
-          }
-        }
-        line.push('  </game>');
-        xmlByPlatform.get(platform).push(line.join('\n'));
-      }
-      gameRows.push({id:g.demoId,title:g.title,platform,region:g.region,edition:g.edition,
-        romPath:entry.romRelativePath,romExists:entry.romPresent,discs:discRefs,
-        xmlEntryPresent:entry.xmlEntryPresent,media,tags:entry.tags});
-    }
-    for(const item of variant.mediaPresent){
-      const g=gamesById.get(item.demoId),[w,h]=pictureSizes[item.kind];
-      add(name+'/'+item.relativePath,art({id:g.demoId,title:g.title},item.kind,w,h),'media-'+item.kind,g.demoId);
-    }
-    for(const xmlPath of variant.xmlRelativePaths){
+ const output=safeOutput(target);
+ const catalogBytes=fs.readFileSync(catalog);
+ if(catalogBytes.length>1048576)throw Error('Catalogue larger than 1 MiB');
+ const data=JSON.parse(catalogBytes.toString('utf8'));
+ const contractDir=path.dirname(catalog);
+ const scenariosBytes=fs.readFileSync(path.join(contractDir,'scenarios.json'));
+ const oraclesBytes=fs.readFileSync(path.join(contractDir,'oracles.json'));
+ const scenarios=JSON.parse(scenariosBytes.toString('utf8'));
+ const oracles=JSON.parse(oraclesBytes.toString('utf8'));
+ if(data.schemaVersion!=='demo-library-01/1'||
+    scenarios.schemaVersion!=='demo-library-01/scenarios/1'||
+    oracles.schemaVersion!=='demo-library-01/oracles/1'||
+    !Array.isArray(data.games)||data.games.length!==30||
+    !Array.isArray(data.platformSlugs)||data.platformSlugs.length!==13||
+    !Array.isArray(scenarios.variants)||scenarios.variants.length!==3)
+   throw Error('Invalid DEV2 canonical contract versions/shape');
+ const platforms=new Set(data.platformSlugs);
+ if(platforms.size!==13||!['xbox','ps2','ps3','ps4','pc'].every(p=>platforms.has(p)))
+   throw Error('13 canonical platforms including Xbox, PS2/3/4 and PC required');
+ const byId=new Map(),romKeys=new Set();
+ const mediaDimensions={image:[240,336],thumbnail:[120,168],marquee:[320,96],
+   screenshot:[320,180],backcover:[240,336],background:[480,270]};
+ for(const game of data.games){
+   if(!/^demo01-[0-9]{3}$/.test(game.id)||byId.has(game.id)||!platforms.has(game.platform))
+     throw Error('Duplicate/invalid ID or unknown platform');
+   for(const prop of ['title','genre','description','publisher','region','edition'])
+     if(typeof game[prop]!=='string'||!game[prop].trim()||game[prop].length>1200)
+       throw Error('Invalid canonical property '+prop);
+   if(!Number.isInteger(game.year)||game.year<1980||game.year>2099)
+     throw Error('Invalid fictional release year');
+   relative(game.romFile);
+   if(game.romFile.includes('/')||!/\.(gb|gba|nes|sfc|bin|z64|chd|m3u)$/i.test(game.romFile))
+     throw Error('Invalid synthetic ROM filename');
+   const key=(game.platform+'/'+game.romFile).toLowerCase();
+   if(romKeys.has(key))throw Error('Duplicate canonical ROM filename');
+   romKeys.add(key);
+   if(!game.media||Object.keys(mediaDimensions).some(k=>
+      typeof game.media[k]!=='string'||!relative(game.media[k])||
+      !game.media[k].startsWith('MEDIAS/'+game.platform+'/')))
+     throw Error('Invalid canonical media');
+   if(game.discs!==undefined && (
+       !game.romFile.endsWith('.m3u')||!Array.isArray(game.discs)||
+       game.discs.length<2||game.discs.length>4||
+       game.discs.some(x=>typeof x!=='string'||!relative(x)||x.includes('/')||!x.endsWith('.chd'))))
+     throw Error('Invalid multidisc declaration');
+   byId.set(game.id,game);
+ }
+ const refIds=[...byId.keys()].sort();
+ const plan=new Map(),outVariants=[],seenVariants=new Set();
+ function add(relativePath,value,kind,id=null){
+   relative(relativePath);
+   const k=relativePath.toLowerCase();
+   if(plan.has(k))throw Error('Case-insensitive output collision '+relativePath);
+   plan.set(k,{path:relativePath,bytes:Buffer.isBuffer(value)?value:Buffer.from(value,'utf8'),kind,id});
+ }
+ for(const variant of scenarios.variants){
+   const name=variant.name;
+   if(!['IDEAL','CHAOS','MYSTERY'].includes(name)||seenVariants.has(name))
+      throw Error('Invalid/duplicate variant');
+   seenVariants.add(name);
+   if(!Array.isArray(variant.entries)||variant.entries.length!==30||
+      !Array.isArray(variant.xmlPaths))throw Error('Invalid scenario entries/XML');
+   if(JSON.stringify(variant.entries.map(e=>e.id).sort())!==JSON.stringify(refIds))
+      throw Error('Scenario ID mismatch');
+   const xmlByPlatform=new Map(),records=[];
+   let absentRomReferences=0, duplicateFiles=0;
+   for(const entry of variant.entries){
+     const game=byId.get(entry.id),plat=game.platform;
+     if(!game||typeof entry.romPath!=='string'||!relative(entry.romPath)||
+        !entry.romPath.startsWith('ROMS/'+plat+'/'))
+       throw Error('Unsafe scenario ROM path');
+     if(typeof entry.romPresent!=='boolean'||typeof entry.xmlEntryPresent!=='boolean'||
+        !Array.isArray(entry.discPaths)||!Array.isArray(entry.discPresent)||
+        entry.discPaths.length!==entry.discPresent.length ||
+        (entry.discPaths.length !== (game.discs?.length||0)) ||
+        !entry.media)throw Error('Scenario entry shape mismatch');
+     const payload=MARK+'\n'+'demo-id='+game.id+'\n'+'fictional='+game.romFile+'\n';
+     const playlist=game.romFile.endsWith('.m3u');
+     let bytes=payload;
+     if(playlist){
+       const folder=path.posix.dirname(entry.romPath);
+       const members=entry.discPaths.map(x=>{
+         relative(x);
+         if(!x.startsWith('ROMS/'+plat+'/')||path.posix.dirname(x)!==folder)
+            throw Error('Unsafe playlist member location');
+         return path.posix.basename(x);
+       });
+       bytes=members.join('\n')+'\n';
+     }
+     if(entry.romPresent)add(name+'/'+entry.romPath,bytes,playlist?'playlist':'synthetic-rom',game.id);
+     if(entry.xmlEntryPresent&&!entry.romPresent)absentRomReferences++;
+     for(let j=0;j<entry.discPaths.length;j++){
+       const dp=entry.discPaths[j];
+       relative(dp);
+       if(!dp.startsWith('ROMS/'+plat+'/'))throw Error('Disc outside platform');
+       if(entry.discPresent[j])add(name+'/'+dp,MARK+'\n'+'demo-id='+game.id+'\n'+'disc='+j+'\n','synthetic-disc',game.id);
+     }
+     if(entry.duplicatePath!==null&&entry.duplicatePath!==undefined){
+       relative(entry.duplicatePath);
+       if(!entry.romPresent||playlist||!entry.duplicatePath.startsWith('ROMS/'+plat+'/'))
+         throw Error('Unsafe duplicate');
+       add(name+'/'+entry.duplicatePath,bytes,'duplicate-candidate',game.id);
+       duplicateFiles++;
+     }
+     const mediaRefs={};
+     for(const kind of Object.keys(mediaDimensions)){
+       const m=entry.media[kind];
+       if(!m||typeof m.relativePath!=='string'||!relative(m.relativePath)||
+           m.relativePath!==game.media[kind]||typeof m.exists!=='boolean')
+         throw Error('Media contract mismatch '+game.id+' '+kind);
+       mediaRefs[kind]={path:m.relativePath,exists:m.exists};
+       if(m.exists){
+         const [w,h]=mediaDimensions[kind];
+         add(name+'/'+m.relativePath,art(game,kind,w,h),'media-'+kind,game.id);
+       }
+     }
+     if(entry.xmlEntryPresent){
+       if(name==='MYSTERY')throw Error('MYSTERY must not materialize XML');
+       const short=entry.romPath.slice(('ROMS/'+plat+'/').length);
+       const text=['  <game>','    <path>./'+xml(short)+'</path>',
+         '    <name>'+xml(game.title)+'</name>',
+         '    <desc>'+xml(game.description)+'</desc>',
+         '    <developer>'+xml(game.publisher)+'</developer>',
+         '    <genre>'+xml(game.genre)+'</genre>',
+         '    <releasedate>'+game.year+'0101T000000</releasedate>'];
+       for(const [kind,tag] of Object.entries({image:'image',thumbnail:'thumbnail',marquee:'marquee'})){
+         const rel=path.posix.relative('MEDIAS/'+plat+'/metadata',entry.media[kind].relativePath);
+         if(rel.startsWith('../../')||path.posix.isAbsolute(rel))throw Error('Media escaped platform');
+         text.push('    <'+tag+'>'+xml(rel)+'</'+tag+'>');
+       }
+       text.push('  </game>');
+       if(!xmlByPlatform.has(plat))xmlByPlatform.set(plat,[]);
+       xmlByPlatform.get(plat).push(text.join('\n'));
+     }
+     records.push({id:game.id,title:game.title,platform:plat,region:game.region,edition:game.edition,
+       romPath:entry.romPath,romExists:entry.romPresent,discs:entry.discPaths,
+       xmlEntryPresent:entry.xmlEntryPresent,duplicatePath:entry.duplicatePath||null,media:mediaRefs,
+       tags:entry.caseTags||[]});
+   }
+   for(const xmlPath of variant.xmlPaths){
       relative(xmlPath);
       const match=/^MEDIAS\/([a-z0-9_-]+)\/metadata\/es-de-gamelist\.xml$/.exec(xmlPath);
-      if(!match)throw Error('Unrecognized ES-DE XML destination');
-      const plat=match[1],rows=xmlByPlatform.get(plat)||[];
-      const folder=name==='CHAOS'?'  <folder><path>./vrac</path><name>Répertoire fictif</name></folder>\n':'';
-      add(name+'/'+xmlPath,'<?xml version="1.0" encoding="UTF-8"?>\n<gameList>\n'+folder+
-         rows.join('\n')+'\n</gameList>\n','esde-xml');
-    }
-    const generated=Array.from(plan.values()).filter(x=>x.path.startsWith(name+'/'))
-      .sort((a,b)=>a.path.localeCompare(b.path,'en'))
-      .map(x=>({path:x.path.slice(name.length+1),kind:x.kind,gameId:x.id,
-        byteLength:x.bytes.length,sha256:sha(x.bytes)}));
-    const romCount=generated.filter(x=>x.path.startsWith('ROMS/')).length;
-    const mediaCount=generated.filter(x=>x.kind.startsWith('media-')).length;
-    if(romCount!==orac.romsPhysicalFiles||
-       mediaCount!==orac.mediaFiles||
-       entries.filter(x=>x.xmlEntryPresent).length!==orac.esDeReferencedGames)
-      throw Error('Generated plans do not match DEV2 count oracle '+name);
-    const expectation={catalogueGameCount:30,esdeGameEntries:orac.esDeReferencedGames,
-      xmlImportSupported:name!=='MYSTERY',missingRomEntries:orac.missingXmlReferencedRom,
-      missingDiscMembers:orac.missingDiscMembers,missingMediaFiles:166-mediaCount,
-      duplicateCandidateFiles:0,observedFileCount:romCount,
-      availableGameRomCount:entries.filter(x=>x.romPresent).length,
-      mediaFiles:mediaCount,romsPhysicalFiles:romCount,
-      confirmedLogicalGames:null};
-    const manifest={schemaVersion:'demo-library-manifest/1',variant:name,synthetic:true,
-      sourceKind:'DEMO01_SYNTHETIC_NON_EXECUTABLE',
-      dev2Contract:{catalogueSha256:sha(bytes),scenariosSha256:sha(scenarioBytes),
-        oraclesSha256:sha(oracleBytes),referenceHead:'a821ac2b2e1c101425a5799efc460e8e2a02349a'},
-      expected:expectation,games:gameRows,files:generated};
-    const payload=Buffer.from(JSON.stringify(manifest,null,2)+'\n');
-    add(name+'/manifest.json',payload,'manifest');
-    summaries.push({name,manifestSha256:sha(payload),...expectation});
-  }
-  if(scenarioNames.size!==3)throw Error('All variants required');
-  fs.mkdirSync(output,{recursive:false});
-  for(const item of plan.values()){
-    const file=path.join(output,...item.path.split('/'));
-    fs.mkdirSync(path.dirname(file),{recursive:true});
-    fs.writeFileSync(file,item.bytes,{flag:'wx'});
-  }
-  fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify({
-    schemaVersion:'demo-library-root/1',synthetic:true,
-    catalogueSha256:sha(bytes),scenariosSha256:sha(scenarioBytes),
-    oraclesSha256:sha(oracleBytes),variants:summaries},null,2)+'\n',{flag:'wx'});
-  return {root:output,variants:summaries};
+      if(!match||!platforms.has(match[1]))throw Error('Unsafe ES-DE destination');
+      const entries=xmlByPlatform.get(match[1])||[];
+      const body='<?xml version="1.0" encoding="UTF-8"?>\n<gameList>\n'+
+        entries.join('\n')+'\n</gameList>\n';
+      add(name+'/'+xmlPath,body,'esde-xml');
+   }
+   const entries=Array.from(plan.values()).filter(x=>x.path.startsWith(name+'/'))
+     .sort((a,b)=>a.path.localeCompare(b.path,'en'))
+     .map(x=>({path:x.path.slice(name.length+1),kind:x.kind,gameId:x.id,
+       byteLength:x.bytes.length,sha256:sha(x.bytes)}));
+   const roms=entries.filter(x=>x.path.startsWith('ROMS/')).length;
+   const media=entries.filter(x=>x.kind.startsWith('media-')).length;
+   const xmlCount=records.filter(x=>x.xmlEntryPresent).length;
+   const oracle=oracles.counts[name];
+   if(!oracle||roms!==oracle.physicalRomFiles||media!==oracle.pngFiles||
+      xmlCount!==oracle.esDeGameEntries||
+      absentRomReferences!==oracle.missingMainRomReferences||
+      duplicateFiles!==oracle.duplicateCandidateFiles ||
+      roms!==variant.counts.physicalRomFiles||media!==variant.counts.pngFiles||
+      xmlCount!==variant.counts.esDeGameEntries)
+      throw Error('Generated plan disagrees with DEV2 oracle for '+name);
+   const expected={
+      catalogueGameCount:30,esdeGameEntries:xmlCount,xmlImportSupported:name!=='MYSTERY',
+      missingRomEntries:absentRomReferences,missingMediaFiles:180-media,
+      duplicateCandidateFiles:duplicateFiles,observedFileCount:roms,
+      availableGameRomCount:records.filter(x=>x.romExists).length,
+      mediaFiles:media,romsPhysicalFiles:roms,confirmedLogicalGames:null};
+   const manifest={schemaVersion:'demo-library-manifest/1',variant:name,synthetic:true,
+     sourceKind:'DEMO01_SYNTHETIC_NON_EXECUTABLE',
+     dev2Contract:{catalogueSha256:sha(catalogBytes),scenariosSha256:sha(scenariosBytes),
+       oraclesSha256:sha(oraclesBytes),referenceHead:'968d1f61420a5d0b70eb5160e9d57d505560f2b7'},
+     expected,games:records,files:entries};
+   const manifestBytes=Buffer.from(JSON.stringify(manifest,null,2)+'\n');
+   add(name+'/manifest.json',manifestBytes,'manifest');
+   outVariants.push({name,manifestSha256:sha(manifestBytes),...expected});
+ }
+ if(seenVariants.size!==3)throw Error('Missing variant');
+ fs.mkdirSync(output,{recursive:false});
+ for(const item of plan.values()){
+   const dest=path.join(output,...item.path.split('/'));
+   fs.mkdirSync(path.dirname(dest),{recursive:true});
+   fs.writeFileSync(dest,item.bytes,{flag:'wx'});
+ }
+ fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify({
+   schemaVersion:'demo-library-root/1',synthetic:true,catalogueSha256:sha(catalogBytes),
+   scenariosSha256:sha(scenariosBytes),oraclesSha256:sha(oraclesBytes),variants:outVariants
+ },null,2)+'\n',{flag:'wx'});
+ return {root:output,variants:outVariants};
 }
 function verify(root){
 if(!path.isAbsolute(root)||!fs.existsSync(root)||fs.lstatSync(root).isSymbolicLink())throw Error('Absolute generated root required');
