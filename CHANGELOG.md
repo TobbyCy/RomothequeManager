@@ -1,12 +1,12 @@
 # Journal des changements
 
+## DEMO-LIBRARY-01 — conception candidate DEV 2 (PR Draft #72, 28.10.2026)
+
+- Référentiel de **30 jeux fictifs** originaux et trois variantes `IDEAL`/`CHAOS`/`MYSTERY`, fichiers JSON de contrat et oracles sous `contracts/demo-library-01/` et guides sous `docs/architecture/` ; aucune ROM/BIOS, image, fixture XML, fonction d'interface ou Release livrée.
+- Les comptes et scénarios sont des **attendus de conception non exécutés** ; contrat en attente de `FORMAT_ACK` de DEV 1 dans [#70](https://github.com/TobbyCy/RomothequeManager/issues/70). Une CI verte de la PR ne vaudra pas test du catalogue dans l'application.
+
 Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
 
-
-## En cours — DEMO-LIBRARY-01 (DEV 1, PR Draft)
-
-- Préparation d'un générateur Node.js sans dépendance réseau pour 30 jeux fictifs en trois variantes IDEAL, CHAOS et MYSTERY ; PNG originaux locaux, fausses ROMs texte non exécutables, manifests SHA-256, contrôle de destination et tests MSTest synthétiques d'import, d'inventaire et de reproductibilité.
-- Catalogue et interfaces en revue DEV 2, suivi dans Produit #71 ; ne pas figer ni fusionner avant contre-revue. Aucun scan réel, fichier commercial, BIOS, suppression de donnée personnelle, upload ni Release.
 
 ## En cours — NEXT-02-INVENTORY / Issue #65 (PR Draft, fixtures exclusivement synthétiques)
 
@@ -131,3 +131,5 @@ Les notes ci-dessous sont **conservées comme historique de rédaction des sprin
 ## Convention
 
 Après chaque changement intégré, préciser le comportement, la compatibilité, les risques, les tests réellement exécutés et la référence de l'Issue ou PR de **ce produit**. Une version publiée nécessite un tag, des artefacts vérifiés et des notes de limites. Ne jamais annoncer un test non exécuté comme PASS.
+
+- **DEV 1 / PR Draft #73** : générateur de fichiers simulés et de vrais PNG originaux, directement basé sur les contrats DEV 2 de la PR #72 (catalogue, scénarios et oracles) ; tests MSTest et vérification de manifests sur racines temporaires exclusivement. Aucun merge, scan réel ni Release.
