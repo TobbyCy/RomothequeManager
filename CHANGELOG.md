@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-03 / Consolidation pré-raccordement MVVM (28.10.2026 — PR #86 Draft)
+
+- Protection contre un événement dispatcher obsolète du même contexte (Running reçu après Completed), confirmation retirée après refus de sélection, sélection/effacement bloqués pendant le scan et l'annulation.
+- États de preuve complets et tentatives nommés séparément, nul ≠ zéro sur Failed, message sans données, diagnostics (sévérité/code/portée), couverture statut/partition et provenance observation ; disposition des commandes adaptée à 760×480.
+- Tests supplémentaires exclusivement avec faux service/preview en mémoire et recette Windows préparée. Aucun scanner, donnée personnelle, vraie UI intégrée à Collection, fusion, maquette V2 ou Release.
+
+
 ## NEXT-03 / MVVM Avalonia — aperçu simulé (28.10.2026, Draft)
 
 Ajout d'une fenêtre Avalonia typée dédiée, picker natif de chemin sans scan, confirmation à usage unique, commandes ViewModel, chargement/annulation, états Complete/Partial/Failed/Offline/Stale et inspecteur Observation fictifs. InventoryPreviewService est un simulateur sans accès aux données et non un deuxième moteur. Tests ViewModel / service simulé ; contrats #82/#83 et intégration #75/#76/#77 toujours en attente. Aucune Release ni bibliothèque réelle.

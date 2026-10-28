@@ -55,7 +55,13 @@ public partial class InventoryPreviewWindow : Window
                     AllowMultiple = false
                 });
             var folder = folders.FirstOrDefault();
-            if (folder is null || !folder.Path.IsFile) return;
+            if (folder is null) return; // cancelling the picker preserves the prior root
+            if (!folder.Path.IsFile)
+            {
+                _vm.ReportPickerError();
+                return;
+            }
+            if (!_vm.CanChangeFolder) return; // selection completed after close/cancellation
             var path = folder.Path.LocalPath;
             // The VM delegates syntax validation to preview service, and DEV 1
             // will later own bounded preflight / fixture-only authority.
@@ -64,9 +70,14 @@ public partial class InventoryPreviewWindow : Window
         catch (Exception exception) when (exception is UnauthorizedAccessException or
             ArgumentException or IOException or InvalidOperationException)
         {
-            // Do not expose a private absolute path from exception messages.
-            // The only action on this dialog is to select; no scan has started.
+            // Do not expose the private absolute path from the exception.
+            _vm.ReportPickerError();
         }
+    }
+
+    private void ClearFolder_OnClick(object? sender, RoutedEventArgs e)
+    {
+        _vm.ClearSelection(); // the service rejects this during an active simulation
     }
 
     private void PreviewCase_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)

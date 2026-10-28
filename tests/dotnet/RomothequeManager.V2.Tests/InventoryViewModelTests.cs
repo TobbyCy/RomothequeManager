@@ -186,6 +186,135 @@ public sealed class InventoryViewModelTests
         Assert.IsFalse(vm.StartInventoryCommand.CanExecute(null));
     }
 
+    [TestMethod]
+    public async Task F09_QueuedRunningNotificationCannotOverwriteCompletedOnSameGeneration()
+    {
+        var fake = new FakeInventoryService();
+        var callbacks = new Queue<Action>();
+        using var vm = new InventoryViewModel(fake, action => callbacks.Enqueue(action));
+        vm.PrepareSelectedFolder(Scope());
+        vm.ConsentConfirmed = true;
+        var running = vm.StartConfirmedAsync();
+        var complete = Snapshot("queued", InventoryScanStatus.Complete, 1);
+        fake.Complete(complete, complete);
+        await running;
+        var phases = new List<InventoryRunPhase>();
+        vm.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(InventoryViewModel.Phase)) phases.Add(vm.Phase);
+        };
+        while (callbacks.Count > 0) callbacks.Dequeue()();
+        Assert.AreEqual(InventoryRunPhase.Completed, vm.Phase);
+        Assert.IsFalse(vm.IsBusy);
+        Assert.IsFalse(phases.Contains(InventoryRunPhase.Running),
+            "Obsolete queued Running notification must not repaint a finished scan");
+        Assert.AreSame(complete, vm.Current);
+    }
+
+    [TestMethod]
+    public void F10_RejectedNewFolderRevokesPreviousConsent()
+    {
+        var fake = new FakeInventoryService();
+        using var vm = new InventoryViewModel(fake, action => action());
+        vm.PrepareSelectedFolder(Scope());
+        vm.ConsentConfirmed = true;
+        Assert.IsTrue(vm.CanStart);
+        fake.RejectNextSelection = true;
+        var rejected = vm.PrepareSelectedFolder(Scope(@"C:\other-library"));
+        Assert.IsFalse(rejected.Accepted);
+        Assert.AreEqual(@"C:\fixture-synthetic", vm.SelectedLocalRoot);
+        Assert.IsFalse(vm.ConsentConfirmed);
+        Assert.IsFalse(vm.CanStart);
+        Assert.IsTrue(vm.StatusMessage.Contains("ROOT_REJECTED", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task F11_ChangingFolderBlockedUntilCancellationHasFinished()
+    {
+        var fake = new FakeInventoryService();
+        using var vm = new InventoryViewModel(fake, action => action());
+        vm.PrepareSelectedFolder(Scope());
+        vm.ConsentConfirmed = true;
+        var pending = vm.StartConfirmedAsync();
+        Assert.IsFalse(vm.CanChangeFolder);
+        Assert.IsFalse(vm.PrepareSelectedFolder(Scope(@"C:\other-library")).Accepted);
+        Assert.IsFalse(vm.ClearSelection());
+        Assert.AreEqual(1, fake.PrepareCalls);
+        Assert.IsTrue(vm.RequestCancellation());
+        Assert.IsFalse(vm.PrepareSelectedFolder(Scope(@"C:\other-library")).Accepted);
+        var partial = Snapshot("cancel", InventoryScanStatus.Partial, 1);
+        fake.Complete(null, partial);
+        await pending;
+        Assert.IsTrue(vm.CanChangeFolder);
+        Assert.IsTrue(vm.PrepareSelectedFolder(Scope(@"C:\other-library")).Accepted);
+        Assert.IsNull(vm.DisplayedSnapshot);
+        Assert.IsFalse(vm.ConsentConfirmed);
+        Assert.AreEqual(@"C:\other-library", vm.SelectedLocalRoot);
+    }
+
+    [TestMethod]
+    public async Task F12_FailedAttemptDoesNotHideFailureBehindPriorComplete()
+    {
+        var fake = new FakeInventoryService();
+        using var vm = new InventoryViewModel(fake, action => action());
+        vm.PrepareSelectedFolder(Scope());
+        vm.ConsentConfirmed = true;
+        var first = vm.StartConfirmedAsync();
+        var complete = Snapshot("last-complete", InventoryScanStatus.Complete, 1);
+        fake.Complete(complete, complete);
+        await first;
+        vm.ConsentConfirmed = true;
+        var second = vm.StartConfirmedAsync();
+        var failed = Snapshot("failed", InventoryScanStatus.Failed, 0);
+        fake.Complete(complete, failed);
+        await second;
+        Assert.AreSame(complete, vm.DisplayedSnapshot);
+        Assert.IsTrue(vm.LatestAttemptText.Contains("Failed", StringComparison.Ordinal));
+        Assert.IsTrue(vm.DisplayedGenerationText.Contains("complet", StringComparison.Ordinal));
+        vm.ShowAttempt();
+        Assert.AreSame(failed, vm.DisplayedSnapshot);
+        Assert.AreEqual("Fichiers observés : Inconnu", vm.ObservedFilesText);
+        Assert.IsTrue(vm.EmptyObservationsText.Contains("Lecture impossible", StringComparison.Ordinal));
+        Assert.IsTrue(vm.TotalFilesText.Contains("Inconnu", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void F13_EmptyStateAndClearSelectionAreExplicit()
+    {
+        var fake = new FakeInventoryService();
+        using var vm = new InventoryViewModel(fake, action => action());
+        Assert.AreEqual(0, vm.Observations.Count);
+        Assert.IsTrue(vm.EmptyObservationsText.Contains("Aucun inventaire", StringComparison.Ordinal));
+        vm.PrepareSelectedFolder(Scope());
+        vm.ConsentConfirmed = true;
+        Assert.IsTrue(vm.ClearSelection());
+        Assert.IsFalse(vm.ConsentConfirmed);
+        Assert.IsNull(vm.SelectedLocalRoot);
+        Assert.IsFalse(vm.CanStart);
+        Assert.AreEqual(InventoryRunPhase.NoSelection, vm.Phase);
+    }
+
+    [TestMethod]
+    public void F14_SelectionsAndSnapshotUpdatesNotifyBoundProperties()
+    {
+        var fake = new FakeInventoryService();
+        using var vm = new InventoryViewModel(fake, action => action());
+        var raised = new HashSet<string>();
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is not null) raised.Add(e.PropertyName);
+        };
+        vm.PrepareSelectedFolder(Scope());
+        Assert.IsTrue(raised.Contains(nameof(vm.SelectedLocalRoot)));
+        Assert.IsTrue(raised.Contains(nameof(vm.EmptyObservationsText)));
+        Assert.IsTrue(raised.Contains(nameof(vm.LatestAttemptText)));
+        Assert.IsTrue(raised.Contains(nameof(vm.CanStart)));
+        raised.Clear();
+        vm.ReportPickerError();
+        Assert.IsTrue(raised.Contains(nameof(vm.StatusMessage)));
+        Assert.IsTrue(vm.StatusMessage.Contains("FOLDER_PICKER_UNAVAILABLE", StringComparison.Ordinal));
+    }
+
     private static InventorySnapshot Snapshot(string name, InventoryScanStatus scanStatus, int count)
     {
         var now = DateTimeOffset.UtcNow;

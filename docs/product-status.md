@@ -1,5 +1,10 @@
 # État des fonctionnalités
 
+## NEXT-03 — MVVM consolidation DEV 3 (Draft #86, non intégrée)
+
+Le ViewModel distingue les notifications hors ordre et les générations, révoque la confirmation après un essai de changement de source, bloque les nouveaux dossiers pendant l'annulation, et affiche des générations `Current`/`LastAttempt` distinctes, y compris lorsque le dernier essai est Failed. Les listes vides et les totaux indisponibles restent **Inconnu**. Les bindings Avalonia montrent les provenances, diagnostics et statuts ROMS fictifs. **Toujours une simulation en mémoire sans accès à ROM ni service DEV 1 raccordé**. Recette Windows physique et P1 #82 non exécutées ; [détails et critères](ux/next03-mvvm-implementation.md). Aucun merge, Release ou accès personnel.
+
+
 ## NEXT-03 / Avalonia MVVM — aperçu simulé (PR Draft, non livré)
 
 Fenêtre MVVM accessible dans Bibliothèques, sélecteur de chemin sans lecture de dossier, confirmation distincte et simulation en mémoire des états, couverture, observations et diagnostics. Aucun appel à InventorySession ni bibliothèque personnelle ; les données affichées sont marquées SIMULATION. Code source historique inchangé hors ajout du bouton dans Bibliothèques ; import ES-DE indépendant. Voir [recette de prévisualisation](ux/next03-mvvm-implementation.md). Attente de #75/#76/#77 et du vrai service DEV 1 #83, sans GO de fusion ni Release.

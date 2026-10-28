@@ -8,7 +8,7 @@
         Title="ROMothèque Manager · NEXT-03 MVVM · SIMULATION"
         Width="1120" Height="720" MinWidth="760" MinHeight="480"
         Background="#16181D" Foreground="#E8E6E3">
-  <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+  <ScrollViewer x:Name="PreviewScroll" HorizontalScrollBarVisibility="Disabled"
                 VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="20" Spacing="12">
       <Image x:Name="BrandImage" Width="230" Height="66"
@@ -24,12 +24,18 @@
       <Border Background="#23262B" CornerRadius="8" Padding="15">
         <StackPanel Spacing="9">
           <TextBlock Text="1 · Choisir un dossier (sélection seule, aucune analyse)" FontWeight="Bold" FontSize="18" TextWrapping="Wrap" />
-          <Button Content="Choisir un dossier local…" Click="ChooseFolder_OnClick"
-                  IsEnabled="{Binding CanChangeFolder}" MinHeight="40" />
+          <WrapPanel>
+            <Button x:Name="ChooseFolderButton" Content="Choisir un dossier local…"
+                    Click="ChooseFolder_OnClick" IsEnabled="{Binding CanChangeFolder}"
+                    MinHeight="40" Margin="0,0,8,4" />
+            <Button x:Name="ClearFolderButton" Content="Effacer la sélection"
+                    Click="ClearFolder_OnClick" IsEnabled="{Binding CanChangeFolder}"
+                    MinHeight="40" Margin="0,0,8,4" />
+          </WrapPanel>
           <TextBlock Text="{Binding SelectedLocalRoot, FallbackValue='Aucun dossier choisi'}"
                      TextWrapping="Wrap" />
           <TextBlock Text="Portée future : ROMS/ uniquement · noms, extensions, tailles, dates, playlists .m3u bornées · aucune écriture." TextWrapping="Wrap" />
-          <TextBlock Text="Préflight limité à la sélection et scan réel : DÉSACTIVÉS dans ce simulateur." TextWrapping="Wrap" />
+          <TextBlock Text="Préflight limité à la sélection et scan réel : DÉSACTIVÉS dans ce simulateur. Pendant une simulation, Annuler puis attendre son arrêt avant de changer de dossier." TextWrapping="Wrap" />
           <TextBlock Text="2 · Choisir l'état à visualiser" FontWeight="Bold" FontSize="18" TextWrapping="Wrap" />
           <ComboBox x:Name="PreviewCase" SelectionChanged="PreviewCase_OnSelectionChanged"
                     IsEnabled="{Binding CanChangeFolder}" SelectedIndex="0">
@@ -40,42 +46,50 @@
             <ComboBoxItem Content="Stale — preuve simulée obsolète" />
           </ComboBox>
           <TextBlock Text="3 · Confirmation distincte de la sélection" FontWeight="Bold" FontSize="18" TextWrapping="Wrap" />
-          <CheckBox Content="Je confirme le lancement d’une SIMULATION (aucune lecture du dossier)"
+          <CheckBox x:Name="ConsentCheckBox" Content="Je confirme le lancement d’une SIMULATION (aucune lecture du dossier)"
                     IsChecked="{Binding ConsentConfirmed, Mode=TwoWay}"
                     IsEnabled="{Binding CanChangeFolder}" />
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <Button Content="Simuler l'inventaire" Command="{Binding StartInventoryCommand}" MinHeight="40"/>
-            <Button Content="Annuler" Command="{Binding CancelInventoryCommand}" MinHeight="40"/>
-          </StackPanel>
+          <WrapPanel>
+            <Button x:Name="StartSimulationButton" Content="Simuler l'inventaire"
+                    Command="{Binding StartInventoryCommand}" Margin="0,0,10,4" MinHeight="40"/>
+            <Button x:Name="CancelSimulationButton" Content="Annuler"
+                    Command="{Binding CancelInventoryCommand}" Margin="0,0,10,4" MinHeight="40"/>
+          </WrapPanel>
           <ProgressBar Height="7" Minimum="0" Maximum="100"
                        IsVisible="{Binding IsBusy}"
                        IsIndeterminate="{Binding IsProgressIndeterminate}" />
-          <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+          <TextBlock x:Name="InventoryStatusText" Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+          <TextBlock Text="Clavier : Tab/Shift+Tab pour naviguer, Entrée/Espace pour activer, flèches pour sélectionner une observation. La fenêtre est défilante à 760×480." TextWrapping="Wrap" />
         </StackPanel>
       </Border>
       <Border Background="#23262B" CornerRadius="8" Padding="15">
         <StackPanel Spacing="8">
           <TextBlock FontSize="18" FontWeight="Bold" Text="4 · Résultats simulés / couverture" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Dernier complet" Command="{Binding ShowLastCompleteCommand}"/>
-            <Button Content="Dernière tentative" Command="{Binding ShowLastAttemptCommand}"/>
-          </StackPanel>
+          <WrapPanel>
+            <Button Content="Dernier complet" Command="{Binding ShowLastCompleteCommand}" Margin="0,0,8,4"/>
+            <Button Content="Dernière tentative" Command="{Binding ShowLastAttemptCommand}" Margin="0,0,8,4"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding LatestAttemptText}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding DisplayedGenerationText}" FontWeight="Bold" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding ScanStatusText}" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding ObservedFilesText}" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding TotalFilesText}" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding IdentifiedGamesText}" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding SourceLabel}" TextWrapping="Wrap"/>
-          <StackPanel Orientation="Horizontal" Spacing="16">
-            <TextBlock Text="Disponibilité :"/>
-            <TextBlock Text="{Binding AvailabilityText}"/>
-            <TextBlock Text="Fraîcheur :"/>
-            <TextBlock Text="{Binding FreshnessText}"/>
-          </StackPanel>
+          <WrapPanel>
+            <TextBlock Text="Disponibilité : " Margin="0,0,5,4"/>
+            <TextBlock Text="{Binding AvailabilityText}" Margin="0,0,20,4"/>
+            <TextBlock Text="Fraîcheur : " Margin="0,0,5,4"/>
+            <TextBlock Text="{Binding FreshnessText}" Margin="0,0,8,4"/>
+          </WrapPanel>
           <TextBlock Text="Portées réellement couvertes PAR LA SIMULATION :" TextWrapping="Wrap"/>
           <ItemsControl ItemsSource="{Binding Coverage}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="inv:InventoryCoverage">
-                <TextBlock Text="{Binding PartitionKey}" Margin="0,2" />
+                <WrapPanel Margin="0,2">
+                  <TextBlock Text="{Binding PartitionKey}" Margin="0,0,14,0"/>
+                  <TextBlock Text="{Binding Status}"/>
+                </WrapPanel>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
@@ -84,7 +98,8 @@
       <Border Background="#23262B" CornerRadius="8" Padding="15">
         <StackPanel Spacing="8">
           <TextBlock FontWeight="Bold" FontSize="18" Text="Collection / Fichiers observés — SIMULATION" TextWrapping="Wrap" />
-          <ListBox ItemsSource="{Binding Observations}"
+          <TextBlock Text="{Binding EmptyObservationsText}" TextWrapping="Wrap"/>
+          <ListBox x:Name="ObservationList" ItemsSource="{Binding Observations}"
                    SelectedItem="{Binding SelectedObservation, Mode=TwoWay}"
                    MinHeight="90" MaxHeight="230">
             <ListBox.ItemTemplate>
@@ -98,6 +113,14 @@
           </ListBox>
           <TextBlock Text="Observation sélectionnée · chemin relatif :" FontWeight="Bold" />
           <TextBlock Text="{Binding SelectedObservation.RelativePath, FallbackValue='Aucune observation sélectionnée'}" TextWrapping="Wrap"/>
+          <WrapPanel>
+            <TextBlock Text="Type : " Margin="0,0,4,4"/>
+            <TextBlock Text="{Binding SelectedObservation.Kind}" Margin="0,0,12,4"/>
+            <TextBlock Text="Plateforme : " Margin="0,0,4,4"/>
+            <TextBlock Text="{Binding SelectedObservation.PlatformKey}" Margin="0,0,12,4"/>
+            <TextBlock Text="Provenance : " Margin="0,0,4,4"/>
+            <TextBlock Text="{Binding SelectedObservation.SourceKind}" Margin="0,0,8,4"/>
+          </WrapPanel>
           <TextBlock Text="Aucune fiche jeu, correspondance ES-DE, action de copie, dédoublonnage ou suppression n’est proposée." TextWrapping="Wrap"/>
         </StackPanel>
       </Border>
@@ -107,8 +130,12 @@
           <ItemsControl ItemsSource="{Binding Diagnostics}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="inv:InventoryDiagnostic">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <TextBlock Text="{Binding Code}"/>
+                <StackPanel Spacing="2" Margin="0,3">
+                  <WrapPanel>
+                    <TextBlock Text="{Binding Severity}" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding Code}" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding ScopeRef}" Margin="0,0,8,0"/>
+                  </WrapPanel>
                   <TextBlock Text="{Binding Reason}" TextWrapping="Wrap"/>
                 </StackPanel>
               </DataTemplate>

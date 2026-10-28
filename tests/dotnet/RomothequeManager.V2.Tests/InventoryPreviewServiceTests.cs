@@ -70,6 +70,58 @@ public sealed class InventoryPreviewServiceTests
     }
 
     [TestMethod]
+    public async Task P05_DifferentLibraryMustWaitForCancelledSimulation()
+    {
+        await using var service = new InventoryPreviewService();
+        var first = service.PrepareSelection(new InventoryScope(UncreatedPath));
+        var running = service.StartConfirmedScanAsync(new(first.SelectionVersion, true));
+        var rejected = service.PrepareSelection(new InventoryScope(@"C:\UNCREATED_OTHER_UI_ONLY"));
+        Assert.IsFalse(rejected.Accepted);
+        Assert.AreEqual("SIMULATION_BUSY", rejected.SafeDiagnosticCode);
+        Assert.AreEqual(UncreatedPath, service.State.SelectedLocalRoot);
+        Assert.IsTrue(service.RequestCancellation());
+        Assert.IsFalse(service.ClearSelection());
+        var completed = await running;
+        Assert.AreEqual(InventoryScanStatus.Partial, completed.LastAttempt?.ScanStatus);
+        var second = service.PrepareSelection(new InventoryScope(@"C:\UNCREATED_OTHER_UI_ONLY"));
+        Assert.IsTrue(second.Accepted);
+        Assert.IsTrue(second.SelectionVersion > first.SelectionVersion);
+        Assert.IsNull(service.State.LastAttempt);
+        Assert.IsNull(service.State.Current);
+        Assert.AreEqual(@"C:\UNCREATED_OTHER_UI_ONLY", service.State.SelectedLocalRoot);
+    }
+
+    [TestMethod]
+    public async Task P06_RejectsNetworkAndObsoleteConsentVersionsWithoutDiskReads()
+    {
+        await using var service = new InventoryPreviewService();
+        var refused = service.PrepareSelection(new InventoryScope(@"\\remote\share"));
+        Assert.IsFalse(refused.Accepted);
+        Assert.AreEqual(InventoryRunPhase.NoSelection, service.State.Phase);
+        var first = service.PrepareSelection(new InventoryScope(UncreatedPath));
+        Assert.IsTrue(first.Accepted);
+        var second = service.PrepareSelection(new InventoryScope(@"C:\UNCREATED_OTHER_UI_ONLY"));
+        Assert.IsTrue(second.Accepted);
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+            await service.StartConfirmedScanAsync(new(first.SelectionVersion, true)));
+        Assert.AreEqual(InventoryRunPhase.Ready, service.State.Phase);
+        Assert.IsNull(service.State.LastAttempt);
+    }
+
+    [TestMethod]
+    public async Task P07_FailedPreviewHasUnknownTotalAndSimulationProvenance()
+    {
+        await using var service = new InventoryPreviewService();
+        var selected = service.PrepareSelection(new InventoryScope(UncreatedPath));
+        Assert.IsTrue(service.SelectPreviewOutcome(InventoryPreviewOutcome.Failed));
+        var ended = await service.StartConfirmedScanAsync(new(selected.SelectionVersion, true));
+        Assert.AreEqual(InventoryScanStatus.Failed, ended.LastAttempt?.ScanStatus);
+        Assert.IsNull(ended.LastAttempt?.TotalFileCount);
+        Assert.IsNull(ended.LastAttempt?.ConfirmedGameCount);
+        Assert.AreEqual("NEXT03_UI_SIMULATION", ended.LastAttempt?.Diagnostics.Single().SourceKind);
+    }
+
+    [TestMethod]
     public void P04_ViewModelHasNoAvaloniaReferencesOrScanner()
     {
         var vmType = typeof(InventoryViewModel);

@@ -67,9 +67,10 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
             _start.NotifyCanExecuteChanged();
         }
     }
-    public bool CanStart => !_disposed && _consentConfirmed && !IsBusy && !string.IsNullOrWhiteSpace(SelectedLocalRoot) &&
-        Phase is InventoryRunPhase.Ready or InventoryRunPhase.Completed or
-            InventoryRunPhase.Rejected or InventoryRunPhase.Faulted;
+    public bool CanStart => !_disposed && _consentConfirmed && !IsBusy &&
+        !string.IsNullOrWhiteSpace(SelectedLocalRoot) &&
+        (Phase is InventoryRunPhase.Ready or InventoryRunPhase.Completed or
+            InventoryRunPhase.Rejected or InventoryRunPhase.Faulted);
     public bool CanCancel => !_disposed && Phase == InventoryRunPhase.Running;
     public bool IsProgressIndeterminate => IsBusy && _state.ProgressIsIndeterminate;
     public InventorySnapshot? Current => _state.Current;
@@ -95,8 +96,24 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
             Changed();
         }
     }
-    public string SourceLabel => DisplayedSnapshot?.Observations.FirstOrDefault()?.SourceKind ?? "Non observé";
-    public string ObservedFilesText => DisplayedSnapshot is null
+    public string SourceLabel => DisplayedSnapshot?.Observations.FirstOrDefault()?.SourceKind ??
+        DisplayedSnapshot?.Diagnostics.FirstOrDefault()?.SourceKind ?? "Non observé";
+    public string DisplayedGenerationText => DisplayedSnapshot is null ? "Aucune génération disponible" :
+        ShowingLastAttempt || Current is null ? "Dernière tentative (historique)" :
+        "Dernier inventaire complet (historique)";
+    public string LatestAttemptText => LastAttempt is null
+        ? "Dernière tentative : aucune"
+        : "Dernière tentative : " + LastAttempt.ScanStatus + " · " +
+            LastAttempt.CapturedAtUtc.ToString("u") + " · ROMS uniquement";
+    public string EmptyObservationsText => Observations.Count == 0
+        ? DisplayedSnapshot is null ? "Aucun inventaire disponible. Aucune donnée n'a été observée." :
+            DisplayedSnapshot.ScanStatus == InventoryScanStatus.Failed
+                ? "Lecture impossible : aucun total de fichiers établi."
+                : "Aucune observation dans cette génération (la couverture reste à vérifier)."
+        : "";
+    public string ObservedFilesText => DisplayedSnapshot is null ||
+        (DisplayedSnapshot.ScanStatus == InventoryScanStatus.Failed &&
+         DisplayedSnapshot.ObservedFileCount == 0)
         ? "Fichiers observés : Inconnu"
         : "Fichiers observés : " + DisplayedSnapshot.ObservedFileCount;
     public string TotalFilesText => DisplayedSnapshot?.ScanStatus == InventoryScanStatus.Complete &&
@@ -115,6 +132,8 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         DisplayedSnapshot is null ? "Non vérifiée" : DisplayedSnapshot.Freshness.ToString();
     public string StatusMessage => _localErrorCode is not null
         ? "Sélection ou opération refusée : " + _localErrorCode
+        : _state.SafeDiagnosticCode is not null
+            ? "Diagnostic du service : " + _state.SafeDiagnosticCode
         : Phase switch
         {
             InventoryRunPhase.NoSelection => "Choisir une bibliothèque locale, sans scan automatique.",
@@ -131,8 +150,9 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     // without enumerating ROMS until separate consent. Reject preserves previous selection.
     public InventorySelectionResult PrepareSelectedFolder(InventoryScope scope)
     {
+        ArgumentNullException.ThrowIfNull(scope);
         if (!CanChangeFolder)
-            return new(false, "SCAN_RUNNING", _latestVersion);
+            return new(false, "SCAN_RUNNING_OR_CLOSED", _latestVersion);
         var result = _service.PrepareSelection(scope);
         if (result.Accepted)
         {
@@ -145,6 +165,9 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         }
         else
         {
+            // A rejected choice preserves the previous library but must never
+            // preserve a confirmation that could now target the wrong folder.
+            _consentConfirmed = false;
             _localErrorCode = result.SafeDiagnosticCode ?? "SELECTION_REJECTED";
             NotifyAll();
         }
@@ -188,6 +211,24 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         return accepted;
     }
 
+    // A picker cancel does not call this. Explicitly clearing is forbidden during a
+    // scan, even when cancellation has been requested; the service owns that gate.
+    public bool ClearSelection()
+    {
+        if (!CanChangeFolder || !_service.ClearSelection()) return false;
+        _consentConfirmed = false;
+        _localErrorCode = null;
+        ApplyIfCurrent(_service.State);
+        return true;
+    }
+
+    public void ReportPickerError()
+    {
+        if (_disposed) return;
+        _localErrorCode = "FOLDER_PICKER_UNAVAILABLE";
+        NotifyAll();
+    }
+
     public void ShowComplete()
     {
         if (Current is null) return;
@@ -216,7 +257,11 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
 
     private void ApplyIfCurrent(InventoryApplicationState state)
     {
-        if (_disposed || state.SelectionVersion < _latestVersion) return;
+        // Queued dispatcher notifications may arrive after cancellation, completion
+        // or a library switch *with the same selection version*. Only the service's
+        // CURRENT immutable state is eligible; never restore an older Running frame.
+        if (_disposed || state.SelectionVersion < _latestVersion ||
+            !ReferenceEquals(state, _service.State)) return;
         _latestVersion = state.SelectionVersion;
         Apply(state);
     }
@@ -248,7 +293,8 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
             nameof(IsProgressIndeterminate), nameof(Current), nameof(LastAttempt),
             nameof(ShowingLastAttempt), nameof(DisplayedSnapshot), nameof(Observations),
             nameof(Diagnostics), nameof(Coverage), nameof(SelectedObservation),
-            nameof(SourceLabel), nameof(ObservedFilesText), nameof(TotalFilesText),
+            nameof(SourceLabel), nameof(DisplayedGenerationText), nameof(LatestAttemptText),
+            nameof(EmptyObservationsText), nameof(ObservedFilesText), nameof(TotalFilesText),
             nameof(IdentifiedGamesText), nameof(ScanStatusText),
             nameof(AvailabilityText), nameof(FreshnessText), nameof(StatusMessage)
         })
