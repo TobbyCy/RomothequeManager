@@ -56,8 +56,8 @@ public sealed class InventoryReaderTests
         Put("ROMS/gba/known.GBA");
         Put("ROMS/mystery/unknown.gba");
         var result = new InventorySession(Scope()).Scan();
-        Assert.AreEqual("gba", result.Observations.Single(x => x.RelativePath.Contains("known")).PlatformKey);
-        Assert.AreEqual("UNKNOWN", result.Observations.Single(x => x.RelativePath.Contains("unknown")).PlatformKey);
+        Assert.AreEqual("gba", result.Observations.Single(x => x.RelativePath.EndsWith("/known.GBA", StringComparison.Ordinal)).PlatformKey);
+        Assert.AreEqual("UNKNOWN", result.Observations.Single(x => x.RelativePath.EndsWith("/unknown.gba", StringComparison.Ordinal)).PlatformKey);
         Assert.IsTrue(result.Diagnostics.Any(d => d.Code == "UNKNOWN_PLATFORM"));
     }
 
