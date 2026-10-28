@@ -1,5 +1,13 @@
 # Journal des changements
 
+## Vérification de packaging de recette — NEXT-01-UX (28 octobre 2026)
+
+- Workflow GitHub Actions [#40689889760](https://github.com/TobbyCy/RomothequeManager/actions/runs/40689889760) : ZIP autonome corrigé figé sur `e775cdd64522d45ee2fb848df232fa1f19023326` et [artifact #12816457518](https://github.com/TobbyCy/RomothequeManager/actions/runs/40689889760/artifacts/12816457518). Le ZIP applicatif pèse **75 362 552 octets** et son SHA-256 vérifié indépendamment est **`fe6a4d59adfae5ea171c229838d17fdeef4bd23a41e03924d2e5a93f6c407364`** ; manifeste embarqué et 62 tests .NET PASS.
+- Exécutable extrait : PE Windows GUI (subsystem 2), smoke PASS. **Tobby doit encore tester en double-cliquant le .exe** et en lisant les diagnostics ES-DE de la fixture ; les tests ne simulent pas le geste dans Explorer.
+- Après une intégration concurrente sur `main`, la référence de base de la PR #64 a été rafraîchie pour éliminer un échec de politique `MERGE_PARENTS_INVALID` lié au décalage d'historique. Politique maintenue inchangée, nouveau passage CI requis pour qualifier l'ensemble.
+- Aucun merge de PR, aucune Release, aucun scan ni modification d'une ROMothèque réelle.
+
+
 ## En cours — NEXT-01-UX / ZIP corrigé WinExe (28 octobre 2026)
 
 - Recette UX-ARTIFACT-CI désormais **figée sur le source correctif `e775cdd64522d45ee2fb848df232fa1f19023326`**, et non plus l'ancien SHA `cc35abf7`. Les garde-fous PR #64 / acteur propriétaire / droits read-only / fixture fictive restent intacts.
