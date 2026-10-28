@@ -79,6 +79,8 @@ public sealed class InventoryApplicationServiceTests
         var unconfirmed = await service.StartConfirmedScanAsync(
             new InventoryRunRequest(selected.SelectionVersion, false));
         Require(unconfirmed.Phase == InventoryRunPhase.Rejected &&
+                service.State.Phase == InventoryRunPhase.Rejected &&
+                service.State.SafeDiagnosticCode == "CONSENT_OR_SELECTION_REQUIRED" &&
                 service.State.LastAttempt is null, variant + "_CONSENT_BYPASS");
 
         var result = await service.StartConfirmedScanAsync(
@@ -140,6 +142,9 @@ public sealed class InventoryApplicationServiceTests
             new InventoryRunRequest(selection.SelectionVersion, true));
         Require(complete.Current?.ScanStatus == InventoryScanStatus.Complete,
             "CANCEL_BASELINE_NOT_COMPLETE");
+        Require(!service.RequestCancellation() &&
+                service.State.LastAttempt?.ScanStatus == InventoryScanStatus.Complete,
+            "LATE_CANCELLATION_DOWNGRADED_COMPLETE");
         firstCompleted = true;
         var cancelled = await service.StartConfirmedScanAsync(
             new InventoryRunRequest(selection.SelectionVersion, true));
@@ -181,7 +186,8 @@ public sealed class InventoryApplicationServiceTests
             var second = await service.StartConfirmedScanAsync(
                 new InventoryRunRequest(selection.SelectionVersion, true));
             Require(second.Phase == InventoryRunPhase.Rejected &&
-                    second.SafeDiagnosticCode == "SCAN_ALREADY_RUNNING",
+                    second.SafeDiagnosticCode == "SCAN_ALREADY_RUNNING" &&
+                    service.State.Phase == InventoryRunPhase.Running,
                 "CONCURRENT_SCAN_NOT_REJECTED");
             Require(!service.ClearSelection(), "RUNNING_SCOPE_CLEARED");
             Require(!service.PrepareSelection(new InventoryScope(root, aliases)).Accepted,
@@ -204,10 +210,17 @@ public sealed class InventoryApplicationServiceTests
         await using var service = new InventoryApplicationService();
         var selection = service.PrepareSelection(new InventoryScope(root, aliases));
         Require(selection.Accepted, "DEFAULT_PREFLIGHT_FAILED");
+        var notifications = new List<InventoryApplicationState>();
+        service.StateChanged += (_, state) => notifications.Add(state);
         var result = await service.StartConfirmedScanAsync(
             new InventoryRunRequest(selection.SelectionVersion, true));
+        Require(notifications.Count == 1 &&
+                ReferenceEquals(notifications[0], service.State),
+            "DEFAULT_HOLD_EVENT_NOT_PUBLISHED");
         Require(result.Phase == InventoryRunPhase.Rejected &&
                 result.SafeDiagnosticCode == "REAL_LIBRARY_SCAN_HOLD" &&
+                service.State.Phase == InventoryRunPhase.Rejected &&
+                service.State.SafeDiagnosticCode == "REAL_LIBRARY_SCAN_HOLD" &&
                 service.State.LastAttempt is null,
             "DEFAULT_REAL_SCAN_HOLD_BYPASSED");
         Console.WriteLine("NEXT03_REAL_SCAN_HOLD_PASS publicConstructor=DENY");
