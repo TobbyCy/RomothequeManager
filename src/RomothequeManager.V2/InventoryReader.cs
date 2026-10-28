@@ -1,7 +1,10 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
+
+[assembly: InternalsVisibleTo("RomothequeManager.V2.Tests")]
 
 namespace RomothequeManager.V2.Inventory;
 
@@ -21,7 +24,11 @@ public sealed record InventoryScope(
     int MaxDirectories = 10000,
     int MaxPlaylistBytes = 32768,
     int MaxPlaylistLines = 256,
-    TimeSpan? TimeLimit = null);
+    TimeSpan? TimeLimit = null)
+{
+    // Test-only deterministic cancellation seam, not exposed as a public inventory API.
+    internal Action<int>? PlaylistChunkObserved { get; init; }
+}
 
 public sealed record FileObservation(
     string ObservationId, string LocationKey, string PlatformKey, string RelativePath,
@@ -331,6 +338,13 @@ internal static class InventoryReader
                                 playlists.Add(ReadPlaylist(entry, romRoot, observation.LocationKey,
                                     scope, token, Diagnostic, () => partial = true));
                         }
+                        catch (OperationCanceledException) when (token.IsCancellationRequested)
+                        {
+                            partial = true;
+                            stop = true;
+                            Diagnostic("CANCELLED", InventorySeverity.Warning, relative,
+                                "Scan cancelled during file or playlist reading.");
+                        }
                         catch (Exception e) when (IsExpectedIo(e))
                         {
                             partial = true;
@@ -362,27 +376,52 @@ internal static class InventoryReader
     {
         var members = new List<InventoryPlaylistMember>();
         var relative = Normalize(Path.GetRelativePath(romRoot, file));
-        var info = new FileInfo(file);
-        if (info.Length > scope.MaxPlaylistBytes)
-        {
-            diagnostic("PLAYLIST_LIMIT", InventorySeverity.Warning, relative, "Playlist exceeds byte limit.");
-            markPartial();
-            return new(location, members);
-        }
-        // This text-only read is bounded and re-checks symlinks immediately before opening.
+
+        // A preliminary size check is just an optimization, never the read bound.
+        // Keep the handle read-only and deny concurrent writers while it is open.
+        // Revalidate the path after opening; residual rename/reparse races still require
+        // a separate Windows security review before any real SSD scan is authorized.
         if (IsReparse(file))
         {
-            diagnostic("LINK_SKIPPED", InventorySeverity.Warning, relative, "Playlist changed to a link.");
+            diagnostic("LINK_SKIPPED", InventorySeverity.Warning, relative, "Playlist is a reparse point.");
             markPartial();
             return new(location, members);
         }
-        var lines = File.ReadAllLines(file);
-        if (lines.Length > scope.MaxPlaylistLines)
+        token.ThrowIfCancellationRequested();
+        using var handle = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (IsReparse(file))
         {
-            diagnostic("PLAYLIST_LIMIT", InventorySeverity.Warning, relative, "Playlist exceeds line limit.");
+            diagnostic("LINK_SKIPPED", InventorySeverity.Warning, relative,
+                "Playlist was replaced by a reparse point during opening.");
             markPartial();
             return new(location, members);
         }
+
+        byte[] bytes;
+        try
+        {
+            // Bound actual bytes read, not FileInfo.Length observed before opening.
+            bytes = ReadBoundedPlaylistBytes(handle, scope.MaxPlaylistBytes,
+                scope.MaxPlaylistLines, token, scope.PlaylistChunkObserved);
+        }
+        catch (InvalidDataException)
+        {
+            diagnostic("PLAYLIST_LIMIT", InventorySeverity.Warning, relative,
+                "Playlist byte/line limit or invalid UTF-8 reached during reading.");
+            markPartial();
+            return new(location, members);
+        }
+
+        // Strict UTF-8, no environment-dependent locale decoding of untrusted text.
+        string text;
+        try { text = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true).GetString(bytes); }
+        catch (DecoderFallbackException)
+        {
+            diagnostic("PLAYLIST_LIMIT", InventorySeverity.Warning, relative, "Playlist has invalid UTF-8.");
+            markPartial();
+            return new(location, members);
+        }
+        var lines = text.TrimStart('\uFEFF').Split('\n');
         foreach (var raw in lines)
         {
             token.ThrowIfCancellationRequested();
@@ -412,6 +451,42 @@ internal static class InventoryReader
             members.Add(new(Normalize(Path.GetRelativePath(romRoot, resolved)), exists));
         }
         return new(location, members);
+    }
+
+    // Internal testable core; the source stream can grow despite a prior file-size check.
+    // At most MaxPlaylistBytes + 1 bytes are ever requested; extra data fails closed.
+    internal static byte[] ReadBoundedPlaylistBytes(
+        Stream source, int maxBytes, int maxLines, CancellationToken token,
+        Action<int>? afterChunk = null)
+    {
+        if (maxBytes < 1 || maxLines < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+        using var output = new MemoryStream(Math.Min(maxBytes, 4096));
+        var buffer = new byte[Math.Min(maxBytes + 1, 4096)];
+        int total = 0, newlines = 0;
+        byte last = 0;
+        while (true)
+        {
+            token.ThrowIfCancellationRequested();
+            int want = Math.Min(buffer.Length, maxBytes + 1 - total);
+            int count = source.ReadAsync(buffer.AsMemory(0, want), token).AsTask()
+                .GetAwaiter().GetResult();
+            token.ThrowIfCancellationRequested();
+            if (count == 0) break;
+            total += count;
+            if (total > maxBytes) throw new InvalidDataException("PLAYLIST_BYTE_LIMIT");
+            for (int i = 0; i < count; ++i)
+            {
+                if (buffer[i] == (byte)'\n') ++newlines;
+                last = buffer[i];
+            }
+            if (newlines > maxLines) throw new InvalidDataException("PLAYLIST_LINE_LIMIT");
+            output.Write(buffer, 0, count);
+            afterChunk?.Invoke(total);
+            token.ThrowIfCancellationRequested();
+        }
+        if (total > 0 && last != (byte)'\n' && newlines >= maxLines)
+            throw new InvalidDataException("PLAYLIST_LINE_LIMIT");
+        return output.ToArray();
     }
 
     private static InventoryKind Classify(string extension)
