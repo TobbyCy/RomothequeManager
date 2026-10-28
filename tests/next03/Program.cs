@@ -81,7 +81,7 @@ internal static class Program
 
         var result = await service.StartConfirmedScanAsync(
             new InventoryRunRequest(selected.SelectionVersion, true));
-        var scan = result.LastAttempt;
+        var scan = result.LastAttempt ?? throw new InvalidOperationException(variant + "_NO_LAST_ATTEMPT");
         Require(result.Phase == InventoryRunPhase.Completed &&
                 scan?.ScanStatus == InventoryScanStatus.Complete, variant + "_NOT_COMPLETE");
         Require(scan.ObservedFileCount == expectedCount &&
@@ -146,7 +146,7 @@ internal static class Program
                 cancelled.LastAttempt.TotalFileCount is null &&
                 cancelled.LastAttempt.Diagnostics.Any(x => x.Code == "CANCELLED"),
             "CANCELLED_ATTEMPT_NOT_PARTIAL");
-        Require(cancelled.Current?.ScanId == complete.Current.ScanId,
+        Require(cancelled.Current?.ScanId == complete.Current!.ScanId,
             "CANCEL_OVERWROTE_LAST_COMPLETE");
         Console.WriteLine("NEXT03_CANCELLED_PLAYLIST_PASS lastCompletePreserved=1");
     }
