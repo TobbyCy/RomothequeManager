@@ -306,15 +306,11 @@ class DocumentTests(unittest.TestCase):
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
         allowed = ("assets/branding/RM_V2_Horizontal_Fond_Sombre.png",
-                   "assets/branding/README.md")
+                   "assets/branding/README.md", *p.VISUAL67_ASSETS)
         for path in allowed:
             self.assertTrue(any(re.fullmatch(rule, path) for rule in rules), path)
         rejected = (
             "assets/branding/other.png",
-            "assets/branding/RM_V2_Horizontal_Couleur.svg",
-            "assets/branding/RM_V2_Icone_Detaillee_Couleur.svg",
-            "assets/branding/RM_V2_Icone_Simplifiee_Couleur.svg",
-            "assets/branding/RM_V2_Favicon.ico",
             "assets/branding/logo.svg",
             "assets/branding/remote.svg",
             "assets/branding/nested/RM_V2_Horizontal_Fond_Sombre.png",
@@ -346,6 +342,23 @@ class DocumentTests(unittest.TestCase):
         wrong_dimensions[16:20] = (1).to_bytes(4, "big")
         with self.assertRaisesRegex(p.PolicyError, "BRAND01_DIMENSIONS_INVALID"):
             p.verify_brand01_banner(p.BRAND01_GIT_BLOB_SHA, bytes(wrong_dimensions))
+
+        # VISUAL67: original Pilotage bytes only, no alternate image or extension.
+        for asset_path, (expected, length) in p.VISUAL67_ASSETS.items():
+            asset_data = (root / asset_path).read_bytes()
+            self.assertEqual(length, len(asset_data))
+            self.assertTrue(p.verify_visual67_asset(asset_path, expected, asset_data))
+            with self.assertRaisesRegex(p.PolicyError, "VISUAL67_UNAPPROVED_BLOB"):
+                p.verify_visual67_asset(asset_path, "f" * 40, asset_data)
+            with self.assertRaisesRegex(p.PolicyError, "VISUAL67_UNEXPECTED_SIZE"):
+                p.verify_visual67_asset(asset_path, expected, asset_data[:-1])
+            with self.assertRaisesRegex(p.PolicyError, "VISUAL67_UNLISTED_ASSET"):
+                p.verify_visual67_asset("assets/branding/other.ico", expected, asset_data)
+            if asset_path.endswith(".ico"):
+                altered = b"FAKE" + asset_data[4:]
+                with self.assertRaisesRegex(p.PolicyError, "VISUAL67_INVALID_ICO"):
+                    p.verify_visual67_asset(asset_path, expected, altered)
+
 
     def test_public_issue_form_allowlist_and_unexpected_paths_fail_closed(self):
         root = Path(__file__).resolve().parent.parent
@@ -648,8 +661,7 @@ class WorkflowTests(unittest.TestCase):
                      "docs/developer/workflow.md", ".github/ISSUE_TEMPLATE/feature.yml"):
             self.assertTrue(matches(path), path)
         for path in ("docs/INTERNAL_HANDOFF_NOT_ALLOWED.md", "docs/INTERNAL_RECOVERY_NOT_ALLOWED.md",
-                     "assets/branding/RM_V2_Favicon.ico",
-                     ".github/ISSUE_TEMPLATE/tache-technique.yml"):
+                      ".github/ISSUE_TEMPLATE/tache-technique.yml"):
             self.assertFalse(matches(path), path)
 
     def test_pub01a_public_workflow_guard_and_negative_canaries(self):

@@ -333,6 +333,32 @@ def path_rules(root):
 BRAND01_PNG = "assets/branding/RM_V2_Horizontal_Fond_Sombre.png"
 BRAND01_GIT_BLOB_SHA = "e594b9602bb7d44a01a9408c8d189d74ee5180b4"
 
+# Issue Produit #67: owner approved EXACT original Pilotage blobs for official app/test ZIP.
+VISUAL67_ASSETS = {
+    "assets/branding/RM_V2_Horizontal_Couleur.svg": ("0dffbc85ae90aa88096b61fcc36c8d47c427b4e6", 6653),
+    "assets/branding/RM_V2_Icone_Detaillee_Couleur.svg": ("b34a97950a8124c093bedf62730315af9c17c5fa", 2061),
+    "assets/branding/RM_V2_Icone_Simplifiee_Couleur.svg": ("c6266232e5e99407164cfc2197b80e3c784d947a", 927),
+    "assets/branding/RM_V2_Favicon.ico": ("158dc727e1c82e6a1afa003d1ca79a35ec229138", 11947),
+}
+
+def verify_visual67_asset(path, oid, data):
+    """Fail closed on changed, spoofed or unlisted official branding assets."""
+    require(path in VISUAL67_ASSETS, "VISUAL67_UNLISTED_ASSET")
+    expected, length = VISUAL67_ASSETS[path]
+    require(oid == expected, "VISUAL67_UNAPPROVED_BLOB")
+    require(len(data) == length, "VISUAL67_UNEXPECTED_SIZE")
+    if path.endswith(".svg"):
+        svg = data.decode("utf-8", errors="strict")
+        require(svg.lstrip().startswith("<svg") and "<path" in svg,
+                "VISUAL67_INVALID_SVG")
+        require(not re.search(r"(?i)<script\b|<foreignObject\b|\bon(?:load|error|click)\s*=|(?:href\s*=|url\s*\()[\s\"']*(?:https?://|data:|//)", svg),
+                "VISUAL67_SVG_EXTERNAL_OR_SCRIPT")
+    else:
+        require(data[:4] == bytes.fromhex("00000100") and
+                int.from_bytes(data[4:6], "little") == 7, "VISUAL67_INVALID_ICO")
+    return True
+
+
 def verify_brand01_banner(oid, data):
     """Only the exact, owner-authorized V2 PNG may enter the public repository."""
     require(oid == BRAND01_GIT_BLOB_SHA, "BRAND01_UNAPPROVED_IMAGE_BLOB")
@@ -360,6 +386,8 @@ def audit_entries(root, entries, rules):
         require(len(data) < 2000000, "SUSPICIOUS_SIZE")
         if path == BRAND01_PNG:
             verify_brand01_banner(oid, data)
+        elif path in VISUAL67_ASSETS:
+            verify_visual67_asset(path, oid, data)
         if not path.endswith((".png", ".ico")):
             text = data.decode("utf-8-sig", errors="strict")
             require(not any(re.search(pattern, text) for pattern in SENSITIVE), "SENSITIVE_CONTENT:" + path)
@@ -436,6 +464,7 @@ def documents(root, plan):
     entries = tree(root)
     require(BRAND01_PNG in entries and "assets/branding/README.md" in entries,
             "BRAND01_PNG_AND_NOTICE_REQUIRED")
+    require(all(path in entries for path in VISUAL67_ASSETS), "VISUAL67_ASSETS_REQUIRED")
     rules, static = path_rules(root)
     verify_public_ci_guard(root)
     audit_entries(root, entries, rules)

@@ -36,6 +36,8 @@ try {
     $allowed = @(
         '^global\.json$', '^LICENSE$', '^BRANDING\.md$', '^LEGAL\.md$', '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
         '^assets/branding/RM_V2_Horizontal_Fond_Sombre\.png$', '^assets/branding/README\.md$',
+        '^assets/branding/RM_V2_Horizontal_Couleur\.svg$', '^assets/branding/RM_V2_Icone_Detaillee_Couleur\.svg$',
+        '^assets/branding/RM_V2_Icone_Simplifiee_Couleur\.svg$', '^assets/branding/RM_V2_Favicon\.ico$',
         '^Modules/[A-Za-z][A-Za-z0-9]*\.psm1$',
         '^Export/(ExportE1\.psm1|Invoke-ExportE1InventoryReadOnly\.ps1|README\.md)$',
         '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$', '^scripts/Build-DistZip\.ps1$',
