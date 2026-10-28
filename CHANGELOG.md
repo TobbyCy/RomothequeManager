@@ -3,6 +3,11 @@
 Ce journal distingue le **code fusionné sur `main`**, les preuves CI attachées à un SHA et les **versions réellement distribuées**. Le projet ne possède encore **aucune GitHub Release** ni ZIP Windows autorisé au téléchargement.
 
 
+## En cours — DEMO-LIBRARY-01 (DEV 1, PR Draft)
+
+- Préparation d'un générateur Node.js sans dépendance réseau pour 30 jeux fictifs en trois variantes IDEAL, CHAOS et MYSTERY ; PNG originaux locaux, fausses ROMs texte non exécutables, manifests SHA-256, contrôle de destination et tests MSTest synthétiques d'import, d'inventaire et de reproductibilité.
+- Catalogue et interfaces en revue DEV 2, suivi dans Produit #71 ; ne pas figer ni fusionner avant contre-revue. Aucun scan réel, fichier commercial, BIOS, suppression de donnée personnelle, upload ni Release.
+
 ## En cours — NEXT-02-INVENTORY / Issue #65 (PR Draft, fixtures exclusivement synthétiques)
 
 - Correctif P1 de la PR #68 : lecture `.m3u` bornée **pendant** les I/O (octets/lignes), annulation effective transformée en `PARTIAL/CANCELLED`, handle refermé ; accès fichiers concurrents traités conservativement en `PARTIAL/UNREADABLE_ENTRY` ; nouveaux tests synthétiques. Le contrôle de taille préalable seul n'est plus considéré suffisant.
