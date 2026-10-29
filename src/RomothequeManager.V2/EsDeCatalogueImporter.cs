@@ -10,13 +10,17 @@ namespace RomothequeManager.V2;
 // No writes, recursive ROM scan, network access, or synthetic snapshot provenance.
 public sealed record EsDeDiagnostic(string Code, string Platform, string Entry, string Message);
 public sealed record EsDeMedia(string Kind, string RelativePath, bool Exists);
-// Optional ES-DE metadata is appended: existing positional callers and historical
-// catalogues without these fields retain their original constructor contract.
+// Keep the historical nine-parameter constructor and Deconstruct contract.
+// Optional ES-DE metadata is added only as nullable init-only properties.
 public sealed record EsDeGame(
     string GameId, string VariantId, string Platform, string Title, string RomRelativePath,
     bool RomExists, string? Description, IReadOnlyList<EsDeMedia> Media,
-    IReadOnlyList<string> DiscPaths,
-    string? Genre = null, string? Developer = null, string? ReleaseDate = null);
+    IReadOnlyList<string> DiscPaths)
+{
+    public string? Genre { get; init; }
+    public string? Developer { get; init; }
+    public string? ReleaseDate { get; init; }
+}
 public sealed record EsDeCatalogueSnapshot(
     string LibraryId, string SourceKind, string ContentFingerprint,
     IReadOnlyList<EsDeGame> Games, IReadOnlyList<EsDeDiagnostic> Diagnostics);
@@ -218,9 +222,13 @@ public static class EsDeCatalogueImporter
                 var developer = OptionalMetadataField(entry, "developer", platform, romRelative, diagnostics);
                 var dateText = OptionalMetadataField(entry, "releasedate", platform, romRelative, diagnostics);
                 var releaseDate = AcceptedReleaseDate(dateText, platform, romRelative, diagnostics);
-                games.Add(new("esde-" + id, "variant-" + id, platform, title.Trim(), romRelative, exists,
-                    SingleField(entry, "desc"), media.ToArray(), discs.ToArray(),
-                    genre, developer, releaseDate));
+                games.Add(new EsDeGame("esde-" + id, "variant-" + id, platform, title.Trim(),
+                    romRelative, exists, SingleField(entry, "desc"), media.ToArray(), discs.ToArray())
+                {
+                    Genre = genre,
+                    Developer = developer,
+                    ReleaseDate = releaseDate
+                });
             }
         }
 
