@@ -77,7 +77,7 @@ public sealed partial class MainWindow
         {
             var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
-                Title = "Sélectionner la racine ROMS / MEDIAS (lecture seule)",
+                Title = "Choisir le dossier contenant ROMS (MEDIAS / ES-DE facultatifs)",
                 AllowMultiple = false
             });
             var selected = folders.FirstOrDefault();
@@ -105,16 +105,18 @@ public sealed partial class MainWindow
         var dialog = new Window
         {
             Title = "Importer les références ES-DE ?",
-            Width = 485, Height = 265, CanResize = false,
+            Width = 525, Height = 310, CanResize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Background = new SolidColorBrush(Color.Parse("#1D2025"))
         };
         var content = new StackPanel { Margin = new Thickness(20), Spacing = 12 };
-        content.Children.Add(Text("Importer les références ES-DE de ce dossier ?", 18, true));
-        content.Children.Add(Text("Lecture seule des gamelists et médias déclarés. Aucun scan complet, aucune écriture ni synchronisation automatique.", 13));
+        content.Children.Add(Text("Importer le catalogue ES-DE sélectionné ?", 20, true));
+        content.Children.Add(Notice("Métadonnées uniquement · lecture seule",
+            "Sélectionnez la racine contenant ROMS et, selon votre installation, MEDIAS ou ES-DE/gamelists. Seuls les XML et médias explicitement déclarés seront consultés."));
+        content.Children.Add(Text("Aucun scan complet, aucune écriture, aucun réseau et aucune synchronisation automatique.", 12));
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
         actions.Children.Add(Button("Annuler", () => dialog.Close(false)));
-        actions.Children.Add(Button("Importer en lecture seule", () => dialog.Close(true)));
+        actions.Children.Add(PrimaryButton("Importer en lecture seule", () => dialog.Close(true)));
         content.Children.Add(actions);
         dialog.Content = content;
         return await dialog.ShowDialog<bool>(this);
@@ -271,8 +273,7 @@ public sealed partial class MainWindow
             ImportedDashboard(snapshot);
             return;
         }
-        _page.Children.Add(Text("BIBLIOTHÈQUE IMPORTÉE · ES-DE · LECTURE SEULE", 13, true));
-        _page.Children.Add(Text("Références ES-DE en lecture seule · aucun scan complet ni suppression déduite.", 12));
+        _page.Children.Add(Text("BIBLIOTHÈQUE IMPORTÉE  /  ES-DE  /  LECTURE SEULE", 11, true));
         switch (_importedUi.CurrentView)
         {
             case POCView.Dashboard: ImportedDashboard(snapshot); break;
@@ -291,13 +292,44 @@ public sealed partial class MainWindow
             VisualDashboard.IsCompact(Width)))
             _page.Children.Add(section);
         _page.Children.Add(ImportedSystemStrip());
+        _page.Children.Add(ImportedDiagnostics(snapshot, compact: true));
+    }
+
+    // Only imported XML diagnostics are displayed. A missing reference is never a deletion.
+    private Control ImportedDiagnostics(EsDeCatalogueSnapshot snapshot, bool compact)
+    {
+        var errors = snapshot.Diagnostics.Where(EsDeDiagnosticPresentation.NeedsAttention).ToArray();
+        var panel = new StackPanel { Spacing = 10 };
+        panel.Children.Add(Text("Diagnostics de l'import", 22, true));
+        panel.Children.Add(Text(EsDeDiagnosticPresentation.Summary(snapshot.Diagnostics), 13));
+        if (snapshot.Diagnostics.Count == 0)
+            panel.Children.Add(Text("Aucune anomalie remontée par les XML lus. La couverture physique n'est pas certifiée.", 12));
+        else
+        {
+            var selected = snapshot.Diagnostics.Take(compact ? 4 : 20).ToArray();
+            foreach (var item in selected)
+            {
+                panel.Children.Add(Notice(
+                    EsDeDiagnosticPresentation.Title(item) + " · " +
+                    (string.IsNullOrWhiteSpace(item.Platform) ? "système inconnu" : item.Platform),
+                    EsDeDiagnosticPresentation.Explanation(item),
+                    EsDeDiagnosticPresentation.NeedsAttention(item)));
+            }
+            if (snapshot.Diagnostics.Count > selected.Length)
+                panel.Children.Add(Text((snapshot.Diagnostics.Count - selected.Length) +
+                    " diagnostic(s) supplémentaire(s) · consulter Bibliothèques pour la synthèse.", 12));
+        }
+        if (compact)
+            panel.Children.Add(Button("Consulter les diagnostics", () => Navigate(POCView.Libraries)));
+        panel.Children.Add(Text("État constaté au dernier import ; un fichier introuvable n'est pas un fichier supprimé.", 12));
+        return Panel(panel);
     }
 
     private Control ImportedSystemStrip()
     {
-        var group = new StackPanel { Spacing = 8 };
-        group.Children.Add(Text("Systèmes et consoles · références ES-DE", 20, true));
-        var options = new WrapPanel { Orientation = Orientation.Horizontal };
+        var group = new StackPanel { Spacing = 12 };
+        group.Children.Add(Text("Systèmes et consoles · références ES-DE", 22, true));
+        var options = new WrapPanel { Orientation = Orientation.Horizontal, ItemWidth = 180 };
         options.Children.Add(Button("Tous les systèmes", () =>
         {
             _importedUi.SelectPlatform(null);
@@ -322,8 +354,8 @@ public sealed partial class MainWindow
 
     private void ImportedCollection()
     {
-        _page.Children.Add(Text("Collection", 30, true));
-        _page.Children.Add(Text("Jeux référencés dans les gamelists ES-DE · jouabilité non vérifiée.", 13));
+        _page.Children.Add(Hero("Explorer  /  ES-DE", "Collection",
+            "Jeux référencés dans les gamelists · jouabilité non vérifiée · recherche et filtres locaux."));
         var systems = _importedUi.Systems;
         var choices = new[] { "Tous les systèmes" }
             .Concat(systems.Select(s => s.Platform + " · " + s.ReferencedGames + " jeux ES-DE"))
@@ -383,8 +415,9 @@ public sealed partial class MainWindow
         _importedList.Children.Clear();
         ReleaseCoverImages();
         var count = _importedUi.TotalCount;
-        _importedList.Children.Add(Text(count + " résultat(s) importé(s) · page " +
-            (_importedUi.PageIndex + 1) + " / " + _importedUi.PageCount, 13));
+        _importedList.Children.Add(Notice("Résultats du catalogue · " + count + " référence(s)",
+            count + " résultat(s) importé(s) · page " + (_importedUi.PageIndex + 1) +
+            " / " + _importedUi.PageCount + " · 50 éléments maximum par page."));
         var cards = new WrapPanel { Orientation = Orientation.Horizontal };
         var columns = ImportedColumnCount();
         var cardWidth = Math.Max(310, (_page.Width - (columns - 1) * 18 - 12) / columns);
@@ -392,13 +425,14 @@ public sealed partial class MainWindow
         {
             var gameId = game.GameId;
             var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 15 };
-            line.Children.Add(CoverFor(game, 75, 90));
+            line.Children.Add(CoverFor(game, 82, 108));
             var details = Group(
-                Text(game.Title, 18, true),
-                Text(game.Platform + " · " + game.RomRelativePath, 12),
+                Text(game.Platform.ToUpperInvariant() + " · ES-DE", 11, true),
+                Text(game.Title, 19, true),
+                Text(game.RomRelativePath, 12),
                 Text(game.RomExists ? "ROM présente au dernier import" :
                     "ROM non trouvée — aucune suppression déduite", 12),
-                Button("Ouvrir la fiche", () => OpenImportedGame(gameId))
+                PrimaryButton("Ouvrir la fiche", () => OpenImportedGame(gameId))
             );
             line.Children.Add(details);
             var card = Panel(line);
