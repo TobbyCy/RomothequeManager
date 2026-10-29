@@ -465,6 +465,43 @@ public sealed class EsDeCatalogueImporterTests
         StringAssert.Contains(error.Message, "escapes its explicitly authorized root");
     }
 
+
+    [TestMethod]
+    public void ModernEsDeMediaCannotReadOtherEsDeConfigurationDirectories()
+    {
+        Put("ROMS/gba/Prepared.gba");
+        Put("ES-DE/settings/config.xml", "private configuration placeholder");
+        Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./Prepared.gba</path>" +
+            "<image>../../settings/config.xml</image></game></gameList>");
+        var rejected = Assert.ThrowsExactly<InvalidDataException>(() =>
+            EsDeCatalogueImporter.Read(_root));
+        StringAssert.Contains(rejected.Message, "escapes its explicitly authorized root");
+    }
+
+    [TestMethod]
+    public void Next04MetadataKeepsHistoricalNinePartRecordDeconstruction()
+    {
+        Put("ROMS/gba/Prepared.gba");
+        Gamelist("<game><path>./Prepared.gba</path>" +
+            "<genre>Aventure</genre><developer>Studio</developer>" +
+            "<releasedate>20000101T000000</releasedate></game>");
+        var game = EsDeCatalogueImporter.Read(_root).Games.Single();
+        var (id, variant, platform, title, relative, exists, description, media, discs) = game;
+        Assert.AreEqual(game.GameId, id);
+        Assert.AreEqual(game.VariantId, variant);
+        Assert.AreEqual("gba", platform);
+        Assert.IsTrue(exists);
+        Assert.IsTrue(relative.EndsWith("/Prepared.gba", StringComparison.Ordinal));
+        Assert.AreEqual("Aventure", game.Genre);
+        Assert.AreEqual("Studio", game.Developer);
+        Assert.AreEqual("20000101T000000", game.ReleaseDate);
+        Assert.IsNotNull(title);
+        Assert.IsNull(description);
+        Assert.AreEqual(0, media.Count);
+        Assert.AreEqual(0, discs.Count);
+    }
+
     [TestMethod]
     public void ModernEsDeXmlFailureHasBoundedSourceContextButNoPrivatePath()
     {

@@ -127,6 +127,7 @@ public static class EsDeCatalogueImporter
         // this known path below the user-selected root; no global discovery.
         var esdeRoot = Path.Combine(root, "ES-DE");
         var esdeGamelists = Path.Combine(esdeRoot, "gamelists");
+        var esdeMediaRoot = Path.Combine(esdeRoot, "downloaded_media");
         RequireOrdinaryDirectory(romRoot);
         if (Directory.Exists(mediaRoot)) RequireOrdinaryDirectory(mediaRoot);
         if (Directory.Exists(esdeGamelists)) RequireOrdinaryDirectory(esdeGamelists);
@@ -208,10 +209,11 @@ public static class EsDeCatalogueImporter
                 {
                     var mediaValue = SingleField(entry, field);
                     if (string.IsNullOrWhiteSpace(mediaValue)) continue;
-                    // Only XML-declared media are resolved. Their authorized domain
-                    // follows the selected convention; never search downloaded_media
-                    // by ROM basename or extend beyond the selected library root.
-                    var permitted = hasHistoric ? mediaRoot : hasLocal ? romRoot : esdeRoot;
+                    // Only XML-declared media are resolved. For modern ES-DE XML,
+                    // never traverse settings/themes/gamelists looking for artwork:
+                    // the only additional allowed media domain is downloaded_media.
+                    var permitted = hasHistoric ? mediaRoot :
+                        hasLocal ? romRoot : esdeMediaRoot;
                     var resolved = ResolveRelative(Path.GetDirectoryName(xmlFile)!, mediaValue, permitted);
                     var relative = NormalizeRelative(Path.GetRelativePath(root, resolved));
                     var present = File.Exists(resolved);
@@ -274,11 +276,15 @@ public static class EsDeCatalogueImporter
         // A media reference belongs to exactly one explicitly selected domain.
         var parts = normalized.Split('/');
         if (parts.Length < 3 ||
-            (parts[0] != "ROMS" && parts[0] != "MEDIAS" && parts[0] != "ES-DE"))
+            (parts[0] != "ROMS" && parts[0] != "MEDIAS" &&
+             (parts[0] != "ES-DE" ||
+              (parts.Length < 4 || parts[1] != "downloaded_media"))))
             throw new InvalidDataException("Media domain is not authorized.");
         var root = Path.GetFullPath(selectedRoot);
         RequireOrdinaryDirectory(root);
-        var domain = Path.Combine(root, parts[0]);
+        var domain = parts[0] == "ES-DE"
+            ? Path.Combine(root, "ES-DE", "downloaded_media")
+            : Path.Combine(root, parts[0]);
         RequireOrdinaryDirectory(domain);
         return ResolveRelative(root, normalized, domain);
     }
