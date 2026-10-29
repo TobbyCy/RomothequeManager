@@ -14,6 +14,42 @@ public sealed partial class MainWindow : Window
     private readonly LibraryProjection _libraryProjection;
     private readonly LibraryViewState _libraryViewState;
     private readonly StackPanel _page = new() { Spacing = 10 };
+    private ScrollViewer? _contentScroll;
+    private Vector _demoCollectionOffset;
+    private Vector _importedCollectionOffset;
+    private int _importedColumns = 1;
+
+    private void UpdateContentWidth()
+    {
+        // Wider than the old column, but never a five-thousand-pixel text line.
+        _page.Width = Math.Max(460, Math.Min(2200, Bounds.Width - 265));
+    }
+
+    private int ImportedColumnCount() => Bounds.Width >= 1900 ? 3 :
+        Bounds.Width >= 1150 ? 2 : 1;
+
+    private void RestoreCollectionOffset(bool imported)
+    {
+        var remembered = imported ? _importedCollectionOffset : _demoCollectionOffset;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (_contentScroll is not null && ActiveView == POCView.Collection &&
+                _importedUi.IsImported == imported)
+                _contentScroll.Offset = remembered;
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
+    }
+
+    private void OpenDemoGame(string id)
+    {
+        var offset = _contentScroll?.Offset ?? default;
+        if (_state.Open(id))
+        {
+            _demoCollectionOffset = offset;
+            Render();
+            if (_contentScroll is not null) _contentScroll.Offset = default;
+        }
+    }
+
     private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#E8E6E3"));
     private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#AAB2BF"));
     private static readonly IBrush Card = new SolidColorBrush(Color.Parse("#23262B"));
@@ -58,7 +94,15 @@ public sealed partial class MainWindow : Window
         _libraryViewState = new LibraryViewState(_libraryProjection);
         SizeChanged += (_, _) =>
         {
-            if (_scenarioUi.Active || ActiveView is POCView.Dashboard or POCView.Libraries)
+            UpdateContentWidth();
+            var columns = ImportedColumnCount();
+            if (_importedUi.IsImported && ActiveView == POCView.Collection &&
+                columns != _importedColumns)
+            {
+                _importedColumns = columns;
+                Render();
+            }
+            else if (_scenarioUi.Active || ActiveView is POCView.Dashboard or POCView.Libraries)
                 Render();
         };
         Title = "ROMothèque Manager";
@@ -82,11 +126,14 @@ public sealed partial class MainWindow : Window
             Background = new SolidColorBrush(Color.Parse("#16181D"))
         };
         var menu = new StackPanel { Spacing = 7, Margin = new Thickness(14, 14, 14, 12) };
-        menu.Children.Add(new Image
+        var sidebarLogo = new Image
         {
             Source = logoBitmap, Width = 188, Height = 58,
             Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left
-        });
+        };
+        // Native PNG, unchanged branding; high-quality interpolation only on logo.
+        RenderOptions.SetBitmapInterpolationMode(sidebarLogo, BitmapInterpolationMode.HighQuality);
+        menu.Children.Add(sidebarLogo);
         menu.Children.Add(Text("COLLECTION", 11, true));
         menu.Children.Add(SidebarButton("Tableau de bord", () => Navigate(POCView.Dashboard), POCView.Dashboard));
         menu.Children.Add(SidebarButton("Collection", () => Navigate(POCView.Collection), POCView.Collection));
@@ -134,7 +181,11 @@ public sealed partial class MainWindow : Window
         };
         Grid.SetColumn(scroll, 1);
         root.Children.Add(scroll);
+        _contentScroll = scroll;
+        _page.HorizontalAlignment = HorizontalAlignment.Center;
         Content = root;
+        UpdateContentWidth();
+        _importedColumns = ImportedColumnCount();
         Render();
     }
 
@@ -283,7 +334,7 @@ public sealed partial class MainWindow : Window
                 Text(game.Title, 19, true),
                 Text(game.Platform + " · " + game.Variant),
                 Text(game.Availability + " / " + game.Freshness + " / " + game.Coverage, 13),
-                Button("Ouvrir la fiche", () => { if (_state.Open(id)) Render(); })
+                Button("Ouvrir la fiche", () => OpenDemoGame(id))
             )));
         }
     }
@@ -304,7 +355,7 @@ public sealed partial class MainWindow : Window
     {
         var game = _state.Selected;
         if (game is null) { _state.ShowCollection(); Render(); return; }
-        _page.Children.Add(Button("← Retour à la collection", () => { _state.ShowCollection(); Render(); }));
+        _page.Children.Add(Button("← Retour à la collection", () => Navigate(POCView.Collection)));
         _page.Children.Add(Text(game.Title, 30, true));
         _page.Children.Add(Panel(Group(
             Text("Plateforme : " + game.Platform, 18, true),

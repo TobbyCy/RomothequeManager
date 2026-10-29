@@ -341,4 +341,80 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.IsFalse(EsDeDiagnosticPresentation.NeedsAttention(unknown));
     }
 
+
+    [TestMethod]
+    public void SystemsAreFromXmlOnlyAndSearchPaginatesWithinSelectedSystem()
+    {
+        var gba = new StringBuilder();
+        for (var index = 0; index < 75; index++)
+            gba.Append("<game><path>./G").Append(index).Append(".gba</path><name>GBA ")
+                .Append(index).Append("</name></game>");
+        Gamelist(gba.ToString());
+        Put("ROMS/snes/Only.sfc");
+        Put("MEDIAS/snes/metadata/es-de-gamelist.xml",
+            "<gameList><game><path>./Only.sfc</path><name>SNES Only</name></game></gameList>");
+        Directory.CreateDirectory(Path.Combine(_root, "ROMS", "empty"));
+        var state = new ImportedCatalogueUiState();
+        Assert.IsTrue(state.TryImport(_root));
+        Assert.AreEqual(76, state.TotalCount);
+        CollectionAssert.AreEquivalent(new[] { "gba", "snes" },
+            state.Systems.Select(s => s.Platform).ToArray());
+        Assert.AreEqual(75, state.Systems.Single(s => s.Platform == "gba").ReferencedGames);
+        Assert.IsFalse(state.SelectPlatform("empty")); // no XML: not an invented zero-game system
+        Assert.IsTrue(state.SelectPlatform("gba"));
+        Assert.AreEqual(75, state.TotalCount);
+        Assert.AreEqual(2, state.PageCount);
+        Assert.AreEqual(50, state.PageGames.Count);
+        Assert.IsTrue(state.NextPage());
+        Assert.AreEqual(25, state.PageGames.Count);
+        state.Search("GBA 74");
+        Assert.AreEqual("gba", state.SelectedPlatform);
+        Assert.AreEqual(1, state.TotalCount);
+        Assert.AreEqual(0, state.PageIndex);
+        Assert.IsTrue(state.SelectPlatform("snes"));
+        Assert.AreEqual(1, state.TotalCount);
+        Assert.AreEqual("SNES Only", state.PageGames.Single().Title);
+        Assert.IsTrue(state.SelectPlatform(null));
+        Assert.AreEqual(76, state.TotalCount);
+    }
+
+    [TestMethod]
+    public void ReimportKeepsSystemSearchPageAndDetailOnSuccessOrFailure()
+    {
+        Put("ROMS/gba/A.gba");
+        Gamelist("<game><path>./A.gba</path><name>Featured A</name></game>");
+        Put("ROMS/snes/B.sfc");
+        Put("MEDIAS/snes/metadata/es-de-gamelist.xml",
+            "<gameList><game><path>./B.sfc</path><name>Featured B</name></game></gameList>");
+        var state = new ImportedCatalogueUiState();
+        Assert.IsTrue(state.TryImport(_root));
+        Assert.IsTrue(state.SelectPlatform("gba"));
+        state.Search("Featured");
+        Assert.IsTrue(state.Open(state.PageGames.Single().GameId));
+        var preservedId = state.SelectedGameId;
+        var original = state.Snapshot;
+        Assert.IsTrue(state.TryReimport());
+        Assert.AreEqual(preservedId, state.SelectedGameId);
+        Assert.AreEqual("gba", state.SelectedPlatform);
+        Assert.AreEqual("Featured", state.SearchText);
+        Assert.AreEqual(POCView.GameDetail, state.CurrentView);
+        Gamelist("<gameList><game>"); // invalid: last valid and all UI context remain
+        Assert.IsFalse(state.TryReimport());
+        Assert.AreEqual(preservedId, state.Snapshot!.Games.Single(g => g.Platform == "gba").GameId);
+        Assert.AreEqual(preservedId, state.SelectedGameId);
+        Assert.AreEqual("gba", state.SelectedPlatform);
+        Assert.AreEqual(POCView.GameDetail, state.CurrentView);
+        Assert.IsNotNull(state.ErrorMessage);
+        Gamelist("<game><path>./C.gba</path><name>Featured C</name></game>");
+        Assert.IsTrue(state.TryReimport());
+        Assert.IsNull(state.SelectedGameId);
+        Assert.AreEqual(POCView.Collection, state.CurrentView);
+        Assert.AreEqual("gba", state.SelectedPlatform);
+        Assert.AreEqual("Featured", state.SearchText);
+        Assert.AreNotSame(original, state.Snapshot);
+        File.Delete(Path.Combine(_root, "MEDIAS", "gba", "metadata", "es-de-gamelist.xml"));
+        Assert.IsTrue(state.TryReimport()); // SNES still has XML; no guessed GBA system
+        Assert.IsNull(state.SelectedPlatform);
+        Assert.AreEqual(1, state.Systems.Count);
+    }
 }

@@ -4,6 +4,9 @@ namespace RomothequeManager.V2;
 // authority for XML parsing, media paths and read-only file access.
 public enum CatalogueMode { Demonstration, Imported }
 
+// A system is proven only by games referenced in imported ES-DE XML.
+public sealed record ImportedSystem(string Platform, int ReferencedGames);
+
 public sealed class ImportedCatalogueUiState
 {
     private EsDeImportSession? _session;
@@ -12,6 +15,12 @@ public sealed class ImportedCatalogueUiState
     public bool IsImported => Mode == CatalogueMode.Imported && Snapshot is not null;
     public string? ErrorMessage { get; private set; }
     public string SearchText { get; private set; } = "";
+    public string? SelectedPlatform { get; private set; }
+    public IReadOnlyList<ImportedSystem> Systems => Snapshot?.Games
+        .GroupBy(game => game.Platform, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new ImportedSystem(group.Key, group.Count()))
+        .OrderBy(system => system.Platform, StringComparer.OrdinalIgnoreCase)
+        .ToArray() ?? Array.Empty<ImportedSystem>();
     public string? SelectedGameId { get; private set; }
     public EsDeGame? Selected => Snapshot?.Games.FirstOrDefault(game =>
         string.Equals(game.GameId, SelectedGameId, StringComparison.Ordinal));
@@ -23,10 +32,12 @@ public sealed class ImportedCatalogueUiState
     public IReadOnlyList<EsDeGame> PageGames => FilteredGames.Skip(PageIndex * PageSize).Take(PageSize).ToArray();
 
     public IReadOnlyList<EsDeGame> FilteredGames => Snapshot?.Games.Where(game =>
-        string.IsNullOrWhiteSpace(SearchText) ||
+        (SelectedPlatform is null || string.Equals(game.Platform, SelectedPlatform,
+            StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrWhiteSpace(SearchText) ||
         game.Title.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
         game.Platform.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
-        game.RomRelativePath.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase)).ToArray()
+        game.RomRelativePath.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase))).ToArray()
         ?? Array.Empty<EsDeGame>();
 
     // A prepared import is adopted only after EsDeImportSession.Import completed.
@@ -37,6 +48,7 @@ public sealed class ImportedCatalogueUiState
         _session = prepared;
         Mode = CatalogueMode.Imported;
         SearchText = "";
+        SelectedPlatform = null;
         PageIndex = 0;
         SelectedGameId = null;
         CurrentView = POCView.Dashboard;
@@ -70,6 +82,9 @@ public sealed class ImportedCatalogueUiState
         {
             var updated = _session.Import();
             SelectedGameId = updated.Games.Any(g => g.GameId == SelectedGameId) ? SelectedGameId : null;
+            if (SelectedPlatform is not null && !updated.Games.Any(g =>
+                    string.Equals(g.Platform, SelectedPlatform, StringComparison.OrdinalIgnoreCase)))
+                SelectedPlatform = null;
             if (SelectedGameId is null && CurrentView == POCView.GameDetail)
                 CurrentView = POCView.Collection;
             PageIndex = Math.Min(PageIndex, PageCount - 1);
@@ -124,6 +139,19 @@ public sealed class ImportedCatalogueUiState
     public static IReadOnlyList<EsDeMedia> CoverCandidates(EsDeGame game) =>
         game.Media.Where(media => media.Kind is "image" or "thumbnail")
             .OrderBy(media => media.Kind == "image" ? 0 : 1).ToArray();
+
+    // Selects only a platform present in the XML snapshot; never scans folders for systems.
+    public bool SelectPlatform(string? platform)
+    {
+        if (platform is not null && !Systems.Any(system =>
+            string.Equals(system.Platform, platform, StringComparison.OrdinalIgnoreCase)))
+            return false;
+        SelectedPlatform = platform;
+        PageIndex = 0;
+        SelectedGameId = null;
+        CurrentView = POCView.Collection;
+        return true;
+    }
 
     public void Search(string? search)
     {
