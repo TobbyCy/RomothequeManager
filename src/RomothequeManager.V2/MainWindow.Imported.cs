@@ -243,6 +243,9 @@ public sealed partial class MainWindow
             yield return text.Text ?? "";
             yield break;
         }
+        // Buttons use plain string Content; include their accessible captions in CI UI assertions.
+        if (control is ContentControl { Content: string caption })
+            yield return caption;
         IEnumerable<Control> children = control switch
         {
             Panel panel => panel.Children.OfType<Control>(),
@@ -733,8 +736,11 @@ public sealed partial class MainWindow
             return false;
         _importedUi.Navigate(POCView.Libraries);
         Render();
-        return SmokeVisibleTexts().Contains("L\'aperçu NEXT-03 est synthétique",
-            StringComparison.Ordinal);
+        var libraries = SmokeVisibleTexts();
+        return libraries.Contains("L\'aperçu NEXT-03 est synthétique", StringComparison.Ordinal) &&
+            libraries.Contains("Inventaire NEXT-03 · Aperçu (SIMULATION)", StringComparison.Ordinal) &&
+            libraries.Contains("Choisir une bibliothèque ES-DE…", StringComparison.Ordinal) &&
+            libraries.Contains("Actualiser l’import ES-DE", StringComparison.Ordinal);
     }
 #endif
 }
