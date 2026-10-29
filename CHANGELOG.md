@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-04 — DEV 3 / ES-DE UX alpha (PR Draft, 29.10.2026)
+
+- Parcours systèmes → jeux ES-DE → fiches, recherche et pagination limitées à la plateforme réellement référencée dans le XML ; mode démo et moteur NEXT-03 inchangés. Retour fiche avec contexte de recherche, page, système et défilement conservé.
+- Cartes Collection responsive (1/2/3 colonnes) et zone de contenu bornée pour grands écrans ; interpolation de qualité uniquement sur le logo officiel inchangé. Consentement spécifique à l'import ES-DE, réimport sans retour forcé au Dashboard et messages de limites sur la session en mémoire.
+- Données genre, développeur et date en attente du contrat et de la PR DEV 1 : aucune métadonnée inventée, aucune persistance créée, aucun scan personnel ni Release.
+
 ## NEXT-03 — Raccordement GUI canonique limité aux fixtures (29.10.2026, PR #86 Draft)
 
 - Le même InventoryViewModel / XAML sert le mode historique SIMULATION et un mode de recette Windows du véritable service #85 (uniquement sous binaire `NEXT03_CI`), avec titres/provenances différenciés, confirmation, observations, annulation, couverture et diagnostics. Aucun second moteur, aucun changement backend.

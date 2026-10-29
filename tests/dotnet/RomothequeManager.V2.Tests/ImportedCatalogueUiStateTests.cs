@@ -372,6 +372,7 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.AreEqual(1, state.TotalCount);
         Assert.AreEqual(0, state.PageIndex);
         Assert.IsTrue(state.SelectPlatform("snes"));
+        state.Search("");
         Assert.AreEqual(1, state.TotalCount);
         Assert.AreEqual("SNES Only", state.PageGames.Single().Title);
         Assert.IsTrue(state.SelectPlatform(null));

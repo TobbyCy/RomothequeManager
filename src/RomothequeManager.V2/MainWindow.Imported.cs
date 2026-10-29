@@ -21,6 +21,8 @@ public sealed partial class MainWindow
 
     private void Navigate(POCView view)
     {
+        var returningFromDetail = ActiveView == POCView.GameDetail && view == POCView.Collection;
+        var imported = _importedUi.IsImported;
         _scenarioDetail = false;
         if (_importedUi.IsImported)
             _importedUi.Navigate(view);
@@ -34,6 +36,19 @@ public sealed partial class MainWindow
             }
         }
         Render();
+        if (returningFromDetail) RestoreCollectionOffset(imported);
+        else if (_contentScroll is not null) _contentScroll.Offset = default;
+    }
+
+    private void OpenImportedGame(string gameId)
+    {
+        var offset = _contentScroll?.Offset ?? default;
+        if (_importedUi.Open(gameId))
+        {
+            _importedCollectionOffset = offset;
+            Render();
+            if (_contentScroll is not null) _contentScroll.Offset = default;
+        }
     }
 
     private void ShowDemo()
@@ -69,6 +84,7 @@ public sealed partial class MainWindow
                 Render();
                 return;
             }
+            if (!await ConfirmEsDeReadOnlyAsync()) return;
             await RunImportAsync(() => _importedUi.TryImport(selected.Path.LocalPath));
         }
         catch (Exception error) when (ImportedCatalogueUiState.IsExpectedImportError(error) ||
@@ -77,6 +93,27 @@ public sealed partial class MainWindow
             _importedUi.ImportFailed(error);
             Render();
         }
+    }
+
+    // A second explicit choice after the picker; no implicit scan or import.
+    private async Task<bool> ConfirmEsDeReadOnlyAsync()
+    {
+        var dialog = new Window
+        {
+            Title = "Importer les références ES-DE ?",
+            Width = 485, Height = 265, CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = new SolidColorBrush(Color.Parse("#1D2025"))
+        };
+        var content = new StackPanel { Margin = new Thickness(20), Spacing = 12 };
+        content.Children.Add(Text("Importer les références ES-DE de ce dossier ?", 18, true));
+        content.Children.Add(Text("Lecture seule des gamelists et médias déclarés. Aucun scan complet, aucune écriture ni synchronisation automatique.", 13));
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+        actions.Children.Add(Button("Annuler", () => dialog.Close(false)));
+        actions.Children.Add(Button("Importer en lecture seule", () => dialog.Close(true)));
+        content.Children.Add(actions);
+        dialog.Content = content;
+        return await dialog.ShowDialog<bool>(this);
     }
 
     private async Task RefreshImportAsync()
@@ -91,8 +128,9 @@ public sealed partial class MainWindow
         Render();
         try
         {
-            var success = await Task.Run(operation);
-            if (success) _importedUi.Navigate(POCView.Dashboard);
+            // Initial import already navigates to Dashboard. A successful reimport
+            // must not discard the user's existing Collection or GameDetail context.
+            await Task.Run(operation);
         }
         finally
         {
@@ -221,7 +259,7 @@ public sealed partial class MainWindow
             return;
         }
         _page.Children.Add(Text("BIBLIOTHÈQUE IMPORTÉE · ES-DE · LECTURE SEULE", 13, true));
-        _page.Children.Add(Text("Cette vue reflète uniquement les gamelists trouvées. Aucun scan complet, aucune suppression déduite.", 13));
+        _page.Children.Add(Text("Références ES-DE en lecture seule · aucun scan complet ni suppression déduite.", 12));
         switch (_importedUi.CurrentView)
         {
             case POCView.Dashboard: ImportedDashboard(snapshot); break;
@@ -239,12 +277,64 @@ public sealed partial class MainWindow
             () => Navigate(POCView.Libraries),
             VisualDashboard.IsCompact(Width)))
             _page.Children.Add(section);
+        _page.Children.Add(ImportedSystemStrip());
+    }
+
+    private Control ImportedSystemStrip()
+    {
+        var group = new StackPanel { Spacing = 8 };
+        group.Children.Add(Text("Systèmes et consoles · références ES-DE", 20, true));
+        var options = new WrapPanel { Orientation = Orientation.Horizontal };
+        options.Children.Add(Button("Tous les systèmes", () =>
+        {
+            _importedUi.SelectPlatform(null);
+            Render();
+            if (_contentScroll is not null) _contentScroll.Offset = default;
+        }));
+        foreach (var system in _importedUi.Systems)
+        {
+            var platform = system.Platform;
+            options.Children.Add(Button(platform + " · " + system.ReferencedGames, () =>
+            {
+                if (_importedUi.SelectPlatform(platform))
+                {
+                    Render();
+                    if (_contentScroll is not null) _contentScroll.Offset = default;
+                }
+            }));
+        }
+        group.Children.Add(options);
+        return Panel(group);
     }
 
     private void ImportedCollection()
     {
         _page.Children.Add(Text("Collection", 30, true));
-        _page.Children.Add(Text("Jeux importés depuis les XML ES-DE ; deux éditions homonymes restent distinctes.", 14));
+        _page.Children.Add(Text("Jeux référencés dans les gamelists ES-DE · jouabilité non vérifiée.", 13));
+        var systems = _importedUi.Systems;
+        var choices = new[] { "Tous les systèmes" }
+            .Concat(systems.Select(s => s.Platform + " · " + s.ReferencedGames + " jeux ES-DE"))
+            .ToArray();
+        var selected = _importedUi.SelectedPlatform is null ? 0 :
+            Array.FindIndex(systems.ToArray(), s =>
+                string.Equals(s.Platform, _importedUi.SelectedPlatform,
+                    StringComparison.OrdinalIgnoreCase)) + 1;
+        var selector = new ComboBox
+        {
+            ItemsSource = choices, SelectedIndex = selected, MinWidth = 230,
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        selector.SelectionChanged += (_, _) =>
+        {
+            var index = selector.SelectedIndex;
+            if (index < 0 || index > systems.Count) return;
+            if (_importedUi.SelectPlatform(index == 0 ? null : systems[index - 1].Platform))
+            {
+                Render();
+                if (_contentScroll is not null) _contentScroll.Offset = default;
+            }
+        };
+        _page.Children.Add(selector);
         var search = new TextBox
         {
             PlaceholderText = "Rechercher titre, plateforme ou chemin ROM",
@@ -269,6 +359,9 @@ public sealed partial class MainWindow
         var count = _importedUi.TotalCount;
         _importedList.Children.Add(Text(count + " résultat(s) importé(s) · page " +
             (_importedUi.PageIndex + 1) + " / " + _importedUi.PageCount, 13));
+        var cards = new WrapPanel { Orientation = Orientation.Horizontal };
+        var columns = ImportedColumnCount();
+        var cardWidth = Math.Max(310, (_page.Width - (columns - 1) * 18 - 12) / columns);
         foreach (var game in _importedUi.PageGames)
         {
             var gameId = game.GameId;
@@ -279,17 +372,15 @@ public sealed partial class MainWindow
                 Text(game.Platform + " · " + game.RomRelativePath, 12),
                 Text(game.RomExists ? "ROM présente au dernier import" :
                     "ROM non trouvée — aucune suppression déduite", 12),
-                Button("Ouvrir la fiche", () =>
-                {
-                    if (_importedUi.Open(gameId))
-                    {
-                        Render();
-                    }
-                })
+                Button("Ouvrir la fiche", () => OpenImportedGame(gameId))
             );
             line.Children.Add(details);
-            _importedList.Children.Add(Panel(line));
+            var card = Panel(line);
+            card.Width = cardWidth;
+            card.Margin = new Thickness(0, 0, 10, 10);
+            cards.Children.Add(card);
         }
+        _importedList.Children.Add(cards);
         var pages = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         var previous = Button("← Précédente", () =>
         {
@@ -338,7 +429,7 @@ public sealed partial class MainWindow
         if (gallery.Children.Count > 0) _page.Children.Add(gallery);
         _page.Children.Add(Text("Médias référencés", 19, true));
         if (game.Media.Count == 0) _page.Children.Add(Text("Médias non renseignés dans le XML : état inconnu, pas absence de fichiers prouvée.", 13));
-        _page.Children.Add(Text("Captures, dos et fonds non exposés par cet importeur ; aucun visuel n'est inventé.", 12));
+        _page.Children.Add(Text("Captures, dos et fonds non exposés par le XML importé ; aucun visuel inventé. Vidéos référencées : lecture non prise en charge.", 12));
         foreach (var media in game.Media)
             _page.Children.Add(Text(media.Kind + " · " + media.RelativePath + " · " +
                 (media.Exists ? "présent au dernier import (lecture à vérifier)" : "absent au dernier import"), 13));
@@ -436,6 +527,9 @@ public sealed partial class MainWindow
             Text("Bibliothèque importée (session actuelle)", 20, true),
             Text("Identité de session : " + snapshot.LibraryId, 12),
             Text(snapshot.Games.Count + " jeu(x) · " + snapshot.Diagnostics.Count + " diagnostic(s)"),
+            Text("Inventaire NEXT-03 : scan de vos dossiers non autorisé dans cette version.", 14, true),
+            Text("Les références ES-DE ne prouvent pas un inventaire physique complet.", 12),
+            Text("Catalogue en mémoire uniquement : réimport nécessaire au prochain lancement.", 12),
             Text("Comparaison A/B désactivée pour ce catalogue importé.", 16, true),
             Text("Les snapshots A/B du mode démonstration sont fictifs et indépendants de votre bibliothèque.", 13)
         )));

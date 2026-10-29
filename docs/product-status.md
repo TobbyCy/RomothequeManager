@@ -1,5 +1,11 @@
 # État des fonctionnalités
 
+## NEXT-04 / DEV 3 — premier lot interface ES-DE préparée (PR Draft)
+
+Travail UI isolé : systèmes uniquement dérivés des jeux effectivement référencés dans les gamelists, sélection de système, recherche et pages 50 après filtre, retour de fiche avec contexte (dont défilement) et reimport conservant la vue en cours. Amélioration responsive de Collection et qualité de redimensionnement du logo officiel, sans changer les images du branding. Confirmation de l'import en lecture seule, sans déclenchement de NEXT-03 ni écriture dans les ROMS/MEDIAS.
+
+Ce lot **n'introduit aucune persistance ni nouvelle donnée de métadonnées**. Les champs genre, développeur et date devront suivre le contrat du parseur ES-DE DEV 1 avant d'être affichés. La recette Windows native/GUI, les captures et les essais DPI restent à obtenir sur ce HEAD ; aucune déclaration de PASS humain ou de livraison Beta.
+
 ## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
 
 La liste CI autorise exclusivement `docs/design/mockups/v2/README.md` pour référencer les dix maquettes. Un canari accepte cet index et refuse les images, archives, manifestes et chemins voisins non autorisés. Les originaux restent à accès restreint ; aucun visuel tiers n'est ajouté au Produit. Les protections, canaris historiques et workflows sont conservés. Correction en revue, CI du HEAD à vérifier dans la PR ; aucune fusion, Release ou modification Avalonia.
