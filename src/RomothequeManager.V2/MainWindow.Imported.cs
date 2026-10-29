@@ -534,4 +534,52 @@ public sealed partial class MainWindow
             Text("Les snapshots A/B du mode démonstration sont fictifs et indépendants de votre bibliothèque.", 13)
         )));
     }
+
+#if NEXT04_CI
+    // Test-only entrypoints for the real Avalonia tree; never compiled in the public ZIP.
+    internal bool CiNext04Import(string syntheticRoot, int games, int systems)
+    {
+        if (!_importedUi.TryImport(syntheticRoot) || !(_importedUi.Snapshot?.Games.Count == games) ||
+            _importedUi.Systems.Count != systems) return false;
+        Render();
+        return true;
+    }
+
+    internal bool CiNext04FirstSystem()
+    {
+        var system = _importedUi.Systems.FirstOrDefault();
+        if (system is null || !_importedUi.SelectPlatform(system.Platform)) return false;
+        Render();
+        return _importedUi.PageGames.All(g => string.Equals(g.Platform, system.Platform,
+            StringComparison.OrdinalIgnoreCase)) && _importedUi.TotalCount == system.ReferencedGames;
+    }
+
+    internal bool CiNext04OpenFirst()
+    {
+        var game = _importedUi.PageGames.FirstOrDefault();
+        if (game is null) return false;
+        OpenImportedGame(game.GameId);
+        return _importedUi.CurrentView == POCView.GameDetail &&
+            _importedUi.SelectedGameId == game.GameId;
+    }
+
+    internal bool CiNext04ReturnCollection()
+    {
+        var platform = _importedUi.SelectedPlatform;
+        Navigate(POCView.Collection);
+        return _importedUi.CurrentView == POCView.Collection &&
+            string.Equals(_importedUi.SelectedPlatform, platform, StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal bool CiNext04RejectMystery(string syntheticRoot)
+    {
+        var lastGood = _importedUi.Snapshot;
+        var rejected = !_importedUi.TryImport(syntheticRoot);
+        Render();
+        return rejected && ReferenceEquals(lastGood, _importedUi.Snapshot) &&
+            _importedUi.IsImported &&
+            _importedUi.ErrorMessage?.Contains("Dernier catalogue valide conservé",
+                StringComparison.Ordinal) == true;
+    }
+#endif
 }

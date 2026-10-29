@@ -481,6 +481,20 @@ def documents(root, plan):
     for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
                    "gh release", "secrets.", "continue-on-error:"):
         require(unsafe not in libux, "LIBRARY_UX02_WORKFLOW_UNSAFE:" + unsafe)
+    # NEXT-04 native UX proof is branch-specific, synthetic-only and cannot publish a release.
+    next04 = (root / ".github/workflows/next04-ux-proof.yml").read_text(encoding="utf-8")
+    require("branches: [dev3/next04-esde-ux]" in next04 and
+            "github.actor == 'TobbyCy'" in next04 and
+            "permissions:\n  contents: read" in next04 and
+            "if-no-files-found: error" in next04 and
+            "retention-days: 3" in next04 and
+            next04.count("actions/upload-artifact@") == 1 and
+            "NEXT04_GUI_WINDOWS_CAPTURE_PASS" in next04 and
+            "NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS" in next04,
+            "NEXT04_UX_WORKFLOW_GUARDS")
+    for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
+                   "gh release", "secrets.", "continue-on-error:"):
+        require(unsafe not in next04, "NEXT04_UX_WORKFLOW_UNSAFE:" + unsafe)
     visual_workflow = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
     require("branches: [dev3/visual-poc-01]" in visual_workflow and
             "github.actor == 'TobbyCy'" in visual_workflow and

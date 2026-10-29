@@ -71,6 +71,15 @@ internal static class Program
             Next03RealGuiHarness.Configure(window, args[at + 1]);
         }
 #endif
+#if NEXT04_CI
+        if (args.Contains("--ci-next04-esde-capture", StringComparer.Ordinal))
+        {
+            var index = Array.IndexOf(args, "--ci-next04-esde-capture");
+            if (index + 1 >= args.Length)
+                throw new InvalidOperationException("NEXT04_CI_ROOT_REQUIRED");
+            Next04Capture.Configure(window, args[index + 1]);
+        }
+#endif
         if (args.Contains("--smoke-window", StringComparer.Ordinal))
         {
             // Real native Avalonia window must open. No artificial test-only success path.
