@@ -1,5 +1,13 @@
 # Journal des changements
 
+## NEXT-04 / IMPORT-HARDENING — moteur ES-DE + test Windows natif (PR Draft)
+
+- Lecture XML bornée à 8 Mio pendant la lecture, DTD/ressources externes interdites ; `.m3u` plafonnés à 64 Kio et 256 lignes, BOM Unicode conservés, refus fail-closed, dernier `Current` préservé.
+- Confinement des chemins adapté à l'OS et refus des collisions d'identité/plateforme sous Windows (sans effacer de source).
+- Tests adversariaux fictifs, mesure de 2 000 références et workflow Windows natif du binaire CI-only, variantes IDEAL/CHAOS/MYSTERY et vérification d'intégrité ; aucun scan réel, réseau, Release ni nouveau package.
+- Commentaires XML C# sur les contrats de l'importeur ; pilote DOC-TECH-02 #89 séparé, toujours HOLD.
+
+
 ## NEXT-04 — UX & BRANDING HARDENING (PR #93, recette en cours)
 
 - Logo officiel inchangé (PNG 1960×576, ICO multitailles) : présentation centrée 228×67 DIP, barre latérale 264 DIP, interpolation haute qualité et contrôles de packaging PNG/ICO/EXE.

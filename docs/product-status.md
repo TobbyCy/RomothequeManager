@@ -1,5 +1,12 @@
 # État des fonctionnalités
 
+## NEXT-04 / IMPORT-HARDENING — moteur ES-DE en recette synthétique (PR Draft)
+
+Le moteur conserve les trois conventions ES-DE sous la racine volontairement sélectionnée contenant `ROMS/`. Import en lecture seule, catalogue en mémoire de session, aucun scan NEXT-03. Le plafond XML **8 Mio d'octets effectivement lus**, celui des playlists **64 Kio et 256 lignes**, et le confinement des chemins sont contrôlés. Les collisions de noms portables sont refusées ; un dépassement ou XML invalide conserve le dernier `Current` valide.
+
+La batterie .NET couvre les refus et 2 000 références fictives. Un workflow dédié compile le **vrai exécutable Windows natif** avec `NEXT04_IMPORT_CI` exclusivement pour la recette, teste IDEAL/CHAOS/MYSTERY et vérifie les hashes des fixtures générées. Un build normal séparé ne contient pas l'entrée de test. Les performances seront mesurées sans seuil arbitraire. Tests sur la ROMothèque personnelle et recette humaine : `NOT_EXECUTED`, revue DEV 2 et gates avant toute fusion.
+
+
 ## NEXT-04 / Durcissement UX et branding — PR #93 (en validation)
 
 Le pack officiel reste byte-for-byte : barre latérale 264 DIP, logo PNG natif 1960×576 présenté au ratio 228×67, ICO officiel 7 tailles pour fenêtre et exécutable. Mise en page responsive et contenu limité à 1580 DIP ; Dashboard à compteurs qualifiés, Collection en cartes, fiche adaptable et diagnostics consultables dans Bibliothèques. Parcours d'import racine/confirmation/lecture seule, état d'attente indéterminé et messages neutres. Importeur, session ES-DE et protections NEXT-03 inchangés.
