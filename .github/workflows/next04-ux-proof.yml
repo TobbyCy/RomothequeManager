@@ -73,7 +73,7 @@ jobs:
             ('<gameList>' + ($entries -join '') + '</gameList>'), [Text.UTF8Encoding]::new($false))
           Write-Host 'NEXT04_LONG_FIXTURE_PASS entries=155 metadata=1 no_personal_paths=1'
           [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'next04-fixtures.txt'),$fixtures,[Text.UTF8Encoding]::new($false))
-      - name: Real Avalonia imported GUI and seven PNG captures
+      - name: Real Avalonia imported GUI and eleven PNG captures
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -149,16 +149,17 @@ jobs:
           Source HEAD: ${{ github.sha }}
           1. Verify the .zip SHA-256 against .zip.sha256, then extract to an empty folder.
           2. Start RomothequeManager.V2.exe. No ES-DE installation is required.
-          3. In Bibliotheques, choose ONLY your own explicitly authorized prepared ES-DE root
+          3. In Bibliotheques, choose ONLY the freshly generated SYNTHETIC IDEAL/CHAOS fixture
              with ROMS and MEDIAS; confirm the read-only metadata import.
           4. Browse systems -> Collection -> fiche; test search/page, return scroll position.
           5. Inspect local covers, thumbnails, logos, missing-media explanations,
              reimport, ultrawide layout, keyboard tab order and DPI 125/200.
           6. The catalogue is MEMORY-ONLY: it must be reimported after restarting.
-          7. Genre, Developer and ReleaseDate need the separate DEV1 metadata contract,
-             not included in this standalone DEV3 UX branch build.
+          7. This verification build contains the reviewed DEV1 ES-DE metadata contract:
+             confirm Genre, Developpeur and Date de sortie with a synthetic game;
+             when absent, fields must display Non renseigne.
           8. This build DOES NOT permit NEXT-03 personal library scans. No export/write.
-          9. Review the seven synthetic CI GUI PNGs as automated evidence;
+          9. Review the eleven synthetic CI GUI PNGs as automated evidence;
              do not mark mouse/focus/DPI human tests PASS without executing them.
           This is a quarantined temporary artifact. Not a Release.
           '@
