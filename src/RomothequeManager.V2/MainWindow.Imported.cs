@@ -298,7 +298,6 @@ public sealed partial class MainWindow
     // Only imported XML diagnostics are displayed. A missing reference is never a deletion.
     private Control ImportedDiagnostics(EsDeCatalogueSnapshot snapshot, bool compact)
     {
-        var errors = snapshot.Diagnostics.Where(EsDeDiagnosticPresentation.NeedsAttention).ToArray();
         var panel = new StackPanel { Spacing = 10 };
         panel.Children.Add(Text("Diagnostics de l'import", 22, true));
         panel.Children.Add(Text(EsDeDiagnosticPresentation.Summary(snapshot.Diagnostics), 13));
@@ -467,24 +466,48 @@ public sealed partial class MainWindow
             return;
         }
         _page.Children.Add(Button("← Retour à la collection", () => Navigate(POCView.Collection)));
-        _page.Children.Add(Text(game.Title, 30, true));
-        _page.Children.Add(Panel(Group(
+        _page.Children.Add(Hero("Fiche de jeu  /  " + game.Platform, game.Title,
+            "Données déclarées par ES-DE · consultation en lecture seule."));
+        _page.Children.Add(Notice(
+            game.RomExists ? "ROM référencée et présente au dernier import" :
+                "ROM référencée mais indisponible au dernier import",
+            game.RomExists ? "La présence du fichier ne certifie pas sa jouabilité." :
+                "Le fichier peut être absent ou le support déconnecté ; aucune suppression n'est déduite.",
+            !game.RomExists));
+        var metadata = Panel(Group(
+            Text("Informations ES-DE", 20, true),
             Text("Plateforme : " + game.Platform, 18, true),
             Text("Variante : " + game.VariantId),
-            Text("ROM : " + game.RomRelativePath),
-            Text(game.RomExists ? "Fichier présent lors de l'import" :
-                "Fichier introuvable / support indisponible — suppression non déduite", 14, true),
-            Text("Identité : " + game.GameId, 12),
             Text("Genre (ES-DE) : " + ImportedCatalogueUiState.MetadataOrUnspecified(game.Genre)),
             Text("Développeur (ES-DE) : " + ImportedCatalogueUiState.MetadataOrUnspecified(game.Developer)),
             Text("Date de sortie (ES-DE) : " + ImportedCatalogueUiState.MetadataOrUnspecified(game.ReleaseDate)),
             Text("Description : " + (string.IsNullOrWhiteSpace(game.Description) ?
-                "Non renseignée" : game.Description))
-        )));
-        _page.Children.Add(Panel(Group(
-            Text("Jaquette", 19, true),
-            CoverFor(game, 240, 280)
-        )));
+                "Non renseignée" : game.Description)),
+            Text("ROM : " + game.RomRelativePath, 12),
+            Text("Identité : " + game.GameId, 12)
+        ));
+        var artwork = Panel(Group(
+            Text("Jaquette · média local déclaré", 19, true),
+            CoverFor(game, 220, 265)
+        ));
+        if (Bounds.Width >= 1150)
+        {
+            var details = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("270,*"),
+                RowDefinitions = new RowDefinitions("Auto"),
+                ColumnSpacing = 14
+            };
+            details.Children.Add(artwork);
+            Grid.SetColumn(metadata, 1);
+            details.Children.Add(metadata);
+            _page.Children.Add(details);
+        }
+        else
+        {
+            _page.Children.Add(artwork);
+            _page.Children.Add(metadata);
+        }
         _page.Children.Add(Text("Galerie locale · uniquement les médias déclarés dans le XML ES-DE", 19, true));
         var gallery = new WrapPanel { Orientation = Orientation.Horizontal };
         foreach (var media in game.Media.Where(m => m.Kind is "image" or "thumbnail" or "marquee"))
@@ -585,16 +608,21 @@ public sealed partial class MainWindow
 
     private void ImportedLibraries(EsDeCatalogueSnapshot snapshot)
     {
-        _page.Children.Add(Text("Bibliothèques", 30, true));
+        _page.Children.Add(Hero("Sources  /  lecture seule", "Bibliothèques",
+            "Importer, consulter et actualiser une source ES-DE sans écrire dans les dossiers."));
         _page.Children.Add(Panel(Group(
-            Text("Bibliothèque importée (session actuelle)", 20, true),
-            Button("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()),
-            Button("Actualiser l’import ES-DE", () => _ = RefreshImportAsync()),
+            Text("Bibliothèque importée (session actuelle)", 22, true),
+            Text(snapshot.Games.Count + " jeu(x) · " + snapshot.Diagnostics.Count + " diagnostic(s)", 17, true),
             Text("Identité de session : " + snapshot.LibraryId, 12),
-            Text(snapshot.Games.Count + " jeu(x) · " + snapshot.Diagnostics.Count + " diagnostic(s)"),
+            PrimaryButton("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()),
+            Button("Actualiser l’import ES-DE", () => _ = RefreshImportAsync()),
+            Text("Catalogue en mémoire uniquement : réimport nécessaire au prochain lancement.", 12)
+        )));
+        _page.Children.Add(ImportedDiagnostics(snapshot, compact: false));
+        _page.Children.Add(Panel(Group(
+            Text("Inventaire et simulations", 22, true),
             Text("Inventaire NEXT-03 : scan de vos dossiers non autorisé dans cette version.", 14, true),
             Text("Les références ES-DE ne prouvent pas un inventaire physique complet.", 12),
-            Text("Catalogue en mémoire uniquement : réimport nécessaire au prochain lancement.", 12),
             Button("Inventaire NEXT-03 · Aperçu (SIMULATION)", () =>
                 new InventoryPreviewWindow().Show(this)),
             Text("L'aperçu NEXT-03 est synthétique : aucune lecture ni autorisation de scan personnel.", 12),
