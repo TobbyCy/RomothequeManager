@@ -84,7 +84,7 @@ public sealed class EsDeImportSession
 // XML reader failures are distinct from an otherwise well-formed XML whose
 // layout, paths or duplicated required fields are unsupported. Never expose
 // the source XML, exception details or absolute filesystem path in the UI.
-internal sealed class EsDeXmlReadException : InvalidDataException
+internal sealed class EsDeXmlReadException : IOException
 {
     internal EsDeXmlReadException(string platform, XmlException cause)
         : base("ES-DE XML reader rejected the gamelist for one platform.", cause)

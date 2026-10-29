@@ -392,7 +392,6 @@ public sealed class EsDeCatalogueImporterTests
         Put("MEDIAS/gba/metadata/es-de-gamelist.xml",
             "<otherList><game><path>./Safe.gba</path></game></otherList>");
         var unsupported = Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
-        Assert.IsFalse(unsupported is EsDeXmlReadException);
         Assert.AreSame(previous, session.Current);
         var displayed = EsDeDiagnosticPresentation.ImportFailure(unsupported);
         Assert.IsTrue(displayed.Contains("structure", StringComparison.OrdinalIgnoreCase));
