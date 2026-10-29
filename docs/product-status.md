@@ -1,5 +1,9 @@
 # État des fonctionnalités
 
+## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
+
+La liste CI autorise exclusivement `docs/design/mockups/v2/README.md` pour référencer les dix maquettes. Un canari accepte cet index et refuse les images, archives, manifestes et chemins voisins non autorisés. Les originaux restent à accès restreint ; aucun visuel tiers n'est ajouté au Produit. Les protections, canaris historiques et workflows sont conservés. Correction en revue, CI du HEAD à vérifier dans la PR ; aucune fusion, Release ou modification Avalonia.
+
 ## NEXT-03 — REAL GUI WIRING synthétique isolé (PR Draft #86)
 
 Fenêtre Avalonia raccordable par injection au véritable service applicatif #85, sans nouveau moteur ; sélection et exécution réelle uniquement dans une compilation CI dédiée `NEXT03_CI` autorisant les trois fixtures fraîchement générées IDEAL/CHAOS/MYSTERY. Le mode SIMULATION public reste séparé et le ZIP standard est recompilé sans permission de scan. Windows, hash ZIP et captures exigés du HEAD CI exact. Aucune ROMothèque réelle ni fusion/Release. [Détails et limites](ux/next03-mvvm-implementation.md).
