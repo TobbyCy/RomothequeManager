@@ -8,7 +8,7 @@ Le parseur existant reconnaît désormais, depuis la racine explicitement sélec
 
 Travail UI isolé : systèmes uniquement dérivés des jeux effectivement référencés dans les gamelists, sélection de système, recherche et pages 50 après filtre, retour de fiche avec contexte (dont défilement) et reimport conservant la vue en cours. Amélioration responsive de Collection et qualité de redimensionnement du logo officiel, sans changer les images du branding. Confirmation de l'import en lecture seule, sans déclenchement de NEXT-03 ni écriture dans les ROMS/MEDIAS.
 
-Ce lot **n'introduit aucune persistance ni nouvelle donnée de métadonnées**. Les champs genre, développeur et date devront suivre le contrat du parseur ES-DE DEV 1 avant d'être affichés. La recette Windows native/GUI, les captures et les essais DPI restent à obtenir sur ce HEAD ; aucune déclaration de PASS humain ou de livraison Beta.
+La branche DEV 3 #93 **inclut pour test combiné** les blobs exacts du parseur ES-DE #92 et projette Genre, Développeur et Date ES-DE dans la fiche (valeur absente : « Non renseigné »). La PR #92 n'est ni fusionnée ni réécrite. La Collection conserve filtre, recherche, page et offset via la navigation et le réimport ; une recette de 155 entrées synthétiques vérifie le défilement profond. Bibliothèques donne accès à l'aperçu NEXT-03 **SIMULATION seulement**. Aucun stockage persistant ou scan personnel. La recette Windows native/GUI, les captures et les essais DPI restent à obtenir sur ce HEAD ; aucune déclaration de PASS humain ou de livraison Beta.
 
 ## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
 

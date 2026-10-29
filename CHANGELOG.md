@@ -11,7 +11,8 @@
 
 - Parcours systèmes → jeux ES-DE → fiches, recherche et pagination limitées à la plateforme réellement référencée dans le XML ; mode démo et moteur NEXT-03 inchangés. Retour fiche avec contexte de recherche, page, système et défilement conservé.
 - Cartes Collection responsive (1/2/3 colonnes) et zone de contenu bornée pour grands écrans ; interpolation de qualité uniquement sur le logo officiel inchangé. Consentement spécifique à l'import ES-DE, réimport sans retour forcé au Dashboard et messages de limites sur la session en mémoire.
-- Données genre, développeur et date en attente du contrat et de la PR DEV 1 : aucune métadonnée inventée, aucune persistance créée, aucun scan personnel ni Release.
+- Raccordement de la fiche aux métadonnées optionnelles `Genre`, `Developer`, `ReleaseDate` du parseur #92 : « Non renseigné » si absent, sans confondre développeur et éditeur. La combinaison est **sur branche Draft #93 uniquement**, backend #92 byte-for-byte préservé et non fusionné dans `main`. Aperçu NEXT-03 (simulation) accessible depuis Bibliothèques, scan personnel toujours bloqué.
+- Tests sur Collection profonde (155 éléments fictifs) : recherche, page 2, défilement vertical non nul, retour de fiche, réimport idempotent/erreur XML, et dernier catalogue valide. Aucun index persistant, aucune Release.
 
 ## NEXT-03 — Raccordement GUI canonique limité aux fixtures (29.10.2026, PR #86 Draft)
 

@@ -474,8 +474,8 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.AreEqual(50, state.PageGames.Count);
         var gameId = state.PageGames[0].GameId;
         Assert.IsTrue(state.Open(gameId));
-        var valid = state.Snapshot;
         Assert.IsTrue(state.TryReimport());
+        var valid = state.Snapshot;
         Assert.AreEqual(POCView.GameDetail, state.CurrentView);
         Assert.AreEqual(gameId, state.SelectedGameId);
         Assert.AreEqual(1, state.PageIndex);
