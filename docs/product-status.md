@@ -7,6 +7,10 @@
 - Fiche importée ES-DE : affichage local en lecture seule des jaquettes, miniatures et logos réellement référencés (avec repli manquant/illisible/inconnu). Captures/dos/fonds hors contrat d'import restent sans aperçu inventé. Pagination désactivée si une seule page.
 - Capture réelle de cinq vues Avalonia sur runner Windows et ZIP temporaire autonome vérifié par SHA, sans Release, dans un workflow strictement limité à la branche DEV 3. Recette Windows et GO propriétaire **restent obligatoires** avant merge. [Procédure LIBRARY-UX-02](ux/library-ux-02.md).
 
+## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
+
+La liste CI autorise exclusivement `docs/design/mockups/v2/README.md` pour référencer les dix maquettes. Un canari accepte cet index et refuse les images, archives, manifestes et chemins voisins non autorisés. Les originaux restent à accès restreint ; aucun visuel tiers n'est ajouté au Produit. Les protections, canaris historiques et workflows sont conservés. Correction en revue, CI du HEAD à vérifier dans la PR ; aucune fusion, Release ou modification Avalonia.
+
 ## DEMO-LIBRARY-01 — catalogue canonique candidat (PR Draft #72, sans effet produit)
 
 La [PR #72](https://github.com/TobbyCy/RomothequeManager/pull/72) documente **30 jeux entièrement fictifs, sur les 13 plateformes corrigées par le propriétaire** ([Issue #71](https://github.com/TobbyCy/RomothequeManager/issues/71), notamment Xbox, PS2, PS3, PS4, PC et DOS) ; catalogue de référence `contracts/demo-library-01/`, contrat et briefs sous `docs/architecture/`, variantes IDEAL/CHAOS/MYSTERY et oracles non exécutés. DEV 1 aligne son générateur [#73](https://github.com/TobbyCy/RomothequeManager/pull/73) sur cette source. **Aucune ROM, PNG, XML, bibliothèque générée ou fonctionnalité UI livrée par #72 ; aucun changement à l'intégration NEXT-01.**
@@ -190,3 +194,11 @@ La [PR #68](https://github.com/TobbyCy/RomothequeManager/pull/68), désormais fu
 ## DEMO-LIBRARY-01 — générateur DEV 1 aligné au catalogue propriétaire (PR Draft #73)
 
 Contrat source de vérité : PR #72 HEAD `968d1f61420a5d0b70eb5160e9d57d505560f2b7` ; 30 jeux fictifs exacts, 13 plateformes, identités et médias/simulations décrits dans `contracts/demo-library-01/`. DEV 1 génère sous chemin local explicitement choisi et inexistant les scénarios IDEAL (32 ROMS/30 XML/180 PNG), CHAOS (33/30/166, deux ROMs absentes, 3 doublons candidats), MYSTERY (32/0/0). Images PNG réelles 100 % originales ; fausses ROMs texte non exécutables. Tests entièrement synthétiques ; fixtures historiques #64 conservées, aucun scan de bibliothèque réelle, téléchargement, suppression de données personnelles, merge ou Release. La PR reste soumise à la revue indépendante Agent.
+
+
+## DEMO-02 — exploitation des bibliothèques fictives (PR Draft #75)
+
+La recette Windows `tools/demo-library/Invoke-Demo02Recipe.ps1` réutilise strictement le générateur DEMO-01 de `main` après intégration des PR #72/#73/#69 ; la CI `push main` initiale #40732508284 est verte. Les trois sorties sont créées uniquement sous une nouvelle destination absolue locale choisie par l'opérateur et vérifiées par les manifests. La suite MSTest existante a quatre tests E2E supplémentaires : import NEXT-01, inventaire NEXT-02, 30 jeux de référence, 13 plateformes explicites, 32/30/180 (IDEAL), 33/30/166 (CHAOS), 32/0/0 (MYSTERY), deux ROMs manquantes, médias absents, trois groupes de doublons potentiels, playlist de deux disques, idempotence et lecture seule. Aucun scanner parallèle, aucun GO de scan réel, suppression, scraping, fusion ni Release. La PR reste Draft et nécessite revue indépendante avant intégration.
+
+
+**Contrôle croisé DEMO-02 (PR #75 vs #76/#77).** Le dossier `docs/ux/demo02-technical-cross-review.md` fournit la matrice honnête des 28 scénarios, sans déclarer PASS les parcours UX non testés. Deux tests synthétiques supplémentaires assurent l'exécution effective du lanceur Windows PowerShell de recette sur une sortie temporaire (`-SkipDotNetTests`, sans suppression/overwrite) et la conservation de `Current` après tentative NEXT-02 annulée (`LastAttempt=PARTIAL`). Le raccordement réel NEXT-02 à l'interface, les états Offline/Stale historiques, la comparaison A/B de scénario et les tests manuels d'accessibilité Windows demeurent hors périmètre du livrable DEV 1 ; aucune Release ou scan réel autorisé.

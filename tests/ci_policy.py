@@ -21,7 +21,7 @@ NEEDS = {"policy", "ci-docs", "ci-dotnet", *PS_JOBS}
 REQUIRED_DOCS = {"README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md",
                  "docs/product-status.md", "docs/roadmap.md", "docs/developer/workflow.md"}
 DOC = r"(?:README|CHANGELOG|CONTRIBUTING|BRANDING|LEGAL)\.md|(?:docs|Docs)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.md|Export/README\.md|assets/branding/README\.md|packaging/(?:THIRD-PARTY-NOTICES\.txt|licenses/[A-Za-z0-9_.-]+\.txt)"
-NET = r"(?:src|app)/RomothequeManager\.V2/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|csproj|sln|axaml|resx|json|png|svg|ico)|tests/dotnet/RomothequeManager\.V2\.Tests/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|csproj|json)|tools/demo-library/(?:generate\.cjs|README\.md)"
+NET = r"(?:src|app)/RomothequeManager\.V2/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|csproj|sln|axaml|resx|json|png|svg|ico)|tests/dotnet/RomothequeManager\.V2\.Tests/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|csproj|json)|tools/demo-library/(?:generate\.cjs|README\.md|Invoke-Demo02Recipe\.ps1)"
 SHARED = r"(?:contracts|schemas)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json|adapters/shared/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(?:cs|ps1|psm1|json)|Modules/(?:Identity|PersistentIdentity|DecisionSchema|StateCodec)\.psm1"
 PS = r"Initialize\.ps1|Modules/[A-Za-z][A-Za-z0-9]*\.psm1|Export/[^/]+\.(?:ps1|psm1)|Preflight/[^/]+\.ps1|tests/Unit/[^/]+\.Tests\.ps1"
 SENSITIVE = (
@@ -467,16 +467,6 @@ def documents(root, plan):
     require(all(path in entries for path in VISUAL67_ASSETS), "VISUAL67_ASSETS_REQUIRED")
     rules, static = path_rules(root)
     verify_public_ci_guard(root)
-    visual_workflow = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
-    require("branches: [dev3/visual-poc-01]" in visual_workflow and
-            "github.actor == 'TobbyCy'" in visual_workflow and
-            "retention-days: 3" in visual_workflow and
-            "if-no-files-found: error" in visual_workflow and
-            visual_workflow.count("actions/upload-artifact@") == 1,
-            "VISUAL_PROOF_WORKFLOW_GUARDS")
-    for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
-                   "gh release", "secrets.", "continue-on-error:"):
-        require(unsafe not in visual_workflow, "VISUAL_PROOF_WORKFLOW_UNSAFE:" + unsafe)
     # Narrow, fail-closed DEV 3 synthetic capture: no Release or broad artifact permissions.
     libux = (root / ".github/workflows/library-ux02-proof.yml").read_text(encoding="utf-8")
     require("branches: [dev3/library-ux-02]" in libux and
@@ -491,6 +481,16 @@ def documents(root, plan):
     for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
                    "gh release", "secrets.", "continue-on-error:"):
         require(unsafe not in libux, "LIBRARY_UX02_WORKFLOW_UNSAFE:" + unsafe)
+    visual_workflow = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
+    require("branches: [dev3/visual-poc-01]" in visual_workflow and
+            "github.actor == 'TobbyCy'" in visual_workflow and
+            "retention-days: 3" in visual_workflow and
+            "if-no-files-found: error" in visual_workflow and
+            visual_workflow.count("actions/upload-artifact@") == 1,
+            "VISUAL_PROOF_WORKFLOW_GUARDS")
+    for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
+                   "gh release", "secrets.", "continue-on-error:"):
+        require(unsafe not in visual_workflow, "VISUAL_PROOF_WORKFLOW_UNSAFE:" + unsafe)
     audit_entries(root, entries, rules)
     audit_baseline(root, static, entries)
     check_currency(plan["context"]["changes"], entries)
