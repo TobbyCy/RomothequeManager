@@ -1,0 +1,188 @@
+name: NEXT-03 / Windows frozen HEAD GUI recipe
+on:
+  push:
+    branches: [dev3/next03-windows-gui-recipe]
+permissions:
+  contents: read
+concurrency:
+  group: next03-windows-frozen-361d3341
+  cancel-in-progress: true
+jobs:
+  windows-recipe:
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev3/next03-windows-gui-recipe'
+    name: Frozen-source Windows publish, genuine Avalonia synthetic navigation and ZIP
+    runs-on: windows-2022
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact PR86 source (do not build proof-branch changes)
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: '361d3341debae1536513d3b24c1935fdf4e671ce'
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Validate frozen HEAD and local-only scope
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = '361d3341debae1536513d3b24c1935fdf4e671ce'
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -cne $expected) { throw 'NEXT03_SOURCE_SHA_MISMATCH' }
+          $tree = (git rev-parse 'HEAD^{tree}').Trim()
+          if ($tree -cne '9fd8e47ee3d9b40490ca7d26103dfdffd499593e') { throw 'NEXT03_TREE_SHA_MISMATCH' }
+          if (-not (Test-Path 'src/RomothequeManager.V2/MvvmFoundation/InventoryPreviewService.cs')) { throw 'PREVIEW_NOT_FOUND' }
+          if (Test-Path 'src/RomothequeManager.V2/MvvmFoundation/InventoryApplicationSeam.cs') { throw 'DUPLICATE_SEAM_UNEXPECTED' }
+          Write-Host "NEXT03_FROZEN_SOURCE_PASS sha=$actual tree=$tree"
+      - name: Install locked .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Locked restore, 133 test oracle and win-x64 self-contained publish
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_TEST_RESTORE_FAILED' }
+          dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true --logger 'trx;LogFileName=next03-tests.trx'
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_TESTS_FAILED' }
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_APP_RESTORE_FAILED' }
+          $out = Join-Path $env:RUNNER_TEMP 'next03-publish'
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $out
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_PUBLISH_FAILED' }
+          foreach ($name in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll','RM_V2_Favicon.ico','RM_V2_Horizontal_Fond_Sombre.png')) {
+            if (-not (Test-Path (Join-Path $out $name) -PathType Leaf)) { throw ('NEXT03_PUBLISH_MISSING:' + $name) }
+          }
+          $exe = [IO.File]::ReadAllBytes((Join-Path $out 'RomothequeManager.V2.exe'))
+          $pe = [BitConverter]::ToInt32($exe,60)
+          if ([BitConverter]::ToUInt16($exe,$pe + 24 + 68) -ne 2) { throw 'NEXT03_NOT_WINDOWS_GUI_EXE' }
+          Write-Host 'NEXT03_WINDOWS_PUBLISH_PASS source=361d3341debae1536513d3b24c1935fdf4e671ce'
+      - name: Launch real Windows Avalonia and exercise four legacy views
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $env:RUNNER_TEMP 'next03-publish/RomothequeManager.V2.exe'
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = $exe
+          $start.Arguments = '--smoke-window'
+          $start.WorkingDirectory = Split-Path $exe
+          $start.UseShellExecute = $false
+          $process = [Diagnostics.Process]::Start($start)
+          if ($null -eq $process) { throw 'NEXT03_SMOKE_NOT_STARTED' }
+          try {
+            if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'NEXT03_SMOKE_TIMEOUT' }
+            if ($process.ExitCode -ne 0) { throw ('NEXT03_SMOKE_FAILED:' + $process.ExitCode) }
+          } finally { $process.Dispose() }
+          Write-Host 'NEXT03_WINDOWS_SMOKE_PASS legacy=Dashboard,Collection,GameDetail,Libraries'
+      - name: Capture 8 actual Avalonia synthetic legacy screen renders
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $env:RUNNER_TEMP 'next03-publish/RomothequeManager.V2.exe'
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = $exe
+          $start.Arguments = '--ci-library-ux02-capture'
+          $start.WorkingDirectory = Split-Path $exe
+          $start.UseShellExecute = $false
+          $process = [Diagnostics.Process]::Start($start)
+          if ($null -eq $process) { throw 'NEXT03_CAPTURE_NOT_STARTED' }
+          try {
+            if (-not $process.WaitForExit(100000)) { $process.Kill(); throw 'NEXT03_CAPTURE_TIMEOUT' }
+            if ($process.ExitCode -ne 0) { throw ('NEXT03_CAPTURE_FAILED:' + $process.ExitCode) }
+          } finally { $process.Dispose() }
+          $folder = Join-Path $env:RUNNER_TEMP 'library-ux02'
+          $files = @(Get-ChildItem -LiteralPath $folder -Filter '*.png' -File)
+          if ($files.Count -ne 8) { throw ('NEXT03_CAPTURE_COUNT_FAILED:' + $files.Count) }
+          Add-Type -AssemblyName System.Drawing
+          foreach ($file in $files) {
+            $img = [Drawing.Bitmap]::FromFile($file.FullName)
+            try {
+              if ($img.Width -lt 760 -or $img.Height -lt 480 -or $file.Length -lt 4000) { throw ('NEXT03_CAPTURE_INVALID:' + $file.Name) }
+            } finally { $img.Dispose() }
+          }
+          Write-Host ('NEXT03_LEGACY_AVALONIA_CAPTURE_PASS count=' + $files.Count + ' note=NOT_NEXT03_BACKEND_GUI')
+      - name: Quarantine ZIP, source manifest, licences, file integrity, SHA256
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = Join-Path $env:RUNNER_TEMP 'next03-publish'
+          $proof = Join-Path $env:RUNNER_TEMP 'next03-proof'
+          $verify = Join-Path $env:RUNNER_TEMP 'next03-verify'
+          New-Item -ItemType Directory -Path $proof,$verify -Force | Out-Null
+          $inventory = 'docs/developer/lic-zip-01-inventory.md'
+          if (-not (Select-String -LiteralPath $inventory -Pattern 'LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED' -Quiet)) { throw 'NEXT03_LICENSE_NOT_APPROVED' }
+          foreach ($name in @('LICENSE','LEGAL.md','BRANDING.md')) { Copy-Item -LiteralPath $name -Destination $app }
+          Copy-Item -LiteralPath 'packaging/THIRD-PARTY-NOTICES.txt' -Destination (Join-Path $app 'THIRD-PARTY-NOTICES.txt')
+          Copy-Item -LiteralPath $inventory -Destination (Join-Path $app 'THIRD-PARTY-INVENTORY.md')
+          Copy-Item -LiteralPath 'packaging/licenses' -Destination (Join-Path $app 'licenses') -Recurse
+          $guide = @'
+          NEXT-03 / RECETTE WINDOWS HUMAINE — HEAD 361d3341
+          1. Verifier SHA256 du ZIP avant d'extraire ; ne pas installer sur une ROMotheque personnelle.
+          2. Extraire le ZIP dans un dossier vide ; lancer RomothequeManager.V2.exe.
+          3. Verifier Dashboard -> Collection -> Fiche -> Retour -> Bibliotheques.
+          4. Verifier les modes de demonstration IDEAL, CHAOS, MYSTERY ; ne pas deduire des jeux depuis les fichiers.
+          5. Dans Bibliotheques, cliquer NEXT-03 / Preview MVVM SIMULATION.
+          6. Choisir uniquement une racine SYNTHETIQUE. Le picker ne doit pas lancer de scan.
+          7. Cocher la confirmation SIMULATION ; jouer Complete, Partial, Failed, Offline, Stale ; annuler en cours.
+          8. Tester changer de dossier avant, pendant et apres ; pendant l'annulation, aucune nouvelle selection.
+          9. Verifier Current versus LastAttempt, Inconnu plutot que zero ; bouton Annuler / statut / couverture / diagnostics.
+          10. Tester au clavier Tab / Shift+Tab / Entree / Espace / fleches ; tailles 1120x720 et 760x480 ; DPI 125 et 200%.
+          11. Fermer la preview ; verifier que Dashboard, Collection, fiches et import ES-DE restent utilisables.
+          12. NE PAS attribuer PASS a un scan reel dans cette fenetre : elle utilise InventoryPreviewService SIMULATION.
+              Le service DEV1 vrai n'est teste que par le banc .NET, pas par le GUI.
+          13. Remonter captures anonymisees et verdict PASS/FAIL/NOT_EXECUTED dans PR #86.
+          Aucune copie, suppression, hash de ROM, fusion ni Release.
+          '@
+          [IO.File]::WriteAllText((Join-Path $app 'GUIDE-NEXT03-WINDOWS.txt'),$guide,[Text.UTF8Encoding]::new($false))
+          $manifest = [ordered]@{
+            sourceCommit='361d3341debae1536513d3b24c1935fdf4e671ce'
+            sourceTree='9fd8e47ee3d9b40490ca7d26103dfdffd499593e'
+            workflowBranchCommit=$env:GITHUB_SHA
+            platform='win-x64'
+            selfContained=$true
+            syntheticOnly=$true
+            guiScansRealLibraries=$false
+            next03RealServiceGui='NOT_IMPLEMENTED'
+            realLibraryScan='BLOCKED'
+            release=$false
+          }
+          ($manifest | ConvertTo-Json -Depth 4) | Set-Content -LiteralPath (Join-Path $app 'NEXT03-RECIPE-MANIFEST.json') -Encoding utf8
+          $files = @(Get-ChildItem -LiteralPath $app -Recurse -File)
+          foreach ($file in $files) {
+            if (@('.gba','.rom','.chd','.iso','.cue','.m3u','.sav','.nsp','.xci','.wad','.pfx','.pem','.key') -contains $file.Extension.ToLowerInvariant()) {
+              throw ('NEXT03_FORBIDDEN_PAYLOAD:' + $file.Name)
+            }
+          }
+          $name = 'RomothequeManager-NEXT03-win-x64-361d3341.zip'
+          $zip = Join-Path $proof $name
+          Compress-Archive -Path (Join-Path $app '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText(($zip + '.sha256'),($sha + '  ' + $name + [Environment]::NewLine),[Text.Encoding]::ASCII)
+          Expand-Archive -LiteralPath $zip -DestinationPath $verify -Force
+          if (@(Get-ChildItem -LiteralPath $verify -Recurse -File).Count -ne $files.Count) { throw 'NEXT03_EXTRACT_FILE_COUNT_MISMATCH' }
+          foreach ($file in $files) {
+            $relative = $file.FullName.Substring($app.Length + 1)
+            $copy = Join-Path $verify $relative
+            if (-not (Test-Path -LiteralPath $copy -PathType Leaf)) { throw ('NEXT03_EXTRACT_MISSING:' + $relative) }
+            if ((Get-FileHash -LiteralPath $copy -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) {
+              throw ('NEXT03_EXTRACT_HASH_MISMATCH:' + $relative)
+            }
+          }
+          $json = Get-Content -LiteralPath (Join-Path $verify 'NEXT03-RECIPE-MANIFEST.json') -Raw | ConvertFrom-Json
+          if ($json.sourceCommit -cne '361d3341debae1536513d3b24c1935fdf4e671ce' -or $json.release -or -not $json.syntheticOnly) {
+            throw 'NEXT03_MANIFEST_MISMATCH'
+          }
+          Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'library-ux02') -Filter '*.png' -File | Copy-Item -Destination $proof
+          Write-Host ('NEXT03_ZIP_VERIFIED_PASS source=' + $json.sourceCommit + ' sha256=' + $sha + ' files=' + $files.Count + ' sizeBytes=' + (Get-Item $zip).Length)
+      - name: Upload quarantined ZIP, SHA256 and real Avalonia legacy PNGs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: NEXT03-Windows-GUI-Recipe-361d3341
+          path: |
+            ${{ runner.temp }}/next03-proof/*.png
+            ${{ runner.temp }}/next03-proof/*.zip
+            ${{ runner.temp }}/next03-proof/*.zip.sha256
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6
