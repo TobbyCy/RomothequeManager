@@ -456,7 +456,7 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.AreEqual("Non renseigné", ImportedCatalogueUiState.MetadataOrUnspecified(ui.Selected.ReleaseDate));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("ESDE_XML_BYTES_LIMIT", "8 Mio")]
     [DataRow("ESDE_PLAYLIST_BYTES_LIMIT", "64 Kio")]
     [DataRow("ESDE_PLAYLIST_LINES_LIMIT", "256 lignes")]
