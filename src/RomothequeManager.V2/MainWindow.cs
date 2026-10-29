@@ -13,7 +13,7 @@ public sealed partial class MainWindow : Window
     private readonly NavigationState _state = new(ReadOnlyCatalogue.Synthetic());
     private readonly LibraryProjection _libraryProjection;
     private readonly LibraryViewState _libraryViewState;
-    private readonly StackPanel _page = new() { Spacing = 10 };
+    private readonly StackPanel _page = new() { Spacing = 16 };
     private ScrollViewer? _contentScroll;
     private Vector _demoCollectionOffset;
     private Vector _importedCollectionOffset;
@@ -22,7 +22,8 @@ public sealed partial class MainWindow : Window
     private void UpdateContentWidth()
     {
         // Wider than the old column, but never a five-thousand-pixel text line.
-        _page.Width = Math.Max(460, Math.Min(2200, Bounds.Width - 265));
+        // Content remains readable on ultrawide screens and fits 760 DIP windows.
+        _page.Width = Math.Max(420, Math.Min(1580, Bounds.Width - 306));
     }
 
     private int ImportedColumnCount() => Bounds.Width >= 1900 ? 3 :
@@ -53,6 +54,8 @@ public sealed partial class MainWindow : Window
     private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#E8E6E3"));
     private static readonly IBrush Muted = new SolidColorBrush(Color.Parse("#AAB2BF"));
     private static readonly IBrush Card = new SolidColorBrush(Color.Parse("#23262B"));
+    private static readonly IBrush Accent = new SolidColorBrush(Color.Parse("#B3202E"));
+    private static readonly IBrush BorderInk = new SolidColorBrush(Color.Parse("#3B414A"));
 
     // Persistent visual state for sidebar buttons. Explicit foreground wins over
     // the Fluent hover template which previously washed text out.
@@ -122,19 +125,26 @@ public sealed partial class MainWindow : Window
 
         var root = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("220,*"),
+            ColumnDefinitions = new ColumnDefinitions("264,*"),
             Background = new SolidColorBrush(Color.Parse("#16181D"))
         };
-        var menu = new StackPanel { Spacing = 7, Margin = new Thickness(14, 14, 14, 12) };
+        var menu = new StackPanel { Spacing = 9, Margin = new Thickness(14, 18, 14, 14) };
         var sidebarLogo = new Image
         {
-            Source = logoBitmap, Width = 188, Height = 58,
-            Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left
+            // Native source: 1960×576 (3.40:1), displayed at proportional 228×67 DIP.
+            // No fixed crop or bitmap regeneration; high-DPI uses native pixels.
+            Source = logoBitmap, Width = 228, Height = 67,
+            Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Center
         };
         // Native PNG, unchanged branding; high-quality interpolation only on logo.
         RenderOptions.SetBitmapInterpolationMode(sidebarLogo, BitmapInterpolationMode.HighQuality);
-        menu.Children.Add(sidebarLogo);
-        menu.Children.Add(Text("COLLECTION", 11, true));
+        menu.Children.Add(new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#16181D")),
+            Padding = new Thickness(2, 8), CornerRadius = new CornerRadius(9),
+            Child = sidebarLogo
+        });
+        menu.Children.Add(Text("EXPLORER", 11, true));
         menu.Children.Add(SidebarButton("Tableau de bord", () => Navigate(POCView.Dashboard), POCView.Dashboard));
         menu.Children.Add(SidebarButton("Collection", () => Navigate(POCView.Collection), POCView.Collection));
         menu.Children.Add(Text("BIBLIOTHÈQUES", 11, true));
@@ -255,11 +265,59 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    // Shared local visual primitives; no external assets or new dependencies.
+    // Used by imported and demo views, without changing navigation/data contracts.
     private static Border Panel(Control content) => new()
     {
-        Background = Card, CornerRadius = new CornerRadius(12),
-        Padding = new Thickness(20), Child = content
+        Background = Card, BorderBrush = BorderInk, BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(12), Padding = new Thickness(20), Child = content
     };
+
+    private static Border Hero(string eyebrow, string title, string subtitle)
+    {
+        var copy = new StackPanel { Spacing = 7 };
+        copy.Children.Add(new TextBlock
+        {
+            Text = eyebrow.ToUpperInvariant(), FontSize = 11, FontWeight = FontWeight.SemiBold,
+            Foreground = new SolidColorBrush(Color.Parse("#F28C92")),
+            LetterSpacing = 1.3
+        });
+        copy.Children.Add(Text(title, 30, true));
+        copy.Children.Add(Text(subtitle, 13));
+        return new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#22262D")),
+            BorderBrush = BorderInk, BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(23, 19),
+            Child = copy
+        };
+    }
+
+    private static Border Notice(string title, string explanation, bool warning = false)
+    {
+        var body = new StackPanel { Spacing = 4 };
+        body.Children.Add(Text(title, 15, true));
+        body.Children.Add(Text(explanation, 12));
+        return new Border
+        {
+            Background = new SolidColorBrush(Color.Parse(warning ? "#382B2E" : "#242A32")),
+            BorderBrush = warning ? Accent : BorderInk,
+            BorderThickness = new Thickness(3, 1, 1, 1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(13, 11),
+            Child = body
+        };
+    }
+
+    private static Button PrimaryButton(string caption, Action action)
+    {
+        var b = Button(caption, action);
+        b.Background = Accent;
+        b.BorderBrush = new SolidColorBrush(Color.Parse("#D34655"));
+        b.FontWeight = FontWeight.SemiBold;
+        return b;
+    }
 
     private static StackPanel Group(params Control[] controls)
     {
@@ -345,7 +403,8 @@ public sealed partial class MainWindow : Window
 
     private void Libraries()
     {
-        _page.Children.Add(Text("Bibliothèques & snapshots", 30, true));
+        _page.Children.Add(Hero("Bibliothèques", "Bibliothèques & supports",
+            "Sources de démonstration, états et simulation sans accès à vos dossiers."));
         _page.Children.Add(Button("Importer une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
         _page.Children.Add(Text("Sélection manuelle d’une racine ES-DE ; import confirmé en lecture seule.", 12));
         _page.Children.Add(ScenarioSelector());
