@@ -20,6 +20,7 @@ public sealed partial class MainWindow
     private ComboBox? _liveImportedSystemSelector;
     private TextBox? _liveImportedSearchBox;
     private bool _importBusy;
+    private int _diagnosticsPageIndex;
     private POCView ActiveView => _importedUi.IsImported ? _importedUi.CurrentView :
         _scenarioUi.Active && _scenarioDetail ? POCView.GameDetail : _state.CurrentView;
 
@@ -295,32 +296,66 @@ public sealed partial class MainWindow
         _page.Children.Add(ImportedDiagnostics(snapshot, compact: true));
     }
 
-    // Only imported XML diagnostics are displayed. A missing reference is never a deletion.
+    // Bounded diagnostics browsing; supports >20 messages without rendering a
+    // huge unvirtualized tree. No extra filesystem access or source mutation.
+    private void ShowDiagnosticsPage(int index)
+    {
+        if (!_importedUi.IsImported || ActiveView != POCView.Libraries) return;
+        var previousOffset = _contentScroll?.Offset ?? default;
+        _diagnosticsPageIndex = Math.Max(0, index);
+        Render();
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (_contentScroll is not null && _importedUi.IsImported &&
+                ActiveView == POCView.Libraries)
+                _contentScroll.Offset = previousOffset;
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
+    }
+
     private Control ImportedDiagnostics(EsDeCatalogueSnapshot snapshot, bool compact)
     {
+        const int PageSize = 20;
+        var total = snapshot.Diagnostics.Count;
+        var pages = Math.Max(1, (total + PageSize - 1) / PageSize);
+        var index = compact ? 0 : Math.Clamp(_diagnosticsPageIndex, 0, pages - 1);
+        var selected = snapshot.Diagnostics.Skip(index * (compact ? 0 : PageSize))
+            .Take(compact ? 4 : PageSize).ToArray();
         var panel = new StackPanel { Spacing = 10 };
         panel.Children.Add(Text("Diagnostics de l'import", 22, true));
         panel.Children.Add(Text(EsDeDiagnosticPresentation.Summary(snapshot.Diagnostics), 13));
-        if (snapshot.Diagnostics.Count == 0)
-            panel.Children.Add(Text("Aucune anomalie remontée par les XML lus. La couverture physique n'est pas certifiée.", 12));
+        if (total == 0)
+            panel.Children.Add(Text(
+                "Aucune anomalie remontée par les XML lus. La couverture physique n'est pas certifiée.", 12));
         else
         {
-            var selected = snapshot.Diagnostics.Take(compact ? 4 : 20).ToArray();
             foreach (var item in selected)
-            {
                 panel.Children.Add(Notice(
-                    EsDeDiagnosticPresentation.Title(item) + " · " +
-                    (string.IsNullOrWhiteSpace(item.Platform) ? "système inconnu" : item.Platform),
+                    EsDeDiagnosticPresentation.Title(item),
+                    EsDeDiagnosticPresentation.Context(item) + " · " +
                     EsDeDiagnosticPresentation.Explanation(item),
                     EsDeDiagnosticPresentation.NeedsAttention(item)));
-            }
-            if (snapshot.Diagnostics.Count > selected.Length)
-                panel.Children.Add(Text((snapshot.Diagnostics.Count - selected.Length) +
-                    " diagnostic(s) supplémentaire(s) · consulter Bibliothèques pour la synthèse.", 12));
+            var first = index * PageSize + 1;
+            panel.Children.Add(Text(
+                "Diagnostics affichés : " + first + "–" + (first + selected.Length - 1) +
+                " sur " + total + (compact ? " · aperçu" : " · page " + (index + 1) + "/" + pages), 12));
         }
         if (compact)
+        {
             panel.Children.Add(Button("Consulter les diagnostics", () => Navigate(POCView.Libraries)));
-        panel.Children.Add(Text("État constaté au dernier import ; un fichier introuvable n'est pas un fichier supprimé.", 12));
+        }
+        else if (pages > 1)
+        {
+            var navigation = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 9 };
+            var previous = Button("← Diagnostics précédents", () => ShowDiagnosticsPage(index - 1));
+            previous.IsEnabled = index > 0;
+            navigation.Children.Add(previous);
+            var next = Button("Diagnostics suivants →", () => ShowDiagnosticsPage(index + 1));
+            next.IsEnabled = index + 1 < pages;
+            navigation.Children.Add(next);
+            panel.Children.Add(navigation);
+        }
+        panel.Children.Add(Text(
+            "État constaté au dernier import ; un fichier introuvable n'est pas un fichier supprimé.", 12));
         return Panel(panel);
     }
 
@@ -632,6 +667,33 @@ public sealed partial class MainWindow
     }
 
 #if NEXT04_CI
+    // Validates the actual presentation tree and bounded last-page access on
+    // synthetic diagnostics only, independently of any personal library.
+    internal bool CiNext04DiagnosticsPagination()
+    {
+        var issues = Enumerable.Range(0, 27).Select(i =>
+            new EsDeDiagnostic("MEDIA_MISSING", "gba", "TEST-DIAG-" + i.ToString("D3"),
+                "Synthetic, not a real file")).ToArray();
+        var snapshot = new EsDeCatalogueSnapshot(
+            "test-library", "ES-DE", "test-only", Array.Empty<EsDeGame>(), issues);
+        var prior = _diagnosticsPageIndex;
+        try
+        {
+            _diagnosticsPageIndex = 0;
+            var first = string.Join("\n", SmokeText(ImportedDiagnostics(snapshot, compact: false)));
+            _diagnosticsPageIndex = 1;
+            var last = string.Join("\n", SmokeText(ImportedDiagnostics(snapshot, compact: false)));
+            return first.Contains("TEST-DIAG-000", StringComparison.Ordinal) &&
+                first.Contains("TEST-DIAG-019", StringComparison.Ordinal) &&
+                !first.Contains("TEST-DIAG-020", StringComparison.Ordinal) &&
+                last.Contains("TEST-DIAG-026", StringComparison.Ordinal) &&
+                !last.Contains("TEST-DIAG-000", StringComparison.Ordinal) &&
+                last.Contains("21–27 sur 27", StringComparison.Ordinal) &&
+                last.Contains("Diagnostics précédents", StringComparison.Ordinal);
+        }
+        finally { _diagnosticsPageIndex = prior; }
+    }
+
     // Brand checks execute on the attached application; no private artwork accessed.
     internal bool CiNext04BrandingLayout()
     {
