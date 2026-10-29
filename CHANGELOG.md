@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-04 / IMPORT-HARDENING — moteur ES-DE + test Windows natif (PR Draft)
+
+- Lecture XML bornée à 8 Mio pendant la lecture, DTD/ressources externes interdites ; `.m3u` plafonnés à 64 Kio et 256 lignes, BOM Unicode conservés, refus fail-closed, dernier `Current` préservé.
+- Confinement des chemins adapté à l'OS et refus des collisions d'identité/plateforme sous Windows (sans effacer de source).
+- Tests adversariaux fictifs, mesure de 2 000 références et workflow Windows natif du binaire CI-only, variantes IDEAL/CHAOS/MYSTERY et vérification d'intégrité ; aucun scan réel, réseau, Release ni nouveau package.
+- Commentaires XML C# sur les contrats de l'importeur ; pilote DOC-TECH-02 #89 séparé, toujours HOLD.
+
 ## NEXT-04 / ESDE-REAL-IMPORT-01 — diagnostics et métadonnées de l'import (29.10.2026, PR Draft)
 
 - Le parseur ES-DE unique différencie les refus du lecteur XML (syntaxe, encodage, DTD interdite) des XML valides mais non pris en charge, sans publier de chemin personnel. Retour utilisateur avec système et ligne/colonne si disponible ; validation réelle de la ROMothèque propriétaire encore non exécutée.

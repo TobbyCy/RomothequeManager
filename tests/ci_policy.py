@@ -467,6 +467,27 @@ def documents(root, plan):
     require(all(path in entries for path in VISUAL67_ASSETS), "VISUAL67_ASSETS_REQUIRED")
     rules, static = path_rules(root)
     verify_public_ci_guard(root)
+    # A new Windows import harness must remain synthetic-only, least-privilege,
+    # exact-SDK and non-distributable. This does not change the Adaptive gate.
+    engine = (root / ".github/workflows/next04-import-hardening.yml").read_text(encoding="utf-8")
+    require("on:\n  pull_request:\n    branches: [main]\n" in engine and
+            "  push:\n    branches: [main]\n" in engine and
+            "permissions:\n  contents: read\n" in engine and
+            "runs-on: windows-2022" in engine and
+            "dotnet-version: '10.0.401'" in engine and
+            "NEXT04_IMPORT_CI" in engine and
+            "RM_NEXT04_IMPORT_TEST_ONLY" in engine and
+            "node tools/demo-library/generate.cjs --verify" in engine and
+            "persist-credentials: false" in engine and
+            "dotnet restore $test --locked-mode" in engine,
+            "NEXT04_IMPORT_NATIVE_WORKFLOW_CONTRACT")
+    for unsafe in ("pull_request_target:", "workflow_run:", "repository_dispatch:",
+                   "contents: write", "actions/upload-artifact@", "gh release",
+                   "secrets.", "curl ", "Invoke-WebRequest"):
+        require(unsafe not in engine, "NEXT04_IMPORT_WORKFLOW_UNSAFE:" + unsafe)
+    require(re.search(r"uses: actions/checkout@[0-9a-f]{40}", engine) is not None and
+            re.search(r"uses: actions/setup-dotnet@[0-9a-f]{40}", engine) is not None,
+            "NEXT04_IMPORT_WORKFLOW_UNPINNED")
     # Narrow, fail-closed DEV 3 synthetic capture: no Release or broad artifact permissions.
     libux = (root / ".github/workflows/library-ux02-proof.yml").read_text(encoding="utf-8")
     require("branches: [dev3/library-ux-02]" in libux and
