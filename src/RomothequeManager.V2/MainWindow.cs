@@ -346,6 +346,8 @@ public sealed partial class MainWindow : Window
     private void Libraries()
     {
         _page.Children.Add(Text("Bibliothèques & snapshots", 30, true));
+        _page.Children.Add(Button("Importer une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
+        _page.Children.Add(Text("Sélection manuelle d’une racine ES-DE ; import confirmé en lecture seule.", 12));
         _page.Children.Add(ScenarioSelector());
         _page.Children.Add(Button("NEXT-03 · Prévisualisation MVVM (SIMULATION)", () =>
             new InventoryPreviewWindow().Show(this)));
