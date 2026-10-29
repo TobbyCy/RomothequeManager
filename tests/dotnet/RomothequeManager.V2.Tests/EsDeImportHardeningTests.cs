@@ -229,4 +229,71 @@ public sealed class EsDeImportHardeningTests
             clock.ElapsedMilliseconds + " managed_delta_bytes=" + (after - before) +
             " source_xml_bytes=" + new FileInfo(xml).Length);
     }
+
+    [TestMethod]
+    public void ExactEightMiBXmlIsAcceptedButNextByteIsRejected()
+    {
+        const int maxBytes = 8 * 1024 * 1024;
+        const string open = "<gameList>";
+        const string close = "</gameList>";
+        var payload = open + new string(' ', maxBytes - open.Length - close.Length) + close;
+        var xml = Put(Convention("historical"), payload);
+        Assert.AreEqual(maxBytes, new FileInfo(xml).Length);
+        // A well-formed but empty gamelist is distinct from a missing XML.
+        var session = new EsDeImportSession(_root);
+        var complete = session.Import();
+        Assert.AreEqual(0, complete.Games.Count);
+        File.AppendAllText(xml, " ", new UTF8Encoding(false));
+        Assert.AreEqual(maxBytes + 1, new FileInfo(xml).Length);
+        var limit = Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
+        Assert.AreEqual("ESDE_XML_BYTES_LIMIT", limit.Message);
+        Assert.AreSame(complete, session.Current);
+    }
+
+    [TestMethod]
+    public void Exact64KiBPlaylistIsAcceptedButNextByteIsRejected()
+    {
+        const int maxBytes = 64 * 1024;
+        var playlist = Put("ROMS/gba/Bounded.m3u", "#" + new string(' ', maxBytes - 2) + "\n");
+        Assert.AreEqual(maxBytes, new FileInfo(playlist).Length);
+        Put(Convention("historical"), "<gameList>" + Game("./Bounded.m3u") + "</gameList>");
+        var session = new EsDeImportSession(_root);
+        var complete = session.Import();
+        Assert.AreEqual(0, complete.Games.Single().DiscPaths.Count);
+        File.AppendAllText(playlist, " ", new UTF8Encoding(false));
+        Assert.AreEqual(maxBytes + 1, new FileInfo(playlist).Length);
+        var limit = Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
+        Assert.AreEqual("ESDE_PLAYLIST_BYTES_LIMIT", limit.Message);
+        Assert.AreSame(complete, session.Current);
+    }
+
+
+    [TestMethod]
+    public void Exactly256PlaylistLinesAcceptedAnd257Rejected()
+    {
+        var playlist = Put("ROMS/gba/Lines.m3u",
+            string.Concat(Enumerable.Repeat("# comment\n", 256)));
+        Put(Convention("historical"), "<gameList>" + Game("./Lines.m3u") + "</gameList>");
+        var session = new EsDeImportSession(_root);
+        var accepted = session.Import();
+        Assert.AreEqual(0, accepted.Games.Single().DiscPaths.Count);
+        File.AppendAllText(playlist, "# extra\n", new UTF8Encoding(false));
+        var error = Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
+        Assert.AreEqual("ESDE_PLAYLIST_LINES_LIMIT", error.Message);
+        Assert.AreSame(accepted, session.Current);
+    }
+
+    [TestMethod]
+    public void InvalidUtf8PlaylistBytesRejectWithoutChangingCurrent()
+    {
+        var playlist = Put("ROMS/gba/Invalid.m3u", "Header\n");
+        Put(Convention("historical"), "<gameList>" + Game("./Invalid.m3u") + "</gameList>");
+        var session = new EsDeImportSession(_root);
+        var accepted = session.Import();
+        File.WriteAllBytes(playlist, [0xC3, 0x28, 0x0A]);
+        var error = Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
+        Assert.AreEqual("ESDE_PLAYLIST_ENCODING_UNSUPPORTED", error.Message);
+        Assert.AreSame(accepted, session.Current);
+    }
+
 }

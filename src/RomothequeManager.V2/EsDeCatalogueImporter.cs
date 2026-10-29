@@ -255,9 +255,9 @@ public static class EsDeCatalogueImporter
                 {
                     // Do not read a large or changing playlist into unbounded memory.
                     // StreamReader detects UTF-8/UTF-16 BOMs, preserving historical imports.
-                    var data = ReadBoundedBytes(romFile, PlaylistByteLimit,
+                    using var data = ReadBoundedStream(romFile, PlaylistByteLimit,
                         "ESDE_PLAYLIST_BYTES_LIMIT");
-                    using var playlist = new StreamReader(new MemoryStream(data, writable: false),
+                    using var playlist = new StreamReader(data,
                         new UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
                     string? line;
                     var lineCount = 0;
@@ -338,37 +338,47 @@ public static class EsDeCatalogueImporter
     /// DTDs and external XML resources remain prohibited; no content is written.</remarks>
     private static XDocument LoadXml(string path)
     {
-        var data = ReadBoundedBytes(path, XmlLimit, "ESDE_XML_BYTES_LIMIT");
+        using var input = ReadBoundedStream(path, XmlLimit, "ESDE_XML_BYTES_LIMIT");
         var options = new XmlReaderSettings
         {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
             MaxCharactersInDocument = XmlLimit
         };
-        using var input = new MemoryStream(data, writable: false);
         using var reader = XmlReader.Create(input, options);
         return XDocument.Load(reader, LoadOptions.None);
     }
 
-    /// <summary>Reads at most the specified number of bytes from a single opened file.</summary>
-    /// <remarks>Rejects both oversized files and files growing concurrently. Does not
-    /// follow symbolic links intentionally; callers validate reparse points and roots.</remarks>
-    private static byte[] ReadBoundedBytes(string path, int maxBytes, string limitCode)
+    /// <summary>Reads one opened file into a bounded and reusable in-memory stream.</summary>
+    /// <remarks>Refuses an oversized or concurrently growing source. The returned
+    /// stream owns the sole byte buffer and must be disposed by the caller.
+    /// Callers must first validate the selected root and reject reparse paths.</remarks>
+    /// <returns>A readable, positioned stream containing at most maxBytes bytes.</returns>
+    private static MemoryStream ReadBoundedStream(string path, int maxBytes, string limitCode)
     {
         using var input = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (input.Length > maxBytes) throw new InvalidDataException(limitCode);
-        using var output = new MemoryStream();
-        var buffer = new byte[32768];
-        while (true)
+        var output = new MemoryStream();
+        try
         {
-            var remaining = maxBytes + 1L - output.Length;
-            if (remaining <= 0) throw new InvalidDataException(limitCode);
-            var read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
-            if (read == 0) break;
-            output.Write(buffer, 0, read);
-            if (output.Length > maxBytes) throw new InvalidDataException(limitCode);
+            var buffer = new byte[32768];
+            while (true)
+            {
+                var remaining = maxBytes + 1L - output.Length;
+                if (remaining <= 0) throw new InvalidDataException(limitCode);
+                var read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
+                if (read == 0) break;
+                output.Write(buffer, 0, read);
+                if (output.Length > maxBytes) throw new InvalidDataException(limitCode);
+            }
+            output.Position = 0;
+            return output;
         }
-        return output.ToArray();
+        catch
+        {
+            output.Dispose();
+            throw;
+        }
     }
 
     private static string? SingleField(XElement entry, string localName)
