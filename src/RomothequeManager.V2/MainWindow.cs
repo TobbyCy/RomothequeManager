@@ -339,8 +339,13 @@ public sealed partial class MainWindow : Window
         Title = "ROMothèque Manager" + (_importedUi.IsImported ?
             " — Bibliothèque ES-DE" : " — Démonstration");
         if (_importedUi.ErrorMessage is not null)
-            _page.Children.Add(Text(_importedUi.ErrorMessage, 14, true));
-        if (_importBusy) _page.Children.Add(Text("Lecture en cours ; aucune source modifiée.", 14, true));
+            _page.Children.Add(Notice("Import non effectué", _importedUi.ErrorMessage, warning: true));
+        if (_importBusy)
+        {
+            _page.Children.Add(Notice("Import ES-DE en cours",
+                "Lecture des métadonnées sélectionnées ; pas de scan global ni d'écriture."));
+            _page.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 5 });
+        }
         if (_importedUi.IsImported)
         {
             RenderImported();
@@ -372,8 +377,8 @@ public sealed partial class MainWindow : Window
 
     private void Collection()
     {
-        _page.Children.Add(Text("Collection", 30, true));
-        _page.Children.Add(Text("Résultats observés dans les fixtures. Ce total ne prouve pas une bibliothèque complète."));
+        _page.Children.Add(Hero("Démo  /  collection", "Collection",
+            "Données synthétiques : cette liste ne prouve aucune bibliothèque complète."));
         var search = new TextBox { PlaceholderText = "Rechercher un jeu ou une plateforme", Text = _state.SearchText };
         search.TextChanged += (_, _) => { _state.Search(search.Text); FillResults(); };
         _page.Children.Add(search);
@@ -388,15 +393,17 @@ public sealed partial class MainWindow : Window
         if (_list is null) return;
         _list.Children.Clear();
         var games = _state.FilteredGames;
-        _list.Children.Add(Text(games.Count + " résultat(s) synthétique(s) — couverture globale non garantie.", 13));
+        _list.Children.Add(Notice(games.Count + " résultats fictifs",
+            "Couverture globale non garantie · aucune ROM personnelle lue."));
         foreach (var game in games)
         {
             var id = game.GameId;
             _list.Children.Add(Panel(Group(
+                Text(game.Platform.ToUpperInvariant() + "  /  DÉMONSTRATION", 11, true),
                 Text(game.Title, 19, true),
                 Text(game.Platform + " · " + game.Variant),
                 Text(game.Availability + " / " + game.Freshness + " / " + game.Coverage, 13),
-                Button("Ouvrir la fiche", () => OpenDemoGame(id))
+                PrimaryButton("Ouvrir la fiche", () => OpenDemoGame(id))
             )));
         }
     }
@@ -405,7 +412,7 @@ public sealed partial class MainWindow : Window
     {
         _page.Children.Add(Hero("Bibliothèques", "Bibliothèques & supports",
             "Sources de démonstration, états et simulation sans accès à vos dossiers."));
-        _page.Children.Add(Button("Importer une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
+        _page.Children.Add(PrimaryButton("Importer une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
         _page.Children.Add(Text("Sélection manuelle d’une racine ES-DE ; import confirmé en lecture seule.", 12));
         _page.Children.Add(ScenarioSelector());
         _page.Children.Add(Button("NEXT-03 · Prévisualisation MVVM (SIMULATION)", () =>
@@ -421,7 +428,8 @@ public sealed partial class MainWindow : Window
         var game = _state.Selected;
         if (game is null) { _state.ShowCollection(); Render(); return; }
         _page.Children.Add(Button("← Retour à la collection", () => Navigate(POCView.Collection)));
-        _page.Children.Add(Text(game.Title, 30, true));
+        _page.Children.Add(Hero("Fiche de démonstration  /  " + game.Platform,
+            game.Title, "Données fictives · aucun titre de jeu identifié depuis une ROM."));
         _page.Children.Add(Panel(Group(
             Text("Plateforme : " + game.Platform, 18, true),
             Text("Variante : " + game.Variant),
