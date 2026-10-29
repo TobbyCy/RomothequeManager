@@ -301,6 +301,35 @@ class DocumentTests(unittest.TestCase):
         for path in (".github/workflows/unreviewed.yml", "tests/ci_policy_extra.py", "docs/secret.exe", "ROMS/demo.gba", "SECURITY.txt", "LICENSE.txt", "LICENSE.bak", "license", "BRANDING.md.bak", "LEGAL.txt", "LEGAL.md/evil", "tests/Invoke-CiE1PreflightSynthetic.ps1.bak", "tests/Invoke-CiE1PreflightSynthetic.ps1/extra"):
             self.assertFalse(any(__import__('re').fullmatch(r, path) for r in rules))
 
+    def test_ux_v2_mockup_index_only_no_image_or_archive(self):
+        import re
+        root = Path(__file__).resolve().parent.parent
+        rules, _ = p.path_rules(root)
+        index = "docs/design/mockups/v2/README.md"
+        self.assertEqual("DOCS_ONLY", p.classify([("A", index)]))
+        self.assertTrue(any(re.fullmatch(rule, index) for rule in rules))
+        with patch.object(p, "git", return_value=b"synthetic reference index\n"):
+            p.audit_entries(root, {index: ("100644", "blob", "f" * 40)}, rules)
+        denied = (
+            "docs/design/mockups/v2/01-dashboard.jpeg",
+            "docs/design/mockups/v2/01-dashboard.png",
+            "docs/design/mockups/v2/originals.zip",
+            "docs/design/mockups/v2/manifest.json",
+            "docs/design/mockups/v2/other.md",
+            "docs/design/mockups/v2/README.md.bak",
+            "docs/design/mockups/v2/README.md/extra",
+            "docs/design/mockups/v2/nested/README.md",
+            "docs/design/mockups/v2/../v2/README.md",
+            "docs/design/mockups/v3/README.md",
+            "Docs/design/mockups/v2/README.md",
+            "docs/design/mockups/v2/readme.md",
+        )
+        for path in denied:
+            with self.subTest(denied=path):
+                self.assertFalse(any(re.fullmatch(rule, path) for rule in rules))
+                with self.assertRaisesRegex(p.PolicyError, "TRACKED_PATH_NOT_ALLOWED"):
+                    p.audit_entries(root, {path: ("100644", "blob", "f" * 40)}, rules)
+
     def test_brand01_exact_paths_and_binary_negative_canaries(self):
         import re
         root = Path(__file__).resolve().parent.parent
