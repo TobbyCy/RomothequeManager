@@ -1,5 +1,11 @@
 # État des fonctionnalités
 
+## NEXT-04 / IMPORT-HARDENING — moteur ES-DE en recette synthétique (PR Draft)
+
+Le moteur conserve les trois conventions ES-DE sous la racine volontairement sélectionnée contenant `ROMS/`. Import en lecture seule, catalogue en mémoire de session, aucun scan NEXT-03. Le plafond XML **8 Mio d'octets effectivement lus**, celui des playlists **64 Kio et 256 lignes**, et le confinement des chemins sont contrôlés. Les collisions de noms portables sont refusées ; un dépassement ou XML invalide conserve le dernier `Current` valide.
+
+La batterie .NET couvre les refus et 2 000 références fictives. Un workflow dédié compile le **vrai exécutable Windows natif** avec `NEXT04_IMPORT_CI` exclusivement pour la recette, teste IDEAL/CHAOS/MYSTERY et vérifie les hashes des fixtures générées. Un build normal séparé ne contient pas l'entrée de test. Les performances seront mesurées sans seuil arbitraire. Tests sur la ROMothèque personnelle et recette humaine : `NOT_EXECUTED`, revue DEV 2 et gates avant toute fusion.
+
 ## NEXT-04 / ESDE-REAL-IMPORT-01 — amélioration ciblée de l'import ES-DE (PR Draft)
 
 Le parseur existant reconnaît désormais, depuis la racine explicitement sélectionnée contenant `ROMS/`, trois conventions fixes : `ROMS/<système>/gamelist.xml`, `MEDIAS/<système>/metadata/es-de-gamelist.xml` et `ES-DE/gamelists/<système>/gamelist.xml`. Il ne découvre pas les gamelists en dehors de cette racine et refuse les sources concurrentes. Pour la convention ES-DE, les médias **uniquement référencés dans le XML** sont confinés à `ES-DE/downloaded_media/`, jamais à `ES-DE/settings/` ni à une recherche par nom de ROM ; aucun média supplémentaire n'est inféré. Les erreurs de lecture XML sont désormais distinguées des structures XML incompatibles ; aucun diagnostic n'expose de chemin local complet. Genre, développeur et date de sortie sont projetés **uniquement depuis les champs XML déclarés**, sinon non renseignés. Les valeurs invalides facultatives sont ignorées avec diagnostic sans perdre le jeu. Pas de persistance ni d'enrichissement réseau. Import/reimport restent volontaires et en lecture seule, sans modification des sources. Une recette réelle du propriétaire et la revue de DEV 2/DEV 3 restent nécessaires avant toute fusion.

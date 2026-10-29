@@ -11,6 +11,26 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+#if NEXT04_IMPORT_CI
+        // The native import proof is compiled only into an isolated CI executable.
+        // A normal Windows portable build contains no such entrypoint.
+        if (args.Length == 2 && args[0] == "--ci-next04-import-engine")
+        {
+            try
+            {
+                Environment.ExitCode = Next04ImportEngineHarness.Run(args[1]);
+            }
+            catch (Exception error)
+            {
+                Environment.ExitCode = 43;
+                // Only the type/code: never print a selected root or XML text.
+                Console.Error.WriteLine("NEXT04_IMPORT_ENGINE_NATIVE_FAIL " +
+                    error.GetType().Name + " " +
+                    (error is InvalidDataException ? error.Message : "IMPORT_ENGINE_ERROR"));
+            }
+            return;
+        }
+#endif
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
             Args = args

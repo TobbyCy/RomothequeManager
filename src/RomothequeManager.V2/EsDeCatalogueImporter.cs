@@ -12,6 +12,9 @@ public sealed record EsDeDiagnostic(string Code, string Platform, string Entry, 
 public sealed record EsDeMedia(string Kind, string RelativePath, bool Exists);
 // Keep the historical nine-parameter constructor and Deconstruct contract.
 // Optional ES-DE metadata is added only as nullable init-only properties.
+/// <summary>An ES-DE game reference, not proof of a playable or verified ROM.</summary>
+/// <remarks>The nine positional parameters and deconstruction order are preserved.
+/// Optional genre, developer and release date are read only from declared XML.</remarks>
 public sealed record EsDeGame(
     string GameId, string VariantId, string Platform, string Title, string RomRelativePath,
     bool RomExists, string? Description, IReadOnlyList<EsDeMedia> Media,
@@ -25,6 +28,9 @@ public sealed record EsDeCatalogueSnapshot(
     string LibraryId, string SourceKind, string ContentFingerprint,
     IReadOnlyList<EsDeGame> Games, IReadOnlyList<EsDeDiagnostic> Diagnostics);
 
+/// <summary>Maintains the last successfully imported ES-DE catalogue within a session.</summary>
+/// <remarks>No files are modified and no background scan is started; errors preserve
+/// <see cref="Current"/> and the previously selected source root.</remarks>
 public sealed class EsDeImportSession
 {
     private string _root;
@@ -41,6 +47,8 @@ public sealed class EsDeImportSession
     }
 
     // Build fully in temporary memory; failure leaves Current untouched.
+    /// <summary>Explicitly imports from the selected root into a staged in-memory catalogue.</summary>
+    /// <returns>The complete accepted catalogue; an exception never replaces Current.</returns>
     public EsDeCatalogueSnapshot Import()
     {
         var staged = EsDeCatalogueImporter.Read(_root, _libraryId);
@@ -50,6 +58,9 @@ public sealed class EsDeImportSession
 
     // A new drive letter/path must be explicitly supplied and have matching content.
     // Failed re-association preserves both the current root and last valid snapshot.
+    /// <summary>Re-associates a new user-selected root only if its catalogue fingerprint matches.</summary>
+    /// <param name="explicitlySelectedNewRoot">New explicit library root; no automatic discovery.</param>
+    /// <returns>A verified catalogue under the existing session identity.</returns>
     public EsDeCatalogueSnapshot RelocateVerified(string explicitlySelectedNewRoot)
     {
         if (Current is null) throw new InvalidOperationException("Import before relocation.");
@@ -65,6 +76,10 @@ public sealed class EsDeImportSession
     // Never trust Exists from a previous import: enforce snapshot membership and
     // path/reparse restrictions again immediately before giving the UI a read handle.
     // Caller owns and must dispose the returned stream. No network, writes or upload.
+    /// <summary>Opens a media reference from Current read-only after revalidating its path.</summary>
+    /// <param name="media">A media reference actually present in Current.</param>
+    /// <param name="stream">Read-only stream owned by the caller, or null on refusal.</param>
+    /// <returns>True only if the authorized file could be opened; no download or copy.</returns>
     public bool TryOpenMedia(EsDeMedia media, out Stream? stream)
     {
         stream = null;
@@ -106,11 +121,19 @@ internal sealed class EsDeXmlReadException : IOException
     public int LinePosition { get; }
 }
 
+/// <summary>Reads the three supported ES-DE gamelist conventions under a selected ROMS root.</summary>
+/// <remarks>Uses bounded XML/playlist reads and refuses concurrent sources, DTDs,
+/// escaped paths and reparse points. Does not scan or identify ROMs independently.</remarks>
 public static class EsDeCatalogueImporter
 {
-    private const long XmlLimit = 8 * 1024 * 1024;
+    private const int XmlLimit = 8 * 1024 * 1024;
+    private const int PlaylistByteLimit = 64 * 1024;
+    private const int PlaylistLineLimit = 256;
     private static readonly string[] MediaFields = ["image", "thumbnail", "marquee", "video"];
 
+    /// <summary>Reads an ES-DE catalogue from a root explicitly supplied by the caller.</summary>
+    /// <param name="explicitlySelectedLibraryRoot">Folder containing a ROMS child, not the ES-DE folder alone.</param>
+    /// <returns>In-memory ES-DE references with source provenance and diagnostics.</returns>
     public static EsDeCatalogueSnapshot Read(string explicitlySelectedLibraryRoot) =>
         Read(explicitlySelectedLibraryRoot, "library-" + Guid.NewGuid().ToString("N"));
 
@@ -134,13 +157,18 @@ public static class EsDeCatalogueImporter
 
         var games = new List<EsDeGame>();
         var diagnostics = new List<EsDeDiagnostic>();
-        var identities = new HashSet<string>(StringComparer.Ordinal);
+        // Windows libraries cannot distinguish paths that differ only by casing.
+        // Reject ambiguous portable identities even if a test host has a case-sensitive FS.
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var platforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var xmlFound = false;
         foreach (var platformRoot in Directory.GetDirectories(romRoot).OrderBy(x => x, StringComparer.Ordinal))
         {
             RequireOrdinaryDirectory(platformRoot);
             var platform = Path.GetFileName(platformRoot);
             if (string.IsNullOrWhiteSpace(platform)) continue;
+            if (!platforms.Add(platform))
+                throw new InvalidDataException("ESDE_PLATFORM_CASE_COLLISION");
 
             var mediaPlatform = Path.Combine(mediaRoot, platform);
             var historicXml = Path.Combine(mediaPlatform, "metadata", "es-de-gamelist.xml");
@@ -225,17 +253,32 @@ public static class EsDeCatalogueImporter
                 var discs = new List<string>();
                 if (exists && Path.GetExtension(romFile).Equals(".m3u", StringComparison.OrdinalIgnoreCase))
                 {
-                    var lines = File.ReadAllLines(romFile);
-                    if (lines.Length > 256) throw new InvalidDataException("Playlist too large.");
-                    foreach (var line in lines)
+                    // Do not read a large or changing playlist into unbounded memory.
+                    // StreamReader detects UTF-8/UTF-16 BOMs, preserving historical imports.
+                    using var data = ReadBoundedStream(romFile, PlaylistByteLimit,
+                        "ESDE_PLAYLIST_BYTES_LIMIT");
+                    using var playlist = new StreamReader(data,
+                        new UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
+                    string? line;
+                    var lineCount = 0;
+                    try
                     {
-                        var disc = line.Trim();
-                        if (disc.Length == 0 || disc.StartsWith('#')) continue;
-                        var discFile = ResolveRelative(Path.GetDirectoryName(romFile)!, disc, romRoot);
-                        var discRelative = NormalizeRelative(Path.GetRelativePath(root, discFile));
-                        discs.Add(discRelative);
-                        if (!File.Exists(discFile))
-                            diagnostics.Add(new("DISC_MISSING", platform, discRelative, "Playlist member unavailable."));
+                        while ((line = playlist.ReadLine()) is not null)
+                        {
+                            if (++lineCount > PlaylistLineLimit)
+                                throw new InvalidDataException("ESDE_PLAYLIST_LINES_LIMIT");
+                            var disc = line.Trim();
+                            if (disc.Length == 0 || disc.StartsWith('#')) continue;
+                            var discFile = ResolveRelative(Path.GetDirectoryName(romFile)!, disc, romRoot);
+                            var discRelative = NormalizeRelative(Path.GetRelativePath(root, discFile));
+                            discs.Add(discRelative);
+                            if (!File.Exists(discFile))
+                                diagnostics.Add(new("DISC_MISSING", platform, discRelative, "Playlist member unavailable."));
+                        }
+                    }
+                    catch (DecoderFallbackException)
+                    {
+                        throw new InvalidDataException("ESDE_PLAYLIST_ENCODING_UNSUPPORTED");
                     }
                 }
                 var genre = OptionalMetadataField(entry, "genre", platform, romRelative, diagnostics);
@@ -289,19 +332,53 @@ public static class EsDeCatalogueImporter
         return ResolveRelative(root, normalized, domain);
     }
 
+    /// <summary>Loads one ES-DE gamelist in read-only mode with bounded XML bytes and characters.</summary>
+    /// <remarks>The byte budget is enforced during the actual read, not only by a prior
+    /// FileInfo length check. This prevents unbounded reads after concurrent growth.
+    /// DTDs and external XML resources remain prohibited; no content is written.</remarks>
     private static XDocument LoadXml(string path)
     {
-        if (new FileInfo(path).Length > XmlLimit)
-            throw new InvalidDataException("ES-DE XML exceeds read limit.");
+        using var input = ReadBoundedStream(path, XmlLimit, "ESDE_XML_BYTES_LIMIT");
         var options = new XmlReaderSettings
         {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
             MaxCharactersInDocument = XmlLimit
         };
-        using var input = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var reader = XmlReader.Create(input, options);
         return XDocument.Load(reader, LoadOptions.None);
+    }
+
+    /// <summary>Reads one opened file into a bounded and reusable in-memory stream.</summary>
+    /// <remarks>Refuses an oversized or concurrently growing source. The returned
+    /// stream owns the sole byte buffer and must be disposed by the caller.
+    /// Callers must first validate the selected root and reject reparse paths.</remarks>
+    /// <returns>A readable, positioned stream containing at most maxBytes bytes.</returns>
+    private static MemoryStream ReadBoundedStream(string path, int maxBytes, string limitCode)
+    {
+        using var input = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (input.Length > maxBytes) throw new InvalidDataException(limitCode);
+        var output = new MemoryStream();
+        try
+        {
+            var buffer = new byte[32768];
+            while (true)
+            {
+                var remaining = maxBytes + 1L - output.Length;
+                if (remaining <= 0) throw new InvalidDataException(limitCode);
+                var read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
+                if (read == 0) break;
+                output.Write(buffer, 0, read);
+                if (output.Length > maxBytes) throw new InvalidDataException(limitCode);
+            }
+            output.Position = 0;
+            return output;
+        }
+        catch
+        {
+            output.Dispose();
+            throw;
+        }
     }
 
     private static string? SingleField(XElement entry, string localName)
@@ -368,7 +445,11 @@ public static class EsDeCatalogueImporter
     private static void AssertWithin(string path, string root)
     {
         var prefix = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        if (!Path.GetFullPath(path).StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        // Linux filesystems are often case-sensitive: an IgnoreCase check could
+        // mistake a differently cased sibling for an authorized directory.
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!Path.GetFullPath(path).StartsWith(prefix, comparison))
             throw new InvalidDataException("ES-DE path escapes its explicitly authorized root.");
     }
 
