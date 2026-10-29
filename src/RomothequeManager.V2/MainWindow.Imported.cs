@@ -335,7 +335,10 @@ public sealed partial class MainWindow
         {
             var index = selector.SelectedIndex;
             if (index < 0 || index > systems.Count) return;
-            if (_importedUi.SelectPlatform(index == 0 ? null : systems[index - 1].Platform))
+            var desired = index == 0 ? null : systems[index - 1].Platform;
+            if (string.Equals(_importedUi.SelectedPlatform, desired, StringComparison.OrdinalIgnoreCase))
+                return; // no re-render or page reset for an unchanged Avalonia value
+            if (_importedUi.SelectPlatform(desired))
             {
                 Render();
                 if (_contentScroll is not null) _contentScroll.Offset = default;
@@ -624,6 +627,9 @@ public sealed partial class MainWindow
         Console.WriteLine("NEXT04_DEEP_SCROLL_BEFORE_DETAIL offset=" + _ciNext04CollectionOffsetY);
         if (_ciNext04CollectionOffsetY < 200) return false;
         var target = _importedUi.PageGames[0];
+        Console.WriteLine("NEXT04_DEEP_PAGE_CHECK page=" + _importedUi.PageIndex +
+            " search=" + _importedUi.SearchText + " system=" + _importedUi.SelectedPlatform);
+        if (_importedUi.PageIndex != 1) return false;
         Console.WriteLine("NEXT04_DEEP_FIRST_GAME title=" + target.Title + " metadata=" +
             target.Genre + "/" + target.Developer + "/" + target.ReleaseDate);
         _ciNext04SelectedGame = target.GameId;

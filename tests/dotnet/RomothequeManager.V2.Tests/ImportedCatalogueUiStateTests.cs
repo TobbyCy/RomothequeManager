@@ -472,6 +472,12 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.IsTrue(state.NextPage());
         Assert.AreEqual(1, state.PageIndex);
         Assert.AreEqual(50, state.PageGames.Count);
+        // Reattached native ComboBox/TextBox can publish their unchanged values.
+        // That must never clear a page or selection during a Collection render.
+        Assert.IsTrue(state.SelectPlatform("gba"));
+        Assert.AreEqual(1, state.PageIndex);
+        state.Search("Game ");
+        Assert.AreEqual(1, state.PageIndex);
         var gameId = state.PageGames[0].GameId;
         Assert.IsTrue(state.Open(gameId));
         Assert.IsTrue(state.TryReimport());

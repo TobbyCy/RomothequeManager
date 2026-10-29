@@ -150,6 +150,10 @@ public sealed class ImportedCatalogueUiState
         if (platform is not null && !Systems.Any(system =>
             string.Equals(system.Platform, platform, StringComparison.OrdinalIgnoreCase)))
             return false;
+        // Avalonia may emit SelectionChanged when reattaching an unchanged selector.
+        // Idempotent UI values must not reset pagination, selection, or scroll.
+        if (string.Equals(SelectedPlatform, platform, StringComparison.OrdinalIgnoreCase))
+            return true;
         SelectedPlatform = platform;
         PageIndex = 0;
         SelectedGameId = null;
@@ -159,7 +163,9 @@ public sealed class ImportedCatalogueUiState
 
     public void Search(string? search)
     {
-        SearchText = search ?? "";
+        var text = search ?? "";
+        if (string.Equals(SearchText, text, StringComparison.Ordinal)) return;
+        SearchText = text;
         PageIndex = 0;
     }
 
