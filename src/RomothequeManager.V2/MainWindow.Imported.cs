@@ -632,6 +632,16 @@ public sealed partial class MainWindow
     }
 
 #if NEXT04_CI
+    // Brand checks execute on the attached application; no private artwork accessed.
+    internal bool CiNext04BrandingLayout()
+    {
+        if (_officialSidebarLogo?.Source is not Bitmap logo || Icon is null)
+            return false;
+        return logo.PixelSize.Width == 1960 && logo.PixelSize.Height == 576 &&
+            Math.Abs(_officialSidebarLogo.Width - 228) < 0.1 &&
+            Math.Abs(_officialSidebarLogo.Height - 67) < 0.1;
+    }
+
     private double _ciNext04CollectionOffsetY;
     private string? _ciNext04SelectedGame;
     // Test-only entrypoints for the real Avalonia tree; never compiled in the public ZIP.
