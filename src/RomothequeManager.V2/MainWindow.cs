@@ -15,6 +15,7 @@ public sealed partial class MainWindow : Window
     private readonly LibraryViewState _libraryViewState;
     private readonly StackPanel _page = new() { Spacing = 16 };
     private ScrollViewer? _contentScroll;
+    private Image? _officialSidebarLogo;
     private Vector _demoCollectionOffset;
     private Vector _importedCollectionOffset;
     private int _importedColumns = 1;
@@ -138,6 +139,7 @@ public sealed partial class MainWindow : Window
         };
         // Native PNG, unchanged branding; high-quality interpolation only on logo.
         RenderOptions.SetBitmapInterpolationMode(sidebarLogo, BitmapInterpolationMode.HighQuality);
+        _officialSidebarLogo = sidebarLogo;
         menu.Children.Add(new Border
         {
             Background = new SolidColorBrush(Color.Parse("#16181D")),
