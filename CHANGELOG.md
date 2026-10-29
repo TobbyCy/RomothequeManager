@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-04 / USAGE-01 — essai Windows autonome, preuve humaine en attente (Produit #97)
+
+- Deux ZIP distincts dans l'artefact temporaire CI : application Windows autonome et démo ES-DE déjà générée (IDEAL, CHAOS, MYSTERY, MALFORMED, LONG 155 jeux fictifs), sans Node.js ni sources à préparer sur le PC du testeur.
+- DEMO-FICTIVE vérifiée avant upload et après extraction, avec SHA ZIP, manifestes SHA-256 par fichier, hash générateur/contrats, notices et consignes. Aucune ROM ou jaquette réelle.
+- Le vrai picker, le vrai dialogue de confirmation et le moteur ES-DE restent inchangés. HUM-01..10 à effectuer par un humain ; `USER_VALUE_PROVEN = HOLD` jusqu'à preuve, aucune Release.
+
+
 ## NEXT-04 / IMPORT-HARDENING — moteur ES-DE + test Windows natif (PR Draft)
 
 - Lecture XML bornée à 8 Mio pendant la lecture, DTD/ressources externes interdites ; `.m3u` plafonnés à 64 Kio et 256 lignes, BOM Unicode conservés, refus fail-closed, dernier `Current` préservé.

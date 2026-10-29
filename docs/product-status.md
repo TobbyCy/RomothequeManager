@@ -1,5 +1,10 @@
 # État des fonctionnalités
 
+## NEXT-04 / USAGE-01 — démonstration prête à tester sans Node (Issue #97)
+
+Le workflow Windows UX de PR #93 produit deux ZIP séparés dans un seul artefact temporaire : application standard .NET embarqué et démo fictive ES-DE pré-générée côté CI, avec 5 racines (`IDEAL`, `CHAOS`, `MYSTERY`, `MALFORMED`, `LONG`), hashes par fichier/ZIP et notices. Le PC de recette ne requiert que Windows. La validation du packaging ne prouve **pas** le vrai parcours humain picker/confirmation/annulation/import : HUM-01..10 restent NOT_EXECUTED, `USER_VALUE_PROVEN` reste HOLD. Pas de ROM personnelle, ni Release.
+
+
 ## NEXT-04 / IMPORT-HARDENING — moteur ES-DE en recette synthétique (PR Draft)
 
 Le moteur conserve les trois conventions ES-DE sous la racine volontairement sélectionnée contenant `ROMS/`. Import en lecture seule, catalogue en mémoire de session, aucun scan NEXT-03. Le plafond XML **8 Mio d'octets effectivement lus**, celui des playlists **64 Kio et 256 lignes**, et le confinement des chemins sont contrôlés. Les collisions de noms portables sont refusées ; un dépassement ou XML invalide conserve le dernier `Current` valide.
