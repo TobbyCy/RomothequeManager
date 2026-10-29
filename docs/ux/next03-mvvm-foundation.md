@@ -1,5 +1,7 @@
 # NEXT-03 / MVVM FOUNDATION — décision d'architecture DEV 3
 
+> **Actualisation du 29.10.2026, préparation #86 :** les apports de #84 sont conservés par leur descendance Git dans #86, sans seconde fondation. Le seam provisoire a été retiré ; le contrat unique est désormais celui de #85 dans l'assembly V2 existante, `PrepareSelection(InventoryScope)`. La proposition historique de Core séparé et les étapes provisoires décrites ci-dessous ne sont pas des prérequis actuels. Les tests F01 à F14 et P01 à P07 sont conservés. La fenêtre demeure une simulation sans lecture du dossier sélectionné ; la recette GUI du vrai backend n'est pas exécutée. Aucune fusion dans main.
+
 **Statut : fondation isolée, PR Draft, aucun scan réel et aucun raccordement Avalonia.** Contrat fonctionnel [#82](https://github.com/TobbyCy/RomothequeManager/issues/82) ; service applicatif proposé par DEV 1 dans [#83](https://github.com/TobbyCy/RomothequeManager/issues/83) ; UX [#80](https://github.com/TobbyCy/RomothequeManager/issues/80).
 
 ## Découpage et limites

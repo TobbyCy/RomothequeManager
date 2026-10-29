@@ -58,7 +58,7 @@ public sealed partial class MainWindow : Window
         _libraryViewState = new LibraryViewState(_libraryProjection);
         SizeChanged += (_, _) =>
         {
-            if (ActiveView is POCView.Dashboard or POCView.Libraries)
+            if (_scenarioUi.Active || ActiveView is POCView.Dashboard or POCView.Libraries)
                 Render();
         };
         Title = "ROMothèque Manager";
@@ -233,6 +233,11 @@ public sealed partial class MainWindow : Window
             RenderImported();
             return;
         }
+        if (_scenarioUi.Active)
+        {
+            RenderScenario();
+            return;
+        }
         switch (_state.CurrentView)
         {
             case POCView.Dashboard: Dashboard(); break;
@@ -286,9 +291,11 @@ public sealed partial class MainWindow : Window
     private void Libraries()
     {
         _page.Children.Add(Text("Bibliothèques & snapshots", 30, true));
+        _page.Children.Add(ScenarioSelector());
         _page.Children.Add(Button("NEXT-03 · Prévisualisation MVVM (SIMULATION)", () =>
             new InventoryPreviewWindow().Show(this)));
         _page.Children.Add(Text("NEXT-03 : aperçu indépendant, aucune lecture de dossier et aucun inventaire réel.", 12));
+
         _page.Children.Add(LibraryPage.Build(_libraryProjection, _libraryViewState,
             Render, Bounds.Width < 1000));
     }

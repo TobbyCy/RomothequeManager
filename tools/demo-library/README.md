@@ -38,3 +38,39 @@ Les tests .NET/MSTest sur répertoires temporaires contrôlent les 30 IDs/titres
 Une interruption peut laisser un **nouveau** dossier partiel ; il n'est pas considéré comme livraison tant que le manifeste final n'est pas vérifié. Ne pas réutiliser ce dossier : choisir une autre destination. Aucune garantie atomique face aux remplacements concurrents de chemins, aucun GO de scan réel. Les fixtures historiques de la PR #64 restent intactes.
 
 **Gouvernance :** PR #73 Draft, contrat canonique #72 indépendant. Aucun merge ni Release autonome, validation indépendante Agent avant décision d'intégration.
+
+
+## DEMO-02 — recette Windows reproductible (NEXT-01 + NEXT-02)
+
+**Prérequis :** Windows PowerShell 5.1+, Node.js 20+, SDK .NET 10, dépôt de développement à jour. Aucune ROM/BIOS commerciale. Exécuter dans un clone de développement autorisé ; `dotnet test` peut produire ses sorties habituelles `bin/obj` **dans ce clone**, jamais dans la ROMothèque du propriétaire.
+
+Dans PowerShell, depuis la racine du dépôt :
+
+```powershell
+.\tools\demo-library\Invoke-Demo02Recipe.ps1 -OutputRoot 'C:\Temp\Demo02-Test-Nouveau'
+```
+
+Le chemin doit être **absolu, local, explicitement choisi, et inexistant** ; son dossier parent doit déjà exister. Le script refuse tout écrasement et n'efface rien. Il appelle **le générateur DEMO-01 existant**, puis `--verify` (SHA-256 / PNG / manifests), contrôle les 30 références par variante et les oracles **IDEAL 32/30/180, CHAOS 33/30/166, MYSTERY 32/0/0** (ROMS physiques / XML ES-DE / PNG). Ensuite il lance les MSTest `DemoLibraryGeneratorTests`, qui génèrent leurs **propres fixtures temporaires** et appellent directement les moteurs **NEXT-01** et **NEXT-02**. La bibliothèque générée à `-OutputRoot` est conservée intacte pour inspection visuelle manuelle.
+
+Pour générer et vérifier les trois dossiers **sans** lancer les tests .NET :
+
+```powershell
+.\tools\demo-library\Invoke-Demo02Recipe.ps1 -OutputRoot 'C:\Temp\Demo02-Autre-Nouveau' -SkipDotNetTests
+```
+
+Pour relancer seulement la validation sans modifier la bibliothèque existante :
+
+```powershell
+node tools/demo-library/generate.cjs --verify 'C:\Temp\Demo02-Test-Nouveau'
+dotnet test tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj --configuration Release --property:RestoreLockedMode=true --filter 'FullyQualifiedName~DemoLibraryGeneratorTests'
+```
+
+**Diagnostic attendu et interprétation :** IDEAL = 30 jeux importés, 13 plateformes, 180 PNG et playlist *Metal Deer Salad* de 2 disques ; CHAOS = 30 entrées XML dont **2 ROMs principales manquantes** (`ROM_MISSING`), **14 médias absents** sur les 6 catégories du manifest (seuls image/thumbnail/marquee sont visibles dans NEXT-01), **3 groupes de doublons potentiels** dans NEXT-02 (`POTENTIAL_DUPLICATE`, jamais preuve binaire) ; MYSTERY = **aucun XML**, donc import NEXT-01 impossible par conception (`InvalidDataException`), mais inventaire NEXT-02 complet de 32 fichiers, avec `ConfirmedGameCount=null`. Les 13 alias de plateformes sont fournis explicitement aux tests NEXT-02 ; sans ces alias, le diagnostic `UNKNOWN_PLATFORM` est normal. Aucun jeu n'est déduit automatiquement d'un fichier observé.
+
+**Sécurité :** ne jamais donner un chemin vers une vraie collection ou vers un dossier existant. Le script n'effectue aucun téléchargement, scraping, scan réel, suppression, renommage ou Release. Les diagnostics n'autorisent aucune opération physique. Une interruption peut laisser une **nouvelle** sortie incomplète ; ne pas la réutiliser automatiquement, choisir un autre nom et la conserver pour analyse ou l'effacer uniquement après validation humaine. Les cas négatifs XML/PNG restent hors des variantes nominales. Les tests automatisés ne constituent pas une validation de bibliothèque personnelle.
+
+### DEMO-02 — contrôle automatique du lanceur Windows
+
+Le test MSTest `Demo02_WindowsRecipeRunsAgainstOnlyAnExplicitNewSyntheticRoot` exécute réellement `Invoke-Demo02Recipe.ps1` via Windows PowerShell 5.1 sur une **nouvelle** racine temporaire (option `-SkipDotNetTests` pour éviter la récursion des suites). Il vérifie les trois manifests, les oracles et le refus d'une relance qui écraserait la sortie. La suite `dotnet test` habituelle contrôle séparément NEXT-01/NEXT-02 ; une exécution manuelle de la commande complète avec création de la sortie voulue reste disponible pour la recette propriétaire. Le test `Demo02_CancelledSyntheticNext02AttemptPreservesLastComplete` contrôle aussi la séparation `LastAttempt` partielle / `Current` complet.
+
+La [matrice de revue technique des 28 scénarios](../../docs/ux/demo02-technical-cross-review.md) distingue explicitement les garanties moteur des parcours UX non exécutés ou non implémentés, à compléter avec DEV 2/#76 et DEV 3/#77.

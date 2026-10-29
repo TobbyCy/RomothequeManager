@@ -16,10 +16,12 @@ public sealed partial class MainWindow
     private readonly List<Bitmap> _coverImages = new();
     private StackPanel? _importedList;
     private bool _importBusy;
-    private POCView ActiveView => _importedUi.IsImported ? _importedUi.CurrentView : _state.CurrentView;
+    private POCView ActiveView => _importedUi.IsImported ? _importedUi.CurrentView :
+        _scenarioUi.Active && _scenarioDetail ? POCView.GameDetail : _state.CurrentView;
 
     private void Navigate(POCView view)
     {
+        _scenarioDetail = false;
         if (_importedUi.IsImported)
             _importedUi.Navigate(view);
         else
@@ -36,6 +38,8 @@ public sealed partial class MainWindow
 
     private void ShowDemo()
     {
+        _scenarioUi.Clear();
+        _scenarioDetail = false;
         _importedUi.ShowDemo();
         _state.ShowDashboard();
         Render();
@@ -287,14 +291,18 @@ public sealed partial class MainWindow
             _importedList.Children.Add(Panel(line));
         }
         var pages = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        pages.Children.Add(Button("← Précédente", () =>
+        var previous = Button("← Précédente", () =>
         {
             if (_importedUi.PreviousPage()) FillImportedResults();
-        }));
-        pages.Children.Add(Button("Suivante →", () =>
+        });
+        previous.IsEnabled = _importedUi.PageIndex > 0;
+        pages.Children.Add(previous);
+        var next = Button("Suivante →", () =>
         {
             if (_importedUi.NextPage()) FillImportedResults();
-        }));
+        });
+        next.IsEnabled = _importedUi.PageIndex + 1 < _importedUi.PageCount;
+        pages.Children.Add(next);
         _importedList.Children.Add(pages);
     }
 
@@ -323,8 +331,14 @@ public sealed partial class MainWindow
             Text("Jaquette", 19, true),
             CoverFor(game, 240, 280)
         )));
+        _page.Children.Add(Text("Galerie locale · uniquement les médias déclarés dans le XML ES-DE", 19, true));
+        var gallery = new WrapPanel { Orientation = Orientation.Horizontal };
+        foreach (var media in game.Media.Where(m => m.Kind is "image" or "thumbnail" or "marquee"))
+            gallery.Children.Add(ImportedMediaPreview(media));
+        if (gallery.Children.Count > 0) _page.Children.Add(gallery);
         _page.Children.Add(Text("Médias référencés", 19, true));
-        if (game.Media.Count == 0) _page.Children.Add(Text("Aucun média déclaré dans le XML.", 13));
+        if (game.Media.Count == 0) _page.Children.Add(Text("Médias non renseignés dans le XML : état inconnu, pas absence de fichiers prouvée.", 13));
+        _page.Children.Add(Text("Captures, dos et fonds non exposés par cet importeur ; aucun visuel n'est inventé.", 12));
         foreach (var media in game.Media)
             _page.Children.Add(Text(media.Kind + " · " + media.RelativePath + " · " +
                 (media.Exists ? "présent au dernier import (lecture à vérifier)" : "absent au dernier import"), 13));
@@ -333,6 +347,52 @@ public sealed partial class MainWindow
             _page.Children.Add(Text("Disques référencés dans la playlist", 19, true));
             foreach (var disc in game.DiscPaths) _page.Children.Add(Text(disc, 13));
         }
+    }
+
+
+    private Control ImportedMediaPreview(EsDeMedia media)
+    {
+        var title = media.Kind switch
+        {
+            "image" => "Jaquette",
+            "thumbnail" => "Miniature",
+            "marquee" => "Logo",
+            _ => "Média"
+        };
+        var group = new StackPanel { Spacing = 7, Margin = new Thickness(4), Width = 170 };
+        group.Children.Add(Text(title, 14, true));
+        if (!media.Exists)
+        {
+            group.Children.Add(Text("Référencé, mais introuvable lors de l'import", 12));
+            return Panel(group);
+        }
+        if (!_importedUi.TryOpenMedia(media, out var stream))
+        {
+            group.Children.Add(Text("Fichier indisponible à la lecture · état actuel inconnu", 12));
+            return Panel(group);
+        }
+        try
+        {
+            using (stream)
+            {
+                var bitmap = new Bitmap(stream!);
+                _coverImages.Add(bitmap);
+                group.Children.Add(new Image
+                {
+                    Source = bitmap, Width = 145,
+                    Height = media.Kind == "marquee" ? 84 : 178,
+                    Stretch = Stretch.Uniform
+                });
+                group.Children.Add(Text("Décodé depuis un fichier local déclaré", 11));
+            }
+        }
+        catch (Exception error) when (error is IOException or ArgumentException or
+            InvalidDataException or InvalidOperationException or NotSupportedException or
+            System.Runtime.InteropServices.COMException)
+        {
+            group.Children.Add(Text("Fichier média illisible · à vérifier", 12));
+        }
+        return Panel(group);
     }
 
     private Control CoverFor(EsDeGame game, double width, double height)

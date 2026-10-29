@@ -18,6 +18,8 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/library-ui-v2-01b.synthetic.json" />
+    <EmbeddedResource Include="../../contracts/demo-library-01/catalogue.json" LogicalName="DemoLibrary.Catalogue.json" />
+    <EmbeddedResource Include="../../contracts/demo-library-01/scenarios.json" LogicalName="DemoLibrary.Scenarios.json" />
     <Content Include="../../assets/branding/RM_V2_Horizontal_Fond_Sombre.png" Link="RM_V2_Horizontal_Fond_Sombre.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
     <Content Include="../../assets/branding/RM_V2_Favicon.ico" Link="RM_V2_Favicon.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
   </ItemGroup>

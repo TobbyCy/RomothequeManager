@@ -1,5 +1,11 @@
 # État des fonctionnalités
 
+## NEXT-03 / PR #86 — préparation commune, main inchangé (29 octobre 2026)
+
+La branche de #86 réunit les dépendances #76/#75/#77/#85 et sa fondation #84 déjà ancêtre, sans fusion de PR. Le seam provisoire est supprimé ; interface et records applicatifs uniques proviennent de #85, dans l'assembly V2 existante. Le sélecteur IDEAL/CHAOS/MYSTERY de #77 et l'entrée MVVM SIMULATION sont conservés ensemble. Un contrôle de raccordement MSTest exerce le vrai ViewModel avec le vrai service sur les seules fixtures générées, en plus des tests historiques. CI du HEAD à vérifier dans la PR ; aucune réception fonctionnelle anticipée.
+
+La fenêtre demeure une simulation sans inventaire de dossier ; le constructeur public du vrai service reste fermé. La recette Windows commune est préparée dans `docs/ux/next03-mvvm-implementation.md`, sans exécution humaine, nouveau harness GUI, scan personnel, modification de l'architecture ou Release. Toutes les PR restent MERGE_HOLD.
+
 ## NEXT-03 — MVVM consolidation DEV 3 (Draft #86, non intégrée)
 
 Le ViewModel distingue les notifications hors ordre et les générations, révoque la confirmation après un essai de changement de source, bloque les nouveaux dossiers pendant l'annulation, et affiche des générations `Current`/`LastAttempt` distinctes, y compris lorsque le dernier essai est Failed. Les listes vides et les totaux indisponibles restent **Inconnu**. Les bindings Avalonia montrent les provenances, diagnostics et statuts ROMS fictifs. **Toujours une simulation en mémoire sans accès à ROM ni service DEV 1 raccordé**. Recette Windows physique et P1 #82 non exécutées ; [détails et critères](ux/next03-mvvm-implementation.md). Aucun merge, Release ou accès personnel.
@@ -14,6 +20,18 @@ Fenêtre MVVM accessible dans Bibliothèques, sélecteur de chemin sans lecture 
 
 Premiers composants **indépendants de l'interface graphique dans leur code source** : `InventoryViewModel` (notifications/commandes/provenances), `InventoryApplicationSeam` **provisoire conforme à la proposition DEV 1 #83**, tests unitaires en mémoire. **Aucun service de scan implémenté ni raccordement Avalonia/ROM** ; aucun changement de Dashboard, Collection, fiches, Bibliothèques ou import ES-DE. Dépendance `CommunityToolkit.Mvvm 8.4.2` évaluée, **non ajoutée** en attente de NuGet lock/avis licences/CI ; BCL `INotifyPropertyChanged`/`ICommand` utilisée pour la fondation. [ADR et limites](ux/next03-mvvm-foundation.md). #75/#76/#77 restent à intégrer avant toute connexion au service et au moteur. Aucun scan réel, merge ou Release.
 
+## LIBRARY-UX-02 — parcours de bibliothèques (PR Draft #77, 28.10.2026)
+
+- Nouvelle expérience Avalonia Darcula Retro **uniquement de présentation** : choix IDEAL / CHAOS / MYSTERY, Dashboard → Collection → Fiche, recherche dans la sélection et retour. Aucune lecture de ROM, collecte réseau, modification physique ou nouveau moteur.
+- Prévisualisations IDEAL/CHAOS basées sur les contrats canoniques **fictifs** intégrés à l'assembly ; tous les chiffres et médias affichés sont des attentes de scénario, non des constatations de fichier. MYSTERY **ne révèle ni titre, ni identité, ni total de jeux confirmé** malgré l'oracle synthétique.
+- Fiche importée ES-DE : affichage local en lecture seule des jaquettes, miniatures et logos réellement référencés (avec repli manquant/illisible/inconnu). Captures/dos/fonds hors contrat d'import restent sans aperçu inventé. Pagination désactivée si une seule page.
+- Capture réelle de cinq vues Avalonia sur runner Windows et ZIP temporaire autonome vérifié par SHA, sans Release, dans un workflow strictement limité à la branche DEV 3. Recette Windows et GO propriétaire **restent obligatoires** avant merge. [Procédure LIBRARY-UX-02](ux/library-ux-02.md).
+
+## NEXT-03 — backend applicatif seul (PR Draft #85, pas de parcours UI raccordé)
+
+Le service `RomothequeManager.V2.Inventory.Application.IInventoryApplicationService` est implémenté dans **le projet Avalonia existant** mais **ne dépend d'aucune API Avalonia ou MVVM**. Il orchestre exclusivement `InventorySession.Scan(CancellationToken)`, avec sélection locale explicitement consentie, tâche asynchrone, annulation, single-flight, dernière génération complète `Current`, dernière tentative `LastAttempt` et projections d'état sans inférence. `InventorySnapshot` couvre uniquement les fichiers `ROMS/`, **pas les jeux confirmés ni les médias ES-DE**.
+
+Le constructeur public **refuse tout scan réel** ; seule l'assembly MSTest du dépôt peut autoriser ses propres racines synthétiques. L'écran Avalonia et le ViewModel NEXT-03 sont **non raccordés**, les PR #75/#76/#77 restent indépendantes, `NX03-16` scan réel HOLD. [Contrat API et tests](architecture/next03-backend-service.md). Aucune fusion ni Release.
 
 ## DEMO-LIBRARY-01 — catalogue canonique candidat (PR Draft #72, sans effet produit)
 
@@ -198,3 +216,11 @@ La [PR #68](https://github.com/TobbyCy/RomothequeManager/pull/68), désormais fu
 ## DEMO-LIBRARY-01 — générateur DEV 1 aligné au catalogue propriétaire (PR Draft #73)
 
 Contrat source de vérité : PR #72 HEAD `968d1f61420a5d0b70eb5160e9d57d505560f2b7` ; 30 jeux fictifs exacts, 13 plateformes, identités et médias/simulations décrits dans `contracts/demo-library-01/`. DEV 1 génère sous chemin local explicitement choisi et inexistant les scénarios IDEAL (32 ROMS/30 XML/180 PNG), CHAOS (33/30/166, deux ROMs absentes, 3 doublons candidats), MYSTERY (32/0/0). Images PNG réelles 100 % originales ; fausses ROMs texte non exécutables. Tests entièrement synthétiques ; fixtures historiques #64 conservées, aucun scan de bibliothèque réelle, téléchargement, suppression de données personnelles, merge ou Release. La PR reste soumise à la revue indépendante Agent.
+
+
+## DEMO-02 — exploitation des bibliothèques fictives (PR Draft #75)
+
+La recette Windows `tools/demo-library/Invoke-Demo02Recipe.ps1` réutilise strictement le générateur DEMO-01 de `main` après intégration des PR #72/#73/#69 ; la CI `push main` initiale #40732508284 est verte. Les trois sorties sont créées uniquement sous une nouvelle destination absolue locale choisie par l'opérateur et vérifiées par les manifests. La suite MSTest existante a quatre tests E2E supplémentaires : import NEXT-01, inventaire NEXT-02, 30 jeux de référence, 13 plateformes explicites, 32/30/180 (IDEAL), 33/30/166 (CHAOS), 32/0/0 (MYSTERY), deux ROMs manquantes, médias absents, trois groupes de doublons potentiels, playlist de deux disques, idempotence et lecture seule. Aucun scanner parallèle, aucun GO de scan réel, suppression, scraping, fusion ni Release. La PR reste Draft et nécessite revue indépendante avant intégration.
+
+
+**Contrôle croisé DEMO-02 (PR #75 vs #76/#77).** Le dossier `docs/ux/demo02-technical-cross-review.md` fournit la matrice honnête des 28 scénarios, sans déclarer PASS les parcours UX non testés. Deux tests synthétiques supplémentaires assurent l'exécution effective du lanceur Windows PowerShell de recette sur une sortie temporaire (`-SkipDotNetTests`, sans suppression/overwrite) et la conservation de `Current` après tentative NEXT-02 annulée (`LastAttempt=PARTIAL`). Le raccordement réel NEXT-02 à l'interface, les états Offline/Stale historiques, la comparaison A/B de scénario et les tests manuels d'accessibilité Windows demeurent hors périmètre du livrable DEV 1 ; aucune Release ou scan réel autorisé.
