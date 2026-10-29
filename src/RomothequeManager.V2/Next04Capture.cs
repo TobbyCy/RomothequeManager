@@ -31,7 +31,9 @@ internal static class Next04Capture
 
         var output = Path.Combine(runner, "next04-ux-captures");
         Directory.CreateDirectory(output);
-        void Capture(string name, int width, int height)
+        // DPI render simulation uses Avalonia logical DIP layout and a scaled bitmap.
+        // It is not a substitute for physical monitor/Windows DPI human testing.
+        void Capture(string name, int width, int height, double scale = 1.0)
         {
             window.Width = width;
             window.Height = height;
@@ -39,7 +41,9 @@ internal static class Next04Capture
                 throw new InvalidDataException("NEXT04_GUI_NOT_ATTACHED");
             visual.Measure(new Size(width - 2, height - 2));
             visual.Arrange(new Rect(0, 0, width - 2, height - 2));
-            using var bitmap = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
+            using var bitmap = new RenderTargetBitmap(
+                new PixelSize((int)Math.Round(width * scale), (int)Math.Round(height * scale)),
+                new Vector(96 * scale, 96 * scale));
             bitmap.Render(visual);
             var target = Path.Combine(output, name + ".png");
             bitmap.Save(target, PngBitmapEncoderOptions.Default);
@@ -52,10 +56,15 @@ internal static class Next04Capture
         {
             try
             {
+                if (!window.CiNext04BrandingLayout())
+                    throw new InvalidDataException("NEXT04_BRANDING_NATIVE_SIZE_OR_ICON_FAILED");
+                Console.WriteLine("NEXT04_BRANDING_PASS logo=1960x576 display=228x67 icon=present");
                 if (!window.CiNext04Import(Path.Combine(fixtureRoot, "IDEAL"), 30, 13))
                     throw new InvalidDataException("NEXT04_IDEAL_IMPORT_FAILED");
                 Capture("IDEAL-Dashboard-1120x720", 1120, 720);
                 Capture("IDEAL-Dashboard-Ultrawide-2200x900", 2200, 900);
+                Capture("IDEAL-Dashboard-DPI125-1400x900", 1120, 720, 1.25);
+                Capture("IDEAL-Dashboard-DPI200-2240x1440", 1120, 720, 2.0);
                 if (!window.CiNext04FirstSystem())
                     throw new InvalidDataException("NEXT04_SYSTEM_NAVIGATION_FAILED");
                 Capture("IDEAL-System-Collection-1120x720", 1120, 720);
@@ -102,7 +111,7 @@ internal static class Next04Capture
                     throw new InvalidDataException("NEXT04_NULL_METADATA_OR_INVENTORY_LINK_FAILED");
                 Capture("LONG-Inventory-Preview-Accessible-1120x720", 1120, 720);
                 Console.WriteLine("NEXT04_DEEP_GUI_PASS page=2 search=kept system=gba scroll_nonzero=restored detail_reimport=kept collection_reimport=kept invalid_xml=last_good metadata_optional=visible inventory_simulation=accessible");
-                Console.WriteLine("NEXT04_REAL_ESDE_GUI_PASS captures=11 ideal=30 systems=13 chaos=30 mystery=REJECTED lastGood=KEPT");
+                Console.WriteLine("NEXT04_REAL_ESDE_GUI_PASS captures=13 ideal=30 systems=13 chaos=30 mystery=REJECTED lastGood=KEPT dpi_render=125_200 simulated_only=1");
             }
             catch (Exception error)
             {
