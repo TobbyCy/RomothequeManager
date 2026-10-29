@@ -5,14 +5,14 @@
 - Le parseur ES-DE unique différencie les refus du lecteur XML (syntaxe, encodage, DTD interdite) des XML valides mais non pris en charge, sans publier de chemin personnel. Retour utilisateur avec système et ligne/colonne si disponible ; validation réelle de la ROMothèque propriétaire encore non exécutée.
 - Projection de `genre`, `developer` et `releasedate` optionnels, compatibilité des anciens constructeurs, empreinte sensible aux métadonnées, garde lecture seule et conservation du dernier import valide. Tests exclusivement synthétiques ; aucune recherche implicite, aucun moteur NEXT-03 ni nouvelle dépendance.
 - Compatibilité bornée avec `ES-DE/gamelists/<système>/gamelist.xml` **dans la racine explicitement choisie**, sans découverte globale ni association automatique de médias. Trois sources possibles par système : refus de toute concurrence, chemins confinés et convention d'origine affichée localement en cas d'échec de lecture.
-- Toute modification du parcours UI Systèmes → Jeux → Fiche est confiée à DEV 3 ; ce lot ne change que la présentation des erreurs de l'import. Aucun merge ni Release.
+- Le backend #92 a été fusionné dans `main` par le Contrôleur le 29.10.2026 ; l'interface reste traitée séparément par DEV 3 #93. Aucune Release.
 
 ## NEXT-04 — DEV 3 / ES-DE UX alpha (PR Draft, 29.10.2026)
 
 - Parcours systèmes → jeux ES-DE → fiches, recherche et pagination limitées à la plateforme réellement référencée dans le XML ; mode démo et moteur NEXT-03 inchangés. Retour fiche avec contexte de recherche, page, système et défilement conservé.
 - Cartes Collection responsive (1/2/3 colonnes) et zone de contenu bornée pour grands écrans ; interpolation de qualité uniquement sur le logo officiel inchangé. Consentement spécifique à l'import ES-DE, réimport sans retour forcé au Dashboard et messages de limites sur la session en mémoire.
-- Raccordement de la fiche aux métadonnées optionnelles `Genre`, `Developer`, `ReleaseDate` du parseur #92 : « Non renseigné » si absent, sans confondre développeur et éditeur. La combinaison est **sur branche Draft #93 uniquement**, backend #92 byte-for-byte préservé et non fusionné dans `main`. Aperçu NEXT-03 (simulation) accessible depuis Bibliothèques, scan personnel toujours bloqué.
-- Tests sur Collection profonde (155 éléments fictifs) : recherche, page 2, défilement vertical non nul, retour de fiche, réimport idempotent/erreur XML, et dernier catalogue valide. Aucun index persistant, aucune Release.
+- Raccordement de la fiche aux métadonnées optionnelles `Genre`, `Developer`, `ReleaseDate` du parseur #92 : « Non renseigné » si absent, sans confondre développeur et éditeur. Le backend #92 a été fusionné dans `main` par le Contrôleur et synchronisé dans la branche #93, avec importeur et tests inchangés octet pour octet. #93 reste Draft non fusionnée dans `main`. Aperçu NEXT-03 (simulation) accessible depuis Bibliothèques, scan personnel toujours bloqué.
+- Recette Windows sur fixtures synthétiques : 147 tests .NET PASS, 11 captures Avalonia, Collection profonde (155 éléments), page 2, scroll 490, métadonnées et contexte réimport/erreur XML vérifiés sur l'arbre UI combiné. Synchronisation de la branche sur `main` effectuée ; contrôles du SHA final à vérifier avant contre-revue. Aucun index persistant, scan personnel ni Release.
 
 ## NEXT-03 — Raccordement GUI canonique limité aux fixtures (29.10.2026, PR #86 Draft)
 
