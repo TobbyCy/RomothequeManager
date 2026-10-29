@@ -693,7 +693,7 @@ class WorkflowTests(unittest.TestCase):
         root = Path(__file__).resolve().parent.parent
         workflow = (root / ".github/workflows/next04-ux-proof.yml").read_text(encoding="utf-8")
         self.assertIn("branches: [dev3/next04-esde-ux]", workflow)
-        self.assertIn("permissions:\\n  contents: read", workflow)
+        self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("github.actor == 'TobbyCy'", workflow)
         self.assertIn("NEXT04_GUI_WINDOWS_CAPTURE_PASS", workflow)
         self.assertIn("NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS", workflow)
