@@ -55,6 +55,23 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_FIXTURE_GENERATION_FAILED' }
           node tools/demo-library/generate.cjs --verify $fixtures
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_FIXTURE_VERIFY_FAILED' }
+          # Separate disposable long-page fixture. Keep DEMO-01 manifests pristine.
+          $long = Join-Path $root 'LONG'
+          $roms = Join-Path $long 'ROMS/gba'
+          $metadata = Join-Path $long 'MEDIAS/gba/metadata'
+          New-Item -ItemType Directory -Path $roms,$metadata -Force | Out-Null
+          $entries = [Collections.Generic.List[string]]::new()
+          for ($i = 0; $i -lt 155; $i++) {
+            $number = '{0:D3}' -f $i
+            $filename = 'Game' + $number + '.gba'
+            [IO.File]::WriteAllText((Join-Path $roms $filename),
+                'SYNTHETIC TEST-ONLY TEXT; NOT A ROM', [Text.UTF8Encoding]::new($false))
+            $tags = if ($i -eq 50) { '<genre>Exploration</genre><developer>Test Studio</developer><releasedate>20240101</releasedate>' } else { '' }
+            $entries.Add('<game><path>./' + $filename + '</path><name>Game ' + $number + '</name>' + $tags + '</game>')
+          }
+          [IO.File]::WriteAllText((Join-Path $metadata 'es-de-gamelist.xml'),
+            ('<gameList>' + ($entries -join '') + '</gameList>'), [Text.UTF8Encoding]::new($false))
+          Write-Host 'NEXT04_LONG_FIXTURE_PASS entries=155 metadata=1 no_personal_paths=1'
           [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'next04-fixtures.txt'),$fixtures,[Text.UTF8Encoding]::new($false))
       - name: Real Avalonia imported GUI and seven PNG captures
         shell: pwsh
@@ -76,7 +93,7 @@ jobs:
           } finally { $process.Dispose() }
           $output = Join-Path $env:RUNNER_TEMP 'next04-ux-captures'
           $png = @(Get-ChildItem -LiteralPath $output -File -Filter '*.png')
-          if ($png.Count -ne 7) { throw ('NEXT04_PNG_COUNT:' + $png.Count) }
+          if ($png.Count -ne 11) { throw ('NEXT04_PNG_COUNT:' + $png.Count) }
           Add-Type -AssemblyName System.Drawing
           foreach ($file in $png) {
             $bitmap = [Drawing.Bitmap]::FromFile($file.FullName)
@@ -86,10 +103,10 @@ jobs:
           }
           node tools/demo-library/generate.cjs --verify $fixture
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_FIXTURE_CHANGED' }
-          $manifest = [ordered]@{sourceCommit='${{ github.sha }}'; windowsAttachedAvalonia=$true; snapshots=7; syntheticOnly=$true; personalScanAllowed=$false; release=$false
+          $manifest = [ordered]@{sourceCommit='${{ github.sha }}'; windowsAttachedAvalonia=$true; snapshots=11; syntheticOnly=$true; personalScanAllowed=$false; release=$false
              captures=@($png | ForEach-Object { [ordered]@{file=$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()} }) }
           ($manifest | ConvertTo-Json -Depth 5) | Set-Content (Join-Path $output 'NEXT04-PROOF.json') -Encoding utf8
-          Write-Host ('NEXT04_GUI_WINDOWS_CAPTURE_PASS source=${{ github.sha }} count=7 untouchedFixtures=1')
+          Write-Host ('NEXT04_GUI_WINDOWS_CAPTURE_PASS source=${{ github.sha }} count=11 untouchedFixtures=1')
       - name: Verify standard product build excludes CI permission
         shell: pwsh
         run: |

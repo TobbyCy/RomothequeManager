@@ -326,7 +326,7 @@ public sealed class ImportedCatalogueUiStateTests
         var state = new ImportedCatalogueUiState();
         Assert.IsFalse(state.TryImport(_root));
         Assert.IsNull(state.Snapshot);
-        Assert.IsTrue(state.ErrorMessage!.Contains("XML ES-DE est mal formé",
+        Assert.IsTrue(state.ErrorMessage!.Contains("XML ES-DE n'a pas pu être analysé",
             StringComparison.Ordinal));
         Assert.IsTrue(state.ErrorMessage.Contains("Aucun catalogue chargé", StringComparison.Ordinal));
     }
@@ -417,5 +417,84 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.IsTrue(state.TryReimport()); // SNES still has XML; no guessed GBA system
         Assert.IsNull(state.SelectedPlatform);
         Assert.AreEqual(1, state.Systems.Count);
+    }
+
+    [TestMethod]
+    public void OptionalEsDeMetadataUsesOnlyDeclaredFieldsAndNonInventedFallback()
+    {
+        Put("ROMS/gba/A.gba");
+        Gamelist("""
+            <game><path>./A.gba</path><name>Alpha</name><genre>Exploration</genre>
+            <developer>Invented Studio</developer><releasedate>20240101</releasedate></game>
+            """);
+        var ui = new ImportedCatalogueUiState();
+        Assert.IsTrue(ui.TryImport(_root));
+        var original = ui.Snapshot!;
+        var game = original.Games.Single();
+        Assert.AreEqual("Exploration", game.Genre);
+        Assert.AreEqual("Invented Studio", game.Developer);
+        Assert.AreEqual("20240101", game.ReleaseDate);
+        Assert.AreEqual("Non renseigné", ImportedCatalogueUiState.MetadataOrUnspecified(null));
+        Assert.AreEqual("Non renseigné", ImportedCatalogueUiState.MetadataOrUnspecified(""));
+        Assert.AreEqual(game.Developer, ImportedCatalogueUiState.MetadataOrUnspecified(game.Developer));
+        Assert.IsTrue(ui.SelectPlatform("gba"));
+        Assert.IsTrue(ui.Open(game.GameId));
+        Gamelist("""
+            <game><path>./A.gba</path><name>Alpha</name>
+            <genre>Strategy</genre></game>
+            """);
+        Assert.IsTrue(ui.TryReimport());
+        var newer = ui.Snapshot!;
+        Assert.AreEqual(original.LibraryId, newer.LibraryId);
+        Assert.AreNotEqual(original.ContentFingerprint, newer.ContentFingerprint);
+        Assert.AreEqual(game.GameId, newer.Games.Single().GameId);
+        Assert.AreEqual(POCView.GameDetail, ui.CurrentView);
+        Assert.AreEqual("gba", ui.SelectedPlatform);
+        Assert.AreEqual("Strategy", ui.Selected!.Genre);
+        Assert.IsNull(ui.Selected.Developer);
+        Assert.IsNull(ui.Selected.ReleaseDate);
+        Assert.AreEqual("Non renseigné", ImportedCatalogueUiState.MetadataOrUnspecified(ui.Selected.ReleaseDate));
+    }
+
+    [TestMethod]
+    public void DeepPaginationFilterAndDetailSurviveReimportsAndInvalidXml()
+    {
+        var xml = new StringBuilder();
+        for (var index = 0; index < 155; index++)
+            xml.Append("<game><path>./Game").Append(index.ToString("D3"))
+                .Append(".gba</path><name>Game ").Append(index.ToString("D3"))
+                .Append("</name></game>");
+        Gamelist(xml.ToString());
+        var state = new ImportedCatalogueUiState();
+        Assert.IsTrue(state.TryImport(_root));
+        Assert.IsTrue(state.SelectPlatform("gba"));
+        state.Search("Game ");
+        Assert.IsTrue(state.NextPage());
+        Assert.AreEqual(1, state.PageIndex);
+        Assert.AreEqual(50, state.PageGames.Count);
+        var gameId = state.PageGames[0].GameId;
+        Assert.IsTrue(state.Open(gameId));
+        var valid = state.Snapshot;
+        Assert.IsTrue(state.TryReimport());
+        Assert.AreEqual(POCView.GameDetail, state.CurrentView);
+        Assert.AreEqual(gameId, state.SelectedGameId);
+        Assert.AreEqual(1, state.PageIndex);
+        Assert.AreEqual("gba", state.SelectedPlatform);
+        Assert.AreEqual("Game ", state.SearchText);
+        Gamelist("<game><path>broken");
+        Assert.IsFalse(state.TryReimport());
+        Assert.AreSame(valid, state.Snapshot);
+        Assert.AreEqual(POCView.GameDetail, state.CurrentView);
+        Assert.AreEqual(gameId, state.SelectedGameId);
+        Assert.AreEqual(1, state.PageIndex);
+        Assert.AreEqual("Game ", state.SearchText);
+        Gamelist(xml.ToString().Replace("<path>./Game050.gba</path><name>Game 050</name>", 
+                                         "<path>./Game250.gba</path><name>Game 250</name>", StringComparison.Ordinal));
+        Assert.IsTrue(state.TryReimport());
+        Assert.IsNull(state.SelectedGameId);
+        Assert.AreEqual(POCView.Collection, state.CurrentView);
+        Assert.AreEqual(1, state.PageIndex);
+        Assert.AreEqual("gba", state.SelectedPlatform);
+        Assert.AreEqual("Game ", state.SearchText);
     }
 }

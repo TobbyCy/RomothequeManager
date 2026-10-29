@@ -1,5 +1,9 @@
 # État des fonctionnalités
 
+## NEXT-04 / ESDE-REAL-IMPORT-01 — amélioration ciblée de l'import ES-DE (PR Draft)
+
+Le parseur existant reconnaît désormais, depuis la racine explicitement sélectionnée contenant `ROMS/`, trois conventions fixes : `ROMS/<système>/gamelist.xml`, `MEDIAS/<système>/metadata/es-de-gamelist.xml` et `ES-DE/gamelists/<système>/gamelist.xml`. Il ne découvre pas les gamelists en dehors de cette racine et refuse les sources concurrentes. Pour la convention ES-DE, les médias **uniquement référencés dans le XML** sont confinés à `ES-DE/downloaded_media/`, jamais à `ES-DE/settings/` ni à une recherche par nom de ROM ; aucun média supplémentaire n'est inféré. Les erreurs de lecture XML sont désormais distinguées des structures XML incompatibles ; aucun diagnostic n'expose de chemin local complet. Genre, développeur et date de sortie sont projetés **uniquement depuis les champs XML déclarés**, sinon non renseignés. Les valeurs invalides facultatives sont ignorées avec diagnostic sans perdre le jeu. Pas de persistance ni d'enrichissement réseau. Import/reimport restent volontaires et en lecture seule, sans modification des sources. Une recette réelle du propriétaire et la revue de DEV 2/DEV 3 restent nécessaires avant toute fusion.
+
 ## NEXT-04 / DEV 3 — premier lot interface ES-DE préparée (PR Draft)
 
 Travail UI isolé : systèmes uniquement dérivés des jeux effectivement référencés dans les gamelists, sélection de système, recherche et pages 50 après filtre, retour de fiche avec contexte (dont défilement) et reimport conservant la vue en cours. Amélioration responsive de Collection et qualité de redimensionnement du logo officiel, sans changer les images du branding. Confirmation de l'import en lecture seule, sans déclenchement de NEXT-03 ni écriture dans les ROMS/MEDIAS.

@@ -24,6 +24,11 @@ internal static class Next04Capture
             if (!Directory.Exists(Path.Combine(fixtureRoot, name, "ROMS")))
                 throw new InvalidDataException("NEXT04_CI_SYNTHETIC_REQUIRED:" + name);
 
+        var longRoot = Path.Combine(Path.GetDirectoryName(fixtureRoot)!, "LONG");
+        if (!Directory.Exists(Path.Combine(longRoot, "ROMS", "gba")) ||
+            !File.Exists(Path.Combine(longRoot, "MEDIAS", "gba", "metadata", "es-de-gamelist.xml")))
+            throw new InvalidDataException("NEXT04_LONG_SYNTHETIC_FIXTURE_REQUIRED");
+
         var output = Path.Combine(runner, "next04-ux-captures");
         Directory.CreateDirectory(output);
         void Capture(string name, int width, int height)
@@ -43,7 +48,7 @@ internal static class Next04Capture
             Console.WriteLine("NEXT04_GUI_CAPTURE_PASS name=" + name);
         }
 
-        window.Opened += (_, _) => Dispatcher.UIThread.Post(() =>
+        window.Opened += (_, _) => Dispatcher.UIThread.Post(async () =>
         {
             try
             {
@@ -66,7 +71,36 @@ internal static class Next04Capture
                 if (!window.CiNext04RejectMystery(Path.Combine(fixtureRoot, "MYSTERY")))
                     throw new InvalidDataException("NEXT04_MYSTERY_INVALID_IMPORT_NOT_PRESERVED");
                 Capture("MYSTERY-Rejected-LastGood-1120x720", 1120, 720);
-                Console.WriteLine("NEXT04_REAL_ESDE_GUI_PASS captures=7 ideal=30 systems=13 chaos=30 mystery=REJECTED lastGood=KEPT");
+                if (!window.CiNext04PrepareDeep(longRoot))
+                    throw new InvalidDataException("NEXT04_DEEP_COLLECTION_PREPARATION_FAILED");
+                Capture("LONG-Collection-Page2-1120x720", 1120, 720);
+                if (!window.CiNext04DeepOpen())
+                    throw new InvalidDataException("NEXT04_DEEP_NONZERO_SCROLL_OR_METADATA_FAILED");
+                Capture("LONG-Detail-Metadata-1120x720", 1120, 720);
+                if (!await window.CiNext04DeepReimportWhileOnDetail())
+                    throw new InvalidDataException("NEXT04_DETAIL_REIMPORT_CONTEXT_LOST");
+                if (!window.CiNext04DeepReturn())
+                    throw new InvalidDataException("NEXT04_DEEP_RETURN_FILTER_OR_PAGE_LOST");
+                await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+                if (!window.CiNext04DeepOffsetRestored())
+                    throw new InvalidDataException("NEXT04_DEEP_VERTICAL_OFFSET_NOT_RESTORED");
+                Capture("LONG-Collection-Returned-1120x720", 1120, 720);
+                if (!await window.CiNext04DeepReimportWhileOnCollection())
+                    throw new InvalidDataException("NEXT04_COLLECTION_REIMPORT_CONTEXT_LOST");
+                await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+                if (!window.CiNext04DeepOffsetRestored())
+                    throw new InvalidDataException("NEXT04_REIMPORT_SCROLL_NOT_RESTORED");
+                if (!await window.CiNext04DeepMalformedXmlPreservesLastGood(
+                        longRoot))
+                    throw new InvalidDataException("NEXT04_FAILED_REIMPORT_LOST_LAST_VALID_CONTEXT");
+                await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+                if (!window.CiNext04DeepOffsetRestored())
+                    throw new InvalidDataException("NEXT04_FAILED_REIMPORT_SCROLL_LOST");
+                if (!window.CiNext04MissingMetadataAndInventoryLink())
+                    throw new InvalidDataException("NEXT04_NULL_METADATA_OR_INVENTORY_LINK_FAILED");
+                Capture("LONG-Inventory-Preview-Accessible-1120x720", 1120, 720);
+                Console.WriteLine("NEXT04_DEEP_GUI_PASS page=2 search=kept system=gba scroll_nonzero=restored detail_reimport=kept collection_reimport=kept invalid_xml=last_good metadata_optional=visible inventory_simulation=accessible");
+                Console.WriteLine("NEXT04_REAL_ESDE_GUI_PASS captures=11 ideal=30 systems=13 chaos=30 mystery=REJECTED lastGood=KEPT");
             }
             catch (Exception error)
             {

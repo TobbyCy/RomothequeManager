@@ -1,3 +1,4 @@
+using RomothequeManager.V2.MvvmFoundation;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -124,18 +125,24 @@ public sealed partial class MainWindow
 
     private async Task RunImportAsync(Func<bool> operation)
     {
+        var wasCollection = _importedUi.IsImported && ActiveView == POCView.Collection;
+        var previousOffset = _contentScroll?.Offset ?? default;
         _importBusy = true;
         Render();
         try
         {
-            // Initial import already navigates to Dashboard. A successful reimport
-            // must not discard the user's existing Collection or GameDetail context.
+            // A new import adopts Dashboard; refresh keeps system, search, page and detail.
             await Task.Run(operation);
         }
         finally
         {
             _importBusy = false;
             Render();
+            if (wasCollection && _importedUi.IsImported && ActiveView == POCView.Collection)
+            {
+                _importedCollectionOffset = previousOffset;
+                RestoreCollectionOffset(true);
+            }
         }
     }
 
@@ -207,7 +214,7 @@ public sealed partial class MainWindow
             rejected = !_importedUi.TryReimport() &&
                 ReferenceEquals(original, _importedUi.Snapshot) &&
                 _importedUi.ErrorMessage is string message &&
-                message.Contains("XML ES-DE est mal formé", StringComparison.Ordinal) &&
+                message.Contains("XML ES-DE n'a pas pu être analysé", StringComparison.Ordinal) &&
                 message.Contains("Dernier catalogue valide conservé", StringComparison.Ordinal);
             Render();
             rejected &= SmokeVisibleTexts().Contains("Dernier catalogue valide conservé", StringComparison.Ordinal);
@@ -415,6 +422,9 @@ public sealed partial class MainWindow
             Text(game.RomExists ? "Fichier présent lors de l'import" :
                 "Fichier introuvable / support indisponible — suppression non déduite", 14, true),
             Text("Identité : " + game.GameId, 12),
+            Text("Genre (ES-DE) : " + ImportedCatalogueUiState.MetadataOrUnspecified(game.Genre)),
+            Text("Développeur (ES-DE) : " + ImportedCatalogueUiState.MetadataOrUnspecified(game.Developer)),
+            Text("Date de sortie (ES-DE) : " + ImportedCatalogueUiState.MetadataOrUnspecified(game.ReleaseDate)),
             Text("Description : " + (string.IsNullOrWhiteSpace(game.Description) ?
                 "Non renseignée" : game.Description))
         )));
@@ -530,12 +540,17 @@ public sealed partial class MainWindow
             Text("Inventaire NEXT-03 : scan de vos dossiers non autorisé dans cette version.", 14, true),
             Text("Les références ES-DE ne prouvent pas un inventaire physique complet.", 12),
             Text("Catalogue en mémoire uniquement : réimport nécessaire au prochain lancement.", 12),
+            Button("Inventaire NEXT-03 · Aperçu (SIMULATION)", () =>
+                new InventoryPreviewWindow().Show(this)),
+            Text("L'aperçu NEXT-03 est synthétique : aucune lecture ni autorisation de scan personnel.", 12),
             Text("Comparaison A/B désactivée pour ce catalogue importé.", 16, true),
             Text("Les snapshots A/B du mode démonstration sont fictifs et indépendants de votre bibliothèque.", 13)
         )));
     }
 
 #if NEXT04_CI
+    private double _ciNext04CollectionOffsetY;
+    private string? _ciNext04SelectedGame;
     // Test-only entrypoints for the real Avalonia tree; never compiled in the public ZIP.
     internal bool CiNext04Import(string syntheticRoot, int games, int systems)
     {
@@ -580,6 +595,116 @@ public sealed partial class MainWindow
             _importedUi.IsImported &&
             _importedUi.ErrorMessage?.Contains("Dernier catalogue valide conservé",
                 StringComparison.Ordinal) == true;
+    }
+
+    // 155 dedicated synthetic entries -> 50-card second page and nonzero real viewport scroll.
+    internal bool CiNext04PrepareDeep(string fixture)
+    {
+        if (!_importedUi.TryImport(fixture) || _importedUi.Snapshot?.Games.Count != 155)
+            return false;
+        if (!_importedUi.SelectPlatform("gba")) return false;
+        _importedUi.Search("Game ");
+        if (!_importedUi.NextPage() || _importedUi.PageIndex != 1 ||
+            _importedUi.PageGames.Count != 50) return false;
+        Render();
+        return _importedUi.CurrentView == POCView.Collection;
+    }
+
+    internal bool CiNext04DeepOpen()
+    {
+        if (_contentScroll is null || Content is not Control visual) return false;
+        visual.Measure(new Size(1118, 718));
+        visual.Arrange(new Rect(0, 0, 1118, 718));
+        var available = _contentScroll.Extent.Height - _contentScroll.Viewport.Height;
+        if (available < 320) return false;
+        _contentScroll.Offset = new Vector(0, Math.Min(490, available - 10));
+        _ciNext04CollectionOffsetY = _contentScroll.Offset.Y;
+        if (_ciNext04CollectionOffsetY < 200) return false;
+        var target = _importedUi.PageGames[0];
+        _ciNext04SelectedGame = target.GameId;
+        OpenImportedGame(target.GameId);
+        return _importedUi.CurrentView == POCView.GameDetail &&
+               _importedUi.SelectedGameId == target.GameId &&
+               SmokeVisibleTexts().Contains("Genre (ES-DE) : Exploration", StringComparison.Ordinal) &&
+               SmokeVisibleTexts().Contains("Développeur (ES-DE) : Test Studio", StringComparison.Ordinal) &&
+               SmokeVisibleTexts().Contains("Date de sortie (ES-DE) : 20240101", StringComparison.Ordinal);
+    }
+
+    internal async Task<bool> CiNext04DeepReimportWhileOnDetail()
+    {
+        if (_importedUi.CurrentView != POCView.GameDetail) return false;
+        var before = _importedUi.Snapshot;
+        await RefreshImportAsync();
+        return _importedUi.CurrentView == POCView.GameDetail &&
+            _importedUi.PageIndex == 1 &&
+            _importedUi.SearchText == "Game " &&
+            _importedUi.SelectedPlatform == "gba" &&
+            _importedUi.SelectedGameId == _ciNext04SelectedGame &&
+            ReferenceEquals(before, _importedUi.Snapshot) == false;
+    }
+
+    internal bool CiNext04DeepReturn()
+    {
+        if (_importedUi.CurrentView != POCView.GameDetail) return false;
+        Navigate(POCView.Collection);
+        return _importedUi.CurrentView == POCView.Collection &&
+            _importedUi.PageIndex == 1 &&
+            _importedUi.SearchText == "Game " &&
+            _importedUi.SelectedPlatform == "gba";
+    }
+
+    internal bool CiNext04DeepOffsetRestored()
+    {
+        if (_contentScroll is null || _importedUi.CurrentView != POCView.Collection)
+            return false;
+        return _ciNext04CollectionOffsetY >= 200 &&
+            Math.Abs(_contentScroll.Offset.Y - _ciNext04CollectionOffsetY) <= 8;
+    }
+
+    internal async Task<bool> CiNext04DeepReimportWhileOnCollection()
+    {
+        await RefreshImportAsync();
+        return _importedUi.CurrentView == POCView.Collection &&
+            _importedUi.PageIndex == 1 &&
+            _importedUi.SearchText == "Game " &&
+            _importedUi.SelectedPlatform == "gba";
+    }
+
+    internal async Task<bool> CiNext04DeepMalformedXmlPreservesLastGood(string fixture)
+    {
+        var xml = Path.Combine(fixture, "MEDIAS", "gba", "metadata", "es-de-gamelist.xml");
+        var saved = File.ReadAllBytes(xml);
+        var previous = _importedUi.Snapshot;
+        try
+        {
+            File.WriteAllText(xml, "<gameList><game><path>", new System.Text.UTF8Encoding(false));
+            await RefreshImportAsync();
+            return ReferenceEquals(previous, _importedUi.Snapshot) &&
+                _importedUi.CurrentView == POCView.Collection &&
+                _importedUi.PageIndex == 1 &&
+                _importedUi.SearchText == "Game " &&
+                _importedUi.SelectedPlatform == "gba" &&
+                _importedUi.ErrorMessage?.Contains("Dernier catalogue valide conservé",
+                    StringComparison.Ordinal) == true;
+        }
+        finally { File.WriteAllBytes(xml, saved); }
+    }
+
+    internal bool CiNext04MissingMetadataAndInventoryLink()
+    {
+        // The second entry on the deep page has no optional metadata.
+        var other = _importedUi.PageGames.Skip(1).FirstOrDefault();
+        if (other is null) return false;
+        OpenImportedGame(other.GameId);
+        var labels = SmokeVisibleTexts();
+        if (!labels.Contains("Genre (ES-DE) : Non renseigné", StringComparison.Ordinal) ||
+            !labels.Contains("Développeur (ES-DE) : Non renseigné", StringComparison.Ordinal) ||
+            !labels.Contains("Date de sortie (ES-DE) : Non renseigné", StringComparison.Ordinal))
+            return false;
+        _importedUi.Navigate(POCView.Libraries);
+        Render();
+        return SmokeVisibleTexts().Contains("L\'aperçu NEXT-03 est synthétique",
+            StringComparison.Ordinal);
     }
 #endif
 }

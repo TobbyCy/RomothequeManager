@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-04 / ESDE-REAL-IMPORT-01 — diagnostics et métadonnées de l'import (29.10.2026, PR Draft)
+
+- Le parseur ES-DE unique différencie les refus du lecteur XML (syntaxe, encodage, DTD interdite) des XML valides mais non pris en charge, sans publier de chemin personnel. Retour utilisateur avec système et ligne/colonne si disponible ; validation réelle de la ROMothèque propriétaire encore non exécutée.
+- Projection de `genre`, `developer` et `releasedate` optionnels, compatibilité des anciens constructeurs, empreinte sensible aux métadonnées, garde lecture seule et conservation du dernier import valide. Tests exclusivement synthétiques ; aucune recherche implicite, aucun moteur NEXT-03 ni nouvelle dépendance.
+- Compatibilité bornée avec `ES-DE/gamelists/<système>/gamelist.xml` **dans la racine explicitement choisie**, sans découverte globale ni association automatique de médias. Trois sources possibles par système : refus de toute concurrence, chemins confinés et convention d'origine affichée localement en cas d'échec de lecture.
+- Toute modification du parcours UI Systèmes → Jeux → Fiche est confiée à DEV 3 ; ce lot ne change que la présentation des erreurs de l'import. Aucun merge ni Release.
+
 ## NEXT-04 — DEV 3 / ES-DE UX alpha (PR Draft, 29.10.2026)
 
 - Parcours systèmes → jeux ES-DE → fiches, recherche et pagination limitées à la plateforme réellement référencée dans le XML ; mode démo et moteur NEXT-03 inchangés. Retour fiche avec contexte de recherche, page, système et défilement conservé.
