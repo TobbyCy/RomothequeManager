@@ -78,7 +78,11 @@ public sealed partial class MainWindow : Window
         if (_state.CurrentView != POCView.Dashboard || _page.Children.Count < 3) return false;
         _state.ShowCollection();
         Render();
-        if (_state.CurrentView != POCView.Collection || _page.Children.Count < 4) return false;
+        // The premium Hero consolidates two previous title/description blocks.
+        // Assert the actual interactive collection, not a brittle visual-root count.
+        if (_state.CurrentView != POCView.Collection || _list is null ||
+            !_page.Children.OfType<TextBox>().Any() ||
+            !_list.Children.OfType<Border>().Any()) return false;
         if (!_state.Open("syn-003")) return false;
         Render();
         if (_state.CurrentView != POCView.GameDetail || _page.Children.Count < 3) return false;
