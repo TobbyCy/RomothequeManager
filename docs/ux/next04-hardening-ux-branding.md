@@ -32,7 +32,7 @@ Le lot UX-V2-2026-10-28 comprend **dix maquettes JPEG privées** numérotées UX
 - `MainWindow.Notice` : informations et avertissements, sans changer les diagnostics du moteur.
 - `MainWindow.PrimaryButton` : action principale visuelle et focus natif.
 - `VisualDashboard.Metrics` : quatre compteurs de provenance qualifiée, distincts d'un inventaire physique ; pas de nouvelle API de données.
-- `MainWindow.ImportedDiagnostics` : projection des codes `EsDeDiagnosticPresentation`, limitée en densité et accessible depuis Bibliothèques ; pas de nouveau parser et aucune lecture de chemin supplémentaire.
+- `MainWindow.ImportedDiagnostics` : projection des codes `EsDeDiagnosticPresentation`, aperçu 4 sur Dashboard puis **pagination intégrale par 20** sur Bibliothèques avec accès aux derniers diagnostics, sans nouveau parser ni lecture de chemin supplémentaire. Un test CI affiche le 27e diagnostic synthétique.
 - `ImportedDetail` : mise en page adaptative sans perdre `Genre/Developer/ReleaseDate`, `CoverFor`, le fallback ni les identités.
 - `Next04Capture` et workflow de preuve : 13 captures (11 vues fonctionnelles historiques + 2 rendus DPI simulés), contrôles logo/ICO/EXE, SHA-256 ZIP standard, sans `NEXT04_CI` dans le ZIP.
 
@@ -42,4 +42,4 @@ Les contrats publics `EsDeGame`, `EsDeImportSession`, `ImportedCatalogueUiState`
 
 Sur **HEAD final de #93**, exigence : Adaptive CI y compris `ci-policy-gate`, tests .NET, Windows natif, IDEAL (30/13), CHAOS (30), MYSTERY refusé et dernier valide conservé, liste 155/page 2/offset non nul, métadonnées ES-DE présentes/absentes, réimports, simulation NEXT-03, 13 PNG et ZIP avec notices. Des runs antérieurs ne prouvent pas un nouveau HEAD. Aucun média privé, ROM, BIOS ou maquette en artefact.
 
-**Toujours NOT_EXECUTED :** comparaison pixel-à-pixel avec les dix maquettes, validation humaine DPI 125/200 %, clavier Tab/Shift+Tab, souris, écran physique 5120 × 1440, compatibilité de la bibliothèque personnelle. La capture CI montre une interface rendue, pas l'approbation de son esthétique ni son accessibilité complète.
+**Parcours picker / confirmation / annulation :** le harnais `CiNext04Import` exerce le rendu de la fenêtre attachée et l'import interne sur fixtures, **pas** `StorageProvider.OpenFolderPickerAsync` ni le dialogue utilisateur. Les tests GUI ne sont pas présentés comme une preuve de bout en bout de ces interactions.\n\n**Toujours NOT_EXECUTED :** comparaison pixel-à-pixel avec les dix maquettes, validation humaine DPI 125/200 %, clavier Tab/Shift+Tab, souris, écran physique 5120 × 1440, compatibilité de la bibliothèque personnelle. La capture CI montre une interface rendue, pas l'approbation de son esthétique ni son accessibilité complète.
