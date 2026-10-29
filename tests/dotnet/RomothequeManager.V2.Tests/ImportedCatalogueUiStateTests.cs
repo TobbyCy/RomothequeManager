@@ -456,6 +456,57 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.AreEqual("Non renseigné", ImportedCatalogueUiState.MetadataOrUnspecified(ui.Selected.ReleaseDate));
     }
 
+    [DataTestMethod]
+    [DataRow("ESDE_XML_BYTES_LIMIT", "8 Mio")]
+    [DataRow("ESDE_PLAYLIST_BYTES_LIMIT", "64 Kio")]
+    [DataRow("ESDE_PLAYLIST_LINES_LIMIT", "256 lignes")]
+    [DataRow("ESDE_PLAYLIST_ENCODING_UNSUPPORTED", "encodage")]
+    [DataRow("ESDE_PLATFORM_CASE_COLLISION", "majuscules/minuscules")]
+    [DataRow("Duplicated ROM identity in gba", "identité en conflit")]
+    public void HardenedImportRejectionsRemainNeutralAndActionable(string code, string expected)
+    {
+        const string privateFixturePath = "C:\\PRIVATE-ROM-LIBRARY\\secret.gba";
+        var result = EsDeDiagnosticPresentation.ImportFailure(
+            new InvalidDataException(code));
+        StringAssert.Contains(result, expected);
+        Assert.IsFalse(result.Contains(privateFixturePath, StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(result.Contains("secret.gba", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(result.Contains(code, StringComparison.Ordinal),
+            "The backend refusal token is not an end-user explanation.");
+        Assert.IsFalse(result.Contains("malformé", StringComparison.OrdinalIgnoreCase),
+            "An oversized XML is not necessarily malformed.");
+    }
+
+    [TestMethod]
+    public void InvalidRootExplainsParentContainingRomsWithoutScanning()
+    {
+        var text = EsDeDiagnosticPresentation.ImportFailure(
+            new DirectoryNotFoundException("C:\\PRIVATE-ROM-LIBRARY"));
+        StringAssert.Contains(text, "parent contenant directement ROMS/");
+        Assert.IsFalse(text.Contains("PRIVATE-ROM-LIBRARY", StringComparison.Ordinal));
+        StringAssert.Contains(text, "Aucun scan automatique");
+    }
+
+    [TestMethod]
+    public void HardenedOversizedXmlRetainsSameCurrentAndSelection()
+    {
+        Put("ROMS/gba/Valid.gba");
+        Gamelist("<game><path>./Valid.gba</path><name>Valid</name></game>");
+        var ui = new ImportedCatalogueUiState();
+        Assert.IsTrue(ui.TryImport(_root));
+        var current = ui.Snapshot;
+        Assert.IsTrue(ui.Open(current!.Games.Single().GameId));
+        var xml = new string('x', 8 * 1024 * 1024 + 1);
+        Gamelist("<gameList>" + xml + "</gameList>");
+        Assert.IsFalse(ui.TryReimport());
+        Assert.AreSame(current, ui.Snapshot);
+        Assert.AreEqual(POCView.GameDetail, ui.CurrentView);
+        Assert.AreEqual(current.Games.Single().GameId, ui.SelectedGameId);
+        StringAssert.Contains(ui.ErrorMessage!, "8 Mio");
+        Assert.IsFalse(ui.ErrorMessage!.Contains(_root, StringComparison.Ordinal),
+            "No absolute fixture root should appear in a refusal.");
+    }
+
     [TestMethod]
     public void DeepPaginationFilterAndDetailSurviveReimportsAndInvalidXml()
     {
