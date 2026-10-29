@@ -697,6 +697,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("github.actor == 'TobbyCy'", workflow)
         self.assertIn("NEXT04_GUI_WINDOWS_CAPTURE_PASS", workflow)
         self.assertIn("NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS", workflow)
+        self.assertIn("NEXT04_ZIP_VERIFIED_PASS", workflow)
         self.assertEqual(1, workflow.count("actions/upload-artifact@"))
         self.assertIn("retention-days: 3", workflow)
         self.assertIn("if-no-files-found: error", workflow)

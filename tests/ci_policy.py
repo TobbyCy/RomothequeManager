@@ -490,7 +490,8 @@ def documents(root, plan):
             "retention-days: 3" in next04 and
             next04.count("actions/upload-artifact@") == 1 and
             "NEXT04_GUI_WINDOWS_CAPTURE_PASS" in next04 and
-            "NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS" in next04,
+            "NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS" in next04 and
+            "NEXT04_ZIP_VERIFIED_PASS" in next04,
             "NEXT04_UX_WORKFLOW_GUARDS")
     for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
                    "gh release", "secrets.", "continue-on-error:"):

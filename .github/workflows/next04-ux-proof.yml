@@ -102,6 +102,74 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_STANDARD_PUBLISH_FAILED' }
           if (-not (Test-Path -LiteralPath (Join-Path $output 'RomothequeManager.V2.exe'))) { throw 'NEXT04_STANDARD_EXE_MISSING' }
           Write-Host 'NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS'
+      - name: Verify quarantined portable Windows ZIP with licence notices and SHA-256
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = '${{ github.sha }}'
+          if ((git rev-parse HEAD).Trim() -cne $source) { throw 'NEXT04_ZIP_SOURCE_MISMATCH' }
+          $publish = Join-Path $env:RUNNER_TEMP 'next04-standard'
+          $proof = Join-Path $env:RUNNER_TEMP 'next04-ux-captures'
+          $extract = Join-Path $env:RUNNER_TEMP 'next04-zip-verify'
+          New-Item -ItemType Directory -Path $extract -Force | Out-Null
+          $inventory = 'docs/developer/lic-zip-01-inventory.md'
+          if (-not (Select-String -LiteralPath $inventory -Pattern 'LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED' -Quiet)) { throw 'NEXT04_LICENCE_HOLD' }
+          foreach ($file in @('LICENSE','LEGAL.md','BRANDING.md')) { Copy-Item -LiteralPath $file -Destination $publish }
+          Copy-Item -LiteralPath 'packaging/THIRD-PARTY-NOTICES.txt' -Destination (Join-Path $publish 'THIRD-PARTY-NOTICES.txt')
+          Copy-Item -LiteralPath $inventory -Destination (Join-Path $publish 'THIRD-PARTY-INVENTORY.md')
+          Copy-Item -LiteralPath 'packaging/licenses' -Destination (Join-Path $publish 'licenses') -Recurse
+          $nuget = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages' }
+          $runtime = Join-Path $nuget 'microsoft.netcore.app.runtime.win-x64/10.0.12'
+          $notices = Join-Path $publish 'licenses/dotnet-runtime'
+          New-Item -ItemType Directory -Force -Path $notices | Out-Null
+          foreach ($file in @('LICENSE.TXT','THIRD-PARTY-NOTICES.TXT')) {
+            $found = @(Get-ChildItem -LiteralPath $runtime -File -Recurse | Where-Object Name -CEQ $file)
+            if ($found.Count -ne 1 -or $found[0].Length -lt 500) { throw ('NEXT04_RUNTIME_NOTICE_MISSING:' + $file) }
+            Copy-Item -LiteralPath $found[0].FullName -Destination (Join-Path $notices $file)
+          }
+          $guide = @'
+          NEXT-04 — Windows portable UX review (not a Release)
+          Source HEAD: ${{ github.sha }}
+          1. Verify the .zip SHA-256 against .zip.sha256, then extract to an empty folder.
+          2. Start RomothequeManager.V2.exe. No ES-DE installation is required.
+          3. In Bibliotheques, choose ONLY your own explicitly authorized prepared ES-DE root
+             with ROMS and MEDIAS; confirm the read-only metadata import.
+          4. Browse systems -> Collection -> fiche; test search/page, return scroll position.
+          5. Inspect local covers, thumbnails, logos, missing-media explanations,
+             reimport, ultrawide layout, keyboard tab order and DPI 125/200.
+          6. The catalogue is MEMORY-ONLY: it must be reimported after restarting.
+          7. Genre, Developer and ReleaseDate need the separate DEV1 metadata contract,
+             not included in this standalone DEV3 UX branch build.
+          8. This build DOES NOT permit NEXT-03 personal library scans. No export/write.
+          9. Review the seven synthetic CI GUI PNGs as automated evidence;
+             do not mark mouse/focus/DPI human tests PASS without executing them.
+          This is a quarantined temporary artifact. Not a Release.
+          '@
+          [IO.File]::WriteAllText((Join-Path $publish 'GUIDE-NEXT04-WINDOWS.txt'),$guide,[Text.UTF8Encoding]::new($false))
+          $manifest = [ordered]@{sourceCommit=$source;runtime='win-x64';selfContained=$true;ciHarnessIncluded=$false;personalScanAllowed=$false;release=$false;cataloguePersistence=$false}
+          ($manifest | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $publish 'NEXT04-MANIFEST.json') -Encoding utf8
+          $files = @(Get-ChildItem -LiteralPath $publish -File -Recurse)
+          foreach ($file in $files) {
+            if (@('.gba','.rom','.chd','.iso','.cue','.m3u','.sav','.nsp','.xci','.wad','.pfx','.pem','.key') -contains $file.Extension.ToLowerInvariant()) {
+              throw ('NEXT04_FORBIDDEN_PAYLOAD:' + $file.Name)
+            }
+          }
+          $zipName = 'RomothequeManager-NEXT04-UX-win-x64-' + $source.Substring(0,8) + '.zip'
+          $zip = Join-Path $proof $zipName
+          Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText(($zip + '.sha256'),($sha + '  ' + $zipName + [Environment]::NewLine),[Text.Encoding]::ASCII)
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          if (@(Get-ChildItem -LiteralPath $extract -File -Recurse).Count -ne $files.Count) { throw 'NEXT04_EXTRACT_COUNT_MISMATCH' }
+          foreach ($file in $files) {
+            $relative = $file.FullName.Substring($publish.Length + 1)
+            $other = Join-Path $extract $relative
+            if (-not (Test-Path -LiteralPath $other -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $other -Algorithm SHA256).Hash) {
+              throw ('NEXT04_EXTRACT_HASH_MISMATCH:' + $relative)
+            }
+          }
+          Write-Host ('NEXT04_ZIP_VERIFIED_PASS source=' + $source + ' sha256=' + $sha + ' files=' + $files.Count + ' bytes=' + (Get-Item $zip).Length)
       - name: Upload temporary synthetic Windows images and evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -109,6 +177,8 @@ jobs:
           path: |
             ${{ runner.temp }}/next04-ux-captures/*.png
             ${{ runner.temp }}/next04-ux-captures/NEXT04-PROOF.json
+            ${{ runner.temp }}/next04-ux-captures/*.zip
+            ${{ runner.temp }}/next04-ux-captures/*.zip.sha256
           if-no-files-found: error
           retention-days: 3
           compression-level: 6
