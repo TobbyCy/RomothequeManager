@@ -49,7 +49,7 @@ public sealed class EsDeImportHardeningTests
         _ => throw new ArgumentOutOfRangeException(nameof(kind))
     };
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("local")]
     [DataRow("historical")]
     [DataRow("modern")]
