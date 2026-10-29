@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-04 / ESDE-REAL-IMPORT-01 — diagnostics et métadonnées de l'import (29.10.2026, PR Draft)
+
+- Le parseur ES-DE unique différencie les refus du lecteur XML (syntaxe, encodage, DTD interdite) des XML valides mais non pris en charge, sans publier de chemin personnel. Retour utilisateur avec système et ligne/colonne si disponible ; validation réelle de la ROMothèque propriétaire encore non exécutée.
+- Projection de `genre`, `developer` et `releasedate` optionnels, compatibilité des anciens constructeurs, empreinte sensible aux métadonnées, garde lecture seule et conservation du dernier import valide. Tests exclusivement synthétiques ; aucune recherche implicite, aucun moteur NEXT-03 ni nouvelle dépendance.
+- Toute modification du parcours UI Systèmes → Jeux → Fiche est confiée à DEV 3 ; ce lot ne change que la présentation des erreurs de l'import. Aucun merge ni Release.
+
 ## NEXT-03 — Raccordement GUI canonique limité aux fixtures (29.10.2026, PR #86 Draft)
 
 - Le même InventoryViewModel / XAML sert le mode historique SIMULATION et un mode de recette Windows du véritable service #85 (uniquement sous binaire `NEXT03_CI`), avec titres/provenances différenciés, confirmation, observations, annulation, couverture et diagnostics. Aucun second moteur, aucun changement backend.

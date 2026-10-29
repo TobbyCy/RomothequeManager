@@ -187,6 +187,8 @@ public static class EsDeDiagnosticPresentation
         "ROM_MISSING" => "ROM indisponible",
         "MEDIA_MISSING" => "Média indisponible",
         "DISC_MISSING" => "Disque de playlist indisponible",
+        "METADATA_FIELD_INVALID" => "Métadonnée facultative ES-DE ignorée",
+        "RELEASE_DATE_UNSUPPORTED" => "Date de sortie ES-DE non reconnue",
         _ => "Diagnostic ES-DE (" + diagnostic.Code + ")"
     };
 
@@ -207,6 +209,8 @@ public static class EsDeDiagnosticPresentation
         "ROM_MISSING" => "Fichier absent ou support indisponible lors de l'import. Aucune suppression de jeu n'est déduite.",
         "MEDIA_MISSING" => "Média référencé introuvable. Aucune recherche réseau ni modification n'est effectuée.",
         "DISC_MISSING" => "Un disque référencé par la playlist n'a pas été trouvé. Aucun fichier n'est modifié.",
+        "METADATA_FIELD_INVALID" => "Une métadonnée facultative répétée ou excessive a été ignorée sans retirer le jeu.",
+        "RELEASE_DATE_UNSUPPORTED" => "La date ES-DE n'est pas dans un format reconnu ; elle reste non renseignée.",
         _ => string.IsNullOrWhiteSpace(diagnostic.Message)
             ? "Diagnostic conservé pour vérification." : diagnostic.Message
     };
@@ -214,12 +218,19 @@ public static class EsDeDiagnosticPresentation
     public static string ImportFailure(Exception error) => error switch
     {
         DirectoryNotFoundException => "Le dossier sélectionné ou son sous-dossier ROMS n'est pas accessible. Vérifiez le support.",
-        System.Xml.XmlException => "Le XML ES-DE est mal formé. Vérifiez la gamelist avant de réimporter.",
+        System.Xml.XmlException =>
+            "Le XML ES-DE n'a pas pu être analysé (syntaxe, encodage ou contenu interdit).",
         InvalidDataException e when e.Message.StartsWith("Ambiguous ES-DE source", StringComparison.Ordinal) =>
             "Deux gamelists concurrentes ont été trouvées pour une plateforme (ROMS et MEDIAS). Conservez une source non ambiguë.",
         InvalidDataException e when e.Message.StartsWith("No supported ES-DE gamelist", StringComparison.Ordinal) =>
             "Aucune gamelist ES-DE prise en charge n'a été trouvée dans le dossier sélectionné.",
-        InvalidDataException => "Les métadonnées ES-DE ou leurs chemins ne respectent pas le format attendu.",
+        EsDeXmlReadException e =>
+            "Le XML ES-DE n'a pas pu être analysé (syntaxe, encodage, DTD interdite ou limite). " +
+            "Système : " + e.Platform +
+            (e.LineNumber > 0 ? ", ligne " + e.LineNumber +
+                (e.LinePosition > 0 ? ", colonne " + e.LinePosition : "") : "") +
+            ". Vérifiez la source de cette plateforme ; aucune correction automatique.",
+        InvalidDataException => "XML chargé, mais sa structure, certaines métadonnées ou des chemins ne sont pas pris en charge.",
         UnauthorizedAccessException => "Accès refusé au dossier ou aux métadonnées. Vérifiez les autorisations.",
         IOException => "La lecture de fichiers ES-DE a échoué. Vérifiez la disponibilité du support.",
         ArgumentException => "Le dossier ou un chemin de fichier est invalide.",

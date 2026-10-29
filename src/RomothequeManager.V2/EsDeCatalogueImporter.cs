@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
@@ -9,10 +10,13 @@ namespace RomothequeManager.V2;
 // No writes, recursive ROM scan, network access, or synthetic snapshot provenance.
 public sealed record EsDeDiagnostic(string Code, string Platform, string Entry, string Message);
 public sealed record EsDeMedia(string Kind, string RelativePath, bool Exists);
+// Optional ES-DE metadata is appended: existing positional callers and historical
+// catalogues without these fields retain their original constructor contract.
 public sealed record EsDeGame(
     string GameId, string VariantId, string Platform, string Title, string RomRelativePath,
     bool RomExists, string? Description, IReadOnlyList<EsDeMedia> Media,
-    IReadOnlyList<string> DiscPaths);
+    IReadOnlyList<string> DiscPaths,
+    string? Genre = null, string? Developer = null, string? ReleaseDate = null);
 public sealed record EsDeCatalogueSnapshot(
     string LibraryId, string SourceKind, string ContentFingerprint,
     IReadOnlyList<EsDeGame> Games, IReadOnlyList<EsDeDiagnostic> Diagnostics);
@@ -77,6 +81,24 @@ public sealed class EsDeImportSession
     }
 }
 
+// XML reader failures are distinct from an otherwise well-formed XML whose
+// layout, paths or duplicated required fields are unsupported. Never expose
+// the source XML, exception details or absolute filesystem path in the UI.
+internal sealed class EsDeXmlReadException : InvalidDataException
+{
+    internal EsDeXmlReadException(string platform, XmlException cause)
+        : base("ES-DE XML reader rejected the gamelist for one platform.", cause)
+    {
+        Platform = platform;
+        LineNumber = cause.LineNumber;
+        LinePosition = cause.LinePosition;
+    }
+
+    public string Platform { get; }
+    public int LineNumber { get; }
+    public int LinePosition { get; }
+}
+
 public static class EsDeCatalogueImporter
 {
     private const long XmlLimit = 8 * 1024 * 1024;
@@ -124,7 +146,9 @@ public static class EsDeCatalogueImporter
             AssertWithin(xmlFile, hasHistoric ? mediaRoot : romRoot);
             AssertNoReparsePoints(xmlFile);
             xmlFound = true;
-            var doc = LoadXml(xmlFile);
+            XDocument doc;
+            try { doc = LoadXml(xmlFile); }
+            catch (XmlException error) { throw new EsDeXmlReadException(platform, error); }
             if (doc.Root?.Name != "gameList")
                 throw new InvalidDataException("Expected unnamespaced gameList: " + platform);
             foreach (var entry in doc.Root.Elements())
@@ -190,8 +214,13 @@ public static class EsDeCatalogueImporter
                             diagnostics.Add(new("DISC_MISSING", platform, discRelative, "Playlist member unavailable."));
                     }
                 }
+                var genre = OptionalMetadataField(entry, "genre", platform, romRelative, diagnostics);
+                var developer = OptionalMetadataField(entry, "developer", platform, romRelative, diagnostics);
+                var dateText = OptionalMetadataField(entry, "releasedate", platform, romRelative, diagnostics);
+                var releaseDate = AcceptedReleaseDate(dateText, platform, romRelative, diagnostics);
                 games.Add(new("esde-" + id, "variant-" + id, platform, title.Trim(), romRelative, exists,
-                    SingleField(entry, "desc"), media.ToArray(), discs.ToArray()));
+                    SingleField(entry, "desc"), media.ToArray(), discs.ToArray(),
+                    genre, developer, releaseDate));
             }
         }
 
@@ -201,7 +230,12 @@ public static class EsDeCatalogueImporter
         var evidence = string.Join("\n", sorted.Select(g =>
             g.GameId + "|" + g.Title + "|" + g.Description + "|" + g.RomExists + "|" +
             string.Join(",", g.Media.Select(m => m.Kind + ":" + m.RelativePath + ":" + m.Exists)) + "|" +
-            string.Join(",", g.DiscPaths)));
+            string.Join(",", g.DiscPaths) +
+            // Do not change the legacy fingerprint when no new metadata exists.
+            // Metadata-only edits must nonetheless change the projection fingerprint.
+            (g.Genre is null && g.Developer is null && g.ReleaseDate is null ? "" :
+                "|NEXT04|" + FingerprintField(g.Genre) + FingerprintField(g.Developer) +
+                FingerprintField(g.ReleaseDate))));
         return new(libraryId, "ES_DE_READ_ONLY",
             Digest(evidence), sorted, diagnostics.ToArray());
     }
@@ -243,6 +277,48 @@ public static class EsDeCatalogueImporter
         if (values.Length > 1) throw new InvalidDataException("Repeated ES-DE field: " + localName);
         return values.Length == 0 ? null : values[0].Value;
     }
+
+    // A malformed optional metadata field must not discard an otherwise valid game.
+    // Required path and identity fields keep their existing fail-closed policy.
+    private static string? OptionalMetadataField(XElement entry, string name,
+        string platform, string romRelative, List<EsDeDiagnostic> diagnostics)
+    {
+        var fields = entry.Elements().Where(x => x.Name == name).ToArray();
+        if (fields.Length == 0) return null;
+        if (fields.Length != 1)
+        {
+            diagnostics.Add(new("METADATA_FIELD_INVALID", platform, romRelative,
+                "Repeated optional ES-DE field " + name + " ignored."));
+            return null;
+        }
+        var value = fields[0].Value.Trim();
+        if (value.Length == 0) return null;
+        if (value.Length > 256)
+        {
+            diagnostics.Add(new("METADATA_FIELD_INVALID", platform, romRelative,
+                "Oversized optional ES-DE field " + name + " ignored."));
+            return null;
+        }
+        return value;
+    }
+
+    // ES-DE normally writes yyyyMMddTHHmmss. Preserve the original XML text
+    // for a valid date; do not invent a date or silently interpret local culture.
+    private static string? AcceptedReleaseDate(string? raw, string platform,
+        string romRelative, List<EsDeDiagnostic> diagnostics)
+    {
+        if (raw is null) return null;
+        if (DateTime.TryParseExact(raw,
+                ["yyyyMMdd'T'HHmmss", "yyyyMMdd", "yyyy-MM-dd", "yyyy"],
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            return raw;
+        diagnostics.Add(new("RELEASE_DATE_UNSUPPORTED", platform, romRelative,
+            "Unrecognized ES-DE release date; the game was preserved without a date."));
+        return null;
+    }
+
+    private static string FingerprintField(string? value) =>
+        (value?.Length.ToString(CultureInfo.InvariantCulture) ?? "-1") + ":" + value + "|";
 
     private static string ResolveRelative(string baseDirectory, string raw, string permittedRoot)
     {
