@@ -1,5 +1,12 @@
 # État des fonctionnalités
 
+## NEXT-04 / Durcissement UX et branding — PR #93 (en validation)
+
+Le pack officiel reste byte-for-byte : barre latérale 264 DIP, logo PNG natif 1960×576 présenté au ratio 228×67, ICO officiel 7 tailles pour fenêtre et exécutable. Mise en page responsive et contenu limité à 1580 DIP ; Dashboard à compteurs qualifiés, Collection en cartes, fiche adaptable et diagnostics consultables dans Bibliothèques. Parcours d'import racine/confirmation/lecture seule, état d'attente indéterminé et messages neutres. Importeur, session ES-DE et protections NEXT-03 inchangés.
+
+Comparaison avec dix références de conception **sur structure et exigences documentées seulement** : binaires privés non visualisables via l'accès courant, illustrations commerciales non redistribuées. CI Windows prévoit 13 captures dont deux **simulations** de DPI 125/200 %, source PNG/ICO contrôlée dans le ZIP normal. Aucune recette humaine DPI/clavier/ultralarge ni usage personnel revendiqué. Voir `docs/ux/next04-hardening-ux-branding.md`. **CI du HEAD exact et revue indépendante en attente ; aucune Release ni fusion autonome.**
+
+
 ## NEXT-04 / ESDE-REAL-IMPORT-01 — amélioration ciblée de l'import ES-DE (PR Draft)
 
 Le parseur existant reconnaît désormais, depuis la racine explicitement sélectionnée contenant `ROMS/`, trois conventions fixes : `ROMS/<système>/gamelist.xml`, `MEDIAS/<système>/metadata/es-de-gamelist.xml` et `ES-DE/gamelists/<système>/gamelist.xml`. Il ne découvre pas les gamelists en dehors de cette racine et refuse les sources concurrentes. Pour la convention ES-DE, les médias **uniquement référencés dans le XML** sont confinés à `ES-DE/downloaded_media/`, jamais à `ES-DE/settings/` ni à une recherche par nom de ROM ; aucun média supplémentaire n'est inféré. Les erreurs de lecture XML sont désormais distinguées des structures XML incompatibles ; aucun diagnostic n'expose de chemin local complet. Genre, développeur et date de sortie sont projetés **uniquement depuis les champs XML déclarés**, sinon non renseignés. Les valeurs invalides facultatives sont ignorées avec diagnostic sans perdre le jeu. Pas de persistance ni d'enrichissement réseau. Import/reimport restent volontaires et en lecture seule, sans modification des sources. La PR backend #92 a été fusionnée dans `main` par le Contrôleur après revue contractuelle et CI ; la compatibilité de la ROMothèque personnelle reste non vérifiée, et la revue de l'interface #93 reste distincte.

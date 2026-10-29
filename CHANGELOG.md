@@ -1,5 +1,14 @@
 # Journal des changements
 
+## NEXT-04 — UX & BRANDING HARDENING (PR #93, recette en cours)
+
+- Logo officiel inchangé (PNG 1960×576, ICO multitailles) : présentation centrée 228×67 DIP, barre latérale 264 DIP, interpolation haute qualité et contrôles de packaging PNG/ICO/EXE.
+- Dashboard avec indicateurs à provenance explicite, zone principale bornée ; Collection et fiches plus lisibles, affichage adaptatif jaquette/métadonnées, panneaux Diagnostics et Bibliothèques réorganisés.
+- Import ES-DE : clarification du dossier racine, confirmation explicite, progression sans pourcentage inventé, diagnostics en sections ; pas de scan global, scraping, écriture ou catalogue persistant.
+- Recette GUI étendue à 13 captures, dont 125/200 % **simulés** en rendu Avalonia ; comparatif avec captures du lot antérieur, sans revendiquer une validation humaine du DPI ni de l'ultralarge physique. Images privées de conception jamais copiées.
+- API internes de présentation et matrice de références dans `docs/ux/next04-hardening-ux-branding.md` ; aucun changement du contrat moteur ES-DE/NEXT-03. **CI et recette sur HEAD final à valider**, revue DEV 2 puis décision Contrôleur, pas de Release.
+
+
 ## NEXT-04 / ESDE-REAL-IMPORT-01 — diagnostics et métadonnées de l'import (29.10.2026, PR Draft)
 
 - Le parseur ES-DE unique différencie les refus du lecteur XML (syntaxe, encodage, DTD interdite) des XML valides mais non pris en charge, sans publier de chemin personnel. Retour utilisateur avec système et ligne/colonne si disponible ; validation réelle de la ROMothèque propriétaire encore non exécutée.
