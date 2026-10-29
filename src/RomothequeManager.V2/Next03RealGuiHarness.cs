@@ -88,8 +88,9 @@ internal static class Next03RealGuiHarness
     {
         window.Width = width;
         window.Height = height;
-        Demand(window.Content is Control visual && window.IsVisible,
+        Demand(window.Content is Control && window.IsVisible,
             "NEXT03_REAL_WINDOW_NOT_RENDERED");
+        var visual = (Control)window.Content!;
         visual.Measure(new Size(width - 2, height - 2));
         visual.Arrange(new Rect(0, 0, width - 2, height - 2));
         using var image = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
