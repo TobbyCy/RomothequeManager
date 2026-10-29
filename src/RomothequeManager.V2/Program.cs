@@ -61,6 +61,8 @@ internal static class Program
         }
         if (args.Contains("--ci-visual-capture", StringComparer.Ordinal))
             VisualCapture.Configure(window);
+        if (args.Contains("--ci-library-ux02-capture", StringComparer.Ordinal))
+            LibraryUxCapture.Configure(window);
         if (args.Contains("--smoke-window", StringComparer.Ordinal))
         {
             // Real native Avalonia window must open. No artificial test-only success path.
