@@ -1,5 +1,9 @@
 # État des fonctionnalités
 
+## DOC-TECH-02 — pilote de documentation des API d'inventaire (PR Draft)
+
+Deux fichiers C# reçoivent exclusivement des commentaires XML sur les contrats de service et de session d'inventaire. La compilation, les tests et un éventuel essai XML/DocFX sont distincts de tout GO fonctionnel : **aucune nouvelle possibilité de scan**, aucune dépendance obligatoire, aucun changement des gates, aucune Release. La revue de l'exactitude des invariants relève de DEV 2.
+
 ## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
 
 La liste CI autorise exclusivement `docs/design/mockups/v2/README.md` pour référencer les dix maquettes. Un canari accepte cet index et refuse les images, archives, manifestes et chemins voisins non autorisés. Les originaux restent à accès restreint ; aucun visuel tiers n'est ajouté au Produit. Les protections, canaris historiques et workflows sont conservés. Correction en revue, CI du HEAD à vérifier dans la PR ; aucune fusion, Release ou modification Avalonia.

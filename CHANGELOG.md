@@ -1,5 +1,10 @@
 # Journal des changements
 
+## DOC-TECH-02 — pilote XML C# des contrats d'inventaire (29.10.2026, PR Draft)
+
+- Documentation native XML des garanties de l'interface applicative NEXT-03 et des contrats NEXT-02 critiques : consentement, garde des scans réels, annulation, concurrence, Current/LastAttempt, couverture partielle, compteurs inconnus et provenance. **Commentaires uniquement ; aucune modification métier**, aucun changement de génération XML, de CI, de dépendances ou de publication.
+- Génération XML et évaluation DocFX à expérimenter en isolation ; la compilation et les tests doivent être confirmés sur le HEAD de la PR. Revue d'exactitude des contrats par DEV 2, aucune fusion ni Release.
+
 ## NEXT-03 — Raccordement GUI canonique limité aux fixtures (29.10.2026, PR #86 Draft)
 
 - Le même InventoryViewModel / XAML sert le mode historique SIMULATION et un mode de recette Windows du véritable service #85 (uniquement sous binaire `NEXT03_CI`), avec titres/provenances différenciés, confirmation, observations, annulation, couverture et diagnostics. Aucun second moteur, aucun changement backend.
