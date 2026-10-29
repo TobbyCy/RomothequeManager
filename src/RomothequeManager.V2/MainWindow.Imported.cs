@@ -16,6 +16,9 @@ public sealed partial class MainWindow
     private readonly ImportedCatalogueUiState _importedUi = new();
     private readonly List<Bitmap> _coverImages = new();
     private StackPanel? _importedList;
+    // Ignore callbacks from controls detached during an Avalonia visual-tree rebuild.
+    private ComboBox? _liveImportedSystemSelector;
+    private TextBox? _liveImportedSearchBox;
     private bool _importBusy;
     private POCView ActiveView => _importedUi.IsImported ? _importedUi.CurrentView :
         _scenarioUi.Active && _scenarioDetail ? POCView.GameDetail : _state.CurrentView;
@@ -328,11 +331,17 @@ public sealed partial class MainWindow
                     StringComparison.OrdinalIgnoreCase)) + 1;
         var selector = new ComboBox
         {
-            ItemsSource = choices, SelectedIndex = selected, MinWidth = 230,
+            ItemsSource = choices, MinWidth = 230,
             HorizontalAlignment = HorizontalAlignment.Left
         };
+        _page.Children.Add(selector);
+        // Attach and select before subscribing: initial binding/layout is not user input.
+        selector.SelectedIndex = selected;
+        _liveImportedSystemSelector = selector;
         selector.SelectionChanged += (_, _) =>
         {
+            if (!ReferenceEquals(selector, _liveImportedSystemSelector) ||
+                ActiveView != POCView.Collection) return;
             var index = selector.SelectedIndex;
             if (index < 0 || index > systems.Count) return;
             var desired = index == 0 ? null : systems[index - 1].Platform;
@@ -344,18 +353,22 @@ public sealed partial class MainWindow
                 if (_contentScroll is not null) _contentScroll.Offset = default;
             }
         };
-        _page.Children.Add(selector);
         var search = new TextBox
         {
             PlaceholderText = "Rechercher titre, plateforme ou chemin ROM",
             Text = _importedUi.SearchText
         };
+        _page.Children.Add(search);
+        _liveImportedSearchBox = search;
         search.TextChanged += (_, _) =>
         {
+            if (!ReferenceEquals(search, _liveImportedSearchBox) ||
+                ActiveView != POCView.Collection ||
+                string.Equals(search.Text ?? "", _importedUi.SearchText, StringComparison.Ordinal))
+                return;
             _importedUi.Search(search.Text);
             FillImportedResults();
         };
-        _page.Children.Add(search);
         _importedList = new StackPanel { Spacing = 10 };
         _page.Children.Add(_importedList);
         FillImportedResults();

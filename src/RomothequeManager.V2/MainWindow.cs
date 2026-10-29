@@ -271,6 +271,10 @@ public sealed partial class MainWindow : Window
     private void Render()
     {
         UpdateSidebarStyles();
+        // Detaching a ComboBox/TextBox may emit late SelectionChanged/TextChanged.
+        // Invalidate the previous controls before clearing the visual tree.
+        _liveImportedSystemSelector = null;
+        _liveImportedSearchBox = null;
         _page.Children.Clear();
         ReleaseCoverImages();
         _importedList = null;
