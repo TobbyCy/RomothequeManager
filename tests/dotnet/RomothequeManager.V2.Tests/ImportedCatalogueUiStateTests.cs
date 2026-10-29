@@ -326,7 +326,7 @@ public sealed class ImportedCatalogueUiStateTests
         var state = new ImportedCatalogueUiState();
         Assert.IsFalse(state.TryImport(_root));
         Assert.IsNull(state.Snapshot);
-        Assert.IsTrue(state.ErrorMessage!.Contains("XML ES-DE est mal formé",
+        Assert.IsTrue(state.ErrorMessage!.Contains("XML ES-DE n'a pas pu être analysé",
             StringComparison.Ordinal));
         Assert.IsTrue(state.ErrorMessage.Contains("Aucun catalogue chargé", StringComparison.Ordinal));
     }

@@ -169,7 +169,7 @@ public sealed partial class MainWindow
             rejected = !_importedUi.TryReimport() &&
                 ReferenceEquals(original, _importedUi.Snapshot) &&
                 _importedUi.ErrorMessage is string message &&
-                message.Contains("XML ES-DE est mal formé", StringComparison.Ordinal) &&
+                message.Contains("XML ES-DE n'a pas pu être analysé", StringComparison.Ordinal) &&
                 message.Contains("Dernier catalogue valide conservé", StringComparison.Ordinal);
             Render();
             rejected &= SmokeVisibleTexts().Contains("Dernier catalogue valide conservé", StringComparison.Ordinal);

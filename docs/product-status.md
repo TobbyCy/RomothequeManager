@@ -1,5 +1,9 @@
 # État des fonctionnalités
 
+## NEXT-04 / ESDE-REAL-IMPORT-01 — amélioration ciblée de l'import ES-DE (PR Draft)
+
+Le parseur existant reconnaît désormais, depuis la racine explicitement sélectionnée contenant `ROMS/`, trois conventions fixes : `ROMS/<système>/gamelist.xml`, `MEDIAS/<système>/metadata/es-de-gamelist.xml` et `ES-DE/gamelists/<système>/gamelist.xml`. Il ne découvre pas les gamelists en dehors de cette racine et refuse les sources concurrentes. Pour la convention ES-DE, les médias **uniquement référencés dans le XML** sont confinés à `ES-DE/downloaded_media/`, jamais à `ES-DE/settings/` ni à une recherche par nom de ROM ; aucun média supplémentaire n'est inféré. Les erreurs de lecture XML sont désormais distinguées des structures XML incompatibles ; aucun diagnostic n'expose de chemin local complet. Genre, développeur et date de sortie sont projetés **uniquement depuis les champs XML déclarés**, sinon non renseignés. Les valeurs invalides facultatives sont ignorées avec diagnostic sans perdre le jeu. Pas de persistance ni d'enrichissement réseau. Import/reimport restent volontaires et en lecture seule, sans modification des sources. Une recette réelle du propriétaire et la revue de DEV 2/DEV 3 restent nécessaires avant toute fusion.
+
 ## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
 
 La liste CI autorise exclusivement `docs/design/mockups/v2/README.md` pour référencer les dix maquettes. Un canari accepte cet index et refuse les images, archives, manifestes et chemins voisins non autorisés. Les originaux restent à accès restreint ; aucun visuel tiers n'est ajouté au Produit. Les protections, canaris historiques et workflows sont conservés. Correction en revue, CI du HEAD à vérifier dans la PR ; aucune fusion, Release ou modification Avalonia.
