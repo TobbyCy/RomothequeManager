@@ -255,9 +255,31 @@ public static class EsDeDiagnosticPresentation
 
     public static string ImportFailure(Exception error) => error switch
     {
-        DirectoryNotFoundException => "Le dossier sélectionné ou son sous-dossier ROMS n'est pas accessible. Vérifiez le support.",
+        DirectoryNotFoundException =>
+            "Racine ES-DE non accessible : sélectionnez le dossier parent contenant directement ROMS/. " +
+            "Ne sélectionnez ni ROMS/, ni ES-DE/, ni un dossier de plateforme. Aucun scan automatique.",
         System.Xml.XmlException =>
             "Le XML ES-DE n'a pas pu être analysé (syntaxe, encodage ou contenu interdit).",
+        // Stable, controlled backend refusal codes (#96). Never echo raw XML,
+        // exception paths or playlist contents to the user.
+        InvalidDataException e when e.Message == "ESDE_XML_BYTES_LIMIT" =>
+            "La gamelist ES-DE dépasse la limite de 8 Mio. Réduisez le XML à la source ; " +
+            "l'import est refusé sans charger de catalogue partiel.",
+        InvalidDataException e when e.Message == "ESDE_PLAYLIST_BYTES_LIMIT" =>
+            "Une playlist .m3u dépasse la limite de 64 Kio. " +
+            "L'import est refusé sans modifier les fichiers.",
+        InvalidDataException e when e.Message == "ESDE_PLAYLIST_LINES_LIMIT" =>
+            "Une playlist .m3u dépasse 256 lignes. " +
+            "L'import est refusé sans modifier les fichiers.",
+        InvalidDataException e when e.Message == "ESDE_PLAYLIST_ENCODING_UNSUPPORTED" =>
+            "L'encodage d'une playlist .m3u n'est pas pris en charge. " +
+            "Vérifiez son encodage à la source ; aucune conversion automatique.",
+        InvalidDataException e when e.Message == "ESDE_PLATFORM_CASE_COLLISION" =>
+            "Deux dossiers systèmes ont des noms ne différant que par la casse " +
+            "(majuscules/minuscules). Import ambigu sur Windows, refusé sans renommage.",
+        InvalidDataException e when e.Message.StartsWith("Duplicated ROM identity", StringComparison.Ordinal) =>
+            "Deux références ROM utilisent une identité en conflit. " +
+            "Import refusé ; aucun fichier renommé ou supprimé.",
         InvalidDataException e when e.Message.StartsWith("Ambiguous ES-DE source", StringComparison.Ordinal) =>
             "Plusieurs gamelists concurrentes ont été trouvées pour une plateforme (ROMS, MEDIAS ou ES-DE). Conservez une seule source.",
         InvalidDataException e when e.Message.StartsWith("No supported ES-DE gamelist", StringComparison.Ordinal) =>
