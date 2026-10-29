@@ -43,6 +43,7 @@ try {
         '^Preflight/Invoke-E1RealLibraryPreflightReadOnly\.ps1$', '^scripts/Build-DistZip\.ps1$',
         '^docs/(product-status|roadmap)\.md$', '^packaging/THIRD-PARTY-NOTICES\.txt$', '^packaging/licenses/[A-Za-z0-9_.-]+\.txt$',
         '^docs/(user|developer|architecture|decisions|ux)/[A-Za-z0-9_.-]+\.md$',
+        '^docs/design/mockups/v2/README\.md$',
         '^\.github/workflows/ci\.yml$', '^\.github/workflows/dist-zip\.yml$', '^\.github/workflows/ux-artifact\.yml$', '^\.github/workflows/visual-proof\.yml$', '^\.github/CODEOWNERS$', '^\.github/pull_request_template\.md$',
         '^\.github/ISSUE_TEMPLATE/(bug|config|docs|feature|question)\.yml$',
         '^tests/(ci_policy|test_ci_policy)\.py$',
