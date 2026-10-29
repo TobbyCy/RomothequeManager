@@ -74,6 +74,8 @@ internal static class Next04Capture
                 if (!window.CiNext04PrepareDeep(longRoot))
                     throw new InvalidDataException("NEXT04_DEEP_COLLECTION_PREPARATION_FAILED");
                 Capture("LONG-Collection-Page2-1120x720", 1120, 720);
+                // Let Avalonia finish its measure/layout pass before reading ScrollViewer.Extent.
+                await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
                 if (!window.CiNext04DeepOpen())
                     throw new InvalidDataException("NEXT04_DEEP_NONZERO_SCROLL_OR_METADATA_FAILED");
                 Capture("LONG-Detail-Metadata-1120x720", 1120, 720);

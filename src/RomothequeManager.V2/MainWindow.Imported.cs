@@ -616,18 +616,27 @@ public sealed partial class MainWindow
         visual.Measure(new Size(1118, 718));
         visual.Arrange(new Rect(0, 0, 1118, 718));
         var available = _contentScroll.Extent.Height - _contentScroll.Viewport.Height;
+        Console.WriteLine("NEXT04_DEEP_SCROLL_MEASURE extent=" + _contentScroll.Extent.Height +
+            " viewport=" + _contentScroll.Viewport.Height + " available=" + available);
         if (available < 320) return false;
         _contentScroll.Offset = new Vector(0, Math.Min(490, available - 10));
         _ciNext04CollectionOffsetY = _contentScroll.Offset.Y;
+        Console.WriteLine("NEXT04_DEEP_SCROLL_BEFORE_DETAIL offset=" + _ciNext04CollectionOffsetY);
         if (_ciNext04CollectionOffsetY < 200) return false;
         var target = _importedUi.PageGames[0];
+        Console.WriteLine("NEXT04_DEEP_FIRST_GAME title=" + target.Title + " metadata=" +
+            target.Genre + "/" + target.Developer + "/" + target.ReleaseDate);
         _ciNext04SelectedGame = target.GameId;
         OpenImportedGame(target.GameId);
+        var visible = SmokeVisibleTexts();
+        var genre = visible.Contains("Genre (ES-DE) : Exploration", StringComparison.Ordinal);
+        var developer = visible.Contains("Développeur (ES-DE) : Test Studio", StringComparison.Ordinal);
+        var date = visible.Contains("Date de sortie (ES-DE) : 20240101", StringComparison.Ordinal);
+        Console.WriteLine("NEXT04_DEEP_DETAIL_CHECK view=" + _importedUi.CurrentView +
+            " selected=" + (_importedUi.SelectedGameId == target.GameId) +
+            " genre=" + genre + " developer=" + developer + " date=" + date);
         return _importedUi.CurrentView == POCView.GameDetail &&
-               _importedUi.SelectedGameId == target.GameId &&
-               SmokeVisibleTexts().Contains("Genre (ES-DE) : Exploration", StringComparison.Ordinal) &&
-               SmokeVisibleTexts().Contains("Développeur (ES-DE) : Test Studio", StringComparison.Ordinal) &&
-               SmokeVisibleTexts().Contains("Date de sortie (ES-DE) : 20240101", StringComparison.Ordinal);
+               _importedUi.SelectedGameId == target.GameId && genre && developer && date;
     }
 
     internal async Task<bool> CiNext04DeepReimportWhileOnDetail()
