@@ -1,0 +1,170 @@
+name: NEXT-03 / Real GUI Windows synthetic-only proof
+on:
+  push:
+    branches: [dev3/next03-avalonia-mvvm-implementation]
+permissions:
+  contents: read
+concurrency:
+  group: next03-real-gui-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  real-gui:
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev3/next03-avalonia-mvvm-implementation'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact HEAD
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify single contract and HEAD SHA
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne '${{ github.sha }}') { throw 'NEXT03_HEAD_MISMATCH' }
+          if (Test-Path 'src/RomothequeManager.V2/MvvmFoundation/InventoryApplicationSeam.cs') { throw 'NEXT03_DUPLICATE_CONTRACT' }
+          Write-Host ('NEXT03_EXACT_SOURCE_PASS sha=' + (git rev-parse HEAD).Trim())
+      - name: Setup .NET 10.0.401
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Locked tests and CI-only GUI binary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_TEST_RESTORE_FAILED' }
+          dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_TEST_FAILED' }
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_APP_RESTORE_FAILED' }
+          $ci = Join-Path $env:RUNNER_TEMP 'next03-ci-executable'
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:DefineConstants=NEXT03_CI -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $ci
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_HARNESS_BUILD_FAILED' }
+      - name: Generate and verify exclusive synthetic IDEAL CHAOS MYSTERY
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP ('NEXT03-REALGUI-' + [Guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $root | Out-Null
+          $output = Join-Path $root 'demo-output'
+          node tools/demo-library/generate.cjs --output $output
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_SYNTHETIC_GENERATE_FAILED' }
+          node tools/demo-library/generate.cjs --verify $output
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_SYNTHETIC_VERIFY_FAILED' }
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'next03-fixture-location.txt'), $output,[Text.UTF8Encoding]::new($false))
+          Write-Host 'NEXT03_SYNTHETIC_FIXTURES_VERIFIED'
+      - name: Run real Avalonia GUI, inspect canonical service and capture seven screenshots
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $output = [IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'next03-fixture-location.txt'))
+          $p = [Diagnostics.ProcessStartInfo]::new()
+          $p.FileName = Join-Path $env:RUNNER_TEMP 'next03-ci-executable/RomothequeManager.V2.exe'
+          $p.WorkingDirectory = Split-Path $p.FileName
+          $p.ArgumentList.Add('--ci-next03-real-gui')
+          $p.ArgumentList.Add($output)
+          $p.UseShellExecute = $false
+          $process = [Diagnostics.Process]::Start($p)
+          if ($null -eq $process) { throw 'NEXT03_GUI_PROCESS_NOT_STARTED' }
+          try {
+            if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'NEXT03_GUI_TIMEOUT' }
+            if ($process.ExitCode -ne 0) { throw ('NEXT03_GUI_FAILED:' + $process.ExitCode) }
+          } finally { $process.Dispose() }
+          $proof = Join-Path $env:RUNNER_TEMP 'next03-real-gui-captures'
+          $png = @(Get-ChildItem -LiteralPath $proof -File -Filter '*.png')
+          if ($png.Count -ne 7) { throw ('NEXT03_GUI_PNG_COUNT:' + $png.Count) }
+          Add-Type -AssemblyName System.Drawing
+          foreach ($file in $png) {
+            $bitmap = [Drawing.Bitmap]::FromFile($file.FullName)
+            try {
+              if ($bitmap.Width -lt 760 -or $bitmap.Height -lt 480 -or $file.Length -lt 4000) { throw ('NEXT03_GUI_INVALID_IMAGE:' + $file.Name) }
+            } finally { $bitmap.Dispose() }
+          }
+          node tools/demo-library/generate.cjs --verify $output
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_REAL_GUI_MUTATED_FIXTURE' }
+          Write-Host 'NEXT03_REAL_SERVICE_GUI_PASS count=7 untouchedFixtures=1'
+      - name: Fresh clean normal build without test-only permission
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet clean $app -c Release -r win-x64
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_CLEAN_FAILED' }
+          $out = Join-Path $env:RUNNER_TEMP 'next03-product'
+          dotnet publish $app -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $out
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT03_PRODUCT_BUILD_FAILED' }
+          foreach ($filename in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll','RM_V2_Favicon.ico','RM_V2_Horizontal_Fond_Sombre.png')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $out $filename) -PathType Leaf)) { throw ('NEXT03_PRODUCT_MISSING:' + $filename) }
+          }
+          Write-Host 'NEXT03_DISTRIBUTION_WITHOUT_CI_HARNESS_PASS'
+      - name: Build quarantined verified ZIP with SHA256, licence notices and guide
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'next03-product'
+          $proof = Join-Path $env:RUNNER_TEMP 'next03-real-gui-captures'
+          $extract = Join-Path $env:RUNNER_TEMP 'next03-verify-extracted'
+          New-Item -ItemType Directory -Path $extract -Force | Out-Null
+          $inventory = 'docs/developer/lic-zip-01-inventory.md'
+          if (-not (Select-String -LiteralPath $inventory -Pattern 'LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED' -Quiet)) { throw 'NEXT03_LICENCE_HOLD' }
+          foreach ($f in @('LICENSE','LEGAL.md','BRANDING.md')) { Copy-Item -LiteralPath $f -Destination $out }
+          Copy-Item -LiteralPath 'packaging/THIRD-PARTY-NOTICES.txt' -Destination (Join-Path $out 'THIRD-PARTY-NOTICES.txt')
+          Copy-Item -LiteralPath $inventory -Destination (Join-Path $out 'THIRD-PARTY-INVENTORY.md')
+          Copy-Item -LiteralPath 'packaging/licenses' -Destination (Join-Path $out 'licenses') -Recurse
+          $guide = @'
+          NEXT-03 — WINDOWS REAL GUI WIRING
+          Source: ${{ github.sha }}
+          1. Verify inner ZIP SHA256 against its .sha256; extract in a fresh folder.
+          2. Launch RomothequeManager.V2.exe and check Dashboard, Collection, Fiche, Bibliotheques, ES-DE.
+          3. The historical SIMULATION GUI remains available and clearly identified.
+          4. Real InventoryApplicationService GUI on IDEAL CHAOS MYSTERY was executed ONLY
+             in the CI-only binary, with freshly generated and verified fixtures.
+          5. This portable owner ZIP excludes the CI-only permission harness and cannot scan
+             any personal library; the public backend constructor remains fail-closed.
+          6. Review seven Windows CI PNGs, test keyboard focus, DPI 125/200, 760x480/1120x720.
+          7. Never mark a human GUI test PASS unless actually executed.
+          No merger, no Release, no destructive operations.
+          '@
+          [IO.File]::WriteAllText((Join-Path $out 'GUIDE-NEXT03-REAL-GUI.txt'),$guide,[Text.UTF8Encoding]::new($false))
+          $manifest = [ordered]@{
+            sourceCommit='${{ github.sha }}'
+            sourceTree=(git rev-parse 'HEAD^{tree}').Trim()
+            runtime='win-x64';selfContained=$true;ciHarnessIncluded=$false
+            ciGuiVerifiedOnSyntheticFixtures=$true;personalScanAllowed=$false;release=$false
+          }
+          ($manifest|ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $out 'NEXT03-MANIFEST.json') -Encoding utf8
+          $files = @(Get-ChildItem -LiteralPath $out -File -Recurse)
+          foreach ($file in $files) {
+            if (@('.gba','.rom','.chd','.iso','.cue','.m3u','.sav','.nsp','.xci','.wad','.pfx','.pem','.key') -contains $file.Extension.ToLowerInvariant()) { throw ('NEXT03_FORBIDDEN_PAYLOAD:' + $file.Name) }
+          }
+          $name = 'RomothequeManager-NEXT03-win-x64-' + '${{ github.sha }}'.Substring(0,8) + '.zip'
+          $zip = Join-Path $proof $name
+          Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText(($zip+'.sha256'),($sha+'  '+$name+[Environment]::NewLine),[Text.Encoding]::ASCII)
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          if (@(Get-ChildItem -LiteralPath $extract -File -Recurse).Count -ne $files.Count) { throw 'NEXT03_EXTRACT_COUNT_MISMATCH' }
+          foreach ($file in $files) {
+            $rel = $file.FullName.Substring($out.Length+1)
+            $other = Join-Path $extract $rel
+            if (-not (Test-Path -LiteralPath $other -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $other -Algorithm SHA256).Hash) {
+              throw ('NEXT03_EXTRACT_SHA_MISMATCH:' + $rel)
+            }
+          }
+          Write-Host ('NEXT03_REAL_GUI_ZIP_PASS source=${{ github.sha }} sha256=' + $sha + ' files=' + $files.Count + ' bytes=' + (Get-Item $zip).Length)
+      - name: Upload short-lived ZIP and genuine Windows GUI PNGs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: NEXT03-Real-GUI-Windows-Recipe
+          path: |
+            ${{ runner.temp }}/next03-real-gui-captures/*.png
+            ${{ runner.temp }}/next03-real-gui-captures/*.zip
+            ${{ runner.temp }}/next03-real-gui-captures/*.zip.sha256
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6

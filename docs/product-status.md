@@ -1,10 +1,33 @@
 # État des fonctionnalités
 
-## NEXT-03 — backend applicatif seul (PR Draft #85, pas de parcours UI raccordé)
+## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
 
-Le service `RomothequeManager.V2.Inventory.Application.IInventoryApplicationService` est implémenté dans **le projet Avalonia existant** mais **ne dépend d'aucune API Avalonia ou MVVM**. Il orchestre exclusivement `InventorySession.Scan(CancellationToken)`, avec sélection locale explicitement consentie, tâche asynchrone, annulation, single-flight, dernière génération complète `Current`, dernière tentative `LastAttempt` et projections d'état sans inférence. `InventorySnapshot` couvre uniquement les fichiers `ROMS/`, **pas les jeux confirmés ni les médias ES-DE**.
+La liste CI autorise exclusivement `docs/design/mockups/v2/README.md` pour référencer les dix maquettes. Un canari accepte cet index et refuse les images, archives, manifestes et chemins voisins non autorisés. Les originaux restent à accès restreint ; aucun visuel tiers n'est ajouté au Produit. Les protections, canaris historiques et workflows sont conservés. Correction en revue, CI du HEAD à vérifier dans la PR ; aucune fusion, Release ou modification Avalonia.
 
-Le constructeur public **refuse tout scan réel** ; seule l'assembly MSTest du dépôt peut autoriser ses propres racines synthétiques. L'écran Avalonia et le ViewModel NEXT-03 sont **non raccordés**, les PR #75/#76/#77 restent indépendantes, `NX03-16` scan réel HOLD. [Contrat API et tests](architecture/next03-backend-service.md). Aucune fusion ni Release.
+## NEXT-03 — REAL GUI WIRING synthétique isolé (PR Draft #86)
+
+Fenêtre Avalonia raccordable par injection au véritable service applicatif #85, sans nouveau moteur ; sélection et exécution réelle uniquement dans une compilation CI dédiée `NEXT03_CI` autorisant les trois fixtures fraîchement générées IDEAL/CHAOS/MYSTERY. Le mode SIMULATION public reste séparé et le ZIP standard est recompilé sans permission de scan. Windows, hash ZIP et captures exigés du HEAD CI exact. Aucune ROMothèque réelle ni fusion/Release. [Détails et limites](ux/next03-mvvm-implementation.md).
+
+
+## NEXT-03 / PR #86 — préparation commune, main inchangé (29 octobre 2026)
+
+La branche de #86 réunit les dépendances #76/#75/#77/#85 et sa fondation #84 déjà ancêtre, sans fusion de PR. Le seam provisoire est supprimé ; interface et records applicatifs uniques proviennent de #85, dans l'assembly V2 existante. Le sélecteur IDEAL/CHAOS/MYSTERY de #77 et l'entrée MVVM SIMULATION sont conservés ensemble. Un contrôle de raccordement MSTest exerce le vrai ViewModel avec le vrai service sur les seules fixtures générées, en plus des tests historiques. CI du HEAD à vérifier dans la PR ; aucune réception fonctionnelle anticipée.
+
+La fenêtre demeure une simulation sans inventaire de dossier ; le constructeur public du vrai service reste fermé. La recette Windows commune est préparée dans `docs/ux/next03-mvvm-implementation.md`, sans exécution humaine, nouveau harness GUI, scan personnel, modification de l'architecture ou Release. Toutes les PR restent MERGE_HOLD.
+
+## NEXT-03 — MVVM consolidation DEV 3 (Draft #86, non intégrée)
+
+Le ViewModel distingue les notifications hors ordre et les générations, révoque la confirmation après un essai de changement de source, bloque les nouveaux dossiers pendant l'annulation, et affiche des générations `Current`/`LastAttempt` distinctes, y compris lorsque le dernier essai est Failed. Les listes vides et les totaux indisponibles restent **Inconnu**. Les bindings Avalonia montrent les provenances, diagnostics et statuts ROMS fictifs. **Toujours une simulation en mémoire sans accès à ROM ni service DEV 1 raccordé**. Recette Windows physique et P1 #82 non exécutées ; [détails et critères](ux/next03-mvvm-implementation.md). Aucun merge, Release ou accès personnel.
+
+
+## NEXT-03 / Avalonia MVVM — aperçu simulé (PR Draft, non livré)
+
+Fenêtre MVVM accessible dans Bibliothèques, sélecteur de chemin sans lecture de dossier, confirmation distincte et simulation en mémoire des états, couverture, observations et diagnostics. Aucun appel à InventorySession ni bibliothèque personnelle ; les données affichées sont marquées SIMULATION. Code source historique inchangé hors ajout du bouton dans Bibliothèques ; import ES-DE indépendant. Voir [recette de prévisualisation](ux/next03-mvvm-implementation.md). Attente de #75/#76/#77 et du vrai service DEV 1 #83, sans GO de fusion ni Release.
+
+
+## NEXT-03 / MVVM FOUNDATION — DEV 3 (branche Draft, non intégrée)
+
+Premiers composants **indépendants de l'interface graphique dans leur code source** : `InventoryViewModel` (notifications/commandes/provenances), `InventoryApplicationSeam` **provisoire conforme à la proposition DEV 1 #83**, tests unitaires en mémoire. **Aucun service de scan implémenté ni raccordement Avalonia/ROM** ; aucun changement de Dashboard, Collection, fiches, Bibliothèques ou import ES-DE. Dépendance `CommunityToolkit.Mvvm 8.4.2` évaluée, **non ajoutée** en attente de NuGet lock/avis licences/CI ; BCL `INotifyPropertyChanged`/`ICommand` utilisée pour la fondation. [ADR et limites](ux/next03-mvvm-foundation.md). #75/#76/#77 restent à intégrer avant toute connexion au service et au moteur. Aucun scan réel, merge ou Release.
 
 ## LIBRARY-UX-02 — parcours de bibliothèques (PR Draft #77, 28.10.2026)
 
@@ -13,9 +36,11 @@ Le constructeur public **refuse tout scan réel** ; seule l'assembly MSTest du d
 - Fiche importée ES-DE : affichage local en lecture seule des jaquettes, miniatures et logos réellement référencés (avec repli manquant/illisible/inconnu). Captures/dos/fonds hors contrat d'import restent sans aperçu inventé. Pagination désactivée si une seule page.
 - Capture réelle de cinq vues Avalonia sur runner Windows et ZIP temporaire autonome vérifié par SHA, sans Release, dans un workflow strictement limité à la branche DEV 3. Recette Windows et GO propriétaire **restent obligatoires** avant merge. [Procédure LIBRARY-UX-02](ux/library-ux-02.md).
 
-## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
+## NEXT-03 — backend applicatif seul (PR Draft #85, pas de parcours UI raccordé)
 
-La liste CI autorise exclusivement `docs/design/mockups/v2/README.md` pour référencer les dix maquettes. Un canari accepte cet index et refuse les images, archives, manifestes et chemins voisins non autorisés. Les originaux restent à accès restreint ; aucun visuel tiers n'est ajouté au Produit. Les protections, canaris historiques et workflows sont conservés. Correction en revue, CI du HEAD à vérifier dans la PR ; aucune fusion, Release ou modification Avalonia.
+Le service `RomothequeManager.V2.Inventory.Application.IInventoryApplicationService` est implémenté dans **le projet Avalonia existant** mais **ne dépend d'aucune API Avalonia ou MVVM**. Il orchestre exclusivement `InventorySession.Scan(CancellationToken)`, avec sélection locale explicitement consentie, tâche asynchrone, annulation, single-flight, dernière génération complète `Current`, dernière tentative `LastAttempt` et projections d'état sans inférence. `InventorySnapshot` couvre uniquement les fichiers `ROMS/`, **pas les jeux confirmés ni les médias ES-DE**.
+
+Le constructeur public **refuse tout scan réel** ; seule l'assembly MSTest du dépôt peut autoriser ses propres racines synthétiques. L'écran Avalonia et le ViewModel NEXT-03 sont **non raccordés**, les PR #75/#76/#77 restent indépendantes, `NX03-16` scan réel HOLD. [Contrat API et tests](architecture/next03-backend-service.md). Aucune fusion ni Release.
 
 ## DEMO-LIBRARY-01 — catalogue canonique candidat (PR Draft #72, sans effet produit)
 

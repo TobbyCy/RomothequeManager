@@ -1,10 +1,40 @@
 # Journal des changements
 
-## NEXT-03 — service applicatif DEV 1 (PR Draft #85, 28.10.2026)
+## NEXT-03 — Raccordement GUI canonique limité aux fixtures (29.10.2026, PR #86 Draft)
 
-- Service `IInventoryApplicationService` ajouté dans l'assembly V2 **existante**, sans extraire Core ni modifier l'unique moteur NEXT-02. Interfaces et coordination sans dépendance Avalonia/MVVM au niveau source.
-- Préflight limité à la sélection locale consentie, scan de fixture en tâche de fond, single-flight, annulation, `Current/LastAttempt`, observation/diagnostic/couverture et états d'origine. Le constructeur public bloque les scans de vraies bibliothèques.
-- Nouveaux tests synthétiques IDEAL/CHAOS/MYSTERY, annulation pendant playlist, concurrence, échec Offline, propagation de l'état Stale simulé et intégrité des fixtures. **PR Draft, aucun raccordement Avalonia, fusion ni Release.**
+- Le même InventoryViewModel / XAML sert le mode historique SIMULATION et un mode de recette Windows du véritable service #85 (uniquement sous binaire `NEXT03_CI`), avec titres/provenances différenciés, confirmation, observations, annulation, couverture et diagnostics. Aucun second moteur, aucun changement backend.
+- Banc Avalonia Windows sur fixtures synthétiques nouvellement générées sous RUNNER_TEMP ; vérification des générations, double départ refusé et conservation de Current après annulation Partial. Compilation **distincte** et sans harnais CI du ZIP portable, licences et SHA-256 vérifiés.
+- Aucun scan personnel autorisé, fusion ou Release. Recette humaine Windows restant indépendante des preuves automatisées.
+
+
+## NEXT-03 — préparation d'intégration #86 (29.10.2026, sans fusion dans main)
+
+- Réunion des dépendances UX, DEMO-02, Bibliothèques et service backend sur la branche de préparation ; fondation #84 conservée via #86, sans seconde implémentation. Retrait du seam provisoire et consommation du contrat unique #85 ; moteur et dépendances NuGet inchangés.
+- Résolution de MainWindow en conservant le sélecteur de scénarios, la prévisualisation explicitement SIMULATION et la page Bibliothèques. Tests de raccordement service/ViewModel sur fixtures créées exclusivement par le banc, recette Windows préparée et limites déclarées. Aucune autorisation de scan personnel, fusion ou Release.
+
+## NEXT-03 / Consolidation pré-raccordement MVVM (28.10.2026 — PR #86 Draft)
+
+- Protection contre un événement dispatcher obsolète du même contexte (Running reçu après Completed), confirmation retirée après refus de sélection, sélection/effacement bloqués pendant le scan et l'annulation.
+- États de preuve complets et tentatives nommés séparément, nul ≠ zéro sur Failed, message sans données, diagnostics (sévérité/code/portée), couverture statut/partition et provenance observation ; disposition des commandes adaptée à 760×480.
+- Tests supplémentaires exclusivement avec faux service/preview en mémoire et recette Windows préparée. Aucun scanner, donnée personnelle, vraie UI intégrée à Collection, fusion, maquette V2 ou Release.
+
+
+## NEXT-03 / MVVM Avalonia — aperçu simulé (28.10.2026, Draft)
+
+Ajout d'une fenêtre Avalonia typée dédiée, picker natif de chemin sans scan, confirmation à usage unique, commandes ViewModel, chargement/annulation, états Complete/Partial/Failed/Offline/Stale et inspecteur Observation fictifs. InventoryPreviewService est un simulateur sans accès aux données et non un deuxième moteur. Tests ViewModel / service simulé ; contrats #82/#83 et intégration #75/#76/#77 toujours en attente. Aucune Release ni bibliothèque réelle.
+
+
+## NEXT-03 — Fondation MVVM isolée DEV 3 (28.10.2026 ; Draft)
+
+- Ajout d'un `InventoryViewModel` **non raccordé** à Avalonia, notifications `INotifyPropertyChanged`, commandes `ICommand` et projections `Current/LastAttempt`, observations, diagnostics et compteurs `null` = Inconnu. Le service applicatif #83 est simulé pour les tests ; aucune nouvelle énumération ou lecture de disque.
+- Contrat provisoire de passage en attente de DEV 1 et ADR `docs/ux/next03-mvvm-foundation.md`. `CommunityToolkit.Mvvm` évalué mais **pas encore introduit** (aucun changement de packages.lock ou licence ZIP) ; bindings typés prévus pour la future vue locale. Aucun changement des écrans, aucune fusion, Release ou ROM personnelle.
+
+- DEMO-02 revue croisée avec la recette DEV 2 #76 (28 scénarios) et la UI Draft DEV 3 #77 : matrice détaillée des preuves moteur versus tests UI, état NOT_EXECUTED/NOT_IMPLEMENTED pour les parcours absents. Deux tests ajoutés pour exécuter le script Windows en sortie temporaire et tester l'annulation NEXT-02 sans perdre le dernier complet. Aucun moteur, fixture canonique, scan réel ou Release modifié.
+
+## DEMO-02 — recettes synthétiques E2E (DEV 1 / PR Draft #75, 28.10.2026)
+
+- Procédure Windows PowerShell 5.1 opt-in pour générer et vérifier IDEAL/CHAOS/MYSTERY à destination locale nouvelle et explicitement choisie ; aucun écrasement, téléchargement, scan réel ni Release.
+- Quatre tests E2E supplémentaires exécutent les moteurs existants NEXT-01 et NEXT-02 sur les fixtures DEMO-01, avec les 30 titres, 13 plateformes, oracles 32/30/180, 33/30/166, 32/0/0, diagnostics de fichiers/médias absents, 3 doublons candidats, playlist multidisque et stabilité de relecture. Aucun nouveau moteur ni modification de la génération historique.
 
 ## LIBRARY-UX-02 — sélection des scénarios et médias ES-DE (PR Draft #77, 28.10.2026)
 
@@ -13,12 +43,11 @@
 - Tests unitaires du contrat de présentation, capture Windows cinq vues aux deux tailles et artifact ZIP de démonstration avec provenance SHA. Workflow nouveau ajouté à la liste de chemins autorisés **exactement par son nom**, avec contrôles de sécurité associés ; protections de Release et baseline historique inchangées.
 - **En cours de revue** : aucune fusion ni Release avant CI complète et recette propriétaire.
 
-- DEMO-02 revue croisée avec la recette DEV 2 #76 (28 scénarios) et la UI Draft DEV 3 #77 : matrice détaillée des preuves moteur versus tests UI, état NOT_EXECUTED/NOT_IMPLEMENTED pour les parcours absents. Deux tests ajoutés pour exécuter le script Windows en sortie temporaire et tester l'annulation NEXT-02 sans perdre le dernier complet. Aucun moteur, fixture canonique, scan réel ou Release modifié.
+## NEXT-03 — service applicatif DEV 1 (PR Draft #85, 28.10.2026)
 
-## DEMO-02 — recettes synthétiques E2E (DEV 1 / PR Draft #75, 28.10.2026)
-
-- Procédure Windows PowerShell 5.1 opt-in pour générer et vérifier IDEAL/CHAOS/MYSTERY à destination locale nouvelle et explicitement choisie ; aucun écrasement, téléchargement, scan réel ni Release.
-- Quatre tests E2E supplémentaires exécutent les moteurs existants NEXT-01 et NEXT-02 sur les fixtures DEMO-01, avec les 30 titres, 13 plateformes, oracles 32/30/180, 33/30/166, 32/0/0, diagnostics de fichiers/médias absents, 3 doublons candidats, playlist multidisque et stabilité de relecture. Aucun nouveau moteur ni modification de la génération historique.
+- Service `IInventoryApplicationService` ajouté dans l'assembly V2 **existante**, sans extraire Core ni modifier l'unique moteur NEXT-02. Interfaces et coordination sans dépendance Avalonia/MVVM au niveau source.
+- Préflight limité à la sélection locale consentie, scan de fixture en tâche de fond, single-flight, annulation, `Current/LastAttempt`, observation/diagnostic/couverture et états d'origine. Le constructeur public bloque les scans de vraies bibliothèques.
+- Nouveaux tests synthétiques IDEAL/CHAOS/MYSTERY, annulation pendant playlist, concurrence, échec Offline, propagation de l'état Stale simulé et intégrité des fixtures. **PR Draft, aucun raccordement Avalonia, fusion ni Release.**
 
 ## DEMO-LIBRARY-01 — catalogue canonique DEV 2 (PR Draft #72, 28.10.2026)
 

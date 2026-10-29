@@ -4,6 +4,7 @@ using System.Text.Json;
 using RomothequeManager.V2.Inventory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RomothequeManager.V2.Inventory.Application;
+using RomothequeManager.V2.MvvmFoundation;
 
 // NEXT-03 MSTest using only the existing NEXT-02 reader. All roots are generated
 // under an owned random temporary directory and cleaned only when owned by this run.
@@ -303,6 +304,107 @@ public sealed class InventoryApplicationServiceTests
         finally { Directory.Move(unavailable, root); }
     }
 
+    private static async Task TestViewModelWithCanonicalService(
+        IReadOnlyDictionary<string, string> roots,
+        IReadOnlyDictionary<string, string> aliases, HashSet<string> permittedRoots)
+    {
+        // Production construction must remain closed even through the real VM.
+        await using (var denied = new InventoryApplicationService())
+        using (var deniedVm = new InventoryViewModel(denied, action => action()))
+        {
+            Require(deniedVm.PrepareSelectedFolder(new InventoryScope(roots["IDEAL"], aliases)).Accepted,
+                "VM_DEFAULT_SELECTION_FAILED");
+            deniedVm.ConsentConfirmed = true;
+            await deniedVm.StartConfirmedAsync();
+            Require(deniedVm.Phase == InventoryRunPhase.Rejected &&
+                deniedVm.StatusMessage.Contains("REAL_LIBRARY_SCAN_HOLD", StringComparison.Ordinal) &&
+                deniedVm.LastAttempt is null && !deniedVm.ConsentConfirmed,
+                "VM_DEFAULT_SCAN_GUARD_BYPASSED");
+        }
+
+        using var entered = new ManualResetEventSlim(false);
+        using var release = new ManualResetEventSlim(false);
+        var blockPlaylist = false;
+        await using var service = new InventoryApplicationService(
+            scope => permittedRoots.Contains(scope.LibraryRoot));
+        using var vm = new InventoryViewModel(service, action => action());
+        var selected = vm.PrepareSelectedFolder(new InventoryScope(roots["IDEAL"], aliases)
+        {
+            PlaylistChunkObserved = _ =>
+            {
+                if (!blockPlaylist) return;
+                blockPlaylist = false;
+                entered.Set();
+                Require(release.Wait(TimeSpan.FromSeconds(30)), "VM_PLAYLIST_TEST_TIMEOUT");
+            }
+        });
+        Require(selected.Accepted && vm.Current is null && vm.LastAttempt is null,
+            "VM_SELECTION_SCANNED_IMPLICITLY");
+        vm.ConsentConfirmed = true;
+        await vm.StartConfirmedAsync();
+        var complete = vm.Current ?? throw new InvalidOperationException("VM_COMPLETE_MISSING");
+        Require(complete.ObservedFileCount == 32 && complete.ConfirmedGameCount is null &&
+            vm.Observations.Count == 32 && !vm.ConsentConfirmed && !vm.RequestCancellation(),
+            "VM_REAL_COMPLETE_OR_LATE_CANCEL_INCORRECT");
+
+        blockPlaylist = true;
+        vm.ConsentConfirmed = true;
+        var running = vm.StartConfirmedAsync();
+        try
+        {
+            Require(await Task.Run(() => entered.Wait(TimeSpan.FromSeconds(30))),
+                "VM_PLAYLIST_NOT_REACHED");
+            Require(vm.IsBusy && !vm.CanChangeFolder && !vm.CanStart,
+                "VM_RUNNING_GATES_MISSING");
+            Require(!vm.PrepareSelectedFolder(new InventoryScope(roots["CHAOS"], aliases)).Accepted,
+                "VM_CHANGED_LIBRARY_DURING_SCAN");
+            await vm.StartConfirmedAsync(); // second start must be a no-op
+            Require(service.State.Phase == InventoryRunPhase.Running && vm.RequestCancellation() &&
+                service.State.Phase == InventoryRunPhase.CancellationRequested,
+                "VM_CONCURRENT_OR_CANCEL_STATE_INCORRECT");
+        }
+        finally
+        {
+            release.Set();
+            await running;
+        }
+        Require(ReferenceEquals(complete, vm.Current) &&
+            vm.LastAttempt?.ScanStatus == InventoryScanStatus.Partial &&
+            vm.LastAttempt.TotalFileCount is null &&
+            vm.LastAttempt.Diagnostics.Any(d => d.Code == "CANCELLED"),
+            "VM_CANCEL_OVERWROTE_CURRENT_OR_INVENTED_TOTAL");
+
+        var unavailable = roots["IDEAL"] + "-vm-unavailable";
+        Require(!Directory.Exists(unavailable), "VM_OFFLINE_TEST_ROOT_COLLISION");
+        Directory.Move(roots["IDEAL"], unavailable); // only this run's generated fixture
+        try
+        {
+            vm.ConsentConfirmed = true;
+            await vm.StartConfirmedAsync();
+            Require(ReferenceEquals(complete, vm.Current) &&
+                vm.LastAttempt?.ScanStatus == InventoryScanStatus.Failed &&
+                vm.LastAttempt.Availability == InventoryAvailability.Offline,
+                "VM_OFFLINE_LOST_CURRENT");
+            vm.ShowAttempt();
+            Require(vm.ObservedFilesText.Contains("Inconnu", StringComparison.Ordinal) &&
+                vm.TotalFilesText.Contains("Inconnu", StringComparison.Ordinal),
+                "VM_FAILED_INVENTED_ZERO");
+            vm.ShowComplete();
+            Require(ReferenceEquals(complete, vm.DisplayedSnapshot), "VM_CURRENT_NOT_CONSULTABLE");
+        }
+        finally { Directory.Move(unavailable, roots["IDEAL"]); }
+
+        Require(vm.PrepareSelectedFolder(new InventoryScope(roots["MYSTERY"], aliases)).Accepted &&
+            vm.Current is null && vm.LastAttempt is null && !vm.ConsentConfirmed,
+            "VM_PREVIOUS_LIBRARY_STATE_LEAKED");
+        vm.ConsentConfirmed = true;
+        await vm.StartConfirmedAsync();
+        Require(vm.Current?.ObservedFileCount == 32 && vm.Current.ConfirmedGameCount is null &&
+            vm.IdentifiedGamesText.Contains("Inconnu", StringComparison.Ordinal) &&
+            vm.SourceLabel != "NEXT03_UI_SIMULATION", "VM_MYSTERY_IS_NOT_REAL_SYNTHETIC_INVENTORY");
+        Console.WriteLine("NEXT03_VM_CANONICAL_SERVICE_PASS guarded=1 complete=32 cancelledPartial=1 offlineFailed=1 currentPreserved=1 mystery=32");
+    }
+
     [TestMethod]
     public async Task NEXT03_AllThreePhysicalSyntheticLibrariesAndSafetyScenariosPass()
     {
@@ -334,6 +436,7 @@ public sealed class InventoryApplicationServiceTests
             await TestConcurrent(roots["IDEAL"], aliases, permitted);
             await TestReentrantNotificationOrder(roots["IDEAL"], aliases, permitted);
             await TestUnavailableAfterComplete(roots["IDEAL"], aliases, permitted);
+            await TestViewModelWithCanonicalService(roots, aliases, permitted);
             AssertUnchanged(originalHashes, Fingerprints(output));
             Console.WriteLine("NEXT03_BACKEND_SMOKE_PASS immutableSyntheticFixture=1");
         }
