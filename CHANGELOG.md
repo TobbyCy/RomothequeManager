@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-03 — service applicatif DEV 1 (PR Draft #85, 28.10.2026)
+
+- Service `IInventoryApplicationService` ajouté dans l'assembly V2 **existante**, sans extraire Core ni modifier l'unique moteur NEXT-02. Interfaces et coordination sans dépendance Avalonia/MVVM au niveau source.
+- Préflight limité à la sélection locale consentie, scan de fixture en tâche de fond, single-flight, annulation, `Current/LastAttempt`, observation/diagnostic/couverture et états d'origine. Le constructeur public bloque les scans de vraies bibliothèques.
+- Nouveaux tests synthétiques IDEAL/CHAOS/MYSTERY, annulation pendant playlist, concurrence, échec Offline, propagation de l'état Stale simulé et intégrité des fixtures. **PR Draft, aucun raccordement Avalonia, fusion ni Release.**
+
 ## LIBRARY-UX-02 — sélection des scénarios et médias ES-DE (PR Draft #77, 28.10.2026)
 
 - Sélection explicitement fictive IDEAL, CHAOS, MYSTERY ; navigation par Dashboard, Collection et fiche. Scénarios IDEAL/CHAOS décrits par contrats, mais non revendiqués comme des fichiers observés ; MYSTERY ne présente **aucun jeu identifié**.

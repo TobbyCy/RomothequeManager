@@ -1,5 +1,11 @@
 # État des fonctionnalités
 
+## NEXT-03 — backend applicatif seul (PR Draft #85, pas de parcours UI raccordé)
+
+Le service `RomothequeManager.V2.Inventory.Application.IInventoryApplicationService` est implémenté dans **le projet Avalonia existant** mais **ne dépend d'aucune API Avalonia ou MVVM**. Il orchestre exclusivement `InventorySession.Scan(CancellationToken)`, avec sélection locale explicitement consentie, tâche asynchrone, annulation, single-flight, dernière génération complète `Current`, dernière tentative `LastAttempt` et projections d'état sans inférence. `InventorySnapshot` couvre uniquement les fichiers `ROMS/`, **pas les jeux confirmés ni les médias ES-DE**.
+
+Le constructeur public **refuse tout scan réel** ; seule l'assembly MSTest du dépôt peut autoriser ses propres racines synthétiques. L'écran Avalonia et le ViewModel NEXT-03 sont **non raccordés**, les PR #75/#76/#77 restent indépendantes, `NX03-16` scan réel HOLD. [Contrat API et tests](architecture/next03-backend-service.md). Aucune fusion ni Release.
+
 ## LIBRARY-UX-02 — parcours de bibliothèques (PR Draft #77, 28.10.2026)
 
 - Nouvelle expérience Avalonia Darcula Retro **uniquement de présentation** : choix IDEAL / CHAOS / MYSTERY, Dashboard → Collection → Fiche, recherche dans la sélection et retour. Aucune lecture de ROM, collecte réseau, modification physique ou nouveau moteur.
