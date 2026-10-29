@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-03 — Raccordement GUI canonique limité aux fixtures (29.10.2026, PR #86 Draft)
+
+- Le même InventoryViewModel / XAML sert le mode historique SIMULATION et un mode de recette Windows du véritable service #85 (uniquement sous binaire `NEXT03_CI`), avec titres/provenances différenciés, confirmation, observations, annulation, couverture et diagnostics. Aucun second moteur, aucun changement backend.
+- Banc Avalonia Windows sur fixtures synthétiques nouvellement générées sous RUNNER_TEMP ; vérification des générations, double départ refusé et conservation de Current après annulation Partial. Compilation **distincte** et sans harnais CI du ZIP portable, licences et SHA-256 vérifiés.
+- Aucun scan personnel autorisé, fusion ou Release. Recette humaine Windows restant indépendante des preuves automatisées.
+
+
 ## NEXT-03 — préparation d'intégration #86 (29.10.2026, sans fusion dans main)
 
 - Réunion des dépendances UX, DEMO-02, Bibliothèques et service backend sur la branche de préparation ; fondation #84 conservée via #86, sans seconde implémentation. Retrait du seam provisoire et consommation du contrat unique #85 ; moteur et dépendances NuGet inchangés.

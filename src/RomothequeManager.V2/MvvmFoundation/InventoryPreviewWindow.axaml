@@ -16,9 +16,9 @@
       <Border Background="#38262B" BorderBrush="#A9444B"
               BorderThickness="1" CornerRadius="8" Padding="14">
         <StackPanel Spacing="5">
-          <TextBlock FontSize="19" FontWeight="Bold" Text="NEXT-03 — PRÉVISUALISATION MVVM · DONNÉES SIMULÉES" TextWrapping="Wrap" />
-          <TextBlock Text="Aucun dossier, fichier ROM ou média n’est inspecté. Les observations et états ci-dessous sont inventés pour vérifier la présentation. Aucune identité de jeu reconnue." TextWrapping="Wrap" />
-          <TextBlock Text="Le vrai service DEV 1 et le parcours intégré Bibliothèques → Collection restent en attente. Aucun scan personnel n'est possible depuis cette fenêtre." TextWrapping="Wrap" />
+          <TextBlock x:Name="ModeHeading" FontSize="19" FontWeight="Bold" Text="NEXT-03 — PRÉVISUALISATION MVVM · DONNÉES SIMULÉES" TextWrapping="Wrap" />
+          <TextBlock x:Name="ModeDescription" Text="Aucun dossier, fichier ROM ou média n’est inspecté. Les observations et états ci-dessous sont inventés pour vérifier la présentation. Aucune identité de jeu reconnue." TextWrapping="Wrap" />
+          <TextBlock x:Name="ModeNotice" Text="Le vrai service DEV 1 et le parcours intégré Bibliothèques → Collection restent en attente. Aucun scan personnel n'est possible depuis cette fenêtre." TextWrapping="Wrap" />
         </StackPanel>
       </Border>
       <Border Background="#23262B" CornerRadius="8" Padding="15">
@@ -34,9 +34,18 @@
           </WrapPanel>
           <TextBlock Text="{Binding SelectedLocalRoot, FallbackValue='Aucun dossier choisi'}"
                      TextWrapping="Wrap" />
-          <TextBlock Text="Portée future : ROMS/ uniquement · noms, extensions, tailles, dates, playlists .m3u bornées · aucune écriture." TextWrapping="Wrap" />
-          <TextBlock Text="Préflight limité à la sélection et scan réel : DÉSACTIVÉS dans ce simulateur. Pendant une simulation, Annuler puis attendre son arrêt avant de changer de dossier." TextWrapping="Wrap" />
-          <TextBlock Text="2 · Choisir l'état à visualiser" FontWeight="Bold" FontSize="18" TextWrapping="Wrap" />
+          <TextBlock x:Name="ScopeDescription" Text="Portée future : ROMS/ uniquement · noms, extensions, tailles, dates, playlists .m3u bornées · aucune écriture." TextWrapping="Wrap" />
+          <TextBlock x:Name="PreflightDescription" Text="Préflight limité à la sélection et scan réel : DÉSACTIVÉS dans ce simulateur. Pendant une simulation, Annuler puis attendre son arrêt avant de changer de dossier." TextWrapping="Wrap" />
+          <ComboBox x:Name="SyntheticFixtureChoice" IsVisible="False"
+                    IsEnabled="{Binding CanChangeFolder}" SelectedIndex="0">
+            <ComboBoxItem Content="IDEAL — fixture physique générée par CI" />
+            <ComboBoxItem Content="CHAOS — fixture physique générée par CI" />
+            <ComboBoxItem Content="MYSTERY — fixture physique générée par CI" />
+          </ComboBox>
+          <Button x:Name="ChooseSyntheticButton" IsVisible="False" Content="Sélectionner cette fixture"
+                  Click="ChooseSynthetic_OnClick" IsEnabled="{Binding CanChangeFolder}"
+                  MinHeight="40" />
+          <TextBlock x:Name="CaseHeading" Text="2 · Choisir l'état à visualiser" FontWeight="Bold" FontSize="18" TextWrapping="Wrap" />
           <ComboBox x:Name="PreviewCase" SelectionChanged="PreviewCase_OnSelectionChanged"
                     IsEnabled="{Binding CanChangeFolder}" SelectedIndex="0">
             <ComboBoxItem Content="Complete — données fictives" />
@@ -64,7 +73,7 @@
       </Border>
       <Border Background="#23262B" CornerRadius="8" Padding="15">
         <StackPanel Spacing="8">
-          <TextBlock FontSize="18" FontWeight="Bold" Text="4 · Résultats simulés / couverture" />
+          <TextBlock x:Name="ResultHeading" FontSize="18" FontWeight="Bold" Text="4 · Résultats simulés / couverture" />
           <WrapPanel>
             <Button Content="Dernier complet" Command="{Binding ShowLastCompleteCommand}" Margin="0,0,8,4"/>
             <Button Content="Dernière tentative" Command="{Binding ShowLastAttemptCommand}" Margin="0,0,8,4"/>
@@ -82,7 +91,7 @@
             <TextBlock Text="Fraîcheur à la capture : " Margin="0,0,5,4"/>
             <TextBlock Text="{Binding FreshnessText}" Margin="0,0,8,4"/>
           </WrapPanel>
-          <TextBlock Text="Portées réellement couvertes PAR LA SIMULATION :" TextWrapping="Wrap"/>
+          <TextBlock x:Name="CoverageHeading" Text="Portées réellement couvertes PAR LA SIMULATION :" TextWrapping="Wrap"/>
           <ItemsControl ItemsSource="{Binding Coverage}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="inv:InventoryCoverage">
@@ -97,7 +106,7 @@
       </Border>
       <Border Background="#23262B" CornerRadius="8" Padding="15">
         <StackPanel Spacing="8">
-          <TextBlock FontWeight="Bold" FontSize="18" Text="Collection / Fichiers observés — SIMULATION" TextWrapping="Wrap" />
+          <TextBlock x:Name="ObservationHeading" FontWeight="Bold" FontSize="18" Text="Collection / Fichiers observés — SIMULATION" TextWrapping="Wrap" />
           <TextBlock Text="{Binding EmptyObservationsText}" TextWrapping="Wrap"/>
           <ListBox x:Name="ObservationList" ItemsSource="{Binding Observations}"
                    SelectedItem="{Binding SelectedObservation, Mode=TwoWay}"
@@ -126,7 +135,7 @@
       </Border>
       <Border Background="#23262B" CornerRadius="8" Padding="15">
         <StackPanel Spacing="8">
-          <TextBlock FontWeight="Bold" FontSize="18" Text="Diagnostics — SIMULATION" />
+          <TextBlock x:Name="DiagnosticHeading" FontWeight="Bold" FontSize="18" Text="Diagnostics — SIMULATION" />
           <ItemsControl ItemsSource="{Binding Diagnostics}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="inv:InventoryDiagnostic">
@@ -141,7 +150,7 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <TextBlock Text="Pour revenir au Dashboard et à l'import ES-DE existants, fermer cette fenêtre. Aucun état ne sera conservé après sa fermeture." TextWrapping="Wrap"/>
+          <TextBlock x:Name="CloseNotice" Text="Pour revenir au Dashboard et à l'import ES-DE existants, fermer cette fenêtre. Aucun état ne sera conservé après sa fermeture." TextWrapping="Wrap"/>
         </StackPanel>
       </Border>
     </StackPanel>

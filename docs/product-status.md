@@ -1,5 +1,10 @@
 # État des fonctionnalités
 
+## NEXT-03 — REAL GUI WIRING synthétique isolé (PR Draft #86)
+
+Fenêtre Avalonia raccordable par injection au véritable service applicatif #85, sans nouveau moteur ; sélection et exécution réelle uniquement dans une compilation CI dédiée `NEXT03_CI` autorisant les trois fixtures fraîchement générées IDEAL/CHAOS/MYSTERY. Le mode SIMULATION public reste séparé et le ZIP standard est recompilé sans permission de scan. Windows, hash ZIP et captures exigés du HEAD CI exact. Aucune ROMothèque réelle ni fusion/Release. [Détails et limites](ux/next03-mvvm-implementation.md).
+
+
 ## NEXT-03 / PR #86 — préparation commune, main inchangé (29 octobre 2026)
 
 La branche de #86 réunit les dépendances #76/#75/#77/#85 et sa fondation #84 déjà ancêtre, sans fusion de PR. Le seam provisoire est supprimé ; interface et records applicatifs uniques proviennent de #85, dans l'assembly V2 existante. Le sélecteur IDEAL/CHAOS/MYSTERY de #77 et l'entrée MVVM SIMULATION sont conservés ensemble. Un contrôle de raccordement MSTest exerce le vrai ViewModel avec le vrai service sur les seules fixtures générées, en plus des tests historiques. CI du HEAD à vérifier dans la PR ; aucune réception fonctionnelle anticipée.

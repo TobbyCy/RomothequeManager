@@ -63,6 +63,14 @@ internal static class Program
             VisualCapture.Configure(window);
         if (args.Contains("--ci-library-ux02-capture", StringComparer.Ordinal))
             LibraryUxCapture.Configure(window);
+#if NEXT03_CI
+        if (args.Contains("--ci-next03-real-gui", StringComparer.Ordinal))
+        {
+            var at = Array.IndexOf(args, "--ci-next03-real-gui");
+            if (at + 1 >= args.Length) throw new InvalidOperationException("NEXT03_CI_ROOT_REQUIRED");
+            Next03RealGuiHarness.Configure(window, args[at + 1]);
+        }
+#endif
         if (args.Contains("--smoke-window", StringComparer.Ordinal))
         {
             // Real native Avalonia window must open. No artificial test-only success path.
