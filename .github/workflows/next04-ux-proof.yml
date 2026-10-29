@@ -174,7 +174,8 @@ jobs:
           $files = @(Get-ChildItem -LiteralPath $stage -File -Recurse | Sort-Object FullName)
           $entries = @()
           foreach ($file in $files) {
-            if ($allowed -cnotcontains $file.Extension.ToLowerInvariant() -or $file.Length -gt 1048576 -or
+            if (($allowed -cnotcontains $file.Extension.ToLowerInvariant() -and $file.Name -cne 'LICENSE') -or
+                $file.Length -gt 1048576 -or
                 ($file.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
               throw ('NEXT04_DEMO_UNEXPECTED_FILE:' + $file.Name)
             }
