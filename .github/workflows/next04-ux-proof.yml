@@ -171,23 +171,32 @@ jobs:
             Copy-Item -LiteralPath $found[0].FullName -Destination (Join-Path $notices $file)
           }
           $guide = @'
-          NEXT-04 — Windows portable UX review (not a Release)
+          NEXT-04 — Windows portable UX manual review (temporary test, not a Release)
           Source HEAD: ${{ github.sha }}
-          1. Verify the .zip SHA-256 against .zip.sha256, then extract to an empty folder.
-          2. Start RomothequeManager.V2.exe. No ES-DE installation is required.
-          3. In Bibliotheques, choose ONLY the freshly generated SYNTHETIC IDEAL/CHAOS fixture
-             with ROMS and MEDIAS; confirm the read-only metadata import.
-          4. Browse systems -> Collection -> fiche; test search/page, return scroll position.
-          5. Inspect local covers, thumbnails, logos, missing-media explanations,
-             reimport, ultrawide layout, keyboard tab order and DPI 125/200.
-          6. The catalogue is MEMORY-ONLY: it must be reimported after restarting.
-          7. This verification build contains the reviewed DEV1 ES-DE metadata contract:
-             confirm Genre, Developpeur and Date de sortie with a synthetic game;
-             when absent, fields must display Non renseigne.
-          8. This build DOES NOT permit NEXT-03 personal library scans. No export/write.
-          9. Review the thirteen synthetic CI GUI PNGs as automated evidence;
-             do not mark mouse/focus/DPI human tests PASS without executing them.
-          This is a quarantined temporary artifact. Not a Release.
+          1. Verify the ZIP SHA-256 in the adjacent .sha256 and extract to an empty folder.
+          2. Read docs/ux/next04-windows-human-recipe.md in the public repository
+             on this exact source HEAD. The fixture is NOT included in this ZIP.
+          3. From the matching repository sources, run:
+             node tools/demo-library/generate.cjs --output <scratch-folder>
+             node tools/demo-library/generate.cjs --verify <scratch-folder>
+             The folder is disposable synthetic data. Never select a personal ROM folder.
+          4. Run RomothequeManager.V2.exe from this ZIP. In Bibliotheques click
+             Choisir une bibliotheque ES-DE: first CANCEL the Windows folder picker.
+          5. Repeat with the synthetic IDEAL ROOT (contains ROMS directly):
+             CANCEL the read-only confirmation; verify no import happened.
+          6. Repeat and CONFIRM the read-only import. Browse Systems, Collection,
+             Game Detail, Back; check ES-DE Genre/Developer/ReleaseDate when provided.
+          7. Reimport, then select CHAOS and MYSTERY, confirm a controlled rejection
+             preserves the last valid catalog. Select ROMS/ instead of its parent
+             to check a clear refusal without auto-discovery.
+          8. Check tab/shift-tab/focus, click/enter/escape, 760x480 DIP, DPI 125/200
+             if physically available, ultrawide if physically available, logo and icon.
+          9. Restart app: there is no persistent catalog, nor auto import.
+          10. Mark each manual scenario PASS/FAIL/NOT_EXECUTED with SHA and observations;
+              never claim the CI images exercise the native picker or human DPI.
+          NEXT03 personal scan, export, network enrichment and destructive operations:
+          NOT AUTHORIZED. No real data or screenshots of personal filenames.
+          Test-only executable: no public Release. CI sources and captures are synthetic.
           '@
           [IO.File]::WriteAllText((Join-Path $publish 'GUIDE-NEXT04-WINDOWS.txt'),$guide,[Text.UTF8Encoding]::new($false))
           $manifest = [ordered]@{sourceCommit=$source;runtime='win-x64';selfContained=$true;ciHarnessIncluded=$false;personalScanAllowed=$false;release=$false;cataloguePersistence=$false}
