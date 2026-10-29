@@ -4,6 +4,7 @@
 
 - Le parseur ES-DE unique différencie les refus du lecteur XML (syntaxe, encodage, DTD interdite) des XML valides mais non pris en charge, sans publier de chemin personnel. Retour utilisateur avec système et ligne/colonne si disponible ; validation réelle de la ROMothèque propriétaire encore non exécutée.
 - Projection de `genre`, `developer` et `releasedate` optionnels, compatibilité des anciens constructeurs, empreinte sensible aux métadonnées, garde lecture seule et conservation du dernier import valide. Tests exclusivement synthétiques ; aucune recherche implicite, aucun moteur NEXT-03 ni nouvelle dépendance.
+- Compatibilité bornée avec `ES-DE/gamelists/<système>/gamelist.xml` **dans la racine explicitement choisie**, sans découverte globale ni association automatique de médias. Trois sources possibles par système : refus de toute concurrence, chemins confinés et convention d'origine affichée localement en cas d'échec de lecture.
 - Toute modification du parcours UI Systèmes → Jeux → Fiche est confiée à DEV 3 ; ce lot ne change que la présentation des erreurs de l'import. Aucun merge ni Release.
 
 ## NEXT-03 — Raccordement GUI canonique limité aux fixtures (29.10.2026, PR #86 Draft)

@@ -398,6 +398,90 @@ public sealed class EsDeCatalogueImporterTests
         Assert.IsFalse(displayed.Contains(_root, StringComparison.Ordinal));
     }
 
+
+    [TestMethod]
+    public void ModernEsDeGamelistsImportsDeclaredMediaOnlyAndKeepsLegacyGameIdentity()
+    {
+        Put("ROMS/gba/Prepared.gba", "synthetic bytes");
+        var declared = Put("ES-DE/downloaded_media/gba/covers/Prepared.png", "fake PNG");
+        Put("ES-DE/downloaded_media/gba/covers/NotDeclared.png", "not referenced");
+        var modernXml = Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./Prepared.gba</path><name>Prepared</name>" +
+            "<genre>Adventure</genre><developer>Studio A</developer>" +
+            "<releasedate>20010304T000000</releasedate>" +
+            "<image>../../downloaded_media/gba/covers/Prepared.png</image>" +
+            "</game></gameList>");
+        var beforeHash = SHA256.HashData(File.ReadAllBytes(modernXml));
+        var session = new EsDeImportSession(_root);
+        var imported = session.Import();
+        var game = imported.Games.Single();
+        Assert.AreEqual("Prepared", game.Title);
+        Assert.AreEqual("Adventure", game.Genre);
+        Assert.AreEqual("Studio A", game.Developer);
+        Assert.AreEqual("20010304T000000", game.ReleaseDate);
+        Assert.IsTrue(game.RomExists);
+        Assert.AreEqual(1, game.Media.Count);
+        Assert.AreEqual("ES-DE/downloaded_media/gba/covers/Prepared.png",
+            game.Media.Single().RelativePath);
+        Assert.IsTrue(session.TryOpenMedia(game.Media.Single(), out var media));
+        using (media)
+        {
+            Assert.IsNotNull(media);
+            Assert.IsTrue(media!.CanRead);
+            Assert.IsFalse(media.CanWrite);
+        }
+        CollectionAssert.AreEqual(beforeHash, SHA256.HashData(File.ReadAllBytes(modernXml)));
+        Assert.AreEqual("fake PNG", File.ReadAllText(declared));
+        var unchanged = session.Import();
+        Assert.AreEqual(imported.ContentFingerprint, unchanged.ContentFingerprint);
+        Assert.AreEqual(imported.LibraryId, unchanged.LibraryId);
+        Assert.AreEqual(game.GameId, unchanged.Games.Single().GameId);
+    }
+
+    [TestMethod]
+    public void ModernEsDeGamelistCompetesWithHistoricalSourceAndPreservesCurrent()
+    {
+        Put("ROMS/gba/A.gba");
+        Gamelist("<game><path>./A.gba</path><name>A</name></game>");
+        var session = new EsDeImportSession(_root);
+        var previous = session.Import();
+        Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./A.gba</path><name>A</name></game></gameList>");
+        var error = Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
+        StringAssert.Contains(error.Message, "Ambiguous ES-DE source");
+        Assert.AreSame(previous, session.Current);
+        Assert.IsTrue(EsDeDiagnosticPresentation.ImportFailure(error)
+            .Contains("concurrentes", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void ModernEsDeGamelistRejectsMediaEscapeEvenWhenFileIsMissing()
+    {
+        Put("ROMS/gba/Prepared.gba");
+        Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./Prepared.gba</path>" +
+            "<image>../../../outside.png</image></game></gameList>");
+        var error = Assert.ThrowsExactly<InvalidDataException>(() => EsDeCatalogueImporter.Read(_root));
+        StringAssert.Contains(error.Message, "escapes its explicitly authorized root");
+    }
+
+    [TestMethod]
+    public void ModernEsDeXmlFailureHasBoundedSourceContextButNoPrivatePath()
+    {
+        Put("ROMS/gba/Prepared.gba");
+        var local = Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./Prepared.gba</path><name>Unclosed");
+        var err = Assert.ThrowsExactly<EsDeXmlReadException>(() => EsDeCatalogueImporter.Read(_root));
+        Assert.AreEqual("gba", err.Platform);
+        Assert.AreEqual("ESDE_GAMELISTS", err.SourceConvention);
+        Assert.IsTrue(err.LineNumber > 0);
+        var message = EsDeDiagnosticPresentation.ImportFailure(err);
+        StringAssert.Contains(message, "ESDE_GAMELISTS");
+        Assert.IsFalse(message.Contains(_root, StringComparison.Ordinal));
+        Assert.IsFalse(message.Contains(local, StringComparison.Ordinal));
+        Assert.IsFalse(message.Contains("Unclosed", StringComparison.Ordinal));
+    }
+
     [TestMethod]
     public void MissingXmlIsFailureNotFalseEmptySuccess()
     {

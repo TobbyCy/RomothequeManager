@@ -90,15 +90,18 @@ public sealed class EsDeImportSession
 // the source XML, exception details or absolute filesystem path in the UI.
 internal sealed class EsDeXmlReadException : IOException
 {
-    internal EsDeXmlReadException(string platform, XmlException cause)
+    internal EsDeXmlReadException(string platform, string sourceConvention, XmlException cause)
         : base("ES-DE XML reader rejected the gamelist for one platform.", cause)
     {
         Platform = platform;
+        SourceConvention = sourceConvention;
         LineNumber = cause.LineNumber;
         LinePosition = cause.LinePosition;
     }
 
     public string Platform { get; }
+    // Fixed identifier only; never include an absolute path or XML text in public diagnostics.
+    public string SourceConvention { get; }
     public int LineNumber { get; }
     public int LinePosition { get; }
 }
@@ -120,8 +123,13 @@ public static class EsDeCatalogueImporter
         RequireOrdinaryDirectory(root);
         var romRoot = Path.Combine(root, "ROMS");
         var mediaRoot = Path.Combine(root, "MEDIAS");
+        // ES-DE >= 2.0 stores gamelists separately from ROMs. Inspect only
+        // this known path below the user-selected root; no global discovery.
+        var esdeRoot = Path.Combine(root, "ES-DE");
+        var esdeGamelists = Path.Combine(esdeRoot, "gamelists");
         RequireOrdinaryDirectory(romRoot);
         if (Directory.Exists(mediaRoot)) RequireOrdinaryDirectory(mediaRoot);
+        if (Directory.Exists(esdeGamelists)) RequireOrdinaryDirectory(esdeGamelists);
 
         var games = new List<EsDeGame>();
         var diagnostics = new List<EsDeDiagnostic>();
@@ -136,23 +144,32 @@ public static class EsDeCatalogueImporter
             var mediaPlatform = Path.Combine(mediaRoot, platform);
             var historicXml = Path.Combine(mediaPlatform, "metadata", "es-de-gamelist.xml");
             var localXml = Path.Combine(platformRoot, "gamelist.xml");
+            var esdeXml = Path.Combine(esdeGamelists, platform, "gamelist.xml");
             var hasHistoric = File.Exists(historicXml);
             var hasLocal = File.Exists(localXml);
-            if (hasHistoric && hasLocal)
+            var hasEsde = File.Exists(esdeXml);
+            if ((hasHistoric ? 1 : 0) + (hasLocal ? 1 : 0) + (hasEsde ? 1 : 0) > 1)
                 throw new InvalidDataException("Ambiguous ES-DE source for platform " + platform);
-            if (!hasHistoric && !hasLocal)
+            if (!hasHistoric && !hasLocal && !hasEsde)
             {
                 diagnostics.Add(new("XML_MISSING", platform, "", "No supported gamelist found."));
                 continue;
             }
 
-            var xmlFile = hasHistoric ? historicXml : localXml;
-            AssertWithin(xmlFile, hasHistoric ? mediaRoot : romRoot);
+            var xmlFile = hasHistoric ? historicXml : hasLocal ? localXml : esdeXml;
+            var xmlDomain = hasHistoric ? mediaRoot : hasLocal ? romRoot : esdeGamelists;
+            // A fixed, harmless convention identifier enables local error triage.
+            var sourceConvention = hasHistoric ? "MEDIAS_METADATA" :
+                hasLocal ? "ROMS_GAMELIST" : "ESDE_GAMELISTS";
+            AssertWithin(xmlFile, xmlDomain);
             AssertNoReparsePoints(xmlFile);
             xmlFound = true;
             XDocument doc;
             try { doc = LoadXml(xmlFile); }
-            catch (XmlException error) { throw new EsDeXmlReadException(platform, error); }
+            catch (XmlException error)
+            {
+                throw new EsDeXmlReadException(platform, sourceConvention, error);
+            }
             if (doc.Root?.Name != "gameList")
                 throw new InvalidDataException("Expected unnamespaced gameList: " + platform);
             foreach (var entry in doc.Root.Elements())
@@ -191,9 +208,10 @@ public static class EsDeCatalogueImporter
                 {
                     var mediaValue = SingleField(entry, field);
                     if (string.IsNullOrWhiteSpace(mediaValue)) continue;
-                    // A ROM-local gamelist can use ROM-local media; a historic metadata file
-                    // uses the explicitly authorized MEDIAS root. No implicit global search.
-                    var permitted = hasHistoric ? mediaRoot : romRoot;
+                    // Only XML-declared media are resolved. Their authorized domain
+                    // follows the selected convention; never search downloaded_media
+                    // by ROM basename or extend beyond the selected library root.
+                    var permitted = hasHistoric ? mediaRoot : hasLocal ? romRoot : esdeRoot;
                     var resolved = ResolveRelative(Path.GetDirectoryName(xmlFile)!, mediaValue, permitted);
                     var relative = NormalizeRelative(Path.GetRelativePath(root, resolved));
                     var present = File.Exists(resolved);
@@ -255,7 +273,8 @@ public static class EsDeCatalogueImporter
         var normalized = relativePath.Replace('\\', '/');
         // A media reference belongs to exactly one explicitly selected domain.
         var parts = normalized.Split('/');
-        if (parts.Length < 3 || (parts[0] != "ROMS" && parts[0] != "MEDIAS"))
+        if (parts.Length < 3 ||
+            (parts[0] != "ROMS" && parts[0] != "MEDIAS" && parts[0] != "ES-DE"))
             throw new InvalidDataException("Media domain is not authorized.");
         var root = Path.GetFullPath(selectedRoot);
         RequireOrdinaryDirectory(root);

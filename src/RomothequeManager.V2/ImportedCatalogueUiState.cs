@@ -221,12 +221,12 @@ public static class EsDeDiagnosticPresentation
         System.Xml.XmlException =>
             "Le XML ES-DE n'a pas pu être analysé (syntaxe, encodage ou contenu interdit).",
         InvalidDataException e when e.Message.StartsWith("Ambiguous ES-DE source", StringComparison.Ordinal) =>
-            "Deux gamelists concurrentes ont été trouvées pour une plateforme (ROMS et MEDIAS). Conservez une source non ambiguë.",
+            "Plusieurs gamelists concurrentes ont été trouvées pour une plateforme (ROMS, MEDIAS ou ES-DE). Conservez une seule source.",
         InvalidDataException e when e.Message.StartsWith("No supported ES-DE gamelist", StringComparison.Ordinal) =>
             "Aucune gamelist ES-DE prise en charge n'a été trouvée dans le dossier sélectionné.",
         EsDeXmlReadException e =>
             "Le XML ES-DE n'a pas pu être analysé (syntaxe, encodage, DTD interdite ou limite). " +
-            "Système : " + e.Platform +
+            "Système : " + e.Platform + ", convention : " + e.SourceConvention +
             (e.LineNumber > 0 ? ", ligne " + e.LineNumber +
                 (e.LinePosition > 0 ? ", colonne " + e.LinePosition : "") : "") +
             ". Vérifiez la source de cette plateforme ; aucune correction automatique.",
