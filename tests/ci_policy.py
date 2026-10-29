@@ -467,6 +467,20 @@ def documents(root, plan):
     require(all(path in entries for path in VISUAL67_ASSETS), "VISUAL67_ASSETS_REQUIRED")
     rules, static = path_rules(root)
     verify_public_ci_guard(root)
+    # Narrow, fail-closed DEV 3 synthetic capture: no Release or broad artifact permissions.
+    libux = (root / ".github/workflows/library-ux02-proof.yml").read_text(encoding="utf-8")
+    require("branches: [dev3/library-ux-02]" in libux and
+            "github.actor == 'TobbyCy'" in libux and
+            "permissions:\n  contents: read" in libux and
+            "if-no-files-found: error" in libux and
+            "retention-days: 3" in libux and
+            libux.count("actions/upload-artifact@") == 1 and
+            "LIBRARY_UX02_ZIP_VERIFIED_PASS" in libux and
+            "LIBRARY_UX02_WINDOWS_CAPTURE_PASS" in libux,
+            "LIBRARY_UX02_WORKFLOW_GUARDS")
+    for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
+                   "gh release", "secrets.", "continue-on-error:"):
+        require(unsafe not in libux, "LIBRARY_UX02_WORKFLOW_UNSAFE:" + unsafe)
     visual_workflow = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
     require("branches: [dev3/visual-poc-01]" in visual_workflow and
             "github.actor == 'TobbyCy'" in visual_workflow and

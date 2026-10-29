@@ -1,5 +1,12 @@
 # État des fonctionnalités
 
+## LIBRARY-UX-02 — parcours de bibliothèques (PR Draft #77, 28.10.2026)
+
+- Nouvelle expérience Avalonia Darcula Retro **uniquement de présentation** : choix IDEAL / CHAOS / MYSTERY, Dashboard → Collection → Fiche, recherche dans la sélection et retour. Aucune lecture de ROM, collecte réseau, modification physique ou nouveau moteur.
+- Prévisualisations IDEAL/CHAOS basées sur les contrats canoniques **fictifs** intégrés à l'assembly ; tous les chiffres et médias affichés sont des attentes de scénario, non des constatations de fichier. MYSTERY **ne révèle ni titre, ni identité, ni total de jeux confirmé** malgré l'oracle synthétique.
+- Fiche importée ES-DE : affichage local en lecture seule des jaquettes, miniatures et logos réellement référencés (avec repli manquant/illisible/inconnu). Captures/dos/fonds hors contrat d'import restent sans aperçu inventé. Pagination désactivée si une seule page.
+- Capture réelle de cinq vues Avalonia sur runner Windows et ZIP temporaire autonome vérifié par SHA, sans Release, dans un workflow strictement limité à la branche DEV 3. Recette Windows et GO propriétaire **restent obligatoires** avant merge. [Procédure LIBRARY-UX-02](ux/library-ux-02.md).
+
 ## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
 
 La liste CI autorise exclusivement `docs/design/mockups/v2/README.md` pour référencer les dix maquettes. Un canari accepte cet index et refuse les images, archives, manifestes et chemins voisins non autorisés. Les originaux restent à accès restreint ; aucun visuel tiers n'est ajouté au Produit. Les protections, canaris historiques et workflows sont conservés. Correction en revue, CI du HEAD à vérifier dans la PR ; aucune fusion, Release ou modification Avalonia.

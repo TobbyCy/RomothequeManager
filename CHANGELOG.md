@@ -1,5 +1,12 @@
 # Journal des changements
 
+## LIBRARY-UX-02 — sélection des scénarios et médias ES-DE (PR Draft #77, 28.10.2026)
+
+- Sélection explicitement fictive IDEAL, CHAOS, MYSTERY ; navigation par Dashboard, Collection et fiche. Scénarios IDEAL/CHAOS décrits par contrats, mais non revendiqués comme des fichiers observés ; MYSTERY ne présente **aucun jeu identifié**.
+- Galerie d'images limitée aux types pris en charge par l'import ES-DE existant : jaquette, miniature, logo ; badges honnêtes pour média introuvable, illisible, non renseigné, provenance du contrat et ROM seulement prévue. Pas de scraping, scan, export ou gestion de bibliothèque réelle.
+- Tests unitaires du contrat de présentation, capture Windows cinq vues aux deux tailles et artifact ZIP de démonstration avec provenance SHA. Workflow nouveau ajouté à la liste de chemins autorisés **exactement par son nom**, avec contrôles de sécurité associés ; protections de Release et baseline historique inchangées.
+- **En cours de revue** : aucune fusion ni Release avant CI complète et recette propriétaire.
+
 - DEMO-02 revue croisée avec la recette DEV 2 #76 (28 scénarios) et la UI Draft DEV 3 #77 : matrice détaillée des preuves moteur versus tests UI, état NOT_EXECUTED/NOT_IMPLEMENTED pour les parcours absents. Deux tests ajoutés pour exécuter le script Windows en sortie temporaire et tester l'annulation NEXT-02 sans perdre le dernier complet. Aucun moteur, fixture canonique, scan réel ou Release modifié.
 
 ## DEMO-02 — recettes synthétiques E2E (DEV 1 / PR Draft #75, 28.10.2026)

@@ -671,6 +671,24 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("Network.setBlockedURLs", script)
 
 
+    def test_library_ux02_workflow_is_branch_only_temporary_and_fail_closed(self):
+        root = Path(__file__).resolve().parent.parent
+        workflow = (root / ".github/workflows/library-ux02-proof.yml").read_text(encoding="utf-8")
+        self.assertIn("branches: [dev3/library-ux-02]", workflow)
+        self.assertIn("permissions:\n  contents: read", workflow)
+        self.assertIn("github.actor == 'TobbyCy'", workflow)
+        self.assertIn("LIBRARY_UX02_WINDOWS_CAPTURE_PASS", workflow)
+        self.assertIn("LIBRARY_UX02_ZIP_VERIFIED_PASS", workflow)
+        self.assertEqual(1, workflow.count("actions/upload-artifact@"))
+        self.assertIn("retention-days: 3", workflow)
+        self.assertIn("if-no-files-found: error", workflow)
+        for bad in ("pull_request_target:", "workflow_run:", "gh release",
+                    "contents: write", "secrets.", "continue-on-error:"):
+            self.assertNotIn(bad, workflow)
+        rules, _ = p.path_rules(root)
+        self.assertTrue(any(p.re.fullmatch(rule, ".github/workflows/library-ux02-proof.yml") for rule in rules))
+        self.assertFalse(any(p.re.fullmatch(rule, ".github/workflows/library-ux02-other.yml") for rule in rules))
+
     def test_visual67_capture_workflow_stays_branch_only_and_release_free(self):
         root = Path(__file__).resolve().parent.parent
         source = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
