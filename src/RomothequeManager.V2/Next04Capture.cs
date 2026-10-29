@@ -110,6 +110,10 @@ internal static class Next04Capture
                 if (!window.CiNext04MissingMetadataAndInventoryLink())
                     throw new InvalidDataException("NEXT04_NULL_METADATA_OR_INVENTORY_LINK_FAILED");
                 Capture("LONG-Inventory-Preview-Accessible-1120x720", 1120, 720);
+                if (!window.CiNext04DiagnosticsPagination())
+                    throw new InvalidDataException("NEXT04_DIAGNOSTICS_LAST_PAGE_INACCESSIBLE");
+                Console.WriteLine("NEXT04_DIAGNOSTICS_PAGING_PASS total=27 page_size=20 last=accessible");
+                Console.WriteLine("NEXT04_GUI_RENDER_IMPORT_INTERNAL_PASS picker_confirm_cancel=NOT_EXECUTED");
                 Console.WriteLine("NEXT04_DEEP_GUI_PASS page=2 search=kept system=gba scroll_nonzero=restored detail_reimport=kept collection_reimport=kept invalid_xml=last_good metadata_optional=visible inventory_simulation=accessible");
                 Console.WriteLine("NEXT04_REAL_ESDE_GUI_PASS captures=13 ideal=30 systems=13 chaos=30 mystery=REJECTED lastGood=KEPT dpi_render=125_200 simulated_only=1");
             }
