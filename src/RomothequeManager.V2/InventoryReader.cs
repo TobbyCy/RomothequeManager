@@ -16,6 +16,18 @@ public enum InventoryFreshness { Fresh, Stale, Unknown }
 public enum InventoryKind { PotentialRom, Playlist, ArchiveCandidate, Sidecar, Media, Unknown }
 public enum InventorySeverity { Info, Warning, Error }
 
+/// <summary>Portée explicite d'une observation bornée des fichiers sous <c>ROMS/</c>.</summary>
+/// <param name="LibraryRoot">Racine locale absolue explicitement sélectionnée ; chemins réseau refusés.</param>
+/// <param name="PlatformAliases">Correspondances fournies par l'appelant, sans détection implicite de plateforme.</param>
+/// <param name="MaxDepth">Profondeur maximale de parcours, contrôlée avant lecture.</param>
+/// <param name="MaxFiles">Budget maximal d'observations de fichiers.</param>
+/// <param name="MaxDirectories">Budget maximal de répertoires visités.</param>
+/// <param name="MaxPlaylistBytes">Borne d'octets réellement lus par playlist.</param>
+/// <param name="MaxPlaylistLines">Borne de lignes réellement lues par playlist.</param>
+/// <param name="TimeLimit">Limite temporelle optionnelle ; une interruption implique une couverture partielle.</param>
+/// <remarks>Ce modèle décrit les limites du moteur, pas un consentement ni une
+/// autorisation d'accès à une bibliothèque personnelle. Le service applicatif
+/// impose séparément son blocage des scans réels.</remarks>
 public sealed record InventoryScope(
     string LibraryRoot,
     IReadOnlyDictionary<string, string>? PlatformAliases = null,
@@ -46,6 +58,26 @@ public sealed record InventoryPlaylist(string PlaylistLocationKey, IReadOnlyList
 public sealed record PotentialDuplicateGroup(
     string GroupId, IReadOnlyList<string> ObservationIds, string Reason);
 
+/// <summary>Résultat factuel d'une tentative NEXT-02 sur les seuls fichiers <c>ROMS/</c>.</summary>
+/// <param name="SchemaVersion">Version du schéma candidat d'observation.</param>
+/// <param name="LibrarySessionId">Identité de session locale, non identifiant persistant de bibliothèque.</param>
+/// <param name="ScanId">Identifiant de la tentative.</param>
+/// <param name="CapturedAtUtc">Horodatage des observations de cette tentative.</param>
+/// <param name="ScanStatus">Couverture <c>Complete</c>, <c>Partial</c> ou <c>Failed</c>, indépendante de la phase applicative.</param>
+/// <param name="Availability">Disponibilité observée, sans déduire l'existence ou la suppression d'un fichier absent.</param>
+/// <param name="Freshness">Fraîcheur qualifiée pour ce snapshot, non garantie pour toute future lecture.</param>
+/// <param name="CoverageProof">Statuts de couverture de la portée et des partitions effectivement observées.</param>
+/// <param name="Observations">Fichiers observés ; les extensions ne prouvent pas l'identité d'un jeu.</param>
+/// <param name="Diagnostics">Codes et raisons d'observation, sans recommandation de suppression.</param>
+/// <param name="Playlists">Références de playlists bornées, non nombre de jeux confirmés.</param>
+/// <param name="PotentialDuplicates">Groupes candidats fondés sur indices de métadonnées, non doublons binaires prouvés.</param>
+/// <param name="ContentFingerprint">Empreinte de la projection observée, non hash intégral des fichiers ROM.</param>
+/// <param name="ObservedFileCount">Nombre de fichiers effectivement observés dans cette tentative.</param>
+/// <param name="TotalFileCount">Total connu si couverture complète, sinon <c>null</c> (inconnu).</param>
+/// <param name="ConfirmedGameCount">Nombre de jeux prouvés par une source adéquate ; reste <c>null</c> pour ce moteur.</param>
+/// <remarks>Un résultat partiel ou échoué reste inspectable, mais ne prouve ni une
+/// collection vide ni des fichiers supprimés. La provenance est une observation
+/// locale en lecture seule, sans import ES-DE ni analyse du contenu des ROM.</remarks>
 public sealed record InventorySnapshot(
     string SchemaVersion, string LibrarySessionId, string ScanId, DateTimeOffset CapturedAtUtc,
     InventoryScanStatus ScanStatus, InventoryAvailability Availability, InventoryFreshness Freshness,
@@ -54,12 +86,21 @@ public sealed record InventorySnapshot(
     IReadOnlyList<PotentialDuplicateGroup> PotentialDuplicates, string ContentFingerprint,
     int ObservedFileCount, int? TotalFileCount, int? ConfirmedGameCount);
 
+/// <summary>Session de lecture NEXT-02 avec dernier snapshot complet préservé.</summary>
+/// <remarks>Cette API moteur n'effectue pas elle-même la vérification de consentement.
+/// L'orchestrateur applicatif doit en autoriser l'usage. Une tentative partielle ou
+/// échouée ne remplace jamais <see cref="Current"/> ; la dernière tentative reste
+/// disponible via <see cref="LastAttempt"/>.</remarks>
 public sealed class InventorySession
 {
     private readonly InventoryScope _scope;
     private readonly string _sessionId = "library-" + Guid.NewGuid().ToString("N");
     private string _root;
 
+/// <summary>Valide la syntaxe locale absolue et les budgets, sans démarrer de scan.</summary>
+/// <param name="explicitlySelectedScope">Portée locale choisie par l'appelant.</param>
+/// <exception cref="ArgumentNullException">Portée absente.</exception>
+/// <exception cref="ArgumentException">Racine non locale ou paramètres invalides.</exception>
     public InventorySession(InventoryScope explicitlySelectedScope)
     {
         ArgumentNullException.ThrowIfNull(explicitlySelectedScope);
@@ -68,10 +109,17 @@ public sealed class InventorySession
         ValidateLimits(_scope);
     }
 
+/// <summary>Dernier snapshot dont le scan était <c>Complete</c> ; non remplacé après interruption ou échec.</summary>
     public InventorySnapshot? Current { get; private set; }
+/// <summary>Résultat de la tentative la plus récente, y compris <c>Partial</c> ou <c>Failed</c>.</summary>
     public InventorySnapshot? LastAttempt { get; private set; }
 
     // Failed or partial observations remain inspectable, but never erase a complete snapshot.
+/// <summary>Exécute une observation bornée et non mutante de la portée <c>ROMS/</c>.</summary>
+/// <param name="cancellationToken">Annulation coopérative ; une couverture incomplète est conservée en tentative partielle.</param>
+/// <returns>Snapshot de la tentative ; seul un résultat complet met à jour <see cref="Current"/>.</returns>
+/// <remarks>Pas d'analyse de jeux ES-DE, de hash des ROM ni de suppression, copie ou
+/// renommage de sources. L'appel direct n'est pas une autorisation de scan réel.</remarks>
     public InventorySnapshot Scan(CancellationToken cancellationToken = default)
     {
         var attempted = InventoryReader.Scan(_scope with { LibraryRoot = _root }, _sessionId, cancellationToken);
@@ -81,6 +129,15 @@ public sealed class InventorySession
     }
 
     // Explicit relocation requires a fully observed, equivalent projection; not drive-letter trust.
+/// <summary>Réassocie une nouvelle racine locale seulement après une observation complète concordante.</summary>
+/// <param name="explicitlySelectedRoot">Nouvelle racine locale choisie explicitement ; aucune confiance implicite dans la lettre de lecteur.</param>
+/// <param name="cancellationToken">Annulation coopérative de la comparaison.</param>
+/// <returns>Nouveau snapshot complet vérifié, désormais <see cref="Current"/>.</returns>
+/// <exception cref="InvalidOperationException">Aucun snapshot complet antérieur à comparer.</exception>
+/// <exception cref="InvalidDataException">Couverture incomplète ou empreinte différente ; l'ancien <see cref="Current"/> est conservé.</exception>
+/// <remarks>Une tentative infructueuse reste visible dans <see cref="LastAttempt"/>.
+/// La comparaison de projection ne constitue pas une preuve d'identité binaire
+/// des fichiers ni une autorisation d'opération physique.</remarks>
     public InventorySnapshot RelocateVerified(string explicitlySelectedRoot, CancellationToken cancellationToken = default)
     {
         if (Current is null) throw new InvalidOperationException("A complete snapshot is required.");

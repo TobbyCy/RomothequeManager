@@ -4,11 +4,26 @@ namespace RomothequeManager.V2.Inventory.Application;
 
 // NEXT-03: application orchestration in existing V2 assembly only. InventorySession remains the sole filesystem scanner.
 // No Avalonia, ViewModel, XML importer, persistent library identity or progress percentage.
+/// <summary>Phase de l'orchestration applicative, distincte du résultat du scan.</summary>
+/// <remarks><c>Completed</c> signifie que la tentative est terminée, y compris avec un
+/// résultat <c>Partial</c> ou <c>Failed</c> dans son snapshot. Ce n'est pas une
+/// garantie de couverture complète.</remarks>
 public enum InventoryRunPhase
 {
     NoSelection, Ready, Running, CancellationRequested, Completed, Rejected, Faulted
 }
 
+/// <summary>État publié au consommateur de l'inventaire pour une sélection locale.</summary>
+/// <param name="SelectionVersion">Version de sélection à comparer avant d'appliquer un résultat asynchrone.</param>
+/// <param name="Phase">Phase de l'orchestration, pas statut de couverture des fichiers.</param>
+/// <param name="SelectedLocalRoot">Chemin local sensible destiné à l'interface ; ne pas publier en télémétrie ou CI.</param>
+/// <param name="Current">Dernier snapshot complet valide de la session sélectionnée, éventuellement absent.</param>
+/// <param name="LastAttempt">Dernière tentative, pouvant être partielle ou échouée, sans effacer <paramref name="Current"/>.</param>
+/// <param name="SafeDiagnosticCode">Code de refus ou d'échec sans détail de chemin ou d'exception.</param>
+/// <param name="ProgressIsIndeterminate">Aucun pourcentage d'avancement déduit artificiellement.</param>
+/// <remarks>Les comptes de fichiers et de jeux proviennent du seul snapshot observé.
+/// Une valeur <c>null</c> signifie « inconnu », et non zéro. Les observations ne
+/// confirment ni des jeux identifiés ni des suppressions.</remarks>
 public sealed record InventoryApplicationState(
     long SelectionVersion,
     InventoryRunPhase Phase,
@@ -19,42 +34,88 @@ public sealed record InventoryApplicationState(
     bool ProgressIsIndeterminate)
 {
     // Source-backed dimensions. Never infer coverage, availability or freshness from another field.
+/// <summary>Statut du dernier essai, ou <c>null</c> en l'absence de tentative.</summary>
     public InventoryScanStatus? LastScanStatus => LastAttempt?.ScanStatus;
+/// <summary>Disponibilité constatée par la dernière tentative, ou <c>Unknown</c> sans preuve.</summary>
     public InventoryAvailability LastAvailability =>
         LastAttempt?.Availability ?? InventoryAvailability.Unknown;
+/// <summary>Fraîcheur issue de la dernière tentative, jamais inférée de la disponibilité.</summary>
     public InventoryFreshness LastFreshness =>
         LastAttempt?.Freshness ?? InventoryFreshness.Unknown;
+/// <summary>Observations de fichiers de <c>LastAttempt</c>, pas le catalogue de jeux.</summary>
     public IReadOnlyList<FileObservation> Observations =>
         LastAttempt?.Observations ?? Array.Empty<FileObservation>();
     public IReadOnlyList<InventoryDiagnostic> Diagnostics =>
         LastAttempt?.Diagnostics ?? Array.Empty<InventoryDiagnostic>();
+/// <summary>Preuves de couverture de <c>LastAttempt</c> ; une liste vide ne démontre pas une couverture complète.</summary>
     public IReadOnlyList<InventoryCoverage> CoverageProof =>
         LastAttempt?.CoverageProof ?? Array.Empty<InventoryCoverage>();
+/// <summary>Total de fichiers uniquement lorsque la couverture le justifie ; sinon <c>null</c>.</summary>
     public int? TotalFileCount => LastAttempt?.TotalFileCount;
+/// <summary>Nombre de jeux confirmés seulement si établi par une source probante ; normalement inconnu ici.</summary>
     public int? ConfirmedGameCount => LastAttempt?.ConfirmedGameCount;
 }
 
+/// <summary>Accusé de réception d'un préflight, distinct de toute autorisation de scan.</summary>
+/// <param name="Accepted">Indique que la sélection a passé les contrôles bornés, pas qu'un scan est permis.</param>
+/// <param name="SafeDiagnosticCode">Code de diagnostic non sensible lors d'un refus.</param>
+/// <param name="SelectionVersion">Version à réutiliser pour le consentement explicite de la tentative.</param>
 public sealed record InventorySelectionResult(
     bool Accepted, string? SafeDiagnosticCode, long SelectionVersion);
 
+/// <summary>Consentement explicite lié à une version précise de sélection.</summary>
+/// <param name="SelectionVersion">Version retournée lors du préflight accepté.</param>
+/// <param name="ExplicitUserConsent">Confirmation requise pour cette tentative ; elle ne contourne jamais le blocage des bibliothèques réelles.</param>
 public sealed record InventoryRunRequest(long SelectionVersion, bool ExplicitUserConsent);
 
+/// <summary>Contrat d'orchestration de l'unique moteur NEXT-02 pour une bibliothèque locale sélectionnée.</summary>
+/// <remarks>Le choix du dossier et le consentement sont explicites. La sélection ne
+/// déclenche pas d'énumération. Les appels concurrents sont refusés et le
+/// constructeur public du service concret bloque les scans réels, même consentis.
+/// La gestion des événements ne garantit aucun thread UI.</remarks>
 public interface IInventoryApplicationService : IAsyncDisposable
 {
+/// <summary>Dernier état disponible ; ne pas confondre un événement reçu tardivement avec l'état courant.</summary>
     InventoryApplicationState State { get; }
 
     // Fired on the calling or worker thread. Avalonia ViewModels must dispatch to the UI thread.
+/// <summary>Notification de changement d'état, éventuellement sur le thread appelant ou travailleur.</summary>
+/// <remarks>Les abonnés doivent dispatcher vers le thread UI et ignorer les versions
+/// ou références d'état dépassées. Un observateur ne doit pas piloter la cohérence
+/// du moteur depuis cet événement.</remarks>
     event EventHandler<InventoryApplicationState>? StateChanged;
 
     // A restricted metadata-only preflight AFTER an explicit folder-picker selection.
     // Never enumerates ROMS or parses game XML; cancellation of a picker does not call this.
+/// <summary>Vérifie les métadonnées de la racine et de <c>ROMS/</c> sans énumérer leur contenu.</summary>
+/// <param name="selectedScope">Portée locale choisie volontairement, avec limites bornées.</param>
+/// <returns>Acceptation et version, ou code de refus sans détails sensibles.</returns>
+/// <remarks>Un sélecteur de dossier annulé ne doit pas appeler cette méthode.
+/// Un scan actif bloque le remplacement de la sélection.</remarks>
     InventorySelectionResult PrepareSelection(InventoryScope selectedScope);
+/// <summary>Demande une seule tentative asynchrone, après consentement et validation de la version.</summary>
+/// <param name="request">Version de sélection et confirmation explicite de cette tentative.</param>
+/// <param name="cancellationToken">Demande d'annulation transmise au moteur de lecture.</param>
+/// <returns>État final ou état de refus ; <c>Completed</c> ne signifie pas scan complet.</returns>
+/// <remarks>Appel concurrent ou version obsolète : refus. Le service distribué
+/// refuse toujours les bibliothèques personnelles (<c>REAL_LIBRARY_SCAN_HOLD</c>).
+/// Seuls les tests internes peuvent autoriser des racines synthétiques bornées.
+/// L'annulation peut laisser <c>LastAttempt</c> partiel sans remplacer <c>Current</c>.</remarks>
     Task<InventoryApplicationState> StartConfirmedScanAsync(
         InventoryRunRequest request, CancellationToken cancellationToken = default);
+/// <summary>Demande au plus une fois l'annulation de la tentative active.</summary>
+/// <returns><c>true</c> uniquement pour une nouvelle demande ; <c>false</c> sans scan actif ou si déjà demandée.</returns>
+/// <remarks>Une demande tardive n'annule pas rétroactivement un résultat déjà terminé.</remarks>
     bool RequestCancellation();
+/// <summary>Efface sélection et snapshots de l'état applicatif lorsqu'aucun scan n'est actif.</summary>
+/// <returns><c>false</c> si le service est disposé ou qu'un scan est en cours.</returns>
     bool ClearSelection();
 }
 
+/// <summary>Implémentation fail-closed de l'orchestrateur, sans dépendance Avalonia dans ce service.</summary>
+/// <remarks>L'instance publique ne possède aucune permission de scanner des ROM personnelles.
+/// L'injection de permission est interne à l'assembly de test synthétique autorisée.
+/// La lecture n'écrit, ne déplace et ne supprime aucun fichier source.</remarks>
 public sealed class InventoryApplicationService : IInventoryApplicationService
 {
     private readonly object _gate = new();
@@ -73,6 +134,7 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
 
     // Fail-closed in a distributed app: user consent alone is NOT authorization to scan real ROMs.
     // This constructor never executes Scan(), even when the user confirms.
+/// <summary>Crée un orchestrateur sans permission de scan, y compris après consentement utilisateur.</summary>
     public InventoryApplicationService() : this(static _ => false) { }
 
     // Only the friend synthetic test assembly can grant per-scope permission.
@@ -81,13 +143,16 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
         _syntheticPermission = syntheticPermission ??
             throw new ArgumentNullException(nameof(syntheticPermission));
 
+/// <inheritdoc />
     public event EventHandler<InventoryApplicationState>? StateChanged;
 
+/// <inheritdoc />
     public InventoryApplicationState State
     {
         get { lock (_gate) return _state; }
     }
 
+/// <inheritdoc />
     public InventorySelectionResult PrepareSelection(InventoryScope selectedScope)
     {
         ArgumentNullException.ThrowIfNull(selectedScope);
@@ -162,6 +227,7 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
         lock (_gate) return new(false, diagnostic, _version);
     }
 
+/// <inheritdoc />
     public Task<InventoryApplicationState> StartConfirmedScanAsync(
         InventoryRunRequest request, CancellationToken cancellationToken = default)
     {
@@ -268,6 +334,7 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
         return finishedState;
     }
 
+/// <inheritdoc />
     public bool RequestCancellation()
     {
         InventoryApplicationState pending;
@@ -287,6 +354,7 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
         return true;
     }
 
+/// <inheritdoc />
     public bool ClearSelection()
     {
         InventoryApplicationState cleared;
