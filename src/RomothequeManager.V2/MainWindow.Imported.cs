@@ -551,6 +551,8 @@ public sealed partial class MainWindow
         _page.Children.Add(Text("Bibliothèques", 30, true));
         _page.Children.Add(Panel(Group(
             Text("Bibliothèque importée (session actuelle)", 20, true),
+            Button("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()),
+            Button("Actualiser l’import ES-DE", () => _ = RefreshImportAsync()),
             Text("Identité de session : " + snapshot.LibraryId, 12),
             Text(snapshot.Games.Count + " jeu(x) · " + snapshot.Diagnostics.Count + " diagnostic(s)"),
             Text("Inventaire NEXT-03 : scan de vos dossiers non autorisé dans cette version.", 14, true),
