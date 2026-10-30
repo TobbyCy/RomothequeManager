@@ -331,6 +331,7 @@ internal static class Next05GuiHarness
                 romRootId, mediaRootId, fixtureWriteAllowed: true);
             window.AttachRestoredForCi(session);
             Demand(vm.HasRestoredSession && !vm.CanInventoryFixture &&
+                window.FindControl<Border>("LiveInventoryPanel") is { IsVisible: false } &&
                 vm.HasSnapshot && vm.SnapshotStatus.Contains("OFFLINE / STALE",
                     StringComparison.Ordinal) && vm.MatchingFileCount == ideal.Observations.Count,
                 "UI05_RESTORED_IDEAL_NOT_HISTORICAL");
