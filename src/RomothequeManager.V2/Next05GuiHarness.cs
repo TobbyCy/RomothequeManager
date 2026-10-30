@@ -222,23 +222,57 @@ internal static class Next05GuiHarness
     private static void CaptureRestored(ObservedLibraryWindow window,
         string captures, string name, int width, int height)
     {
+        var isOffline = name == "SQLITE-Offline";
         window.Width = width;
         window.Height = height;
-        window.UpdateLayout();
+        // The preceding MEDIA scenario was captured at 760x480 with a very deep
+        // ScrollViewer offset. Reset, RESIZE and flush layout before positioning
+        // the restored status. The old screenshot was 76% black pixels and only
+        // showed the footer, despite assertions that a snapshot existed.
         var scroll = window.FindControl<ScrollViewer>("RootScroll")!;
-        var target = window.FindControl<TextBlock>("RestoredCoverStatus")!;
+        scroll.Offset = Vector.Zero;
+        window.UpdateLayout();
+        var target = isOffline
+            ? window.FindControl<TextBlock>("RestoredStatusBanner")!
+            : window.FindControl<TextBlock>("RestoredCoverStatus")!;
         var content = (Control)scroll.Content!;
         var point = target.TranslatePoint(new Point(0, 0), content) ??
-            throw new InvalidDataException("UI05_COVER_NOT_LAID_OUT");
-        scroll.Offset = new Vector(0, Math.Clamp(point.Y - (height == 480 ? 140 : 230),
-            0, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)));
+            throw new InvalidDataException("UI05_RESTORED_TARGET_NOT_LAID_OUT");
+        var desiredTop = isOffline ? 190.0 : height == 480 ? 140.0 : 230.0;
+        scroll.Offset = new Vector(0, Math.Clamp(point.Y - desiredTop, 0,
+            Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)));
         window.UpdateLayout();
         var viewport = target.TranslatePoint(new Point(0, 0), (Control)window.Content!);
         Demand(viewport.HasValue && viewport.Value.Y >= 50 &&
-            viewport.Value.Y < height - 50 &&
-            !string.IsNullOrWhiteSpace(target.Text),
-            "UI05_COVER_STATUS_NOT_IN_VIEWPORT");
+            viewport.Value.Y < height - 80 &&
+            !string.IsNullOrWhiteSpace(target.Text) &&
+            (!isOffline || target.Text.Contains("OFFLINE / STALE",
+                StringComparison.Ordinal)), "UI05_RESTORED_TARGET_NOT_IN_VIEWPORT");
+
         Capture(window, captures, name, width, height);
+        if (isOffline)
+        {
+            // Verify the ACTUAL saved pixels, not merely a ViewModel text or
+            // a control's layout coordinates. Reject a mostly-black output.
+            var path = Path.Combine(captures, name + "-" + width + "x" + height + ".png");
+            using var bitmap = SKBitmap.Decode(path) ??
+                throw new InvalidDataException("UI05_OFFLINE_SCREENSHOT_UNREADABLE");
+            var samples = 0;
+            var visible = 0;
+            for (var y = 80; y <= height - 80; y += 70)
+            {
+                for (var x = 80; x <= width - 80; x += 160)
+                {
+                    var pixel = bitmap.GetPixel(x, y);
+                    samples++;
+                    if (pixel.Red + pixel.Green + pixel.Blue > 15) visible++;
+                }
+            }
+            Demand(visible >= samples * 3 / 4,
+                "UI05_OFFLINE_SCREENSHOT_BLACK_FRAME");
+            Console.WriteLine("SQLITE_UI_OFFLINE_VISIBLE_PIXELS_PASS samples=" +
+                samples + " visible=" + visible + " status=OFFLINE_STALE");
+        }
         Console.WriteLine("SQLITE_UI_SCREENSHOT_FRAMED_PASS " + name +
             " viewport=" + width + "x" + height);
     }
@@ -301,9 +335,7 @@ internal static class Next05GuiHarness
                     StringComparison.Ordinal) && vm.MatchingFileCount == ideal.Observations.Count,
                 "UI05_RESTORED_IDEAL_NOT_HISTORICAL");
             vm.ShowDashboardCommand.Execute(null);
-            var scroll = window.FindControl<ScrollViewer>("RootScroll")!;
-            scroll.Offset = Vector.Zero;
-            Capture(window, captures, "SQLITE-Offline", 1120, 720);
+            CaptureRestored(window, captures, "SQLITE-Offline", 1120, 720);
             vm.ShowCollectionCommand.Execute(null);
             Demand(vm.Rows.Count > 0 && vm.MatchingFileCount == ideal.Observations.Count,
                 "UI05_SAVED_COLLECTION_MISSING");
