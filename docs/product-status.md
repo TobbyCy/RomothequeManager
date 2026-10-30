@@ -1,4 +1,7 @@
-# État des fonctionnalités
+# Historique technique des fonctionnalités
+
+> **ARCHIVE, non état actuel.** Les anciens HEAD, PR Draft, validations et mentions « non fusionné » décrivent la situation lors de leur rédaction. Pour la version réellement téléchargeable, le code actuel et les limites de recette humaine, consulter [STATUS.md](../STATUS.md). Cet historique est conservé pour la traçabilité, pas comme deuxième tableau de bord.
+
 
 ## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
 
