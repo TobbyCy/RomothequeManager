@@ -1,0 +1,70 @@
+name: NEXT-05 / RS-A Windows native handle adversarial proof
+on:
+  push:
+    branches: [dev1/next05-rsa-windows-fixtures]
+permissions:
+  contents: read
+concurrency:
+  group: next05-rsa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows-rsa:
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev1/next05-rsa-windows-fixtures'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact commit (no stored credentials)
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify exact source HEAD and closed public gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'RSA_SOURCE_SHA_MISMATCH' }
+          $source = Get-Content 'src/RomothequeManager.V2/RsAWindowsRomScanner.cs' -Raw
+          if ($source -notmatch 'REAL_LIBRARY_SCAN_HOLD' -or $source -notmatch 'ObjDontReparse' -or $source -notmatch 'NtCreateFile') {
+            throw 'RSA_PUBLIC_HOLD_OR_HANDLE_BACKEND_MISSING'
+          }
+          Write-Host ('RSA_EXACT_SHA_AND_PUBLIC_HOLD_PASS head=' + $env:GITHUB_SHA)
+      - name: Provision pinned .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Execute six Windows RS-A adversarial cases and preserve native stdout
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          $folder = Join-Path $env:RUNNER_TEMP 'rsa-native-fixture-trx'
+          New-Item -ItemType Directory -Path $folder -Force | Out-Null
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'RSA_LOCKED_RESTORE_FAILED' }
+          dotnet test $test -c Release --no-restore --filter 'FullyQualifiedName~RsAWindowsFixtureTests' --logger 'trx;LogFileName=rs-a.trx' --results-directory $folder -p:TreatWarningsAsErrors=true -p:EnableNETAnalyzers=true
+          if ($LASTEXITCODE -ne 0) { throw 'RSA_ADVERSARIAL_RUNTIME_FAILED' }
+          [xml]$trx = Get-Content (Join-Path $folder 'rs-a.trx') -Raw
+          $nodes = @($trx.SelectNodes("//*[local-name()='UnitTestResult']"))
+          if ($nodes.Count -ne 6 -or @($nodes | Where-Object { $_.outcome -ne 'Passed' }).Count -ne 0) {
+            throw ('RSA_TEST_CASE_COUNT_OR_VERDICT_FAIL count=' + $nodes.Count)
+          }
+          $proof = @()
+          foreach ($item in $nodes) {
+            $stdout = $item.SelectSingleNode("./*[local-name()='Output']/*[local-name()='StdOut']")
+            $value = if ($null -eq $stdout) { '' } else { $stdout.InnerText }
+            $markers = @($value -split '[\r\n]+' | Where-Object { $_ -match '^RS_A' })
+            foreach ($marker in $markers) {
+              if ($marker -match '(?i)(users\\|password|token=)') { throw 'RSA_PRIVATE_LOG_DETECTED' }
+              Write-Host ('RSA_NATIVE_EVIDENCE test=' + $item.testName + ' ' + $marker)
+              $proof += $marker
+            }
+            Write-Host ('RSA_NATIVE_CASE_PASS test=' + $item.testName)
+          }
+          $combined = $proof -join ';'
+          foreach ($required in @('RS_A01_PASS','RS_A02_PARENT_SWAP_ATTEMPTED','RS_A02_FINAL_SWAP_ATTEMPTED',
+                                  'RS_A02_REPARSE_DIRECTORY_REJECTED_REAL_WINDOWS',
+                                  'RS_A02_OUTSIDE_READS=0','RS_A03_PASS','RS_A04_PASS',
+                                  'RS_A05_PASS','RS_A06_PASS','RS_A_NATIVE_ENV')) {
+            if (-not $combined.Contains($required)) { throw ('RSA_MISSING_EXECUTED_PROOF:' + $required) }
+          }
+          Write-Host ('RSA_WINDOWS_SIX_ADVERSARIAL_PASS source=' + $env:GITHUB_SHA + ' six=6 no_personal_io=true')
