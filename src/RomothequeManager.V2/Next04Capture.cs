@@ -59,6 +59,14 @@ internal static class Next04Capture
                 if (!window.CiNext04BrandingLayout())
                     throw new InvalidDataException("NEXT04_BRANDING_NATIVE_SIZE_OR_ICON_FAILED");
                 Console.WriteLine("NEXT04_BRANDING_PASS logo=1960x576 display=228x67 icon=present");
+                if (!window.CiNext041EmptyWelcome())
+                    throw new InvalidDataException("NEXT041_EMPTY_WELCOME_FAILED");
+                Capture("NEXT041-Welcome-1120x720", 1120, 720);
+                Capture("NEXT041-Welcome-760x480", 760, 480);
+                if (!window.CiNext041EmptyCollectionAndDemoOptIn())
+                    throw new InvalidDataException("NEXT041_EMPTY_COLLECTION_OR_OPTIN_FAILED");
+                Capture("NEXT041-Empty-Libraries-1120x720", 1120, 720);
+                Console.WriteLine("NEXT041_BOOT_NO_CATALOG_PASS demo=opt_in empty_collection=1 empty_libraries=1");
                 if (!window.CiNext04Import(Path.Combine(fixtureRoot, "IDEAL"), 30, 13))
                     throw new InvalidDataException("NEXT04_IDEAL_IMPORT_FAILED");
                 Capture("IDEAL-Dashboard-1120x720", 1120, 720);

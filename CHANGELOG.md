@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-04.1 — Accueil vide, démo opt-in, Collection alignée (Produit #100/#99)
+
+- Mode `NoCatalog` par défaut : aucun jeu fictif visible, accueil ES-DE explicite avec trois étapes, navigation vide et avertissement sur l'absence de persistance. Démo uniquement après action explicite ; fixtures et tests de démonstration préservés.
+- Collection importée : grille à colonnes égales et cartes étirées jusqu'au même bord que filtres/résultats, boutons « Ouvrir la fiche » de largeur uniforme sans calculs marginaux de carte.
+- Recette native Windows étendue à 16 captures, dont accueil normal/compact et navigation vide. Import moteur strict et protections XML inchangés ; aucun scan personnel, aucune Release.
+
 ## PACKAGING-101 — candidat portable single-file (30 octobre 2026, Issue #101)
 
 - Candidat Windows x64 autonome non tronqué : `PublishSingleFile=true`, bibliothèques natives extraites automatiquement, EXE unique en racine, deux assets officiels externes, notices/licences conservées. Le mode CI-only reste distinct du binaire utilisateur.

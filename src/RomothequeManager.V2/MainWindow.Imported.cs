@@ -56,6 +56,15 @@ public sealed partial class MainWindow
         }
     }
 
+    private void ReturnToWelcome()
+    {
+        _scenarioUi.Clear();
+        _scenarioDetail = false;
+        _importedUi.ShowWelcome();
+        _state.ShowDashboard();
+        Render();
+    }
+
     private void ShowDemo()
     {
         _scenarioUi.Clear();
@@ -261,6 +270,45 @@ public sealed partial class MainWindow
                 yield return value;
     }
 
+#if NEXT04_CI
+    public bool CiNext041EmptyWelcome()
+    {
+        if (_importedUi.Mode != CatalogueMode.NoCatalog || _importedUi.Snapshot is not null ||
+            _importedUi.TotalCount != 0 || _importedUi.Systems.Count != 0 ||
+            ActiveView != POCView.Dashboard || Title != "ROMothèque Manager")
+            return false;
+        var text = SmokeVisibleTexts();
+        return text.Contains("Bienvenue dans ROMothèque Manager", StringComparison.Ordinal) &&
+            text.Contains("Importer une bibliothèque ES-DE", StringComparison.Ordinal) &&
+            text.Contains("Les gamelists ES-DE sont actuellement nécessaires", StringComparison.Ordinal) &&
+            text.Contains("Les imports ne sont pas conservés", StringComparison.Ordinal) &&
+            text.Contains("Essayer une démonstration fictive", StringComparison.Ordinal) &&
+            !text.Contains("résultats fictifs", StringComparison.Ordinal) &&
+            !text.Contains("6 jeux fictifs", StringComparison.Ordinal);
+    }
+
+    public bool CiNext041EmptyCollectionAndDemoOptIn()
+    {
+        Navigate(POCView.Collection);
+        if (!SmokeVisibleTexts().Contains("Collection vide", StringComparison.Ordinal) ||
+            _importedUi.TotalCount != 0 || _importedUi.Mode != CatalogueMode.NoCatalog)
+            return false;
+        Navigate(POCView.Libraries);
+        if (!SmokeVisibleTexts().Contains("Aucune bibliothèque importée", StringComparison.Ordinal))
+            return false;
+        ShowDemo();
+        if (_importedUi.Mode != CatalogueMode.Demonstration ||
+            !Title.Contains("Démonstration", StringComparison.Ordinal) ||
+            !SmokeVisibleTexts().Contains("Démonstration", StringComparison.OrdinalIgnoreCase))
+            return false;
+        ReturnToWelcome();
+        Navigate(POCView.Libraries);
+        return _importedUi.Mode == CatalogueMode.NoCatalog &&
+            SmokeVisibleTexts().Contains("Aucune bibliothèque importée", StringComparison.Ordinal) &&
+            _importedUi.Snapshot is null;
+    }
+#endif
+
     private void RenderImported()
     {
         var snapshot = _importedUi.Snapshot;
@@ -452,13 +500,22 @@ public sealed partial class MainWindow
         _importedList.Children.Add(Notice("Résultats du catalogue · " + count + " référence(s)",
             count + " résultat(s) importé(s) · page " + (_importedUi.PageIndex + 1) +
             " / " + _importedUi.PageCount + " · 50 éléments maximum par page."));
-        var cards = new WrapPanel { Orientation = Orientation.Horizontal };
         var columns = ImportedColumnCount();
-        var cardWidth = Math.Max(310, (_page.Width - (columns - 1) * 18 - 12) / columns);
-        foreach (var game in _importedUi.PageGames)
+        var visible = _importedUi.PageGames;
+        // Star columns fill the same width as search and results. No trailing card margins.
+        var cards = new Grid
         {
+            ColumnDefinitions = new ColumnDefinitions(string.Join(",", Enumerable.Repeat("*", columns))),
+            RowSpacing = 12,
+            ColumnSpacing = 12
+        };
+        for (var i = 0; i < visible.Count; i++)
+        {
+            if (i % columns == 0)
+                cards.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var game = visible[i];
             var gameId = game.GameId;
-            var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 15 };
+            var line = new Grid { ColumnDefinitions = new ColumnDefinitions("96,*"), ColumnSpacing = 12 };
             line.Children.Add(CoverFor(game, 82, 108));
             var details = Group(
                 Text(game.Platform.ToUpperInvariant() + " · ES-DE", 11, true),
@@ -468,10 +525,13 @@ public sealed partial class MainWindow
                     "ROM non trouvée — aucune suppression déduite", 12),
                 PrimaryButton("Ouvrir la fiche", () => OpenImportedGame(gameId))
             );
+            details.HorizontalAlignment = HorizontalAlignment.Stretch;
+            Grid.SetColumn(details, 1);
             line.Children.Add(details);
             var card = Panel(line);
-            card.Width = cardWidth;
-            card.Margin = new Thickness(0, 0, 10, 10);
+            card.HorizontalAlignment = HorizontalAlignment.Stretch;
+            Grid.SetColumn(card, i % columns);
+            Grid.SetRow(card, i / columns);
             cards.Children.Add(card);
         }
         _importedList.Children.Add(cards);

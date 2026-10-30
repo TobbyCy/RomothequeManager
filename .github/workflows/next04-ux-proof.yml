@@ -73,7 +73,7 @@ jobs:
             ('<gameList>' + ($entries -join '') + '</gameList>'), [Text.UTF8Encoding]::new($false))
           Write-Host 'NEXT04_LONG_FIXTURE_PASS entries=155 metadata=1 no_personal_paths=1'
           [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'next04-fixtures.txt'),$fixtures,[Text.UTF8Encoding]::new($false))
-      - name: Real Avalonia imported GUI and thirteen PNG captures
+      - name: Real Avalonia imported GUI, first-launch welcome and sixteen PNG captures
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -93,7 +93,7 @@ jobs:
           } finally { $process.Dispose() }
           $output = Join-Path $env:RUNNER_TEMP 'next04-ux-captures'
           $png = @(Get-ChildItem -LiteralPath $output -File -Filter '*.png')
-          if ($png.Count -ne 13) { throw ('NEXT04_PNG_COUNT:' + $png.Count) }
+          if ($png.Count -ne 16) { throw ('NEXT04_PNG_COUNT:' + $png.Count) }
           Add-Type -AssemblyName System.Drawing
           foreach ($file in $png) {
             $bitmap = [Drawing.Bitmap]::FromFile($file.FullName)
@@ -103,10 +103,10 @@ jobs:
           }
           node tools/demo-library/generate.cjs --verify $fixture
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_FIXTURE_CHANGED' }
-          $manifest = [ordered]@{sourceCommit='${{ github.sha }}'; windowsAttachedAvalonia=$true; snapshots=13; syntheticOnly=$true; personalScanAllowed=$false; release=$false
+          $manifest = [ordered]@{sourceCommit='${{ github.sha }}'; windowsAttachedAvalonia=$true; snapshots=16; syntheticOnly=$true; personalScanAllowed=$false; release=$false
              captures=@($png | ForEach-Object { [ordered]@{file=$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()} }) }
           ($manifest | ConvertTo-Json -Depth 5) | Set-Content (Join-Path $output 'NEXT04-PROOF.json') -Encoding utf8
-          Write-Host ('NEXT04_GUI_WINDOWS_CAPTURE_PASS source=${{ github.sha }} count=13 untouchedFixtures=1')
+          Write-Host ('NEXT04_GUI_WINDOWS_CAPTURE_PASS source=${{ github.sha }} count=16 untouchedFixtures=1')
       - name: Assemble and verify ready-to-select fictional ES-DE demo ZIP
         shell: pwsh
         run: |
