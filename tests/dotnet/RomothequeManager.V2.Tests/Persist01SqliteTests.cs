@@ -310,7 +310,7 @@ public sealed class Persist01SqliteTests
         {
             db.Open();
             using var cmd = db.CreateCommand();
-            cmd.CommandText = "ALTER TABLE MetadataClaim DROP COLUMN RuleVersion; PRAGMA user_version=1;";
+            cmd.CommandText = "DROP INDEX UX_MetadataClaim_Revision; ALTER TABLE MetadataClaim DROP COLUMN RuleVersion; PRAGMA user_version=1;";
             cmd.ExecuteNonQuery();
         }
         using (var upgrade = Store())
