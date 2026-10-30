@@ -107,20 +107,34 @@ internal static class Next05GuiHarness
             var isPreviewStatus = name is "MEDIA-Cancelled" or "MEDIA-Unsupported" or
                 "MEDIA-DecodeFailure";
             Control target = isImage ? image : isPreviewStatus ? previewStatus : evidence;
-            var position = target.TranslatePoint(new Point(0, 0), visual) ??
+            // The full ScrollViewer content has stable, unscrolled coordinates.
+            // Relative-to-visual + previous Offset was incorrect before the actual
+            // Avalonia layout pass; use absolute content Y then flush layout.
+            window.UpdateLayout();
+            var content = scroll.Content as Control ??
+                throw new InvalidDataException("MEDIA_SCREENSHOT_CONTENT_MISSING");
+            var contentTop = target.TranslatePoint(new Point(0, 0), content) ??
                 throw new InvalidDataException("MEDIA_SCREENSHOT_TARGET_UNAVAILABLE");
             var desiredTop = isImage
                 ? (height == 480 ? 175.0 : 275.0)
                 : (height == 480 ? 155.0 : 190.0);
             var maxOffset = Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height);
-            scroll.Offset = new Vector(0, Math.Clamp(
-                scroll.Offset.Y + position.Y - desiredTop, 0, maxOffset));
+            scroll.Offset = new Vector(0,
+                Math.Clamp(contentTop.Y - desiredTop, 0, maxOffset));
+            window.UpdateLayout();
             visual.Measure(new Size(width - 2, height - 2));
             visual.Arrange(new Rect(0, 0, width - 2, height - 2));
             var after = target.TranslatePoint(new Point(0, 0), visual);
-            Demand(after.HasValue && after.Value.Y >= 65 &&
-                after.Value.Y <= height - (isImage ? 120 : 50),
-                "MEDIA_SCREENSHOT_TARGET_OUTSIDE_VIEWPORT");
+            if (after is null || after.Value.Y < 65 ||
+                after.Value.Y > height - (isImage ? 120 : 50))
+                throw new InvalidDataException(
+                    "MEDIA_SCREENSHOT_TARGET_OUTSIDE_VIEWPORT y=" +
+                    (after?.Y.ToString("F1") ?? "null") +
+                    " expected=65.." + (height - (isImage ? 120 : 50)) +
+                    " targetContentY=" + contentTop.Y.ToString("F1") +
+                    " offset=" + scroll.Offset.Y.ToString("F1") +
+                    " extent=" + scroll.Extent.Height.ToString("F1") +
+                    " viewport=" + scroll.Viewport.Height.ToString("F1"));
             // This assertion proves the requested state is in the viewport, not
             // merely present somewhere inside an oversized ScrollViewer.
             if (isImage)
