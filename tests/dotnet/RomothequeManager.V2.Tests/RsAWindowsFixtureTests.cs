@@ -152,8 +152,15 @@ public sealed class RsAWindowsFixtureTests
         Console.WriteLine("RS_A02_PARENT_SWAP_ATTEMPTED real_windows=1 switched=" + mutated +
             " status=" + race.ScanStatus);
 
-        // Final-component replacement attempted between enumeration and NtCreateFile.
+        // Reconstruct the original fixture after the parent-swap attempt so the
+        // final-component swap is ALWAYS exercised independently of the parent outcome.
         if (Directory.Exists(junction)) Directory.Delete(junction);
+        var movedDirectory = Path.Combine(_root, "gba-moved");
+        if (Directory.Exists(movedDirectory))
+        {
+            if (Directory.Exists(parent)) Directory.Delete(parent);
+            Directory.Move(movedDirectory, parent);
+        }
         var file = Path.Combine(_root, "gba", "one.gba");
         if (File.Exists(file))
         {
