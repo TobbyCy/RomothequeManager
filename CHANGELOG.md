@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-04.1 / ES-DE alternativeEmulator compatibility — PR #103 (30.10.2026)
+
+- Compatibilité ciblée avec le seul format public ES-DE à deux éléments racine : `alternativeEmulator` contenant exactement un `label`, puis une unique `gameList`. Le lecteur XML document strict reste prioritaire ; le fragment n'est accepté qu'après validation de cette structure connue, sans suppression/réécriture de préambule.
+- DTD, entités externes, caractères invalides, sources supplémentaires, traversées de chemins et dépassement de 8 Mio restent refusés ; aucune importation partielle automatique. Le label alternatif n'est ni un jeu ni une métadonnée, et n'affecte pas les identités/fingerprints.
+- Recettes entièrement fictives : trois emplacements XML, six systèmes ordinaires plus cinq préambules, encodages UTF-8/16, attaques de racines, atomicité du dernier catalogue et test dans l'EXE Windows natif CI-only. CI et revue sur HEAD exact en cours ; aucune ROMothèque personnelle testée, pas de fusion/Release automatique.
+
 ## NEXT-04.1 — Accueil vide, démo opt-in, Collection alignée (Produit #100/#99)
 
 - Mode `NoCatalog` par défaut : aucun jeu fictif visible, accueil ES-DE explicite avec trois étapes, navigation vide et avertissement sur l'absence de persistance. Démo uniquement après action explicite ; fixtures et tests de démonstration préservés.
@@ -10,7 +16,7 @@
 
 - Candidat Windows x64 autonome non tronqué : `PublishSingleFile=true`, bibliothèques natives extraites automatiquement, EXE unique en racine, deux assets officiels externes, notices/licences conservées. Le mode CI-only reste distinct du binaire utilisateur.
 - Contrôles Windows prévus sur un HEAD précis : véritable GUI Avalonia/fixtures fictives, ZIP et SHA-256, ouverture sans SDK, redémarrage après déplacement du dossier et simulation de changement de lettre par `subst`. Un SSD physique reste **NOT_EXECUTED** jusqu'à recette humaine.
-- Travail isolé du défaut XML GameCube #101 (cause inconnue), de l'accueil vide #100 et du correctif Collection #99 ; aucune Release, aucune écriture de ROM ni persistance.
+- Packaging, accueil vide #100 et correctif Collection #99 regroupés dans #102 ; correction moteur ES-DE #103 intégrée au code, sans nouvel import personnel encore exécuté. Aucune Release, écriture de ROM ni persistance.
 
 ## NEXT-04 / USAGE-01 — essai Windows autonome, preuve humaine en attente (Produit #97)
 
