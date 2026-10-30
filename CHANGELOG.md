@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-05 / RS-A — ROMS Windows handles confinés (PR #114, fixtures uniquement)
+
+- Scanner de métadonnées ROMS interne aux fixtures Windows, sélection explicite, ReadGrant volatile/versionné, refus de tous les accès via l'API publique REAL_LIBRARY_SCAN_HOLD.
+- Énumération par handles Windows (NtCreateFile relatif, FileIdBothDirectoryInfo), refus reparse et traversal, budgets, annulation, conservation Current Complete en cas d'échec.
+- Canaris adversariaux RS-A01 à RS-A06 proposés à la CI native Windows ; attaquants parents/fichiers, permissions/revocation, exclusions et packaging à vérifier au HEAD exact. Aucune ROM réelle, aucun MEDIAS/Skia, aucune fusion ni Release.
+
 PERSIST-01 #111 — correctifs P1 validés sur l'ancien HEAD (nouvelle CI après synchronisation à vérifier) : restore validé sur staging (schéma/FK/version/colonnes) avant remplacement, rollback après swap ; claims append-only par sujet et révision, provenance historique préservée, migration v2→v3 et tests adversariaux. ZIP Windows / nouveau HEAD et DEV 2 re-revue requis, aucun accès réel.
 
 ## PERSIST-01 — SQLite minimal sur fixtures (backend en revue)

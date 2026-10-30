@@ -1,5 +1,9 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / RS-A — scan ROMS handle-confined en revue, FIXTURES ONLY
+
+Périmètre Issue #113, PR #114 : nouveau lecteur de métadonnées ROMS interne à des fixtures Windows éphémères, autorisation volatile liée au choix explicite et StorageRootId, aucun droit depuis SQLite/CLI/env. Les enfants sont ouverts relativement à des handles de parents et l'énumération est handle-based, contrairement au moteur de chemins historique ; dossiers applicatifs et reparse interdits. Public REAL_LIBRARY_SCAN_HOLD reste fermé. RS-A01 à 06 doivent être prouvés par une exécution Windows native et les swaps effectifs distincts des attaques refusées par le système. Aucun fichier source ouvert en écriture, ni rôle MEDIAS/Skia, ni scan personnel. CI, Windows/ZIP et re-revue DEV 2 encore nécessaires ; pas de fusion ni Release.
+
 PERSIST-01 #111 — correctifs P1 validés sur l'ancien HEAD (nouvelle CI après synchronisation à vérifier) : restore validé sur staging (schéma/FK/version/colonnes) avant remplacement, rollback après swap ; claims append-only par sujet et révision, provenance historique préservée, migration v2→v3 et tests adversariaux. ZIP Windows / nouveau HEAD et DEV 2 re-revue requis, aucun accès réel.
 
 ## NEXT-05 / PERSIST-01 — backend SQLite synthétique
