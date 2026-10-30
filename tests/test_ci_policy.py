@@ -17,6 +17,14 @@ import ci_policy as p
 
 
 class ClassificationTests(unittest.TestCase):
+    def test_root_status_markdown_is_docs_only_and_exactly_allowlisted(self):
+        self.assertEqual("DOCS_ONLY", p.classify([("A", "STATUS.md")]))
+        self.assertEqual("INFRA_SECURITY_UNKNOWN", p.classify([("A", "STATUS.md.exe")]))
+        self.assertEqual("INFRA_SECURITY_UNKNOWN", p.classify([("A", "STATUS.md/extra")]))
+        self.assertTrue(p.re.fullmatch(p.DOC, "STATUS.md"))
+        self.assertIsNone(p.re.fullmatch(p.DOC, "STATUS.md.exe"))
+        self.assertIsNone(p.re.fullmatch(p.DOC, "STATUS.md/extra"))
+
     def test_routes(self):
         cases = {
             "DOCS_ONLY": ["README.md", "BRANDING.md", "LEGAL.md", "docs/developer/workflow.md", "docs/decisions/0001-demo.md"],
