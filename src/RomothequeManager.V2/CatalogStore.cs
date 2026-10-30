@@ -508,7 +508,9 @@ public sealed class SqliteCatalogStore : ICatalogStore
         }
         var integrity = Scalar(db, null, "PRAGMA integrity_check") as string;
         if (integrity != "ok") throw new InvalidDataException("PERSIST01_INTEGRITY_FAILED");
-        var foreign = Convert.ToInt32(Scalar(db, null, "PRAGMA foreign_key_check") ?? 0);
+        using var foreignCheck = Command(db, null, "PRAGMA foreign_key_check");
+        using var broken = foreignCheck.ExecuteReader();
+        if (broken.Read()) throw new InvalidDataException("PERSIST01_FOREIGN_KEY_FAILED");
     }
 
     private static void CopyOnlineBackup(string source, string target)
