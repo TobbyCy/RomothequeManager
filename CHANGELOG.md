@@ -4,7 +4,7 @@
 
 - Scanner de métadonnées ROMS interne aux fixtures Windows, sélection explicite, ReadGrant volatile/versionné, refus de tous les accès via l'API publique REAL_LIBRARY_SCAN_HOLD.
 - Énumération par handles Windows (NtCreateFile relatif, FileIdBothDirectoryInfo), refus reparse et traversal, budgets, annulation, conservation Current Complete en cas d'échec.
-- Canaris adversariaux RS-A01 à RS-A06 proposés à la CI native Windows ; attaquants parents/fichiers, permissions/revocation, exclusions et packaging à vérifier au HEAD exact. Aucune ROM réelle, aucun MEDIAS/Skia, aucune fusion ni Release.
+- RS-A01 à 06 exécutés sur Windows Server 2022 (build 20348, .NET 10.0.14) : 6/6 PASS natifs dans le run de preuve #41134189591 ; jonction réelle refusée, rename parent tenté et bloqué, swap final réellement réussi côté attaquant mais lecture refusée, racine remplacée à chemin identique rejetée. Nouveau processus sans grant, révocation entre threads, budgets et exclusions validés ; documentation/CI finale du HEAD sans workflow temporaire encore requise. Aucune ROM réelle, aucun MEDIAS/Skia, aucune fusion ni Release.
 
 PERSIST-01 #111 — correctifs P1 validés sur l'ancien HEAD (nouvelle CI après synchronisation à vérifier) : restore validé sur staging (schéma/FK/version/colonnes) avant remplacement, rollback après swap ; claims append-only par sujet et révision, provenance historique préservée, migration v2→v3 et tests adversariaux. ZIP Windows / nouveau HEAD et DEV 2 re-revue requis, aucun accès réel.
 
