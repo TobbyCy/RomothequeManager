@@ -22,7 +22,9 @@ public sealed record InventoryObservationRow(
 
 /// <summary>One bounded, stable page of files from a captured inventory generation.</summary>
 /// <remarks>Snapshot retains coverage, diagnostics, availability, freshness,
-/// Current/LastAttempt provenance and nullable ConfirmedGameCount unchanged.
+/// and nullable ConfirmedGameCount unchanged. The calling service/ViewModel chooses
+/// whether the supplied generation is Current or LastAttempt; Snapshot does not
+/// carry that selection. Pages returned by GetPage expose read-only Rows.
 /// MatchingObservationCount is the filtered number of observed files only;
 /// it is never a confirmed-game count or a claim about unscanned files.</remarks>
 public sealed record InventoryObservationPage(
@@ -77,7 +79,8 @@ public static class InventoryObservationProjection
                     observation, FilenameLabel(observation.RelativePath)))
                 .ToArray();
 
-        return new(snapshot, rows, matching.Length, filter.PageIndex, filter.PageSize);
+        // Avoid exposing a mutable array through IReadOnlyList (which permits a cast).
+        return new(snapshot, Array.AsReadOnly(rows), matching.Length, filter.PageIndex, filter.PageSize);
     }
 
     private static string FilenameLabel(string relativePath)
