@@ -85,8 +85,37 @@ public sealed class RsAWindowsFixtureTests
         var expired = new RsAReadGrant(_rootId, session.SelectionVersion,
             DateTimeOffset.UtcNow.AddSeconds(-1), second.RootIdentity);
         Assert.IsFalse(expired.Valid(_rootId, session.SelectionVersion));
-        Console.WriteLine("RS_A01_PASS no grant/explicit/revoke/selection/expiry/restart model; " +
+        VerifyProcessRestartHasNoGrant();
+        Console.WriteLine("RS_A01_PASS no grant/explicit/revoke/selection/expiry/real_restart; " +
             "no I/O before authorization");
+        Console.WriteLine("RS_A01_NEW_PROCESS_NO_GRANT_PASS");
+    }
+
+    private void VerifyProcessRestartHasNoGrant()
+    {
+        var start = new ProcessStartInfo("dotnet")
+        {
+            UseShellExecute = false, RedirectStandardOutput = true,
+            RedirectStandardError = true, CreateNoWindow = true
+        };
+        start.ArgumentList.Add("vstest");
+        start.ArgumentList.Add(typeof(RsAWindowsFixtureTests).Assembly.Location);
+        start.ArgumentList.Add(
+            "/TestCaseFilter:FullyQualifiedName~RSA_06_ProductionGatewayClosedWithoutAnyFixtureOrCliBackdoor");
+        start.ArgumentList.Add("/Logger:console;verbosity=minimal");
+        start.Environment["RSA_CHILD_ROOT"] = _root;
+        start.Environment["RSA_CHILD_STORAGE_ROOT_ID"] = _rootId;
+        using var child = Process.Start(start) ??
+            throw new InvalidOperationException("RS_A01_CHILD_PROCESS_FAILED");
+        var stdout = child.StandardOutput.ReadToEnd();
+        var stderr = child.StandardError.ReadToEnd();
+        if (!child.WaitForExit(90000))
+        {
+            child.Kill(entireProcessTree: true);
+            Assert.Fail("RS_A01_CHILD_PROCESS_TIMEOUT");
+        }
+        Assert.AreEqual(0, child.ExitCode, stdout + "\n" + stderr);
+        StringAssert.Contains(stdout, "Passed");
     }
 
     [TestMethod]
@@ -302,6 +331,15 @@ public sealed class RsAWindowsFixtureTests
     [TestMethod]
     public void RSA_06_ProductionGatewayClosedWithoutAnyFixtureOrCliBackdoor()
     {
+        var childRoot = Environment.GetEnvironmentVariable("RSA_CHILD_ROOT");
+        if (childRoot is not null)
+        {
+            var child = new RsAFixtureRomSession();
+            child.SelectFixture(childRoot,
+                Environment.GetEnvironmentVariable("RSA_CHILD_STORAGE_ROOT_ID")!);
+            Assert.AreEqual(InventoryScanStatus.Failed, child.Scan(null).ScanStatus);
+            Console.WriteLine("RS_A01_CHILD_PROCESS_GRANT_ABSENT");
+        }
         Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
             RealRomInventoryGate.Scan());
         Assert.IsFalse(typeof(RealRomInventoryGate).Assembly.GetExportedTypes()
