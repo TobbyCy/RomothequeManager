@@ -4,6 +4,9 @@ namespace RomothequeManager.V2;
 // authority for XML parsing, media paths and read-only file access.
 public enum CatalogueMode { Demonstration, Imported }
 
+// A system is proven only by games referenced in imported ES-DE XML.
+public sealed record ImportedSystem(string Platform, int ReferencedGames);
+
 public sealed class ImportedCatalogueUiState
 {
     private EsDeImportSession? _session;
@@ -12,6 +15,12 @@ public sealed class ImportedCatalogueUiState
     public bool IsImported => Mode == CatalogueMode.Imported && Snapshot is not null;
     public string? ErrorMessage { get; private set; }
     public string SearchText { get; private set; } = "";
+    public string? SelectedPlatform { get; private set; }
+    public IReadOnlyList<ImportedSystem> Systems => Snapshot?.Games
+        .GroupBy(game => game.Platform, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new ImportedSystem(group.Key, group.Count()))
+        .OrderBy(system => system.Platform, StringComparer.OrdinalIgnoreCase)
+        .ToArray() ?? Array.Empty<ImportedSystem>();
     public string? SelectedGameId { get; private set; }
     public EsDeGame? Selected => Snapshot?.Games.FirstOrDefault(game =>
         string.Equals(game.GameId, SelectedGameId, StringComparison.Ordinal));
@@ -23,10 +32,12 @@ public sealed class ImportedCatalogueUiState
     public IReadOnlyList<EsDeGame> PageGames => FilteredGames.Skip(PageIndex * PageSize).Take(PageSize).ToArray();
 
     public IReadOnlyList<EsDeGame> FilteredGames => Snapshot?.Games.Where(game =>
-        string.IsNullOrWhiteSpace(SearchText) ||
+        (SelectedPlatform is null || string.Equals(game.Platform, SelectedPlatform,
+            StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrWhiteSpace(SearchText) ||
         game.Title.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
         game.Platform.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
-        game.RomRelativePath.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase)).ToArray()
+        game.RomRelativePath.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase))).ToArray()
         ?? Array.Empty<EsDeGame>();
 
     // A prepared import is adopted only after EsDeImportSession.Import completed.
@@ -37,6 +48,7 @@ public sealed class ImportedCatalogueUiState
         _session = prepared;
         Mode = CatalogueMode.Imported;
         SearchText = "";
+        SelectedPlatform = null;
         PageIndex = 0;
         SelectedGameId = null;
         CurrentView = POCView.Dashboard;
@@ -70,6 +82,9 @@ public sealed class ImportedCatalogueUiState
         {
             var updated = _session.Import();
             SelectedGameId = updated.Games.Any(g => g.GameId == SelectedGameId) ? SelectedGameId : null;
+            if (SelectedPlatform is not null && !updated.Games.Any(g =>
+                    string.Equals(g.Platform, SelectedPlatform, StringComparison.OrdinalIgnoreCase)))
+                SelectedPlatform = null;
             if (SelectedGameId is null && CurrentView == POCView.GameDetail)
                 CurrentView = POCView.Collection;
             PageIndex = Math.Min(PageIndex, PageCount - 1);
@@ -121,13 +136,36 @@ public sealed class ImportedCatalogueUiState
             ? POCView.Collection : view;
     }
 
+    // UI projection only: absent optional metadata is never an invented value.
+    public static string MetadataOrUnspecified(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "Non renseigné" : value;
+
     public static IReadOnlyList<EsDeMedia> CoverCandidates(EsDeGame game) =>
         game.Media.Where(media => media.Kind is "image" or "thumbnail")
             .OrderBy(media => media.Kind == "image" ? 0 : 1).ToArray();
 
+    // Selects only a platform present in the XML snapshot; never scans folders for systems.
+    public bool SelectPlatform(string? platform)
+    {
+        if (platform is not null && !Systems.Any(system =>
+            string.Equals(system.Platform, platform, StringComparison.OrdinalIgnoreCase)))
+            return false;
+        // Avalonia may emit SelectionChanged when reattaching an unchanged selector.
+        // Idempotent UI values must not reset pagination, selection, or scroll.
+        if (string.Equals(SelectedPlatform, platform, StringComparison.OrdinalIgnoreCase))
+            return true;
+        SelectedPlatform = platform;
+        PageIndex = 0;
+        SelectedGameId = null;
+        CurrentView = POCView.Collection;
+        return true;
+    }
+
     public void Search(string? search)
     {
-        SearchText = search ?? "";
+        var text = search ?? "";
+        if (string.Equals(SearchText, text, StringComparison.Ordinal)) return;
+        SearchText = text;
         PageIndex = 0;
     }
 
@@ -187,6 +225,8 @@ public static class EsDeDiagnosticPresentation
         "ROM_MISSING" => "ROM indisponible",
         "MEDIA_MISSING" => "Média indisponible",
         "DISC_MISSING" => "Disque de playlist indisponible",
+        "METADATA_FIELD_INVALID" => "Métadonnée facultative ES-DE ignorée",
+        "RELEASE_DATE_UNSUPPORTED" => "Date de sortie ES-DE non reconnue",
         _ => "Diagnostic ES-DE (" + diagnostic.Code + ")"
     };
 
@@ -207,19 +247,50 @@ public static class EsDeDiagnosticPresentation
         "ROM_MISSING" => "Fichier absent ou support indisponible lors de l'import. Aucune suppression de jeu n'est déduite.",
         "MEDIA_MISSING" => "Média référencé introuvable. Aucune recherche réseau ni modification n'est effectuée.",
         "DISC_MISSING" => "Un disque référencé par la playlist n'a pas été trouvé. Aucun fichier n'est modifié.",
+        "METADATA_FIELD_INVALID" => "Une métadonnée facultative répétée ou excessive a été ignorée sans retirer le jeu.",
+        "RELEASE_DATE_UNSUPPORTED" => "La date ES-DE n'est pas dans un format reconnu ; elle reste non renseignée.",
         _ => string.IsNullOrWhiteSpace(diagnostic.Message)
             ? "Diagnostic conservé pour vérification." : diagnostic.Message
     };
 
     public static string ImportFailure(Exception error) => error switch
     {
-        DirectoryNotFoundException => "Le dossier sélectionné ou son sous-dossier ROMS n'est pas accessible. Vérifiez le support.",
-        System.Xml.XmlException => "Le XML ES-DE est mal formé. Vérifiez la gamelist avant de réimporter.",
+        DirectoryNotFoundException =>
+            "Racine ES-DE non accessible : sélectionnez le dossier parent contenant directement ROMS/. " +
+            "Ne sélectionnez ni ROMS/, ni ES-DE/, ni un dossier de plateforme. Aucun scan automatique.",
+        System.Xml.XmlException =>
+            "Le XML ES-DE n'a pas pu être analysé (syntaxe, encodage ou contenu interdit).",
+        // Stable, controlled backend refusal codes (#96). Never echo raw XML,
+        // exception paths or playlist contents to the user.
+        InvalidDataException e when e.Message == "ESDE_XML_BYTES_LIMIT" =>
+            "La gamelist ES-DE dépasse la limite de 8 Mio. Réduisez le XML à la source ; " +
+            "l'import est refusé sans charger de catalogue partiel.",
+        InvalidDataException e when e.Message == "ESDE_PLAYLIST_BYTES_LIMIT" =>
+            "Une playlist .m3u dépasse la limite de 64 Kio. " +
+            "L'import est refusé sans modifier les fichiers.",
+        InvalidDataException e when e.Message == "ESDE_PLAYLIST_LINES_LIMIT" =>
+            "Une playlist .m3u dépasse 256 lignes. " +
+            "L'import est refusé sans modifier les fichiers.",
+        InvalidDataException e when e.Message == "ESDE_PLAYLIST_ENCODING_UNSUPPORTED" =>
+            "L'encodage d'une playlist .m3u n'est pas pris en charge. " +
+            "Vérifiez son encodage à la source ; aucune conversion automatique.",
+        InvalidDataException e when e.Message == "ESDE_PLATFORM_CASE_COLLISION" =>
+            "Deux dossiers systèmes ont des noms ne différant que par la casse " +
+            "(majuscules/minuscules). Import ambigu sur Windows, refusé sans renommage.",
+        InvalidDataException e when e.Message.StartsWith("Duplicated ROM identity", StringComparison.Ordinal) =>
+            "Deux références ROM utilisent une identité en conflit. " +
+            "Import refusé ; aucun fichier renommé ou supprimé.",
         InvalidDataException e when e.Message.StartsWith("Ambiguous ES-DE source", StringComparison.Ordinal) =>
-            "Deux gamelists concurrentes ont été trouvées pour une plateforme (ROMS et MEDIAS). Conservez une source non ambiguë.",
+            "Plusieurs gamelists concurrentes ont été trouvées pour une plateforme (ROMS, MEDIAS ou ES-DE). Conservez une seule source.",
         InvalidDataException e when e.Message.StartsWith("No supported ES-DE gamelist", StringComparison.Ordinal) =>
             "Aucune gamelist ES-DE prise en charge n'a été trouvée dans le dossier sélectionné.",
-        InvalidDataException => "Les métadonnées ES-DE ou leurs chemins ne respectent pas le format attendu.",
+        EsDeXmlReadException e =>
+            "Le XML ES-DE n'a pas pu être analysé (syntaxe, encodage, DTD interdite ou limite). " +
+            "Système : " + e.Platform + ", convention : " + e.SourceConvention +
+            (e.LineNumber > 0 ? ", ligne " + e.LineNumber +
+                (e.LinePosition > 0 ? ", colonne " + e.LinePosition : "") : "") +
+            ". Vérifiez la source de cette plateforme ; aucune correction automatique.",
+        InvalidDataException => "XML chargé, mais sa structure, certaines métadonnées ou des chemins ne sont pas pris en charge.",
         UnauthorizedAccessException => "Accès refusé au dossier ou aux métadonnées. Vérifiez les autorisations.",
         IOException => "La lecture de fichiers ES-DE a échoué. Vérifiez la disponibilité du support.",
         ArgumentException => "Le dossier ou un chemin de fichier est invalide.",

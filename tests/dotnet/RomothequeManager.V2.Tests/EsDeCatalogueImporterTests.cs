@@ -98,7 +98,7 @@ public sealed class EsDeCatalogueImporterTests
         var session = new EsDeImportSession(_root);
         var accepted = session.Import();
         Gamelist("<game><path>broken");
-        Assert.ThrowsExactly<XmlException>(() => session.Import());
+        Assert.ThrowsExactly<EsDeXmlReadException>(() => session.Import());
         Assert.AreSame(accepted, session.Current);
     }
 
@@ -106,10 +106,17 @@ public sealed class EsDeCatalogueImporterTests
     public void XmlMalformedAndDtdAreRejected()
     {
         Gamelist("<game><path>broken");
-        Assert.ThrowsExactly<XmlException>(() => EsDeCatalogueImporter.Read(_root));
+        var malformed = Assert.ThrowsExactly<EsDeXmlReadException>(() => EsDeCatalogueImporter.Read(_root));
+        Assert.AreEqual("gba", malformed.Platform);
+        Assert.IsTrue(malformed.InnerException is XmlException);
+        Assert.IsTrue(malformed.LineNumber > 0);
+        Assert.IsFalse(EsDeDiagnosticPresentation.ImportFailure(malformed).Contains(_root, StringComparison.Ordinal));
+
         Put("MEDIAS/gba/metadata/es-de-gamelist.xml",
             "<!DOCTYPE gameList [<!ENTITY e SYSTEM 'file:///secret'>]><gameList/>");
-        Assert.ThrowsExactly<XmlException>(() => EsDeCatalogueImporter.Read(_root));
+        var dtd = Assert.ThrowsExactly<EsDeXmlReadException>(() => EsDeCatalogueImporter.Read(_root));
+        Assert.AreEqual("gba", dtd.Platform);
+        Assert.IsTrue(dtd.InnerException is XmlException);
     }
 
     [TestMethod]
@@ -291,6 +298,225 @@ public sealed class EsDeCatalogueImporterTests
         }
         Assert.IsFalse(session.TryOpenMedia(cover, out var stream));
         Assert.IsNull(stream);
+    }
+
+
+    [TestMethod]
+    public void Next04MetadataIsOptionalStableAndFingerprintReflectsEdits()
+    {
+        Put("ROMS/gba/Exemple.gba");
+        var xml = Put("MEDIAS/gba/metadata/es-de-gamelist.xml",
+            "<gameList><game><path>./Exemple.gba</path><name>École &amp; rêves</name>" +
+            "<desc>Un &amp; deux</desc><genre>Action / RPG</genre>" +
+            "<developer>Équipe &amp; Co</developer>" +
+            "<releasedate>19951221T000000</releasedate></game></gameList>");
+        var originalBytes = SHA256.HashData(File.ReadAllBytes(xml));
+        var session = new EsDeImportSession(_root);
+        var first = session.Import();
+        var game = first.Games.Single();
+        Assert.AreEqual("École & rêves", game.Title);
+        Assert.AreEqual("Un & deux", game.Description);
+        Assert.AreEqual("Action / RPG", game.Genre);
+        Assert.AreEqual("Équipe & Co", game.Developer);
+        Assert.AreEqual("19951221T000000", game.ReleaseDate);
+        Assert.AreEqual("ES_DE_READ_ONLY", first.SourceKind);
+        CollectionAssert.AreEqual(originalBytes, SHA256.HashData(File.ReadAllBytes(xml)));
+        var again = session.Import();
+        Assert.AreEqual(first.LibraryId, again.LibraryId);
+        Assert.AreEqual(game.GameId, again.Games.Single().GameId);
+        Assert.AreEqual(first.ContentFingerprint, again.ContentFingerprint);
+
+        Gamelist("<game><path>./Exemple.gba</path><name>École &amp; rêves</name>" +
+            "<desc>Un &amp; deux</desc><genre>Stratégie</genre>" +
+            "<developer>Équipe &amp; Co</developer><releasedate>19951221T000000</releasedate></game>");
+        var edited = session.Import();
+        Assert.AreEqual(first.LibraryId, edited.LibraryId);
+        Assert.AreEqual(game.GameId, edited.Games.Single().GameId);
+        Assert.AreEqual("Stratégie", edited.Games.Single().Genre);
+        Assert.AreNotEqual(first.ContentFingerprint, edited.ContentFingerprint);
+    }
+
+    [TestMethod]
+    public void Next04AbsentAndMalformedOptionalMetadataNeverInventsValuesOrDropsGame()
+    {
+        Put("ROMS/gba/Safe.gba");
+        Gamelist("<game><path>./Safe.gba</path><name>Sans métadonnées</name></game>");
+        var legacy = EsDeCatalogueImporter.Read(_root);
+        Assert.IsNull(legacy.Games.Single().Genre);
+        Assert.IsNull(legacy.Games.Single().Developer);
+        Assert.IsNull(legacy.Games.Single().ReleaseDate);
+        Assert.IsFalse(legacy.Diagnostics.Any(d => d.Code is "METADATA_FIELD_INVALID" or "RELEASE_DATE_UNSUPPORTED"));
+
+        Gamelist("<game><path>./Safe.gba</path><name>Sans métadonnées</name>" +
+            "<genre> </genre><developer>A</developer><developer>B</developer>" +
+            "<releasedate>20250230T000000</releasedate></game>");
+        var after = EsDeCatalogueImporter.Read(_root);
+        Assert.AreEqual(1, after.Games.Count);
+        Assert.AreEqual(legacy.Games.Single().GameId, after.Games.Single().GameId);
+        Assert.AreEqual("Sans métadonnées", after.Games.Single().Title);
+        Assert.IsNull(after.Games.Single().Genre);
+        Assert.IsNull(after.Games.Single().Developer);
+        Assert.IsNull(after.Games.Single().ReleaseDate);
+        Assert.AreEqual(1, after.Diagnostics.Count(d => d.Code == "METADATA_FIELD_INVALID"));
+        Assert.AreEqual(1, after.Diagnostics.Count(d => d.Code == "RELEASE_DATE_UNSUPPORTED"));
+    }
+
+    [TestMethod]
+    public void Next04XmlUtf16BomAndCharactersAreParsedWithoutLocaleDependence()
+    {
+        Put("ROMS/gba/Safe.gba");
+        var xml = Path.Combine(_root, "MEDIAS", "gba", "metadata", "es-de-gamelist.xml");
+        var content = "<?xml version=\"1.0\" encoding=\"utf-16\"?>" +
+            "<gameList><game><path>./Safe.gba</path>" +
+            "<name>Étoile &amp; Cœur 🎮</name><genre>Rôle</genre>" +
+            "<releasedate>2000-02-29</releasedate></game></gameList>";
+        var bytes = Encoding.Unicode.GetPreamble()
+            .Concat(Encoding.Unicode.GetBytes(content)).ToArray();
+        File.WriteAllBytes(xml, bytes);
+        var original = SHA256.HashData(File.ReadAllBytes(xml));
+        var imported = EsDeCatalogueImporter.Read(_root);
+        var game = imported.Games.Single();
+        Assert.AreEqual("Étoile & Cœur 🎮", game.Title);
+        Assert.AreEqual("Rôle", game.Genre);
+        Assert.AreEqual("2000-02-29", game.ReleaseDate);
+        CollectionAssert.AreEqual(original, SHA256.HashData(File.ReadAllBytes(xml)));
+    }
+
+    [TestMethod]
+    public void Next04WellFormedButUnsupportedRootIsNotCalledMalformedXml()
+    {
+        Put("ROMS/gba/Safe.gba");
+        Gamelist("<game><path>./Safe.gba</path></game>");
+        var session = new EsDeImportSession(_root);
+        var previous = session.Import();
+        Put("MEDIAS/gba/metadata/es-de-gamelist.xml",
+            "<otherList><game><path>./Safe.gba</path></game></otherList>");
+        var unsupported = Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
+        Assert.AreSame(previous, session.Current);
+        var displayed = EsDeDiagnosticPresentation.ImportFailure(unsupported);
+        Assert.IsTrue(displayed.Contains("structure", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(displayed.Contains(_root, StringComparison.Ordinal));
+    }
+
+
+    [TestMethod]
+    public void ModernEsDeGamelistsImportsDeclaredMediaOnlyAndKeepsLegacyGameIdentity()
+    {
+        Put("ROMS/gba/Prepared.gba", "synthetic bytes");
+        var declared = Put("ES-DE/downloaded_media/gba/covers/Prepared.png", "fake PNG");
+        Put("ES-DE/downloaded_media/gba/covers/NotDeclared.png", "not referenced");
+        var modernXml = Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./Prepared.gba</path><name>Prepared</name>" +
+            "<genre>Adventure</genre><developer>Studio A</developer>" +
+            "<releasedate>20010304T000000</releasedate>" +
+            "<image>../../downloaded_media/gba/covers/Prepared.png</image>" +
+            "</game></gameList>");
+        var beforeHash = SHA256.HashData(File.ReadAllBytes(modernXml));
+        var session = new EsDeImportSession(_root);
+        var imported = session.Import();
+        var game = imported.Games.Single();
+        Assert.AreEqual("Prepared", game.Title);
+        Assert.AreEqual("Adventure", game.Genre);
+        Assert.AreEqual("Studio A", game.Developer);
+        Assert.AreEqual("20010304T000000", game.ReleaseDate);
+        Assert.IsTrue(game.RomExists);
+        Assert.AreEqual(1, game.Media.Count);
+        Assert.AreEqual("ES-DE/downloaded_media/gba/covers/Prepared.png",
+            game.Media.Single().RelativePath);
+        Assert.IsTrue(session.TryOpenMedia(game.Media.Single(), out var media));
+        using (media)
+        {
+            Assert.IsNotNull(media);
+            Assert.IsTrue(media!.CanRead);
+            Assert.IsFalse(media.CanWrite);
+        }
+        CollectionAssert.AreEqual(beforeHash, SHA256.HashData(File.ReadAllBytes(modernXml)));
+        Assert.AreEqual("fake PNG", File.ReadAllText(declared));
+        var unchanged = session.Import();
+        Assert.AreEqual(imported.ContentFingerprint, unchanged.ContentFingerprint);
+        Assert.AreEqual(imported.LibraryId, unchanged.LibraryId);
+        Assert.AreEqual(game.GameId, unchanged.Games.Single().GameId);
+    }
+
+    [TestMethod]
+    public void ModernEsDeGamelistCompetesWithHistoricalSourceAndPreservesCurrent()
+    {
+        Put("ROMS/gba/A.gba");
+        Gamelist("<game><path>./A.gba</path><name>A</name></game>");
+        var session = new EsDeImportSession(_root);
+        var previous = session.Import();
+        Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./A.gba</path><name>A</name></game></gameList>");
+        var error = Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
+        StringAssert.Contains(error.Message, "Ambiguous ES-DE source");
+        Assert.AreSame(previous, session.Current);
+        Assert.IsTrue(EsDeDiagnosticPresentation.ImportFailure(error)
+            .Contains("concurrentes", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void ModernEsDeGamelistRejectsMediaEscapeEvenWhenFileIsMissing()
+    {
+        Put("ROMS/gba/Prepared.gba");
+        Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./Prepared.gba</path>" +
+            "<image>../../../outside.png</image></game></gameList>");
+        var error = Assert.ThrowsExactly<InvalidDataException>(() => EsDeCatalogueImporter.Read(_root));
+        StringAssert.Contains(error.Message, "escapes its explicitly authorized root");
+    }
+
+
+    [TestMethod]
+    public void ModernEsDeMediaCannotReadOtherEsDeConfigurationDirectories()
+    {
+        Put("ROMS/gba/Prepared.gba");
+        Put("ES-DE/settings/config.xml", "private configuration placeholder");
+        Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./Prepared.gba</path>" +
+            "<image>../../settings/config.xml</image></game></gameList>");
+        var rejected = Assert.ThrowsExactly<InvalidDataException>(() =>
+            EsDeCatalogueImporter.Read(_root));
+        StringAssert.Contains(rejected.Message, "escapes its explicitly authorized root");
+    }
+
+    [TestMethod]
+    public void Next04MetadataKeepsHistoricalNinePartRecordDeconstruction()
+    {
+        Put("ROMS/gba/Prepared.gba");
+        Gamelist("<game><path>./Prepared.gba</path>" +
+            "<genre>Aventure</genre><developer>Studio</developer>" +
+            "<releasedate>20000101T000000</releasedate></game>");
+        var game = EsDeCatalogueImporter.Read(_root).Games.Single();
+        var (id, variant, platform, title, relative, exists, description, media, discs) = game;
+        Assert.AreEqual(game.GameId, id);
+        Assert.AreEqual(game.VariantId, variant);
+        Assert.AreEqual("gba", platform);
+        Assert.IsTrue(exists);
+        Assert.IsTrue(relative.EndsWith("/Prepared.gba", StringComparison.Ordinal));
+        Assert.AreEqual("Aventure", game.Genre);
+        Assert.AreEqual("Studio", game.Developer);
+        Assert.AreEqual("20000101T000000", game.ReleaseDate);
+        Assert.IsNotNull(title);
+        Assert.IsNull(description);
+        Assert.AreEqual(0, media.Count);
+        Assert.AreEqual(0, discs.Count);
+    }
+
+    [TestMethod]
+    public void ModernEsDeXmlFailureHasBoundedSourceContextButNoPrivatePath()
+    {
+        Put("ROMS/gba/Prepared.gba");
+        var local = Put("ES-DE/gamelists/gba/gamelist.xml",
+            "<gameList><game><path>./Prepared.gba</path><name>Unclosed");
+        var err = Assert.ThrowsExactly<EsDeXmlReadException>(() => EsDeCatalogueImporter.Read(_root));
+        Assert.AreEqual("gba", err.Platform);
+        Assert.AreEqual("ESDE_GAMELISTS", err.SourceConvention);
+        Assert.IsTrue(err.LineNumber > 0);
+        var message = EsDeDiagnosticPresentation.ImportFailure(err);
+        StringAssert.Contains(message, "ESDE_GAMELISTS");
+        Assert.IsFalse(message.Contains(_root, StringComparison.Ordinal));
+        Assert.IsFalse(message.Contains(local, StringComparison.Ordinal));
+        Assert.IsFalse(message.Contains("Unclosed", StringComparison.Ordinal));
     }
 
     [TestMethod]

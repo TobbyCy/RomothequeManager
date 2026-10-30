@@ -1,0 +1,120 @@
+name: NEXT-04 / Native Windows ES-DE import engine proof
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'src/RomothequeManager.V2/EsDeCatalogueImporter.cs'
+      - 'src/RomothequeManager.V2/Next04ImportEngineHarness.cs'
+      - 'src/RomothequeManager.V2/Program.cs'
+      - 'tests/dotnet/RomothequeManager.V2.Tests/EsDeImportHardeningTests.cs'
+      - '.github/workflows/next04-import-hardening.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/RomothequeManager.V2/EsDeCatalogueImporter.cs'
+      - 'src/RomothequeManager.V2/Next04ImportEngineHarness.cs'
+      - '.github/workflows/next04-import-hardening.yml'
+permissions:
+  contents: read
+concurrency:
+  group: next04-engine-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-engine:
+    name: Windows native engine, synthetic-only
+    runs-on: windows-2022
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact revision without credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Record exact checkout SHA
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne '${{ github.sha }}') { throw 'N04_ENGINE_CHECKOUT_SHA_MISMATCH' }
+          Write-Host 'N04_ENGINE_EXACT_SOURCE_PASS sha=${{ github.sha }}'
+      - name: Setup pinned .NET SDK 10.0.401
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Generate and verify DEMO-01 only in runner temp
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $parent = Join-Path $env:RUNNER_TEMP ('rm-next04-import-engine-' + [Guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $parent | Out-Null
+          $output = Join-Path $parent 'demo'
+          node tools/demo-library/generate.cjs --output $output
+          if ($LASTEXITCODE -ne 0) { throw 'N04_ENGINE_GENERATE_FAILED' }
+          node tools/demo-library/generate.cjs --verify $output
+          if ($LASTEXITCODE -ne 0) { throw 'N04_ENGINE_VERIFY_FAILED' }
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value ('RM_ESDE_NATIVE_FIXTURE_ROOT=' + $output)
+          Write-Host 'N04_ENGINE_SYNTHETIC_FIXTURES_PASS variants=IDEAL,CHAOS,MYSTERY'
+      - name: Locked restore and native Windows MSTest import suites
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          if ((dotnet --version).Trim() -cne '10.0.401') { throw 'N04_ENGINE_WRONG_SDK' }
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'N04_ENGINE_RESTORE_FAILED' }
+          dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true --filter 'FullyQualifiedName~EsDe' --logger 'console;verbosity=normal'
+          if ($LASTEXITCODE -ne 0) { throw 'N04_ENGINE_TESTS_FAILED' }
+          Write-Host 'N04_ENGINE_WINDOWS_MSTEST_PASS'
+      - name: Build native Windows app with temporary import-engine harness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'N04_ENGINE_APP_RESTORE_FAILED' }
+          $out = Join-Path $env:RUNNER_TEMP 'n04-engine-ci-only'
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:DefineConstants=NEXT04_IMPORT_CI -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $out
+          if ($LASTEXITCODE -ne 0) { throw 'N04_ENGINE_CI_PUBLISH_FAILED' }
+          if (-not (Test-Path -LiteralPath (Join-Path $out 'RomothequeManager.V2.exe'))) { throw 'N04_ENGINE_EXE_MISSING' }
+      - name: Execute actual Windows EXE, enforce fixture integrity and log measured performance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:RM_NEXT04_IMPORT_TEST_ONLY = '1'
+          $exe = Join-Path $env:RUNNER_TEMP 'n04-engine-ci-only/RomothequeManager.V2.exe'
+          $p = [Diagnostics.ProcessStartInfo]::new()
+          $p.FileName = $exe
+          $p.WorkingDirectory = Split-Path $exe
+          $p.ArgumentList.Add('--ci-next04-import-engine')
+          $p.ArgumentList.Add($env:RM_ESDE_NATIVE_FIXTURE_ROOT)
+          $p.UseShellExecute = $false
+          $p.RedirectStandardOutput = $true
+          $p.RedirectStandardError = $true
+          $process = [Diagnostics.Process]::Start($p)
+          if ($null -eq $process) { throw 'N04_ENGINE_NATIVE_START_FAILED' }
+          try {
+            if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'N04_ENGINE_NATIVE_TIMEOUT' }
+            $output = $process.StandardOutput.ReadToEnd()
+            $errors = $process.StandardError.ReadToEnd()
+            if ($process.ExitCode -ne 0) { throw ('N04_ENGINE_NATIVE_EXIT_' + $process.ExitCode + ':' + $errors) }
+            if (-not $output.Contains('NEXT04_IMPORT_ENGINE_NATIVE_PASS') -or
+                -not $output.Contains('NEXT04_ENGINE_PERF_SYNTHETIC count=2000')) { throw 'N04_ENGINE_NATIVE_PROOF_MISSING' }
+            Write-Host $output
+          } finally { $process.Dispose() }
+          node tools/demo-library/generate.cjs --verify $env:RM_ESDE_NATIVE_FIXTURE_ROOT
+          if ($LASTEXITCODE -ne 0) { throw 'N04_ENGINE_MUTATED_SOURCE' }
+          Write-Host 'N04_ENGINE_NATIVE_WINDOWS_PASS sourceIntact=1'
+      - name: Build normal product without test-only engine entrypoint
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet clean $app -c Release -r win-x64
+          if ($LASTEXITCODE -ne 0) { throw 'N04_ENGINE_CLEAN_FAILED' }
+          $out = Join-Path $env:RUNNER_TEMP 'n04-engine-normal-product'
+          dotnet publish $app -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $out
+          if ($LASTEXITCODE -ne 0) { throw 'N04_ENGINE_NORMAL_PUBLISH_FAILED' }
+          foreach ($filename in @('RomothequeManager.V2.exe','hostfxr.dll','RM_V2_Favicon.ico','RM_V2_Horizontal_Fond_Sombre.png')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $out $filename))) { throw ('N04_ENGINE_NORMAL_ASSET_MISSING:' + $filename) }
+          }
+          Write-Host 'N04_ENGINE_NORMAL_EXE_NO_CI_HARNESS_PASS noRelease=1'

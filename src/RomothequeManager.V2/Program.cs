@@ -11,6 +11,26 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+#if NEXT04_IMPORT_CI
+        // The native import proof is compiled only into an isolated CI executable.
+        // A normal Windows portable build contains no such entrypoint.
+        if (args.Length == 2 && args[0] == "--ci-next04-import-engine")
+        {
+            try
+            {
+                Environment.ExitCode = Next04ImportEngineHarness.Run(args[1]);
+            }
+            catch (Exception error)
+            {
+                Environment.ExitCode = 43;
+                // Only the type/code: never print a selected root or XML text.
+                Console.Error.WriteLine("NEXT04_IMPORT_ENGINE_NATIVE_FAIL " +
+                    error.GetType().Name + " " +
+                    (error is InvalidDataException ? error.Message : "IMPORT_ENGINE_ERROR"));
+            }
+            return;
+        }
+#endif
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
             Args = args
@@ -69,6 +89,15 @@ internal static class Program
             var at = Array.IndexOf(args, "--ci-next03-real-gui");
             if (at + 1 >= args.Length) throw new InvalidOperationException("NEXT03_CI_ROOT_REQUIRED");
             Next03RealGuiHarness.Configure(window, args[at + 1]);
+        }
+#endif
+#if NEXT04_CI
+        if (args.Contains("--ci-next04-esde-capture", StringComparer.Ordinal))
+        {
+            var index = Array.IndexOf(args, "--ci-next04-esde-capture");
+            if (index + 1 >= args.Length)
+                throw new InvalidOperationException("NEXT04_CI_ROOT_REQUIRED");
+            Next04Capture.Configure(window, args[index + 1]);
         }
 #endif
         if (args.Contains("--smoke-window", StringComparer.Ordinal))

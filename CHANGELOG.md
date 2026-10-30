@@ -1,5 +1,43 @@
 # Journal des changements
 
+## NEXT-04 / USAGE-01 — essai Windows autonome, preuve humaine en attente (Produit #97)
+
+- Deux ZIP distincts dans l'artefact temporaire CI : application Windows autonome et démo ES-DE déjà générée (IDEAL, CHAOS, MYSTERY, MALFORMED, LONG 155 jeux fictifs), sans Node.js ni sources à préparer sur le PC du testeur.
+- DEMO-FICTIVE vérifiée avant upload et après extraction, avec SHA ZIP, manifestes SHA-256 par fichier, hash générateur/contrats, notices et consignes. Aucune ROM ou jaquette réelle.
+- Le vrai picker, le vrai dialogue de confirmation et le moteur ES-DE restent inchangés. HUM-01..10 à effectuer par un humain ; `USER_VALUE_PROVEN = HOLD` jusqu'à preuve, aucune Release.
+
+
+## NEXT-04 / IMPORT-HARDENING — moteur ES-DE + test Windows natif (PR Draft)
+
+- Lecture XML bornée à 8 Mio pendant la lecture, DTD/ressources externes interdites ; `.m3u` plafonnés à 64 Kio et 256 lignes, BOM Unicode conservés, refus fail-closed, dernier `Current` préservé.
+- Confinement des chemins adapté à l'OS et refus des collisions d'identité/plateforme sous Windows (sans effacer de source).
+- Tests adversariaux fictifs, mesure de 2 000 références et workflow Windows natif du binaire CI-only, variantes IDEAL/CHAOS/MYSTERY et vérification d'intégrité ; aucun scan réel, réseau, Release ni nouveau package.
+- Commentaires XML C# sur les contrats de l'importeur ; pilote DOC-TECH-02 #89 séparé, toujours HOLD.
+
+
+## NEXT-04 — UX & BRANDING HARDENING (PR #93, recette en cours)
+
+- Logo officiel inchangé (PNG 1960×576, ICO multitailles) : présentation centrée 228×67 DIP, barre latérale 264 DIP, interpolation haute qualité et contrôles de packaging PNG/ICO/EXE.
+- Dashboard avec indicateurs à provenance explicite, zone principale bornée ; Collection et fiches plus lisibles, affichage adaptatif jaquette/métadonnées, panneaux Diagnostics et Bibliothèques réorganisés.
+- Import ES-DE : clarification du dossier racine, confirmation explicite, progression sans pourcentage inventé, diagnostics en sections ; pas de scan global, scraping, écriture ou catalogue persistant.
+- Recette GUI étendue à 13 captures, dont 125/200 % **simulés** en rendu Avalonia ; comparatif avec captures du lot antérieur, sans revendiquer une validation humaine du DPI ni de l'ultralarge physique. Images privées de conception jamais copiées.
+- API internes de présentation et matrice de références dans `docs/ux/next04-hardening-ux-branding.md` ; aucun changement du contrat moteur ES-DE/NEXT-03. **CI et recette sur HEAD final à valider**, revue DEV 2 puis décision Contrôleur, pas de Release.
+
+
+## NEXT-04 / ESDE-REAL-IMPORT-01 — diagnostics et métadonnées de l'import (29.10.2026, PR Draft)
+
+- Le parseur ES-DE unique différencie les refus du lecteur XML (syntaxe, encodage, DTD interdite) des XML valides mais non pris en charge, sans publier de chemin personnel. Retour utilisateur avec système et ligne/colonne si disponible ; validation réelle de la ROMothèque propriétaire encore non exécutée.
+- Projection de `genre`, `developer` et `releasedate` optionnels, compatibilité des anciens constructeurs, empreinte sensible aux métadonnées, garde lecture seule et conservation du dernier import valide. Tests exclusivement synthétiques ; aucune recherche implicite, aucun moteur NEXT-03 ni nouvelle dépendance.
+- Compatibilité bornée avec `ES-DE/gamelists/<système>/gamelist.xml` **dans la racine explicitement choisie**, sans découverte globale ni association automatique de médias. Trois sources possibles par système : refus de toute concurrence, chemins confinés et convention d'origine affichée localement en cas d'échec de lecture.
+- Le backend #92 a été fusionné dans `main` par le Contrôleur le 29.10.2026 ; l'interface reste traitée séparément par DEV 3 #93. Aucune Release.
+
+## NEXT-04 — DEV 3 / ES-DE UX alpha (PR Draft, 29.10.2026)
+
+- Parcours systèmes → jeux ES-DE → fiches, recherche et pagination limitées à la plateforme réellement référencée dans le XML ; mode démo et moteur NEXT-03 inchangés. Retour fiche avec contexte de recherche, page, système et défilement conservé.
+- Cartes Collection responsive (1/2/3 colonnes) et zone de contenu bornée pour grands écrans ; interpolation de qualité uniquement sur le logo officiel inchangé. Consentement spécifique à l'import ES-DE, réimport sans retour forcé au Dashboard et messages de limites sur la session en mémoire.
+- Raccordement de la fiche aux métadonnées optionnelles `Genre`, `Developer`, `ReleaseDate` du parseur #92 : « Non renseigné » si absent, sans confondre développeur et éditeur. Le backend #92 a été fusionné dans `main` par le Contrôleur et synchronisé dans la branche #93, avec importeur et tests inchangés octet pour octet. #93 reste Draft non fusionnée dans `main`. Aperçu NEXT-03 (simulation) accessible depuis Bibliothèques, scan personnel toujours bloqué.
+- Recette Windows sur fixtures synthétiques : 147 tests .NET PASS, 11 captures Avalonia, Collection profonde (155 éléments), page 2, scroll 490, métadonnées et contexte réimport/erreur XML vérifiés sur l'arbre UI combiné. Synchronisation de la branche sur `main` effectuée ; contrôles du SHA final à vérifier avant contre-revue. Aucun index persistant, scan personnel ni Release.
+
 ## NEXT-03 — Raccordement GUI canonique limité aux fixtures (29.10.2026, PR #86 Draft)
 
 - Le même InventoryViewModel / XAML sert le mode historique SIMULATION et un mode de recette Windows du véritable service #85 (uniquement sous binaire `NEXT03_CI`), avec titres/provenances différenciés, confirmation, observations, annulation, couverture et diagnostics. Aucun second moteur, aucun changement backend.
