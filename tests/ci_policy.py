@@ -467,6 +467,27 @@ def documents(root, plan):
     require(all(path in entries for path in VISUAL67_ASSETS), "VISUAL67_ASSETS_REQUIRED")
     rules, static = path_rules(root)
     verify_public_ci_guard(root)
+    # A new Windows import harness must remain synthetic-only, least-privilege,
+    # exact-SDK and non-distributable. This does not change the Adaptive gate.
+    engine = (root / ".github/workflows/next04-import-hardening.yml").read_text(encoding="utf-8")
+    require("on:\n  pull_request:\n    branches: [main]\n" in engine and
+            "  push:\n    branches: [main]\n" in engine and
+            "permissions:\n  contents: read\n" in engine and
+            "runs-on: windows-2022" in engine and
+            "dotnet-version: '10.0.401'" in engine and
+            "NEXT04_IMPORT_CI" in engine and
+            "RM_NEXT04_IMPORT_TEST_ONLY" in engine and
+            "node tools/demo-library/generate.cjs --verify" in engine and
+            "persist-credentials: false" in engine and
+            "dotnet restore $test --locked-mode" in engine,
+            "NEXT04_IMPORT_NATIVE_WORKFLOW_CONTRACT")
+    for unsafe in ("pull_request_target:", "workflow_run:", "repository_dispatch:",
+                   "contents: write", "actions/upload-artifact@", "gh release",
+                   "secrets.", "curl ", "Invoke-WebRequest"):
+        require(unsafe not in engine, "NEXT04_IMPORT_WORKFLOW_UNSAFE:" + unsafe)
+    require(re.search(r"uses: actions/checkout@[0-9a-f]{40}", engine) is not None and
+            re.search(r"uses: actions/setup-dotnet@[0-9a-f]{40}", engine) is not None,
+            "NEXT04_IMPORT_WORKFLOW_UNPINNED")
     # Narrow, fail-closed DEV 3 synthetic capture: no Release or broad artifact permissions.
     libux = (root / ".github/workflows/library-ux02-proof.yml").read_text(encoding="utf-8")
     require("branches: [dev3/library-ux-02]" in libux and
@@ -481,6 +502,24 @@ def documents(root, plan):
     for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
                    "gh release", "secrets.", "continue-on-error:"):
         require(unsafe not in libux, "LIBRARY_UX02_WORKFLOW_UNSAFE:" + unsafe)
+    # NEXT-04 native UX proof is branch-specific, synthetic-only and cannot publish a release.
+    next04 = (root / ".github/workflows/next04-ux-proof.yml").read_text(encoding="utf-8")
+    require("branches: [dev3/next04-esde-ux]" in next04 and
+            "github.actor == 'TobbyCy'" in next04 and
+            "permissions:\n  contents: read" in next04 and
+            "if-no-files-found: error" in next04 and
+            "retention-days: 3" in next04 and
+            next04.count("actions/upload-artifact@") == 1 and
+            "NEXT04_GUI_WINDOWS_CAPTURE_PASS" in next04 and
+            "NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS" in next04 and
+            "NEXT04_ZIP_VERIFIED_PASS" in next04 and
+            "NEXT04_DEMO_ZIP_VERIFIED_PASS" in next04 and
+            "SOURCE-AND-HASHES.json" in next04 and
+            "requiresNodeForUser=false" in next04,
+            "NEXT04_UX_WORKFLOW_GUARDS")
+    for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
+                   "gh release", "secrets.", "continue-on-error:"):
+        require(unsafe not in next04, "NEXT04_UX_WORKFLOW_UNSAFE:" + unsafe)
     visual_workflow = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
     require("branches: [dev3/visual-poc-01]" in visual_workflow and
             "github.actor == 'TobbyCy'" in visual_workflow and
