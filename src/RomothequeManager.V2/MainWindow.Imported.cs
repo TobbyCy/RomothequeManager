@@ -293,6 +293,19 @@ public sealed partial class MainWindow
             !text.Contains("6 jeux fictifs", StringComparison.Ordinal);
     }
 
+    public bool CiNext041WideCollectionAligned()
+    {
+        if (!_importedUi.IsImported || ActiveView != POCView.Collection || _importedList is null)
+            return false;
+        var grid = _importedList.Children.OfType<Grid>().SingleOrDefault();
+        if (grid is null || grid.ColumnDefinitions.Count != 3 ||
+            grid.Children.Count != _importedUi.PageGames.Count)
+            return false;
+        var widths = grid.Children.OfType<Border>().Select(card => card.Bounds.Width).ToArray();
+        return widths.Length > 0 && widths.All(width => width > 200) &&
+            widths.Max() - widths.Min() < 2;
+    }
+
     public bool CiNext041EmptyCollectionAndDemoOptIn()
     {
         Navigate(POCView.Collection);

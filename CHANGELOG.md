@@ -4,7 +4,7 @@
 
 - Mode `NoCatalog` par défaut : aucun jeu fictif visible, accueil ES-DE explicite avec trois étapes, navigation vide et avertissement sur l'absence de persistance. Démo uniquement après action explicite ; fixtures et tests de démonstration préservés.
 - Collection importée : grille à colonnes égales et cartes étirées jusqu'au même bord que filtres/résultats, boutons « Ouvrir la fiche » de largeur uniforme sans calculs marginaux de carte.
-- Recette native Windows étendue à 16 captures, dont accueil normal/compact et navigation vide. Import moteur strict et protections XML inchangés ; aucun scan personnel, aucune Release.
+- Recette native Windows étendue à 18 captures, dont accueil normal/compact, navigation vide, grille ultralarge et rendu DPI 150 % simulé. Import moteur strict et protections XML inchangés ; aucun scan personnel, aucune Release.
 
 ## PACKAGING-101 — candidat portable single-file (30 octobre 2026, Issue #101)
 

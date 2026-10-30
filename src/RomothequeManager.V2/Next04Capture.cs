@@ -76,6 +76,13 @@ internal static class Next04Capture
                 if (!window.CiNext04FirstSystem())
                     throw new InvalidDataException("NEXT04_SYSTEM_NAVIGATION_FAILED");
                 Capture("IDEAL-System-Collection-1120x720", 1120, 720);
+                Capture("NEXT041-System-Collection-Ultrawide-2200x900", 2200, 900);
+                if (!window.CiNext041WideCollectionAligned())
+                    throw new InvalidDataException("NEXT041_COLLECTION_GRID_ALIGNMENT_ULTRAWIDE_FAILED");
+                Capture("NEXT041-System-Collection-DPI150-2880x1800", 1920, 1200, 1.5);
+                if (!window.CiNext041WideCollectionAligned())
+                    throw new InvalidDataException("NEXT041_COLLECTION_GRID_ALIGNMENT_DPI150_FAILED");
+                Console.WriteLine("NEXT041_COLLECTION_GRID_PASS columns=3 widths=equal dpi_render=150_simulated");
                 if (!window.CiNext04OpenFirst())
                     throw new InvalidDataException("NEXT04_GAME_NAVIGATION_FAILED");
                 Capture("IDEAL-GameDetail-1120x720", 1120, 720);
