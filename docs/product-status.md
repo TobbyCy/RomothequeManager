@@ -1,5 +1,9 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / PERSIST-01 — backend SQLite synthétique
+
+Périmètre autorisé : une seule PR DEV 1 sur fixtures (`ICatalogStore`), distincte de la PR Avalonia DEV 3 #110. Schéma minimal SQLite avec UUID durables, chemins relatifs, CurrentComplete et LastAttempt transactionnels, claims sourcées et décisions manuelles exclusivement explicites. `LoadLastKnown` renvoie la mémoire historique Offline/Stale sans ouvrir ROMS/MEDIAS, ni ES-DE, ni réseau. Backup avec API SQLite + integrity_check, migration v1→v2 et journal DELETE sont proposés à la revue, sans allégation de durabilité USB/SSD physique non testée. Le constructeur public de stockage reste fail-closed : aucun catalogue personnel ouvert. Tests PERS-01…08, preuve native/packaging Windows, SHA et revue indépendante **en cours** ; aucune fusion ni Release autorisée.
+
 ## NEXT-06 — Moteur médias → présentation, backend en revue
 
 Le backend propose `MediaPresentationService` (projection pure de #107, preuves de référence distinctes des choix de jaquette) et `MediaPreviewService` (PNG/JPEG avec garde publique `REAL_MEDIA_PREVIEW_HOLD`, résolution de fichiers uniquement depuis un root temporaire `internal`), sans modifier l'UI ni exiger ES-DE. Budget explicite avant décodage, résultat RGBA à détruire, annulation et changement de génération testés sur fixtures. SkiaSharp 3.119.4 est déjà livré par Avalonia ; l'allocation native interne et la sécurité TOCTOU SSD physique restent NON PROUVÉES et HOLD avant un accès personnel. Le rendu Windows de médias sera une PR DEV 3 distincte après acceptation du backend ; aucune association n'est approuvée automatiquement. Tests MU/CI à confirmer sur HEAD exact, aucun GO de fusion ou Release.
