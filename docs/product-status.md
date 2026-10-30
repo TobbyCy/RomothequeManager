@@ -1,5 +1,9 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05-1 — Projection backend des fichiers observés, en revue
+
+`InventoryObservationProjection.GetPage(InventorySnapshot, InventoryObservationFilter)` présente les `FileObservation` inchangées avec un nom de fichier provisoire, filtres et pages. Identités scan/session distinctes des futurs IDs durables de SQLite et de `GameId`. MYSTERY sans XML reste consultable. État, couverture et diagnostics de l'inventaire initial ne sont jamais transformés en compte de jeux ou suppression. La protection de scan personnel de `InventoryApplicationService()` reste en place ; tests N05-A..J uniquement sur fixtures temporaires inventées. Aucun média autonome, SQLite, XML, scan personnel ou scraper implémenté dans cette PR. Tests et CI à contrôler au HEAD exact ; DEV 2 et Contrôleur doivent réceptionner. DocFX fera l'objet d'une preuve ultérieure.
+
 ## NEXT-04.1 / UX P2 — Finitions de présentation (30 octobre 2026)
 
 Lot DEV 3 isolé à partir de `main=6445f537` : présentation française des dates de sortie avec origine ES-DE lisible, synthèse des diagnostics par code/fréquence tout en conservant les détails et la pagination, signalisation claire des actions d'import désactivées et export non interactif. Aucun accès supplémentaire aux ROMs ni changement du parseur XML. Recette Windows, SDK autonome et CI Adaptive à vérifier sur SHA final. Tests DPI/SSD physiques et nouvelle recette humaine non revendiqués.
