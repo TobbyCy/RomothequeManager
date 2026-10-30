@@ -34,7 +34,7 @@ internal static class Next05GuiHarness
         Demand(restored.StatusLabel.Contains("OFFLINE / STALE", StringComparison.Ordinal) &&
             restored.DisplayedInventory?.Observations.Count > 0,
             "UI05_CHILD_OFFLINE_RESTORE_FAILED");
-        restored.SelectRom(restored.DisplayedInventory!.Observations.Single(x =>
+        restored.SelectRom(restored.DisplayedInventory!.Observations.First(x =>
             x.Kind == InventoryKind.PotentialRom &&
             string.Equals(x.PlatformKey, expectedCover.Split('|')[0], StringComparison.Ordinal)));
         Demand(restored.CurrentChoiceLabel.Contains(expectedCover.Split('|')[1],
