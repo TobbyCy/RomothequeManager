@@ -523,6 +523,22 @@ def documents(root, plan):
     for unsafe in ("pull_request_target:", "workflow_run:", "contents: write",
                    "gh release", "secrets.", "continue-on-error:"):
         require(unsafe not in next04, "NEXT04_UX_WORKFLOW_UNSAFE:" + unsafe)
+    n05 = (root / ".github/workflows/next05-avalonia-proof.yml").read_text(encoding="utf-8")
+    require("branches: [dev3/next05-avalonia-mvvm]" in n05 and
+            "github.ref == 'refs/heads/dev3/next05-avalonia-mvvm'" in n05 and
+            "github.actor == 'TobbyCy'" in n05 and
+            "permissions:\n  contents: read" in n05 and
+            "persist-credentials: false" in n05 and
+            "N05_GUI_WINDOWS_CAPTURE_PASS" in n05 and
+            "N05_STANDARD_WITHOUT_CI_PERMISSION_PASS" in n05 and
+            "N05_PORTABLE_ZIP_VERIFIED_PASS" in n05 and
+            "if-no-files-found: error" in n05 and
+            "retention-days: 3" in n05 and
+            n05.count("actions/upload-artifact@") == 1,
+            "NEXT05_UX_WORKFLOW_GUARDS")
+    for unsafe in ("pull_request_target:", "workflow_run:", "repository_dispatch:",
+                   "contents: write", "gh release", "secrets.", "continue-on-error:"):
+        require(unsafe not in n05, "NEXT05_UX_WORKFLOW_UNSAFE:" + unsafe)
     visual_workflow = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
     require("branches: [dev3/visual-poc-01]" in visual_workflow and
             "github.actor == 'TobbyCy'" in visual_workflow and

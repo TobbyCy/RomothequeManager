@@ -91,6 +91,15 @@ internal static class Program
             Next03RealGuiHarness.Configure(window, args[at + 1]);
         }
 #endif
+#if NEXT05_CI
+        if (args.Contains("--ci-next05-observed-gui", StringComparer.Ordinal))
+        {
+            var index = Array.IndexOf(args, "--ci-next05-observed-gui");
+            if (index + 1 >= args.Length)
+                throw new InvalidOperationException("NEXT05_CI_ROOT_REQUIRED");
+            Next05GuiHarness.Configure(window, args[index + 1]);
+        }
+#endif
 #if NEXT04_CI
         if (args.Contains("--ci-next04-esde-capture", StringComparer.Ordinal))
         {

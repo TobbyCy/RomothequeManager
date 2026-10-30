@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / DEV 3 — interface Avalonia MVVM des fichiers observés (30.10.2026)
+
+- Nouvelle fenêtre « Inventaire de fichiers · sans ES-DE » accessible depuis l'accueil vide et la barre latérale. Service normal InventoryApplicationService() toujours fail-closed : aucun scan personnel autorisé, aucune persistance.
+- ObservedLibraryViewModel gère Dashboard / Collection / fiche, filtres plateforme-extension-type, recherche, pagination et sélection. Les lignes proviennent uniquement de InventoryObservationProjection.GetPage (NEXT-05 #105), sans duplication du scanner ni conversion en EsDeGame.
+- Observations, couverture, disponibilité, fraîcheur, diagnostics, dernier complet et dernière tentative distingués. Jeu identifié et association candidate non établis sans preuves ; jaquettes locales non associées, l'index MEDIA indépendant est un lot futur.
+- Un harnais NEXT05_CI strictement isolé fournit la preuve sur IDEAL, CHAOS et MYSTERY sans XML ; CI Windows, captures et ZIP standard autonome contrôlés sur HEAD. Aucun scan d'une ROMothèque personnelle, SSD réel, image réelle, SQLite, fusion ou Release.
+
 ## NEXT-05-2 — Media-index backend on synthetic fixtures (PR review pending)
 
 - Independent explicit MEDIAS root indexing, no XML/ROM access: bounded PNG/JPEG header inspection (not image decoding), provenance and diagnostics, WebP marked unsupported, fail-closed production permission.

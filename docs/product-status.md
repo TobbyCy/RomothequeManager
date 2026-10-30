@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / Interface Avalonia MVVM basée sur FileObservation (DEV 3, 30 octobre 2026)
+
+Lot UX séparé après l'intégration du backend #105. Le flux UI fonctionne sur le service d'inventaire existant avec observations source-neutral : accueil vide, parcours de sélection et consentement, Dashboard, Collection filtrable/paginée et fiche « fichier observé ». InventoryObservationProjection.GetPage reste la seule projection de recherche/tri ; le ViewModel transporte les filtres/états/commandes et la fenêtre Avalonia ne lit ni ROM ni XML. En production, l'autorisation de scan personnel reste bloquée par le constructeur public du service et le bouton de lancement désactivé : les screenshots de fixtures sont construits séparément avec NEXT05_CI sur runner Windows et sources fictives uniquement. Le ZIP standard est reconstruit proprement sans permission CI.
+
+MYSTERY sans XML est un test de visibilité de fichiers observés, pas de reconnaissance commerciale ou un indice de jeux confirmés. Current et LastAttempt ne sont pas un état de persistance ; Offline/Partial/Stale n'impliquent aucune suppression. Jaquettes locales et associations sûres sont une préparation d'interface et nécessiteront un service autonome d'index MEDIAS, des sources de provenance, un GO séparé et ensuite SQLite. Tests Windows/CI et preuve ZIP du HEAD final à contrôler dans la PR ; aucun SSD personnel ou index d'images réel testé.
+
 ## NEXT-05-2 — Index MEDIAS indépendant (backend en revue)
 
 Le nouveau moteur observe uniquement la racine MEDIAS explicitement sélectionnée, jamais ROMS ni XML. Le service public refuse tout scan réel (`REAL_MEDIA_SCAN_HOLD`) ; les fixtures temporaires autorisées passent par injection `internal`. En-têtes PNG/JPEG et dimensions vérifiés sans garantie de décodage ; WebP non supporté. `MediaLinkProjection` fonctionne en mémoire sur observations et mapping explicite : références exactes sourcées, candidats de convention unique, ambiguïtés, absences locales prouvables uniquement sous couverture complète. Aucun choix automatique de jaquette, ni GameId ou MediaAssetId durable, ni écriture ou persistance.
