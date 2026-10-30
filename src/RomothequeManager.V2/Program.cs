@@ -107,9 +107,11 @@ internal static class Program
             {
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
+                    // --smoke-window explicitly opts into the legacy synthetic journey.
+                    // Normal startup intentionally remains a NoCatalog welcome screen.
                     if (!window.IsVisible || window.Content is null ||
-                        window.Title != "ROMothèque Manager — Démonstration" ||
-                        !window.SmokeExerciseFourViews())
+                        !window.SmokeExerciseFourViews() ||
+                        window.Title != "ROMothèque Manager — Démonstration")
                     {
                         Environment.ExitCode = 17;
                         Console.Error.WriteLine("POC_WINDOW_SMOKE_FAIL");
