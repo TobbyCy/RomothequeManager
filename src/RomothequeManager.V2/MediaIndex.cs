@@ -317,15 +317,37 @@ internal static class MediaIndexReader
                                     var allowed = (int)Math.Min(Math.Min(size, scope.MaxHeaderBytes),
                                         scope.MaxTotalHeaderBytes - headerBytesTotal);
                                     var bytes = new byte[allowed];
+                                    var count = 0;
                                     using (var stream = new FileStream(path, FileMode.Open,
                                         FileAccess.Read, FileShare.Read))
-                                        stream.ReadExactly(bytes);
-                                    headerBytesTotal += allowed;
-                                    format = Classify(bytes, extension, scope,
-                                        out valid, out width, out height, out var diagnosticCode);
-                                    if (diagnosticCode is not null)
-                                        Warn(diagnosticCode, "Header unsupported, malformed or outside limits.");
-                                    scope.HeaderObserved?.Invoke(filesSeen);
+                                    {
+                                        // Bounded chunks, with cancellation and elapsed-time checks
+                                        // DURING header reads, not only between files.
+                                        while (count < allowed)
+                                        {
+                                            if (token.IsCancellationRequested ||
+                                                watch.Elapsed >= (scope.TimeLimit ?? TimeSpan.FromSeconds(30)))
+                                            {
+                                                partial = true;
+                                                stop = true;
+                                                Warn(token.IsCancellationRequested ? "MEDIA_CANCELLED" :
+                                                    "MEDIA_TIME_LIMIT", "Header read interrupted.");
+                                                break;
+                                            }
+                                            var n = stream.Read(bytes, count, Math.Min(4096, allowed - count));
+                                            if (n == 0) throw new EndOfStreamException();
+                                            count += n;
+                                            headerBytesTotal += n;
+                                            scope.HeaderObserved?.Invoke(count);
+                                        }
+                                    }
+                                    if (!stop)
+                                    {
+                                        format = Classify(bytes, extension, scope,
+                                            out valid, out width, out height, out var diagnosticCode);
+                                        if (diagnosticCode is not null)
+                                            Warn(diagnosticCode, "Header unsupported, malformed or outside limits.");
+                                    }
                                 }
                             }
                             observed.Add(new MediaObservation(
