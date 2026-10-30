@@ -689,6 +689,30 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(any(p.re.fullmatch(rule, ".github/workflows/library-ux02-proof.yml") for rule in rules))
         self.assertFalse(any(p.re.fullmatch(rule, ".github/workflows/library-ux02-other.yml") for rule in rules))
 
+    def test_next04_ux_workflow_is_branch_only_and_temporary(self):
+        root = Path(__file__).resolve().parent.parent
+        workflow = (root / ".github/workflows/next04-ux-proof.yml").read_text(encoding="utf-8")
+        self.assertIn("branches: [dev3/next04-esde-ux]", workflow)
+        self.assertIn("permissions:\n  contents: read", workflow)
+        self.assertIn("github.actor == 'TobbyCy'", workflow)
+        self.assertIn("NEXT04_GUI_WINDOWS_CAPTURE_PASS", workflow)
+        self.assertIn("NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS", workflow)
+        self.assertIn("NEXT04_ZIP_VERIFIED_PASS", workflow)
+        self.assertIn("NEXT04_DEMO_ZIP_VERIFIED_PASS", workflow)
+        self.assertIn("SOURCE-AND-HASHES.json", workflow)
+        self.assertIn("requiresNodeForUser=false", workflow)
+        self.assertIn("MALFORMED", workflow)
+        self.assertIn("LONG", workflow)
+        self.assertEqual(1, workflow.count("actions/upload-artifact@"))
+        self.assertIn("retention-days: 3", workflow)
+        self.assertIn("if-no-files-found: error", workflow)
+        for bad in ("pull_request_target:", "workflow_run:", "gh release",
+                    "contents: write", "secrets.", "continue-on-error:"):
+            self.assertNotIn(bad, workflow)
+        rules, _ = p.path_rules(root)
+        self.assertTrue(any(p.re.fullmatch(rule, ".github/workflows/next04-ux-proof.yml") for rule in rules))
+        self.assertFalse(any(p.re.fullmatch(rule, ".github/workflows/next04-other.yml") for rule in rules))
+
     def test_visual67_capture_workflow_stays_branch_only_and_release_free(self):
         root = Path(__file__).resolve().parent.parent
         source = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")

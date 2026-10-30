@@ -1,0 +1,350 @@
+name: NEXT-04 / ES-DE Avalonia Windows synthetic UX proof
+on:
+  push:
+    branches: [dev3/next04-esde-ux]
+permissions:
+  contents: read
+concurrency:
+  group: next04-ux-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows-ui:
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev3/next04-esde-ux' && github.actor == 'TobbyCy'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact HEAD without credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify exact source and no personal input
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne '${{ github.sha }}') { throw 'NEXT04_SOURCE_SHA_MISMATCH' }
+          Write-Host ('NEXT04_EXACT_SOURCE_PASS sha=' + '${{ github.sha }}')
+      - name: Setup pinned .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Locked tests and CI-only app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_TEST_RESTORE_FAILED' }
+          dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_TESTS_FAILED' }
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_APP_RESTORE_FAILED' }
+          $ci = Join-Path $env:RUNNER_TEMP 'next04-ci-gui'
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:DefineConstants=NEXT04_CI -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $ci
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_CI_GUI_BUILD_FAILED' }
+          if (-not (Test-Path -LiteralPath (Join-Path $ci 'RomothequeManager.V2.exe') -PathType Leaf)) { throw 'NEXT04_GUI_EXE_MISSING' }
+      - name: Generate and verify IDEAL CHAOS MYSTERY only
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP ('NEXT04-ESDE-' + [Guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $root | Out-Null
+          $fixtures = Join-Path $root 'demo-output'
+          node tools/demo-library/generate.cjs --output $fixtures
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_FIXTURE_GENERATION_FAILED' }
+          node tools/demo-library/generate.cjs --verify $fixtures
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_FIXTURE_VERIFY_FAILED' }
+          # Separate disposable long-page fixture. Keep DEMO-01 manifests pristine.
+          $long = Join-Path $root 'LONG'
+          $roms = Join-Path $long 'ROMS/gba'
+          $metadata = Join-Path $long 'MEDIAS/gba/metadata'
+          New-Item -ItemType Directory -Path $roms,$metadata -Force | Out-Null
+          $entries = [Collections.Generic.List[string]]::new()
+          for ($i = 0; $i -lt 155; $i++) {
+            $number = '{0:D3}' -f $i
+            $filename = 'Game' + $number + '.gba'
+            [IO.File]::WriteAllText((Join-Path $roms $filename),
+                'SYNTHETIC TEST-ONLY TEXT; NOT A ROM', [Text.UTF8Encoding]::new($false))
+            $tags = if ($i -eq 50) { '<genre>Exploration</genre><developer>Test Studio</developer><releasedate>20240101</releasedate>' } else { '' }
+            $entries.Add('<game><path>./' + $filename + '</path><name>Game ' + $number + '</name>' + $tags + '</game>')
+          }
+          [IO.File]::WriteAllText((Join-Path $metadata 'es-de-gamelist.xml'),
+            ('<gameList>' + ($entries -join '') + '</gameList>'), [Text.UTF8Encoding]::new($false))
+          Write-Host 'NEXT04_LONG_FIXTURE_PASS entries=155 metadata=1 no_personal_paths=1'
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'next04-fixtures.txt'),$fixtures,[Text.UTF8Encoding]::new($false))
+      - name: Real Avalonia imported GUI and thirteen PNG captures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $fixture = [IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'next04-fixtures.txt'))
+          $exe = Join-Path $env:RUNNER_TEMP 'next04-ci-gui/RomothequeManager.V2.exe'
+          $p = [Diagnostics.ProcessStartInfo]::new()
+          $p.FileName = $exe
+          $p.WorkingDirectory = Split-Path $exe
+          $p.ArgumentList.Add('--ci-next04-esde-capture')
+          $p.ArgumentList.Add($fixture)
+          $p.UseShellExecute = $false
+          $process = [Diagnostics.Process]::Start($p)
+          if ($null -eq $process) { throw 'NEXT04_GUI_PROCESS_NOT_STARTED' }
+          try {
+            if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'NEXT04_GUI_TIMEOUT' }
+            if ($process.ExitCode -ne 0) { throw ('NEXT04_GUI_FAIL:' + $process.ExitCode) }
+          } finally { $process.Dispose() }
+          $output = Join-Path $env:RUNNER_TEMP 'next04-ux-captures'
+          $png = @(Get-ChildItem -LiteralPath $output -File -Filter '*.png')
+          if ($png.Count -ne 13) { throw ('NEXT04_PNG_COUNT:' + $png.Count) }
+          Add-Type -AssemblyName System.Drawing
+          foreach ($file in $png) {
+            $bitmap = [Drawing.Bitmap]::FromFile($file.FullName)
+            try {
+              if ($bitmap.Width -lt 760 -or $bitmap.Height -lt 480 -or $file.Length -lt 4000) { throw ('NEXT04_BAD_PNG:' + $file.Name) }
+            } finally { $bitmap.Dispose() }
+          }
+          node tools/demo-library/generate.cjs --verify $fixture
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_FIXTURE_CHANGED' }
+          $manifest = [ordered]@{sourceCommit='${{ github.sha }}'; windowsAttachedAvalonia=$true; snapshots=13; syntheticOnly=$true; personalScanAllowed=$false; release=$false
+             captures=@($png | ForEach-Object { [ordered]@{file=$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()} }) }
+          ($manifest | ConvertTo-Json -Depth 5) | Set-Content (Join-Path $output 'NEXT04-PROOF.json') -Encoding utf8
+          Write-Host ('NEXT04_GUI_WINDOWS_CAPTURE_PASS source=${{ github.sha }} count=13 untouchedFixtures=1')
+      - name: Assemble and verify ready-to-select fictional ES-DE demo ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = '${{ github.sha }}'
+          if ((git rev-parse HEAD).Trim() -cne $source) { throw 'NEXT04_DEMO_SOURCE_MISMATCH' }
+          $fixtures = [IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'next04-fixtures.txt'))
+          $tempPrefix = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
+          if (-not [IO.Path]::GetFullPath($fixtures).StartsWith($tempPrefix,[StringComparison]::OrdinalIgnoreCase)) {
+            throw 'NEXT04_DEMO_OUTSIDE_RUNNER_TEMP'
+          }
+          node tools/demo-library/generate.cjs --verify $fixtures
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_DEMO_ORIGINAL_INTEGRITY_FAIL' }
+          $stage = Join-Path $env:RUNNER_TEMP 'next04-usage01-stage'
+          if (Test-Path -LiteralPath $stage) { throw 'NEXT04_DEMO_STAGE_NOT_NEW' }
+          New-Item -Path $stage -ItemType Directory | Out-Null
+          $demo = Join-Path $stage 'DEMO-NEXT04'
+          Copy-Item -LiteralPath $fixtures -Destination $demo -Recurse
+          $long = Join-Path (Split-Path -Path $fixtures -Parent) 'LONG'
+          if (-not (Test-Path -LiteralPath (Join-Path $long 'MEDIAS/gba/metadata/es-de-gamelist.xml') -PathType Leaf)) {
+            throw 'NEXT04_DEMO_LONG_MISSING'
+          }
+          Copy-Item -LiteralPath $long -Destination (Join-Path $demo 'LONG') -Recurse
+          $mal = Join-Path $demo 'MALFORMED'
+          $mr = Join-Path $mal 'ROMS/gba'
+          $mm = Join-Path $mal 'MEDIAS/gba/metadata'
+          New-Item -Path $mr,$mm -ItemType Directory -Force | Out-Null
+          [IO.File]::WriteAllText((Join-Path $mr 'FICTIONAL.fixture'),
+            'SYNTHETIC TEST-ONLY TEXT; NOT A ROM', [Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllText((Join-Path $mm 'es-de-gamelist.xml'),
+            '<gameList><game><path>./FICTIONAL.fixture</path><name>Broken Fixture</name>',
+            [Text.UTF8Encoding]::new($false))
+          $broken = [IO.File]::ReadAllText((Join-Path $mm 'es-de-gamelist.xml'))
+          try {
+            $dom = [Xml.XmlDocument]::new()
+            $dom.LoadXml($broken)
+            throw 'NEXT04_DEMO_MALFORMED_XML_ACCEPTED'
+          } catch [Xml.XmlException] {
+            Write-Host 'NEXT04_MALFORMED_XML_CONFIRMED'
+          }
+          $readme = @'
+          ROMOTHEQUE MANAGER - DEMO NEXT-04 / USAGE-01 - 100% FICTIVE
+          ===========================================================
+          NO REAL ROM / BIOS / COMMERCIAL ARTWORK; NOT A RELEASE.
+          All fake ROM files contain non-executable text; images are generated.
+          NO Node.js, source code, Git or .NET SDK needed on your PC.
+          Download APP ZIP and DEMO ZIP from the SAME GitHub Actions artifact.
+          Verify both .zip.sha256 values, then extract the ZIPs separately.
+          Launch RomothequeManager.V2.exe, open Bibliotheques -> Import ES-DE.
+          First CANCEL the native folder picker, next CANCEL confirmation.
+          Then select DEMO-NEXT04/IDEAL (the parent containing ROMS/) and ACCEPT.
+          IDEAL: 30 fictional games / 13 systems, navigate to game details.
+          CHAOS: missing media/ROM warnings. MYSTERY: no XML, expect refusal.
+          MALFORMED: malformed XML, expect refusal preserving last good catalog.
+          LONG: 155 fictional GBA entries, test page 2/search/scroll/return.
+          Wrong root: selecting IDEAL/ROMS instead of IDEAL must be rejected.
+          Close and restart: no saved catalogue. Test Tab/Shift-Tab/Enter/Escape.
+          Report HUMAN PASS/FAIL/NOT_EXECUTED, never infer human success from CI.
+          NEVER select your real ROM library or upload personal screenshots.
+          '@
+          [IO.File]::WriteAllText((Join-Path $stage 'LISEZ-MOI-DEMO.txt'),$readme,[Text.UTF8Encoding]::new($false))
+          Copy-Item -LiteralPath 'LICENSE' -Destination (Join-Path $stage 'LICENSE')
+          Copy-Item -LiteralPath 'LEGAL.md' -Destination (Join-Path $stage 'LEGAL.md')
+          $allowed = @('.gb','.gba','.nes','.sfc','.bin','.z64','.chd','.m3u','.png','.xml','.json','.txt','.md','.fixture')
+          $files = @(Get-ChildItem -LiteralPath $stage -File -Recurse | Sort-Object FullName)
+          $entries = @()
+          foreach ($file in $files) {
+            if (($allowed -cnotcontains $file.Extension.ToLowerInvariant() -and $file.Name -cne 'LICENSE') -or
+                $file.Length -gt 1048576 -or
+                ($file.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+              throw ('NEXT04_DEMO_UNEXPECTED_FILE:' + $file.Name)
+            }
+            $relative = $file.FullName.Substring($stage.Length + 1).Replace('\','/')
+            $entries += [ordered]@{file=$relative;bytes=$file.Length;
+              sha256=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
+          }
+          foreach ($name in @('IDEAL','CHAOS','MYSTERY','LONG','MALFORMED')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $demo ($name + '/ROMS')) -PathType Container)) {
+              throw ('NEXT04_DEMO_SELECTABLE_ROOT_MISSING:' + $name)
+            }
+          }
+          $contracts = @('catalogue.json','scenarios.json','oracles.json') | ForEach-Object {
+            $p = Join-Path 'contracts/demo-library-01' $_
+            [ordered]@{file=$_;sha256=(Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()}
+          }
+          $manifest = [ordered]@{
+            schema='next04-usage01/1';sourceCommit=$source;syntheticOnly=$true;
+            noCommercialMedia=$true;requiresNodeForUser=$false;personalScanAllowed=$false;
+            release=$false;variants=@('IDEAL','CHAOS','MYSTERY','LONG','MALFORMED');
+            generatorSha256=(Get-FileHash -LiteralPath 'tools/demo-library/generate.cjs' -Algorithm SHA256).Hash.ToLowerInvariant();
+            sourceContracts=@($contracts);files=$entries
+          }
+          ($manifest | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath (Join-Path $stage 'SOURCE-AND-HASHES.json') -Encoding utf8
+          $proof = Join-Path $env:RUNNER_TEMP 'next04-ux-captures'
+          $zipName = 'RomothequeManager-NEXT04-DEMO-FICTIVE-' + $source.Substring(0,8) + '.zip'
+          $zip = Join-Path $proof $zipName
+          Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText(($zip + '.sha256'),($sha + '  ' + $zipName + [Environment]::NewLine),[Text.Encoding]::ASCII)
+          $extract = Join-Path $env:RUNNER_TEMP 'next04-usage01-verify'
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          $readback = Get-Content -LiteralPath (Join-Path $extract 'SOURCE-AND-HASHES.json') -Raw | ConvertFrom-Json
+          if ($readback.sourceCommit -cne $source -or $readback.files.Count -ne $files.Count -or
+              @((Get-ChildItem -LiteralPath $extract -File -Recurse)).Count -ne ($files.Count + 1)) {
+            throw 'NEXT04_DEMO_MANIFEST_SHAPE_MISMATCH'
+          }
+          foreach ($item in $readback.files) {
+            $target = Join-Path $extract ($item.file.Replace('/',[IO.Path]::DirectorySeparatorChar))
+            if (-not (Test-Path -LiteralPath $target -PathType Leaf) -or
+                (Get-Item -LiteralPath $target).Length -ne $item.bytes -or
+                (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -cne $item.sha256) {
+              throw ('NEXT04_DEMO_EXTRACT_HASH_MISMATCH:' + $item.file)
+            }
+          }
+          node tools/demo-library/generate.cjs --verify (Join-Path $extract 'DEMO-NEXT04')
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_DEMO_EXTRACT_ORIGINAL_FIXTURES_FAILED' }
+          Write-Host ('NEXT04_DEMO_ZIP_VERIFIED_PASS source=' + $source + ' variants=5 files=' +
+            $readback.files.Count + ' sha256=' + $sha + ' bytes=' + (Get-Item $zip).Length +
+            ' requiresNodeForUser=false verifiedSourceHashes=true')
+      - name: Verify standard product build excludes CI permission
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet clean $app -c Release -r win-x64
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_PRODUCT_CLEAN_FAILED' }
+          $output = Join-Path $env:RUNNER_TEMP 'next04-standard'
+          dotnet publish $app -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $output
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT04_STANDARD_PUBLISH_FAILED' }
+          if (-not (Test-Path -LiteralPath (Join-Path $output 'RomothequeManager.V2.exe'))) { throw 'NEXT04_STANDARD_EXE_MISSING' }
+          # Byte-for-byte official resources only. Check physical PNG source and ICO
+          # directory; no private mockup or third-party artwork in the package.
+          $brandPng = Join-Path $output 'RM_V2_Horizontal_Fond_Sombre.png'
+          $brandIco = Join-Path $output 'RM_V2_Favicon.ico'
+          if (-not (Test-Path -LiteralPath $brandPng) -or -not (Test-Path -LiteralPath $brandIco)) { throw 'NEXT04_OFFICIAL_BRANDING_MISSING' }
+          foreach ($pair in @(
+            @('assets/branding/RM_V2_Horizontal_Fond_Sombre.png', $brandPng),
+            @('assets/branding/RM_V2_Favicon.ico', $brandIco)
+          )) {
+            if ((Get-FileHash -LiteralPath $pair[0] -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $pair[1] -Algorithm SHA256).Hash) {
+              throw 'NEXT04_OFFICIAL_BRANDING_HASH_MISMATCH'
+            }
+          }
+          Add-Type -AssemblyName System.Drawing
+          $logo = [Drawing.Bitmap]::FromFile($brandPng)
+          try {
+            if ($logo.Width -ne 1960 -or $logo.Height -ne 576) { throw 'NEXT04_OFFICIAL_LOGO_DIMENSIONS_MISMATCH' }
+          } finally { $logo.Dispose() }
+          $iconBytes = [IO.File]::ReadAllBytes($brandIco)
+          if ($iconBytes.Length -lt 1000 -or [BitConverter]::ToUInt16($iconBytes, 0) -ne 0 -or
+              [BitConverter]::ToUInt16($iconBytes, 2) -ne 1 -or
+              [BitConverter]::ToUInt16($iconBytes, 4) -ne 7) { throw 'NEXT04_ICO_SEVEN_SIZES_MISSING' }
+          $exeIcon = [Drawing.Icon]::ExtractAssociatedIcon((Join-Path $output 'RomothequeManager.V2.exe'))
+          if ($null -eq $exeIcon) { throw 'NEXT04_EXE_ICON_MISSING' }
+          $exeIcon.Dispose()
+          Write-Host 'NEXT04_BRANDING_PACKAGE_PASS native_png=1960x576 ico_entries=7 exe_icon=present byte_exact=1'
+          Write-Host 'NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS'
+      - name: Verify quarantined portable Windows ZIP with licence notices and SHA-256
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = '${{ github.sha }}'
+          if ((git rev-parse HEAD).Trim() -cne $source) { throw 'NEXT04_ZIP_SOURCE_MISMATCH' }
+          $publish = Join-Path $env:RUNNER_TEMP 'next04-standard'
+          $proof = Join-Path $env:RUNNER_TEMP 'next04-ux-captures'
+          $extract = Join-Path $env:RUNNER_TEMP 'next04-zip-verify'
+          New-Item -ItemType Directory -Path $extract -Force | Out-Null
+          $inventory = 'docs/developer/lic-zip-01-inventory.md'
+          if (-not (Select-String -LiteralPath $inventory -Pattern 'LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED' -Quiet)) { throw 'NEXT04_LICENCE_HOLD' }
+          foreach ($file in @('LICENSE','LEGAL.md','BRANDING.md')) { Copy-Item -LiteralPath $file -Destination $publish }
+          Copy-Item -LiteralPath 'packaging/THIRD-PARTY-NOTICES.txt' -Destination (Join-Path $publish 'THIRD-PARTY-NOTICES.txt')
+          Copy-Item -LiteralPath $inventory -Destination (Join-Path $publish 'THIRD-PARTY-INVENTORY.md')
+          Copy-Item -LiteralPath 'packaging/licenses' -Destination (Join-Path $publish 'licenses') -Recurse
+          $nuget = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages' }
+          $runtime = Join-Path $nuget 'microsoft.netcore.app.runtime.win-x64/10.0.12'
+          $notices = Join-Path $publish 'licenses/dotnet-runtime'
+          New-Item -ItemType Directory -Force -Path $notices | Out-Null
+          foreach ($file in @('LICENSE.TXT','THIRD-PARTY-NOTICES.TXT')) {
+            $found = @(Get-ChildItem -LiteralPath $runtime -File -Recurse | Where-Object Name -CEQ $file)
+            if ($found.Count -ne 1 -or $found[0].Length -lt 500) { throw ('NEXT04_RUNTIME_NOTICE_MISSING:' + $file) }
+            Copy-Item -LiteralPath $found[0].FullName -Destination (Join-Path $notices $file)
+          }
+          $guide = @'
+          NEXT-04 / USAGE-01 - WINDOWS + SYNTHETIC DEMO WITHOUT NODE
+          Source revision: ${{ github.sha }}. Temporary CI test, NOT a Release.
+          From the SAME artifact, download TWO archives:
+          * RomothequeManager-NEXT04-UX-win-x64-*.zip       (app)
+          * RomothequeManager-NEXT04-DEMO-FICTIVE-*.zip    (demo)
+          Verify both SHA-256 files; extract the archives separately.
+          Run RomothequeManager.V2.exe (standard normal self-contained EXE).
+          In Bibliotheques -> Import ES-DE, first CANCEL the native picker.
+          Next select DEMO-NEXT04/IDEAL (it contains ROMS/) and CANCEL the
+          read-only confirmation; select IDEAL again and ACCEPT the import.
+          Navigate Systems -> Collection -> Game detail -> Back.
+          Try CHAOS (missing files), MYSTERY (no XML -> refusal),
+          MALFORMED (invalid XML -> refusal), and LONG (155 games, page 2).
+          Selecting IDEAL/ROMS instead of IDEAL is an invalid root.
+          Test Tab/Shift-Tab/Enter/Escape, focus, logo, and restart.
+          All demo files are fictional, no real ROMs, BIOS or covers.
+          Real folder picker, confirmation and ES-DE importer are used.
+          See docs/ux/next04-windows-human-recipe.md at this same HEAD.
+          All human tests remain NOT_EXECUTED until actually performed.
+          No personal scans/uploads, Release or NEXT-05 authorization.
+          '@
+          [IO.File]::WriteAllText((Join-Path $publish 'GUIDE-NEXT04-WINDOWS.txt'),$guide,[Text.UTF8Encoding]::new($false))
+          $manifest = [ordered]@{sourceCommit=$source;runtime='win-x64';selfContained=$true;ciHarnessIncluded=$false;personalScanAllowed=$false;release=$false;cataloguePersistence=$false}
+          ($manifest | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $publish 'NEXT04-MANIFEST.json') -Encoding utf8
+          $files = @(Get-ChildItem -LiteralPath $publish -File -Recurse)
+          foreach ($file in $files) {
+            if (@('.gba','.rom','.chd','.iso','.cue','.m3u','.sav','.nsp','.xci','.wad','.pfx','.pem','.key') -contains $file.Extension.ToLowerInvariant()) {
+              throw ('NEXT04_FORBIDDEN_PAYLOAD:' + $file.Name)
+            }
+          }
+          $zipName = 'RomothequeManager-NEXT04-UX-win-x64-' + $source.Substring(0,8) + '.zip'
+          $zip = Join-Path $proof $zipName
+          Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText(($zip + '.sha256'),($sha + '  ' + $zipName + [Environment]::NewLine),[Text.Encoding]::ASCII)
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          if (@(Get-ChildItem -LiteralPath $extract -File -Recurse).Count -ne $files.Count) { throw 'NEXT04_EXTRACT_COUNT_MISMATCH' }
+          foreach ($file in $files) {
+            $relative = $file.FullName.Substring($publish.Length + 1)
+            $other = Join-Path $extract $relative
+            if (-not (Test-Path -LiteralPath $other -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $other -Algorithm SHA256).Hash) {
+              throw ('NEXT04_EXTRACT_HASH_MISMATCH:' + $relative)
+            }
+          }
+          Write-Host ('NEXT04_ZIP_VERIFIED_PASS source=' + $source + ' sha256=' + $sha + ' files=' + $files.Count + ' bytes=' + (Get-Item $zip).Length)
+      - name: Upload temporary synthetic Windows images and evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: NEXT04-Avalonia-Synthetic-Windows-Captures
+          path: |
+            ${{ runner.temp }}/next04-ux-captures/*.png
+            ${{ runner.temp }}/next04-ux-captures/NEXT04-PROOF.json
+            ${{ runner.temp }}/next04-ux-captures/*.zip
+            ${{ runner.temp }}/next04-ux-captures/*.zip.sha256
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6

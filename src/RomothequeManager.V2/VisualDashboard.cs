@@ -55,6 +55,7 @@ public static class VisualDashboard
     private static readonly IBrush Red = Solid("#B3202E");
     private static readonly IBrush Amber = Solid("#E4B36C");
     private static readonly IBrush Soft = Solid("#2D3036");
+    private static readonly IBrush SoftRed = Solid("#F28C92");
     private static IBrush Solid(string hex) => new SolidColorBrush(Color.Parse(hex));
 
     private static TextBlock Label(string text, double size = 13, bool bold = false, IBrush? color = null) => new()
@@ -74,8 +75,8 @@ public static class VisualDashboard
         Background = background ?? Card,
         BorderBrush = BorderInk,
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(9),
-        Padding = new Thickness(13),
+        CornerRadius = new CornerRadius(12),
+        Padding = new Thickness(18),
         MinHeight = minHeight,
         Child = child
     };
@@ -103,8 +104,9 @@ public static class VisualDashboard
 
     private static Control Header(string subtitle)
     {
-        var titleRow = new StackPanel { Spacing = 2 };
-        titleRow.Children.Add(Label("TABLEAU DE BORD", 25, true, Primary));
+        var titleRow = new StackPanel { Spacing = 7 };
+        titleRow.Children.Add(Label("VUE D’ENSEMBLE  /  ROMOTHÈQUE", 11, true, SoftRed));
+        titleRow.Children.Add(Label("Tableau de bord", 31, true, Primary));
         titleRow.Children.Add(Label(subtitle, 13));
         return titleRow;
     }
@@ -151,6 +153,36 @@ public static class VisualDashboard
         return Build(numbers,
             "Bibliothèque ES-DE importée · métadonnées lues sur demande · aucun scan physique",
             previews, status, attention, openCollection, compact);
+    }
+
+    // Metrics are references from the active data source, not discovered ROM identities.
+    private static Control Metrics(VisualDashboardNumbers numbers, bool compact)
+    {
+        var entries = new (string Title, string Value)[]
+        {
+            (numbers.Synthetic ? "Jeux fictifs" : "Références ES-DE", numbers.ReferencedGames.ToString()),
+            ("Plateformes XML", numbers.KnownPlatforms.ToString()),
+            ("Diagnostics", numbers.Synthetic ? "Non observés" : numbers.Diagnostics.ToString()),
+            (numbers.Synthetic ? "Bibliothèques fictives" : "ROM non trouvées à l’import",
+                (numbers.Synthetic ? numbers.KnownLibraries : numbers.RomUnavailable).ToString())
+        };
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions(compact ? "*,*" : "*,*,*,*"),
+            RowDefinitions = new RowDefinitions(compact ? "Auto,Auto" : "Auto"),
+            ColumnSpacing = 10, RowSpacing = 10
+        };
+        for (var i = 0; i < entries.Length; i++)
+        {
+            var value = Stack(
+                Label(entries[i].Title.ToUpperInvariant(), 11, true, Muted),
+                Label(entries[i].Value, 26, true, Primary));
+            var tile = Tile(value);
+            Grid.SetColumn(tile, compact ? i % 2 : i);
+            Grid.SetRow(tile, compact ? i / 2 : 0);
+            grid.Children.Add(tile);
+        }
+        return grid;
     }
 
     private static Control[] Build(VisualDashboardNumbers numbers, string subtitle,
@@ -210,6 +242,6 @@ public static class VisualDashboard
         Grid.SetColumn(attention, compact ? 0 : 1);
         Grid.SetRow(attention, compact ? 1 : 0);
         second.Children.Add(attention);
-        return [Header(subtitle), first, second];
+        return [Header(subtitle), Metrics(numbers, compact), first, second];
     }
 }
