@@ -196,8 +196,9 @@ public sealed class Next05SqliteUiTests
         readonlySession.Confirmation = true;
         Assert.IsFalse(readonlySession.SaveCommand.CanExecute(null));
         Assert.IsFalse(readonlySession.RevokeCommand.CanExecute(null));
+        using var wrongStore = OpenStore();
         Assert.ThrowsExactly<InvalidDataException>(() =>
-            new RestoredCatalogSession(OpenStore(), _mediaRootId, _romRootId));
+            new RestoredCatalogSession(wrongStore, _mediaRootId, _romRootId));
         Assert.ThrowsExactly<InvalidOperationException>(() =>
             new SqliteCatalogStore());
     }
