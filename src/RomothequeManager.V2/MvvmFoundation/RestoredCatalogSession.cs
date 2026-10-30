@@ -21,6 +21,8 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
     private readonly string _romRootId;
     private readonly string _mediaRootId;
     private readonly InventoryCommand _saveCommand;
+    private readonly InventoryCommand _showCompleteCommand;
+    private readonly InventoryCommand _showAttemptCommand;
     private readonly InventoryCommand _revokeCommand;
     private CatalogLastKnown _roms;
     private CatalogLastKnown _medias;
@@ -50,6 +52,8 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
             !string.Equals(_roms.StorageRoot.LibraryId, _medias.StorageRoot.LibraryId,
                 StringComparison.Ordinal))
             throw new InvalidDataException("UI05_ROOT_ROLE_OR_LIBRARY_MISMATCH");
+        _showCompleteCommand = new InventoryCommand(_ => ShowComplete(), _ => true);
+        _showAttemptCommand = new InventoryCommand(_ => ShowAttempt(), _ => HasLastAttempt);
         _saveCommand = new InventoryCommand(_ => SaveExplicitChoice(), _ => CanSave);
         _revokeCommand = new InventoryCommand(_ => RevokeExplicitChoice(), _ => CanRevoke);
     }
@@ -97,6 +101,8 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
             CommandsChanged();
         }
     }
+    public ICommand ShowCompleteCommand => _showCompleteCommand;
+    public ICommand ShowAttemptCommand => _showAttemptCommand;
     public ICommand SaveCommand => _saveCommand;
     public ICommand RevokeCommand => _revokeCommand;
     public string SaveStatus => _saveStatus;
