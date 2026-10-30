@@ -299,7 +299,7 @@ public sealed partial class MainWindow
         ShowDemo();
         if (_importedUi.Mode != CatalogueMode.Demonstration ||
             !Title.Contains("Démonstration", StringComparison.Ordinal) ||
-            !SmokeVisibleTexts().Contains("Démonstration", StringComparison.OrdinalIgnoreCase))
+            !SmokeVisibleTexts().Contains("Démo fictive", StringComparison.OrdinalIgnoreCase))
             return false;
         ReturnToWelcome();
         Navigate(POCView.Libraries);
