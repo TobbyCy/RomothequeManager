@@ -53,7 +53,8 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     public RestoredCatalogSession? RestoredSession => _restored;
     public bool HasRestoredSession => _restored is not null;
     public bool HasLiveMediaPanel => _restored is null;
-    private InventorySnapshot? DisplayedSnapshot => _restored?.DisplayedInventory ?? _inventory.DisplayedSnapshot;
+    private InventorySnapshot? DisplayedSnapshot => _restored is null ?
+        _inventory.DisplayedSnapshot : _restored.DisplayedInventory;
     private IReadOnlyList<FileObservation> DisplayedObservations =>
         DisplayedSnapshot?.Observations ?? Array.Empty<FileObservation>();
     public MediaPanelViewModel Media { get; }
