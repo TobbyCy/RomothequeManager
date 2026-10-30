@@ -300,10 +300,19 @@ public sealed partial class MainWindow
         var grid = _importedList.Children.OfType<Grid>().SingleOrDefault();
         if (grid is null || grid.ColumnDefinitions.Count != 3 ||
             grid.Children.Count != _importedUi.PageGames.Count)
+        {
+            Console.WriteLine("NEXT041_GRID_NOT_READY bounds=" + Bounds.Width +
+                " window=" + Width + " columns=" + (grid?.ColumnDefinitions.Count ?? 0) +
+                " cards=" + (grid?.Children.Count ?? 0));
             return false;
+        }
         var widths = grid.Children.OfType<Border>().Select(card => card.Bounds.Width).ToArray();
-        return widths.Length > 0 && widths.All(width => width > 200) &&
+        var aligned = widths.Length > 0 && widths.All(width => width > 200) &&
             widths.Max() - widths.Min() < 2;
+        Console.WriteLine("NEXT041_GRID_MEASURE bounds=" + Bounds.Width + " window=" + Width +
+            " columns=" + grid.ColumnDefinitions.Count + " cards=" + grid.Children.Count +
+            " firstWidth=" + (widths.Length > 0 ? widths[0] : 0) + " aligned=" + aligned);
+        return aligned;
     }
 
     public bool CiNext041EmptyCollectionAndDemoOptIn()
