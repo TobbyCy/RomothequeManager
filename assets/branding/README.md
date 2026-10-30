@@ -1,15 +1,9 @@
-# Branding officiel ROMothèque Manager V2 — droits réservés
+# Assets graphiques officiels — droits distincts du code
 
-Les cinq fichiers du pack V2 ont une provenance identifiée dans le dépôt privé `TobbyCy/RomothequeManager-Pilotage/assets/branding/`. La publication du bandeau dans Produit a été approuvée le 23 octobre 2026 (BRAND-01) ; le transfert **des quatre autres fichiers, byte-for-byte**, est autorisé pour le Produit et ses artifacts Windows de **test** le 28 octobre 2026 ([Issue #67](https://github.com/TobbyCy/RomothequeManager/issues/67)).
+**Le bandeau [RM_V2_Horizontal_Fond_Sombre.png](RM_V2_Horizontal_Fond_Sombre.png) est inclus dans ce dépôt et affiché dans son README.** Sont également présents : `RM_V2_Horizontal_Couleur.svg`, `RM_V2_Icone_Detaillee_Couleur.svg`, `RM_V2_Icone_Simplifiee_Couleur.svg` et `RM_V2_Favicon.ico`. L'icône peut être embarquée dans l'application Windows et les paquets de test.
 
-| Fichier | Utilisation officielle | Git blob approuvé |
-| --- | --- | --- |
-| [RM_V2_Horizontal_Fond_Sombre.png](RM_V2_Horizontal_Fond_Sombre.png) | Logo/bandeau README et Dashboard (1960 × 576) | `e594b9602bb7d44a01a9408c8d189d74ee5180b4` |
-| [RM_V2_Horizontal_Couleur.svg](RM_V2_Horizontal_Couleur.svg) | Logo vectoriel horizontal | `0dffbc85ae90aa88096b61fcc36c8d47c427b4e6` |
-| [RM_V2_Icone_Detaillee_Couleur.svg](RM_V2_Icone_Detaillee_Couleur.svg) | Icône de grande taille | `b34a97950a8124c093bedf62730315af9c17c5fa` |
-| [RM_V2_Icone_Simplifiee_Couleur.svg](RM_V2_Icone_Simplifiee_Couleur.svg) | Icône lisible à petite taille | `c6266232e5e99407164cfc2197b80e3c784d947a` |
-| [RM_V2_Favicon.ico](RM_V2_Favicon.ico) | Fenêtre, barre des tâches et exécutable Windows (7 tailles) | `158dc727e1c82e6a1afa003d1ca79a35ec229138` |
+Ces éléments graphiques officiels sont **à droits réservés** : la licence [MIT](../../LICENSE) du code original **ne les couvre pas**. Leur présence publique et leur utilisation officielle ne constituent pas une autorisation générale de reproduire les logos, de présenter un produit tiers comme officiel ou de suggérer une affiliation. Les usages descriptifs permis par la loi restent possibles. Aucune marque enregistrée n'est affirmée.
 
-**Licence :** les marques, logos et icônes sont des ressources graphiques officielles aux **droits réservés**, non comprises dans la licence MIT du code/documentation originale. Leur publication dans ce dépôt n'est pas une permission générale pour des tiers de reproduire l'identité officielle ou de suggérer une affiliation. Les fichiers officiels sont autorisés à être embarqués dans le Produit et ses **artifacts Windows temporaires de test** ; une Release, même pré-release, exige un **GO distinct**. Voir [BRANDING.md](../../BRANDING.md) et [LEGAL.md](../../LEGAL.md).
+Le propriétaire a autorisé la publication du bandeau et le transfert des déclinaisons officielles dans le Produit et ses artefacts de test ([#67](https://github.com/TobbyCy/RomothequeManager/issues/67)). **Un ZIP temporaire de CI ne constitue ni une Release ni une autorisation de nouvelle publication.** Les droits éventuels d'éléments tiers restent indépendants ; aucune ROM, BIOS ou jaquette commerciale n'est incluse dans ce pack.
 
-**Contrôle :** provenance et empreintes Git des originaux, allowlist exacte et tests négatifs CI. Aucun SVG/ICO n'est téléchargé au démarrage ; aucun jeu, jaquette commerciale, BIOS ni ROM n'est intégré.
+Voir [BRANDING.md](../../BRANDING.md) pour la provenance et les précisions, et [STATUS.md](../../STATUS.md) pour distinguer code, CI et distribution.
