@@ -264,8 +264,16 @@ jobs:
           $exeIcon.Dispose()
           Write-Host 'NEXT04_BRANDING_PACKAGE_PASS native_png=1960x576 ico_entries=7 exe_icon=present byte_exact=1'
           # Single-file must keep the EXE as the one and only top-level executable.
-          $binaryFiles = @(Get-ChildItem -LiteralPath $output -File | Where-Object { $_.Extension -in @('.dll','.pdb','.so','.dylib') })
-          if ($binaryFiles.Count -ne 0) { throw 'PORTABLE101_UNBUNDLED_BINARY_ROOT' }
+          # Debug symbols are not runtime dependencies; keep the user ZIP minimal.
+          @(Get-ChildItem -LiteralPath $output -File -Filter '*.pdb') | ForEach-Object {
+            Write-Host ('PORTABLE101_NONRUNTIME_SYMBOL_OMITTED ' + $_.Name)
+            Remove-Item -LiteralPath $_.FullName -Force
+          }
+          $binaryFiles = @(Get-ChildItem -LiteralPath $output -File | Where-Object { $_.Extension -in @('.dll','.so','.dylib') })
+          if ($binaryFiles.Count -ne 0) {
+            Write-Host ('PORTABLE101_UNBUNDLED_LIST ' + (($binaryFiles | ForEach-Object Name) -join ','))
+            throw 'PORTABLE101_UNBUNDLED_BINARY_ROOT'
+          }
           if (@(Get-ChildItem -LiteralPath $output -File -Filter '*.exe').Count -ne 1) { throw 'PORTABLE101_EXE_NOT_UNIQUE' }
           Write-Host 'PORTABLE101_SINGLE_FILE_PUBLISH_PASS native=self-extract trimmed=false branding=external'
           Write-Host 'NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS'
