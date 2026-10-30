@@ -64,6 +64,7 @@ public sealed partial class MainWindow
         _scenarioUi.Clear();
         _scenarioDetail = false;
         _importedUi.ShowWelcome();
+        _emptyView = POCView.Dashboard;
         _state.ShowDashboard();
         Render();
     }
@@ -303,7 +304,7 @@ public sealed partial class MainWindow
             return false;
         ShowDemo();
         if (_importedUi.Mode != CatalogueMode.Demonstration ||
-            !Title.Contains("Démonstration", StringComparison.Ordinal) ||
+            Title?.Contains("Démonstration", StringComparison.Ordinal) != true ||
             !SmokeVisibleTexts().Contains("Démo fictive", StringComparison.OrdinalIgnoreCase))
             return false;
         ReturnToWelcome();
