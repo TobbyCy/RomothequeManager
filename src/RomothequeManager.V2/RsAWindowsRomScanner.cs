@@ -32,8 +32,9 @@ internal sealed class RsAReadGrant
     internal long SelectionVersion { get; }
     internal DateTimeOffset ExpiresUtc { get; }
     internal RsAHandleIdentity RootIdentity { get; }
-    internal bool Revoked { get; private set; }
-    internal void Revoke() => Revoked = true;
+    private int _revoked;
+    internal bool Revoked => Volatile.Read(ref _revoked) != 0;
+    internal void Revoke() => Interlocked.Exchange(ref _revoked, 1);
     internal bool Valid(string rootId, long version) =>
         !Revoked && DateTimeOffset.UtcNow < ExpiresUtc &&
         SelectionVersion == version && StorageRootId == rootId;
