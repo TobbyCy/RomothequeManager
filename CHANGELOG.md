@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-05-1 — Inventaire autonome, backend fictif (PR à réceptionner)
+
+- Projection pure des observations NEXT-02/03 par `InventoryObservationProjection.GetPage`, filtres plateforme/extension/type/texte, ordre stable, pagination et label provisoire issu du fichier. Aucun `GameId`, titre commercial ni média inventé ; `ConfirmedGameCount=null` conservé.
+- Service de production toujours fail-closed ; racines temporaires fictives autorisées exclusivement dans les tests. Canaris N05-A à J : IDEAL/CHAOS/MYSTERY sans XML, archives, playlists, annulation, offline, reparse et 2 200 observations mesurées. CI HEAD final à vérifier.
+- Pas de SQLite, scraper, scan personnel, fusion ou Release. Index médias indépendant et DocFX à traiter plus tard sous mandat distinct.
+
 ## NEXT-04.1 / UX P2 — Lisibilité des dates, diagnostics et actions (Produit #100, 30.10.2026)
 
 - Dates ES-DE présentées en français à précision inchangée (année seule, jour ou horodatage à la seconde). Valeur brute ES-DE toujours visible en fiche ; aucune altération de l'importeur, des identités ou des métadonnées.
