@@ -119,7 +119,7 @@ internal static class Next05GuiHarness
             inventory.ConsentConfirmed = true;
             Demand(vm.CanInventoryFixture, "N05_GUI_CONFIRMATION_NOT_ACCEPTED");
             await inventory.StartConfirmedAsync();
-            var snapshot = inventory.Current;
+            var snapshot = inventory.Current ?? throw new InvalidDataException("N05_CURRENT_MISSING");
             Demand(inventory.Phase == InventoryRunPhase.Completed &&
                 snapshot is { ScanStatus: InventoryScanStatus.Complete } &&
                 snapshot.Observations.Count > 0 &&
