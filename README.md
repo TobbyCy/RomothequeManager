@@ -15,9 +15,9 @@
 
 ## Disponible, en cours, absent
 
-| Fonction | ZIP public | Développement NEXT-04 |
+| Fonction | ZIP public | Code NEXT-04 dans `main` |
 | --- | --- | --- |
-| Dashboard, bibliothèques, collection, fiches | Oui, Alpha et démonstrations | Interface améliorée dans [#93](https://github.com/TobbyCy/RomothequeManager/pull/93), **non publiée** |
+| Dashboard, bibliothèques, collection, fiches | Oui, Alpha et démonstrations | Interface améliorée [#93 fusionnée](https://github.com/TobbyCy/RomothequeManager/pull/93) dans `main`, **non publiée en ZIP** |
 | Import ES-DE historique | Expérimental, en lecture seule | Trois conventions, diagnostics, métadonnées et médias renforcés |
 | Inventaire NEXT-03 | Aperçu/simulation ; **scan personnel refusé** | Tests du service sur fixtures fictives |
 | Catalogue sauvegardé, export/copie de ROMs | **Non implémentés** | Non livrés |
