@@ -263,6 +263,20 @@ public sealed class RsAWindowsFixtureTests
         Assert.AreNotEqual(InventoryScanStatus.Complete, cancelled.ScanStatus);
         Assert.AreSame(complete, s.Current);
         Assert.IsTrue(before.SequenceEqual(SHA256.HashData(File.ReadAllBytes(file))));
+        var concurrency = Session();
+        var concurrentGrant = Grant(concurrency);
+        bool revokedFromOtherThread = false;
+        var refused = concurrency.Scan(concurrentGrant,
+            beforeChildOpenForTest: _ =>
+            {
+                if (revokedFromOtherThread) return;
+                Task.Run(concurrency.Revoke).GetAwaiter().GetResult();
+                revokedFromOtherThread = true;
+            });
+        Assert.IsTrue(revokedFromOtherThread);
+        Assert.AreNotEqual(InventoryScanStatus.Complete, refused.ScanStatus);
+        Assert.IsTrue(refused.Diagnostics.Any(x => x.Code == "RS_A_DENIED"));
+        Console.WriteLine("RS_A03_CROSS_THREAD_REVOKE_PASS");
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
             new RsAFixtureRomSession(new RsABudget(MaxHeaderBytes: 1)));
         Console.WriteLine("RS_A03_PASS header_bytes_read=0 rom_hashes_by_scanner=0 writes_by_scanner=0");
