@@ -55,3 +55,7 @@ La planche montre les échantillons à leur taille native lorsque le fichier est
 ## Décision propriétaire attendue
 
 Valider la composition, la présence de « Manager » et l’adaptation des petites icônes, y compris le rouge optique. Après validation seulement : préparer les exports définitifs PNG transparents, SVG et ICO Windows multirésolution, puis organiser la recette Windows séparément.
+
+## Complément demandé — logo horizontal 01 transparent
+
+À la demande du propriétaire, ajout de [RM_V3_Horizontal_Transparent.png](RM_V3_Horizontal_Transparent.png), **1800 × 544 px RGBA**, et de [RM_V3_Horizontal_Transparent.svg](RM_V3_Horizontal_Transparent.svg). Le SVG est une copie exacte de la composition horizontale V3 de travail ; le PNG est son rendu à 200 %. Aucun changement de forme, de typographie ou de couleur. Le fond extérieur est transparent, le corps de cartouche reste anthracite et le texte clair est prévu pour un fond sombre. Dimensions, canal alpha, absence de découpe et rendu visuel contrôlés. Ce complément ne constitue pas le pack multirésolution complet ni une recette Windows.
