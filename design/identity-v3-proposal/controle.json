@@ -1,0 +1,66 @@
+{
+  "status": "PROPOSITION_NON_VALIDEE",
+  "date": "2026-10-30",
+  "source_zip_sha256": "3b8d890767b926107fee5aa4d513c7d1d30d8f5344a062c6dfee47f0a92da84b",
+  "source_horizontal_git_blob": "0dffbc85ae90aa88096b61fcc36c8d47c427b4e6",
+  "samples": {
+    "16": {
+      "dimensions": [
+        16,
+        16
+      ],
+      "alpha": true,
+      "bbox": [
+        2,
+        1,
+        14,
+        15
+      ],
+      "clipping": false
+    },
+    "32": {
+      "dimensions": [
+        32,
+        32
+      ],
+      "alpha": true,
+      "bbox": [
+        2,
+        1,
+        30,
+        31
+      ],
+      "clipping": false
+    },
+    "48": {
+      "dimensions": [
+        48,
+        48
+      ],
+      "alpha": true,
+      "bbox": [
+        3,
+        1,
+        45,
+        47
+      ],
+      "clipping": false
+    },
+    "256": {
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true,
+      "bbox": [
+        33,
+        20,
+        223,
+        236
+      ],
+      "clipping": false
+    }
+  },
+  "windows_shell_test": "NOT_EXECUTED",
+  "glyph_paths_preserved": true
+}
