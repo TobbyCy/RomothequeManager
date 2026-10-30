@@ -4,7 +4,7 @@
 
 ## Contrats et tables
 
-`CatalogStore.cs` contient `Library` (UUID), `StorageRoot` (UUID, rôle ROMS/MEDIAS, binding relatif, pointeurs CurrentComplete/LastAttempt), `ScanSnapshot` (UUID durable + scan ID éphémère attribué et manifest JSON versionné), `MetadataClaim` (valeur/provenance/source, idempotence source+clé externe+champ) et `UserDecision` (UUID manuel, choix, supersession/révocation conservés). Aucune table `Game` n'est créée automatiquement ; `FOUND_UNLINKED` et `AMBIGUOUS` restent des candidats, non des décisions.
+`CatalogStore.cs` contient `Library` (UUID), `StorageRoot` (UUID, rôle ROMS/MEDIAS, binding relatif, pointeurs CurrentComplete/LastAttempt), `ScanSnapshot` (UUID durable + scan ID éphémère attribué et manifest JSON versionné), `MetadataClaim` (valeur/provenance/source, idempotence par sujet+source+clé externe+champ+valeur+provenance+révision, sans écrasement des anciennes assertions) et `UserDecision` (UUID manuel, choix, supersession/révocation conservés). Aucune table `Game` n'est créée automatiquement ; `FOUND_UNLINKED` et `AMBIGUOUS` restent des candidats, non des décisions.
 
 `SaveAttempt` enregistre observations, couverture et `LastAttemptSnapshotId` en **une transaction** et avance `CurrentCompleteSnapshotId` uniquement si la couverture est entièrement Complete, Online, Fresh et le total cohérent. Si Partial, Failed, Offline ou Stale : sauvegarde de la tentative sans remplacer Current, sans supprimer de décision. Une exception entre insertion et bascule provoque le rollback de l'ensemble. Manifest JSON v1 limité à **16 Mio et 30 000 observations**, sans fichiers binaires ni chemins absolus. Le scan n'est jamais appelé par le stockage.
 
@@ -13,7 +13,7 @@
 ## Journal / backup / migration / portable
 
 - Choix initial **`journal_mode=DELETE`**, **`synchronous=FULL`**, FK activées et connexions SQLite fermées après chaque transaction ; **choix provisoire sur fixtures** à réévaluer après essais de retrait d'un **support de test**. Aucune garantie contre panne du contrôleur USB ou perte d'alimentation.
-- Version SQLite `user_version=2` après migration transactionnelle v1→v2 (champ `MetadataClaim.RuleVersion`). Une base v1 reçoit **d'abord un backup cohérent via l'API SQLite**, puis la migration ; versions supérieures refusées. Le manifest JSON a **sa propre version**.
+- Version SQLite `user_version=3` après migrations transactionnelles v1→v2 (champ `MetadataClaim.RuleVersion`) puis v2→v3 (claims append-only séparées par sujet, valeur, provenance et révision). Une base v1 reçoit **d'abord un backup cohérent via l'API SQLite**, puis la migration ; versions supérieures refusées. Le manifest JSON a **sa propre version**.
 - `BackupVerified` utilise `SqliteConnection.BackupDatabase` dans un fichier temporaire, exécute `PRAGMA integrity_check`, puis publication atomique sous `ROMOTHEQUE_MANAGER/backups`. `RestoreVerified` refuse un chemin hors de cette fixture, vérifie la sauvegarde, conserve une copie de sécurité, vérifie la restauration temporaire avant remplacement et relance la validation du schéma.
 - Distribution : **Microsoft.Data.Sqlite 10.0.14** + SQLitePCLRaw 2.1.13, versions/empreintes en `packages.lock.json` app et tests (résolution Windows réelle). Vérifier les licences du provider MIT et les avis tiers/native SQLite dans le gate Windows ; **aucun contenu de collection dans GitHub/artefacts publics**.
 - Emplacement cible futur : local application data hors ROMS/MEDIAS ; mode portable `ROMOTHEQUE_MANAGER/data` **uniquement sous choix explicite et gate de sécurité**. `PortableAutoActivation=false`; aucun accès simultané réseau/cloud/multi-PC.
@@ -27,8 +27,14 @@
 | PERS-03 | exception injectée avant commit : rollback snapshot/pointeurs | crash électrique NON EXÉCUTÉ |
 | PERS-04 | claims ambigus n'impliquent aucun UserDecision ; choix explicite, révocation et historique au redémarrage | UI non raccordée |
 | PERS-05 | rejects chemins absolus/rebind implicite, storage default local candidat, option portable désactivée | changement de lettre physique NON EXÉCUTÉ |
-| PERS-06 | online backup, corruption d'une copie, restore, migration v1→2 et integrity_check | pas de corruption vraie DB |
+| PERS-06 | online backup, corruption d'une copie, restore, migration v1→2→3 et integrity_check | pas de corruption vraie DB |
 | PERS-07 | simulation erreur disque avant commit, état préservé | débranchement réel NON EXÉCUTÉ |
 | PERS-08 | provider natif Windows fonctionne, journal DELETE, gardes public stockage/preview ; pipeline de publication/empreinte ZIP | SHA ZIP uniquement après CI Windows |
 
 **Gates pour intégration :** tests PERS-01…08 + anciens tests en CI locked, licence/transitifs vérifiés, logs Windows/manifest ZIP avec `e_sqlite3`, revue DEV 2 indépendante HEAD exact, puis seul GO Contrôleur pour fusion. La **recette sur SSD personnel** exige un mandat supplémentaire et n'est pas permise par cette PR.
+
+## Correctifs P1 DEV 2 (#111)
+
+- **P1-A RESTORE** : staging validé **avant** remplacement : intégrité, foreign_key_check, user_version autorisée, présence des tables/colonnes/index requis, migration v1/v2→v3 effectuée seulement sur la copie ; contrôle post-swap et restauration effective de la sauvegarde SQLite `safety` sur toute exception post-swap. Tests négatifs sur backup physiquement intègre à schéma futur, table ou colonne manquante, FK cassée, injection d'échec avant/après swap ; conservation de Current et décisions dans un nouveau processus.
+- **P1-B CLAIM** : identité de révision `(LibraryId,SubjectKey,SourceKind,ExternalKey,FieldKey,ClaimedValue,Provenance,RuleVersion)` et `INSERT … ON CONFLICT DO NOTHING`. Re-import de l'assertion identique idempotent ; sujet distinct ou révision/valeur/provenance différente conservés comme lignes historiques indépendantes, aucun UserDecision automatique. Migration v2→v3 transactionnelle et sauvegardée.
+- **Preuves non exécutées avant nouvelle CI** : ces canaris supplémentaires ne sont pas couverts par la CI historique 225/225 ; obtenir nouveau HEAD, log Windows, ZIP et re-revue DEV 2 ciblée. Aucun test SSD physique.
