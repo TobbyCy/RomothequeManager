@@ -87,7 +87,7 @@ jobs:
           $n05 = @($png | Where-Object { $_.Name -like 'N05-*.png' })
           $media = @($png | Where-Object { $_.Name -like 'MEDIA-*.png' })
           if ($n05.Count -ne 9) { throw ('N05_BASELINE_CAPTURE_COUNT:' + $n05.Count) }
-          if ($media.Count -ne 10) { throw ('N05_MEDIA_CAPTURE_COUNT:' + $media.Count) }
+          if ($media.Count -ne 11) { throw ('N05_MEDIA_CAPTURE_COUNT:' + $media.Count) }
           Add-Type -AssemblyName System.Drawing
           foreach ($file in $png) {
             $img = [Drawing.Bitmap]::FromFile($file.FullName)
@@ -98,7 +98,7 @@ jobs:
           node tools/demo-library/generate.cjs --verify (Join-Path (Split-Path $copy) 'generated')
           if ($LASTEXITCODE -ne 0) { throw 'N05_SOURCE_MUTATED' }
           Write-Host ('N05_GUI_WINDOWS_CAPTURE_PASS source=' + $env:GITHUB_SHA + ' count=9 no_xml=true untouched=true')
-          Write-Host ('MEDIA_GUI_WINDOWS_CAPTURE_PASS source=' + $env:GITHUB_SHA + ' count=10 png_jpeg=true explicit_selection=true')
+          Write-Host ('MEDIA_GUI_WINDOWS_CAPTURE_PASS source=' + $env:GITHUB_SHA + ' count=11 png_jpeg_alpha=true explicit_selection=true pixel_canary=true')
       - name: Clean standard self-contained single-file Windows package
         shell: pwsh
         run: |

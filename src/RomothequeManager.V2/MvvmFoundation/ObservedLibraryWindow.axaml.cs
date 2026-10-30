@@ -116,10 +116,12 @@ public partial class ObservedLibraryWindow : Window
         _mediaBitmap = null;
         if (_vm.Media.PreviewResult is not { Status: MediaPreviewStatus.Ready, Image: { } decoded })
             return;
-        // A capped decoded RGBA buffer is copied into the Avalonia-owned image.
+        // The backend Skia SKAlphaType.Premul RGBA8888 bytes must be declared
+        // AlphaFormat.Premul in Avalonia (including translucent PNGs).
+        // No pixel format conversion or opening of source images happens here.
         // The service/result never gives the View a path or a Skia file/bitmap.
         var bitmap = new WriteableBitmap(new PixelSize(decoded.Width, decoded.Height),
-            new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Unpremul);
+            new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Premul);
         try
         {
             var bytes = decoded.Pixels.ToArray();

@@ -93,10 +93,57 @@ internal static class Next05GuiHarness
         var visual = (Control)window.Content!;
         visual.Measure(new Size(width - 2, height - 2));
         visual.Arrange(new Rect(0, 0, width - 2, height - 2));
+        Point? previewPixel = null;
         if (name.StartsWith("MEDIA-", StringComparison.Ordinal))
         {
+            // Aim at the actual evidence/status or image. Scrolling to the end showed
+            // ONLY diagnostics below the media panel, invalidating the old screenshots.
             var scroll = window.FindControl<ScrollViewer>("RootScroll")!;
-            scroll.Offset = new Vector(0, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height));
+            var evidence = window.FindControl<TextBlock>("MediaEvidenceStatus")!;
+            var previewStatus = window.FindControl<TextBlock>("MediaPreviewStatusText")!;
+            var image = window.FindControl<Image>("MediaPreviewImage")!;
+            var isImage = name is "MEDIA-Ready-PNG" or "MEDIA-Ready-JPEG" or
+                "MEDIA-Alpha-PNG";
+            var isPreviewStatus = name is "MEDIA-Cancelled" or "MEDIA-Unsupported" or
+                "MEDIA-DecodeFailure";
+            Control target = isImage ? image : isPreviewStatus ? previewStatus : evidence;
+            var position = target.TranslatePoint(new Point(0, 0), visual);
+            Demand(position.HasValue, "MEDIA_SCREENSHOT_TARGET_UNAVAILABLE");
+            var desiredTop = isImage
+                ? (height == 480 ? 175.0 : 275.0)
+                : (height == 480 ? 155.0 : 190.0);
+            var maxOffset = Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height);
+            scroll.Offset = new Vector(0, Math.Clamp(
+                scroll.Offset.Y + position.Value.Y - desiredTop, 0, maxOffset));
+            visual.Measure(new Size(width - 2, height - 2));
+            visual.Arrange(new Rect(0, 0, width - 2, height - 2));
+            var after = target.TranslatePoint(new Point(0, 0), visual);
+            Demand(after.HasValue && after.Value.Y >= 65 &&
+                after.Value.Y <= height - (isImage ? 120 : 50),
+                "MEDIA_SCREENSHOT_TARGET_OUTSIDE_VIEWPORT");
+            // This assertion proves the requested state is in the viewport, not
+            // merely present somewhere inside an oversized ScrollViewer.
+            if (isImage)
+            {
+                var center = image.TranslatePoint(new Point(
+                    image.Bounds.Width / 2, image.Bounds.Height / 2), visual);
+                Demand(center.HasValue && center.Value.Y > 110 &&
+                    center.Value.Y < height - 30 && image.Source is not null,
+                    "MEDIA_SCREENSHOT_IMAGE_NOT_VISIBLE");
+                previewPixel = center;
+            }
+            else
+            {
+                var label = target as TextBlock;
+                Demand(label?.Text is { Length: > 0 } &&
+                    (isPreviewStatus || label.Text.Contains("non", StringComparison.OrdinalIgnoreCase) ||
+                     label.Text.Contains("média", StringComparison.OrdinalIgnoreCase) ||
+                     label.Text.Contains("Correspondance", StringComparison.OrdinalIgnoreCase) ||
+                     label.Text.Contains("Plusieurs", StringComparison.OrdinalIgnoreCase) ||
+                     label.Text.Contains("Référence", StringComparison.OrdinalIgnoreCase) ||
+                     label.Text.Contains("Comparaison", StringComparison.OrdinalIgnoreCase)),
+                    "MEDIA_SCREENSHOT_STATE_NOT_VISIBLE");
+            }
         }
         using var bitmap = new RenderTargetBitmap(new PixelSize(width, height),
             new Vector(96, 96));
@@ -104,6 +151,31 @@ internal static class Next05GuiHarness
         var filename = Path.Combine(directory, name + "-" + width + "x" + height + ".png");
         bitmap.Save(filename, PngBitmapEncoderOptions.Default);
         Demand(new FileInfo(filename).Length > 4000, "N05_GUI_SCREENSHOT_EMPTY");
+        if (previewPixel is { } point)
+        {
+            // Decode the ACTUAL Avalonia screenshot and inspect the visible center
+            // pixel; checking Image.Source is not evidence that pixels were drawn.
+            using var captured = SKBitmap.Decode(filename);
+            Demand(captured is not null, "MEDIA_SCREENSHOT_PNG_UNREADABLE");
+            var px = captured.GetPixel((int)Math.Round(point.X), (int)Math.Round(point.Y));
+            var expected = name switch
+            {
+                "MEDIA-Alpha-PNG" => new SKColor(134, 36, 27), // RGBA(240,40,16,128) over #1B1F25
+                _ => SKColors.CadetBlue
+            };
+            var tolerance = name == "MEDIA-Ready-JPEG" ? 30 : 22;
+            Demand(Math.Abs(px.Red - expected.Red) <= tolerance &&
+                Math.Abs(px.Green - expected.Green) <= tolerance &&
+                Math.Abs(px.Blue - expected.Blue) <= tolerance,
+                "MEDIA_SCREENSHOT_VISIBLE_PIXEL_MISMATCH_" + name);
+            Console.WriteLine("MEDIA_SCREENSHOT_PIXEL_PASS " + name +
+                " rgb=" + px.Red + "," + px.Green + "," + px.Blue +
+                " expected=" + expected.Red + "," + expected.Green + "," + expected.Blue +
+                " viewport=" + width + "x" + height);
+        }
+        if (name.StartsWith("MEDIA-", StringComparison.Ordinal))
+            Console.WriteLine("MEDIA_SCREENSHOT_FRAMED_PASS " + name +
+                " viewport=" + width + "x" + height);
         Console.WriteLine("N05_GUI_CAPTURE_PASS " + Path.GetFileName(filename));
     }
 
@@ -129,10 +201,10 @@ internal static class Next05GuiHarness
         Directory.CreateDirectory(root);
         try
         {
-            static byte[] Encode(SKEncodedImageFormat format)
+            static byte[] Encode(SKEncodedImageFormat format, SKColor? color = null)
             {
                 using var bitmap = new SKBitmap(24, 16);
-                bitmap.Erase(SKColors.CadetBlue);
+                bitmap.Erase(color ?? SKColors.CadetBlue);
                 using var image = SKImage.FromBitmap(bitmap);
                 using var data = image.Encode(format, 85);
                 return data.ToArray();
@@ -151,6 +223,10 @@ internal static class Next05GuiHarness
             Write(Relative(eligible[1], ".jpg"), Encode(SKEncodedImageFormat.Jpeg));
             Write(eligible[0].PlatformKey + "/logos/Independent.png",
                 Encode(SKEncodedImageFormat.Png));
+            // Source alpha 128: backend Skia returns *premultiplied* RGBA.
+            // Avalonia must compose this translucent PNG correctly over #1B1F25.
+            Write(eligible[0].PlatformKey + "/logos/Transparent.png",
+                Encode(SKEncodedImageFormat.Png, new SKColor(240, 40, 16, 128)));
             Write(eligible[0].PlatformKey + "/logos/Unsupported.webp",
                 Encode(SKEncodedImageFormat.Webp));
             // Valid PNG header but truncated pixel data: not a decodable preview.
@@ -166,7 +242,7 @@ internal static class Next05GuiHarness
                 string.Equals(scope.MediaRoot, root, StringComparison.OrdinalIgnoreCase));
             var media = reader.ScanConfirmed(new MediaRootScope(root, aliases, kinds), true);
             Demand(media.ScanStatus == InventoryScanStatus.Complete &&
-                media.Observations.Count == 6, "MEDIA_GUI_INDEX_REAL_SCAN_REQUIRED");
+                media.Observations.Count == 7, "MEDIA_GUI_INDEX_REAL_SCAN_REQUIRED");
             var mapping = VerifiedScopeMapping.FromExplicitSelections(roms, media,
                 aliases, "CI_EXPLICIT_VERIFIED_SCOPES");
             var preview = new MediaPreviewService(root, media);
@@ -193,6 +269,15 @@ internal static class Next05GuiHarness
                 window.FindControl<Image>("MediaPreviewImage")?.Source is not null,
                 "MEDIA_GUI_PNG_NOT_RENDERED");
             Capture(window, captures, "MEDIA-Ready-PNG", 1120, 720);
+            // Independent translucent PNG: real 760x480 Avalonia compositing canary.
+            vm.Media.SelectedChoice = vm.Media.Choices.Single(x =>
+                x.Observation.RelativePath.EndsWith("Transparent.png",
+                    StringComparison.OrdinalIgnoreCase));
+            Demand(vm.Media.PreviewResult is null, "MEDIA_GUI_ALPHA_AUTO_PREVIEW");
+            await vm.Media.PreviewSelectedAsync();
+            Demand(vm.Media.PreviewResult is { Status: MediaPreviewStatus.Ready, Image: not null },
+                "MEDIA_GUI_ALPHA_DECODER_NOT_READY");
+            Capture(window, captures, "MEDIA-Alpha-PNG", 760, 480);
             vm.Media.ClearPreview();
             Demand(window.FindControl<Image>("MediaPreviewImage")?.Source is null,
                 "MEDIA_GUI_PREVIEW_NOT_DISPOSED");
@@ -270,7 +355,7 @@ internal static class Next05GuiHarness
             var deniedScan = deniedMedia.ScanConfirmed(new MediaRootScope(root), true);
             Demand(deniedScan.Diagnostics.Any(d => d.Code == "REAL_MEDIA_SCAN_HOLD"),
                 "MEDIA_GUI_PUBLIC_MEDIA_DENY_FAILED");
-            Console.WriteLine("MEDIA_GUI_WINDOWS_CAPTURE_PASS count=10 no_xml=true " +
+            Console.WriteLine("MEDIA_GUI_WINDOWS_CAPTURE_PASS count=11 no_xml=true " +
                 "manual_selection=true all_covers_unapproved=true public_preview_denied=true");
         }
         finally
