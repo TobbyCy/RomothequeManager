@@ -504,7 +504,7 @@ def documents(root, plan):
         require(unsafe not in libux, "LIBRARY_UX02_WORKFLOW_UNSAFE:" + unsafe)
     # NEXT-04 native UX proof is branch-specific, synthetic-only and cannot publish a release.
     next04 = (root / ".github/workflows/next04-ux-proof.yml").read_text(encoding="utf-8")
-    require("branches: [dev3/next04-esde-ux]" in next04 and
+    require("branches: [dev3/next04-esde-ux, dev3/portable-packaging-101]" in next04 and
             "github.actor == 'TobbyCy'" in next04 and
             "permissions:\n  contents: read" in next04 and
             "if-no-files-found: error" in next04 and
@@ -513,6 +513,9 @@ def documents(root, plan):
             "NEXT04_GUI_WINDOWS_CAPTURE_PASS" in next04 and
             "NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS" in next04 and
             "NEXT04_ZIP_VERIFIED_PASS" in next04 and
+            "PORTABLE101_ZIP_VERIFIED_PASS" in next04 and
+            "PublishSingleFile=true" in next04 and
+            "IncludeNativeLibrariesForSelfExtract=true" in next04 and
             "NEXT04_DEMO_ZIP_VERIFIED_PASS" in next04 and
             "SOURCE-AND-HASHES.json" in next04 and
             "requiresNodeForUser=false" in next04,
