@@ -34,7 +34,8 @@
                      TextWrapping="Wrap" Foreground="#C2CED9"/>
         </StackPanel>
       </Border>
-      <Border Background="#23262B" CornerRadius="8" Padding="15">
+      <Border x:Name="LiveInventoryPanel" Background="#23262B" CornerRadius="8"
+              Padding="15" IsVisible="{Binding HasLiveMediaPanel}">
         <StackPanel Spacing="9">
           <TextBlock Text="1 · Choisir → confirmer → inventorier en lecture seule" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
           <WrapPanel>
