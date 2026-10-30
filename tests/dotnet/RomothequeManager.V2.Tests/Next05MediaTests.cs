@@ -228,6 +228,9 @@ public sealed class Next05MediaTests
             true, cts.Token);
         Assert.AreEqual(InventoryScanStatus.Partial, cancelled.ScanStatus);
         Assert.IsTrue(cancelled.Diagnostics.Any(d => d.Code == "MEDIA_CANCELLED"));
+        Assert.IsTrue(cancelled.Observations.Any(o => !o.HeaderValidated),
+            "Cancellation during an image header must prevent validation of that image.");
+        Assert.IsNull(cancelled.TotalFileCount);
         Assert.AreSame(complete, svc.Current);
         Assert.AreSame(cancelled, svc.LastAttempt);
         var timed = svc.ScanConfirmed(Scope() with { TimeLimit = TimeSpan.FromTicks(1) }, true);
