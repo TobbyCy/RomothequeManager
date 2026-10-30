@@ -872,6 +872,15 @@ class CliRoutingProofTests(unittest.TestCase):
             p.require(workspace.parent == Path(tempfile.gettempdir()).resolve() and not workspace.is_symlink(), "FIXTURE_BOUNDARY")
             root = workspace / "repo"
             subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", "--no-local", "--", str(source), str(root)], check=True, capture_output=True)
+            # A local clone checks out the committed main, which may predate the
+            # policy under test. Use exactly the current checkout's policy in
+            # the disposable clone; do not alter the source checkout or gates.
+            source_policy = source / "tests" / "ci_policy.py"
+            cloned_policy = root / "tests" / "ci_policy.py"
+            p.require(source_policy.is_file() and cloned_policy.is_file()
+                      and cloned_policy.resolve().is_relative_to(root.resolve()),
+                      "ROUTING_POLICY_FIXTURE_BOUNDARY")
+            shutil.copyfile(source_policy, cloned_policy)
             for key, value in (("user.name", "Synthetic CI"), ("user.email", "ci@example.invalid"), ("commit.gpgsign", "false"), ("core.autocrlf", "false")):
                 p.git(root, "config", key, value)
             # The clone tests policy behavior, not the separate documentation PR.
