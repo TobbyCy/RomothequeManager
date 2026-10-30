@@ -1,5 +1,9 @@
 # Historique technique des fonctionnalités
 
+## NEXT-06 — Moteur médias → présentation, backend en revue
+
+Le backend propose `MediaPresentationService` (projection pure de #107, preuves de référence distinctes des choix de jaquette) et `MediaPreviewService` (PNG/JPEG avec garde publique `REAL_MEDIA_PREVIEW_HOLD`, résolution de fichiers uniquement depuis un root temporaire `internal`), sans modifier l'UI ni exiger ES-DE. Budget explicite avant décodage, résultat RGBA à détruire, annulation et changement de génération testés sur fixtures. SkiaSharp 3.119.4 est déjà livré par Avalonia ; l'allocation native interne et la sécurité TOCTOU SSD physique restent NON PROUVÉES et HOLD avant un accès personnel. Le rendu Windows de médias sera une PR DEV 3 distincte après acceptation du backend ; aucune association n'est approuvée automatiquement. Tests MU/CI à confirmer sur HEAD exact, aucun GO de fusion ou Release.
+
 ## NEXT-05 / Interface Avalonia MVVM basée sur FileObservation (DEV 3, 30 octobre 2026)
 
 Lot UX séparé après l'intégration du backend #105. Le flux UI fonctionne sur le service d'inventaire existant avec observations source-neutral : accueil vide, parcours de sélection et consentement, Dashboard, Collection filtrable/paginée et fiche « fichier observé ». InventoryObservationProjection.GetPage reste la seule projection de recherche/tri ; le ViewModel transporte les filtres/états/commandes et la fenêtre Avalonia ne lit ni ROM ni XML. En production, l'autorisation de scan personnel reste bloquée par le constructeur public du service et le bouton de lancement désactivé : les screenshots de fixtures sont construits séparément avec NEXT05_CI sur runner Windows et sources fictives uniquement. Le ZIP standard est reconstruit proprement sans permission CI.
