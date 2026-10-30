@@ -97,7 +97,7 @@ public static class CatalogStorageLocations
 /// This component stores application facts; it cannot authorize REAL_* scans, previews or SSD access.</remarks>
 public sealed class SqliteCatalogStore : ICatalogStore
 {
-    private const int SchemaVersion = 2;
+    private const int SchemaVersion = 3;
     private const int ManifestVersion = 1;
     private const int MaxManifestBytes = 16 * 1024 * 1024;
     private const int MaxObservations = 30000;
@@ -105,13 +105,16 @@ public sealed class SqliteCatalogStore : ICatalogStore
     private readonly string _fixtureRoot;
     private readonly object _gate = new();
     private readonly Action? _testBeforeCommit;
+    private readonly Action? _testBeforeRestoreSwap;
+    private readonly Action? _testAfterRestoreSwap;
     private bool _disposed;
 
     /// <summary>Fail closed: public application storage is not activated by this backend PR.</summary>
     public SqliteCatalogStore() => throw new InvalidOperationException("REAL_CATALOG_STORAGE_HOLD");
 
     /// <summary>Test-only path to a synthetic catalog under a specifically named temp fixture.</summary>
-    internal SqliteCatalogStore(string databasePath, Action? testBeforeCommit = null)
+    internal SqliteCatalogStore(string databasePath, Action? testBeforeCommit = null,
+        Action? testBeforeRestoreSwap = null, Action? testAfterRestoreSwap = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
         var full = Path.GetFullPath(databasePath);
@@ -131,6 +134,8 @@ public sealed class SqliteCatalogStore : ICatalogStore
         _databasePath = full;
         _fixtureRoot = fixture;
         _testBeforeCommit = testBeforeCommit;
+        _testBeforeRestoreSwap = testBeforeRestoreSwap;
+        _testAfterRestoreSwap = testAfterRestoreSwap;
         Directory.CreateDirectory(folder);
         if (AnyReparse(full, allowMissingFinal: true))
             throw new InvalidOperationException("PERSIST01_REPARSE_HOLD");
@@ -265,7 +270,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
             var claims = new List<CatalogMetadataClaim>();
             using (var c = Command(db, null, @"SELECT ClaimId,LibraryId,SubjectKey,FieldKey,
                  SourceKind,ExternalKey,ClaimedValue,Provenance,CapturedAtUtc,RuleVersion
-                 FROM MetadataClaim WHERE LibraryId=@id ORDER BY ClaimId", ("@id", root.LibraryId)))
+                 FROM MetadataClaim WHERE LibraryId=@id ORDER BY CapturedAtUtc,ClaimId", ("@id", root.LibraryId)))
             using (var rows = c.ExecuteReader())
                 while (rows.Read())
                     claims.Add(new CatalogMetadataClaim(
@@ -342,14 +347,15 @@ public sealed class SqliteCatalogStore : ICatalogStore
         RequireText(claim.Value, 8192);
         RequireText(claim.Provenance, 512);
         RequireText(claim.RuleVersion, 128);
+        // Immutable claims: exact reimports are idempotent; distinct subjects,
+        // values, provenance or rule revisions retain separate historical rows.
+        // CapturedAtUtc of the first identical assertion is retained.
         ExecuteWrite((db, tx) => Exec(db, tx, @"INSERT INTO MetadataClaim(
             ClaimId,LibraryId,SubjectKey,FieldKey,SourceKind,ExternalKey,ClaimedValue,
             Provenance,CapturedAtUtc,RuleVersion)
             VALUES(@id,@lib,@subject,@field,@source,@external,@value,@prov,@time,@rule)
-            ON CONFLICT(LibraryId,SourceKind,ExternalKey,FieldKey)
-            DO UPDATE SET ClaimedValue=excluded.ClaimedValue,
-              Provenance=excluded.Provenance, CapturedAtUtc=excluded.CapturedAtUtc,
-              RuleVersion=excluded.RuleVersion",
+            ON CONFLICT(LibraryId,SubjectKey,SourceKind,ExternalKey,FieldKey,
+                        ClaimedValue,Provenance,RuleVersion) DO NOTHING",
             ("@id", claim.ClaimId), ("@lib", claim.LibraryId),
             ("@subject", claim.SubjectKey), ("@field", claim.FieldKey),
             ("@source", claim.SourceKind), ("@external", claim.ExternalKey),
@@ -423,31 +429,67 @@ public sealed class SqliteCatalogStore : ICatalogStore
                 Path.DirectorySeparatorChar;
             if (!full.StartsWith(allowed, OperatingSystem.IsWindows() ?
                 StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
-                Path.GetExtension(full) != ".sqlite" || AnyReparse(full, false))
+                !string.Equals(Path.GetExtension(full), ".sqlite", StringComparison.OrdinalIgnoreCase) ||
+                AnyReparse(full, false))
                 throw new ArgumentException("PERSIST01_BACKUP_OUTSIDE_FIXTURE");
+
+            // The active database is NEVER replaced until an incoming backup passes
+            // integrity, FK, version, required-table/column and migration checks.
             CheckIntegrity(full);
-            var safety = BackupVerified();
             var staged = _databasePath + ".restoring";
+            var safety = BackupVerified(); // coherent SQLite backup, not a WAL file copy
+            bool swapped = false;
             try
             {
-                File.Copy(full, staged, true);
-                CheckIntegrity(staged);
+                if (File.Exists(staged)) File.Delete(staged);
+                File.Copy(full, staged);
+                ValidateCompatibleDatabase(staged, allowOlder: true);
+                EnsureSchema(staged); // migrations run ONLY on the disposable staging copy
+                ValidateCompatibleDatabase(staged, allowOlder: false);
+                _testBeforeRestoreSwap?.Invoke();
                 File.Move(staged, _databasePath, true);
-                EnsureSchema(); // migration if the validated backup is from schema 1
+                swapped = true;
+                _testAfterRestoreSwap?.Invoke(); // synthetic failure proves post-swap rollback
+                ValidateCompatibleDatabase(_databasePath, allowOlder: false);
             }
-            catch
+            catch (Exception restoreError)
+            {
+                try
+                {
+                    if (swapped)
+                    {
+                        // Restore even if the destination EXISTS: previous code silently
+                        // left a damaged replacement at this point.
+                        var rollback = _databasePath + ".rollback";
+                        if (File.Exists(rollback)) File.Delete(rollback);
+                        File.Copy(safety, rollback);
+                        ValidateCompatibleDatabase(rollback, allowOlder: false);
+                        File.Move(rollback, _databasePath, true);
+                        ValidateCompatibleDatabase(_databasePath, allowOlder: false);
+                    }
+                }
+                catch (Exception rollbackError)
+                {
+                    throw new AggregateException("PERSIST01_RESTORE_ROLLBACK_FAILED: safety backup retained",
+                        restoreError, rollbackError);
+                }
+                finally
+                {
+                    if (File.Exists(staged)) File.Delete(staged);
+                }
+                throw;
+            }
+            finally
             {
                 if (File.Exists(staged)) File.Delete(staged);
-                // Last known valid backup remains available for an explicit recovery.
-                if (!File.Exists(_databasePath)) File.Copy(safety, _databasePath);
-                throw;
             }
         }
     }
 
-    private void EnsureSchema()
+    private void EnsureSchema(string? overridePath = null)
     {
-        using var db = Open();
+        var database = overridePath ?? _databasePath;
+        using var db = OpenConnection(database, create: true);
         var version = Convert.ToInt32(Scalar(db, null, "PRAGMA user_version"));
         if (version < 0 || version > SchemaVersion)
             throw new InvalidDataException("PERSIST01_UNSUPPORTED_SCHEMA");
@@ -492,25 +534,52 @@ public sealed class SqliteCatalogStore : ICatalogStore
             tx.Commit();
             version = 1;
         }
+        if (version > 0) ValidateSchemaStructure(db, version);
         if (version == 1)
         {
-            // Backup is made with SQLite online-backup API before altering the old schema.
-            // For new empty databases the same process yields a deterministic verified backup.
             var before = Path.Combine(_fixtureRoot, "ROMOTHEQUE_MANAGER", "backups",
                 "pre-v2-" + Guid.NewGuid().ToString("N") + ".sqlite");
             Directory.CreateDirectory(Path.GetDirectoryName(before)!);
-            CopyOnlineBackup(_databasePath, before);
+            CopyOnlineBackup(database, before);
             using var tx = db.BeginTransaction();
             Exec(db, tx, @"ALTER TABLE MetadataClaim
                 ADD COLUMN RuleVersion TEXT NOT NULL DEFAULT 'legacy/1';
                 PRAGMA user_version=2;");
             tx.Commit();
+            version = 2;
         }
-        var integrity = Scalar(db, null, "PRAGMA integrity_check") as string;
-        if (integrity != "ok") throw new InvalidDataException("PERSIST01_INTEGRITY_FAILED");
-        using var foreignCheck = Command(db, null, "PRAGMA foreign_key_check");
-        using var broken = foreignCheck.ExecuteReader();
-        if (broken.Read()) throw new InvalidDataException("PERSIST01_FOREIGN_KEY_FAILED");
+        if (version == 2)
+        {
+            var before = Path.Combine(_fixtureRoot, "ROMOTHEQUE_MANAGER", "backups",
+                "pre-v3-" + Guid.NewGuid().ToString("N") + ".sqlite");
+            Directory.CreateDirectory(Path.GetDirectoryName(before)!);
+            CopyOnlineBackup(database, before);
+            using var tx = db.BeginTransaction();
+            // Replace the old UNIQUE key that ignored SubjectKey and overwrote
+            // provenance. Preserve each legacy claim by ID and source values.
+            Exec(db, tx, @"CREATE TABLE MetadataClaim_v3(
+                ClaimId TEXT PRIMARY KEY,
+                LibraryId TEXT NOT NULL REFERENCES Library(LibraryId),
+                SubjectKey TEXT NOT NULL, FieldKey TEXT NOT NULL,
+                SourceKind TEXT NOT NULL, ExternalKey TEXT NOT NULL,
+                ClaimedValue TEXT NOT NULL, Provenance TEXT NOT NULL,
+                CapturedAtUtc TEXT NOT NULL, RuleVersion TEXT NOT NULL);
+                INSERT INTO MetadataClaim_v3(
+                    ClaimId,LibraryId,SubjectKey,FieldKey,SourceKind,ExternalKey,
+                    ClaimedValue,Provenance,CapturedAtUtc,RuleVersion)
+                SELECT ClaimId,LibraryId,SubjectKey,FieldKey,SourceKind,ExternalKey,
+                    ClaimedValue,Provenance,CapturedAtUtc,RuleVersion FROM MetadataClaim;
+                DROP TABLE MetadataClaim;
+                ALTER TABLE MetadataClaim_v3 RENAME TO MetadataClaim;
+                CREATE UNIQUE INDEX UX_MetadataClaim_Revision ON MetadataClaim(
+                    LibraryId,SubjectKey,SourceKind,ExternalKey,FieldKey,
+                    ClaimedValue,Provenance,RuleVersion);
+                PRAGMA user_version=3;");
+            tx.Commit();
+            version = 3;
+        }
+        ValidateSchemaStructure(db, SchemaVersion);
+        ValidateDatabaseIntegrity(db);
     }
 
     private static void CopyOnlineBackup(string source, string target)
@@ -534,8 +603,66 @@ public sealed class SqliteCatalogStore : ICatalogStore
     private static void CheckIntegrity(string path)
     {
         using var db = OpenConnection(path, create: false);
+        ValidateDatabaseIntegrity(db);
+    }
+
+    private static void ValidateCompatibleDatabase(string path, bool allowOlder)
+    {
+        using var db = OpenConnection(path, create: false);
+        ValidateDatabaseIntegrity(db);
+        var version = Convert.ToInt32(Scalar(db, null, "PRAGMA user_version"));
+        if (version < (allowOlder ? 1 : SchemaVersion) || version > SchemaVersion)
+            throw new InvalidDataException("PERSIST01_UNSUPPORTED_BACKUP_SCHEMA");
+        ValidateSchemaStructure(db, version);
+    }
+
+    private static void ValidateDatabaseIntegrity(SqliteConnection db)
+    {
         if ((Scalar(db, null, "PRAGMA integrity_check") as string) != "ok")
             throw new InvalidDataException("PERSIST01_BACKUP_INTEGRITY_FAILED");
+        using var foreignCheck = Command(db, null, "PRAGMA foreign_key_check");
+        using var broken = foreignCheck.ExecuteReader();
+        if (broken.Read()) throw new InvalidDataException("PERSIST01_FOREIGN_KEY_FAILED");
+    }
+
+    private static void ValidateSchemaStructure(SqliteConnection db, int version)
+    {
+        // Schema/version alone is not sufficient: reject a structurally valid
+        // SQLite file that lacks the application tables or required columns.
+        var required = new (string Table, string[] Columns)[]
+        {
+            ("Library", ["LibraryId", "Label"]),
+            ("StorageRoot", ["StorageRootId", "LibraryId", "Role", "RelativeBinding",
+                             "CurrentCompleteSnapshotId", "LastAttemptSnapshotId"]),
+            ("ScanSnapshot", ["SnapshotId", "StorageRootId", "SourceKind", "RunRef",
+                              "ScanStatus", "Availability", "Freshness", "CapturedAtUtc",
+                              "ManifestVersion", "ManifestJson", "ObservedCount", "TotalCount"]),
+            ("MetadataClaim", version == 1 ?
+                ["ClaimId","LibraryId","SubjectKey","FieldKey","SourceKind","ExternalKey",
+                 "ClaimedValue","Provenance","CapturedAtUtc"] :
+                ["ClaimId","LibraryId","SubjectKey","FieldKey","SourceKind","ExternalKey",
+                 "ClaimedValue","Provenance","CapturedAtUtc","RuleVersion"]),
+            ("UserDecision", ["DecisionId","LibraryId","SubjectKey","Action","ChoiceValue",
+                              "DecidedAtUtc","SupersedesId","RevokedAtUtc"])
+        };
+        foreach (var (table, columns) in required)
+        {
+            if (Convert.ToInt64(Scalar(db, null,
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@name",
+                ("@name", table))) != 1)
+                throw new InvalidDataException("PERSIST01_BACKUP_REQUIRED_TABLE_MISSING");
+            using var q = Command(db, null, "SELECT name FROM pragma_table_info(@name)",
+                ("@name", table));
+            using var reader = q.ExecuteReader();
+            var actual = new HashSet<string>(StringComparer.Ordinal);
+            while (reader.Read()) actual.Add(reader.GetString(0));
+            if (columns.Any(column => !actual.Contains(column)))
+                throw new InvalidDataException("PERSIST01_BACKUP_REQUIRED_COLUMN_MISSING");
+        }
+        if (version >= 3 &&
+            Convert.ToInt64(Scalar(db, null,
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='UX_MetadataClaim_Revision'")) != 1)
+            throw new InvalidDataException("PERSIST01_BACKUP_CLAIM_IDENTITY_MISSING");
     }
 
     private SqliteConnection Open() => OpenConnection(_databasePath, create: true);
