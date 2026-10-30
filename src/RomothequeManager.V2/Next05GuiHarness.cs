@@ -107,14 +107,14 @@ internal static class Next05GuiHarness
             var isPreviewStatus = name is "MEDIA-Cancelled" or "MEDIA-Unsupported" or
                 "MEDIA-DecodeFailure";
             Control target = isImage ? image : isPreviewStatus ? previewStatus : evidence;
-            var position = target.TranslatePoint(new Point(0, 0), visual);
-            Demand(position.HasValue, "MEDIA_SCREENSHOT_TARGET_UNAVAILABLE");
+            var position = target.TranslatePoint(new Point(0, 0), visual) ??
+                throw new InvalidDataException("MEDIA_SCREENSHOT_TARGET_UNAVAILABLE");
             var desiredTop = isImage
                 ? (height == 480 ? 175.0 : 275.0)
                 : (height == 480 ? 155.0 : 190.0);
             var maxOffset = Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height);
             scroll.Offset = new Vector(0, Math.Clamp(
-                scroll.Offset.Y + position.Value.Y - desiredTop, 0, maxOffset));
+                scroll.Offset.Y + position.Y - desiredTop, 0, maxOffset));
             visual.Measure(new Size(width - 2, height - 2));
             visual.Arrange(new Rect(0, 0, width - 2, height - 2));
             var after = target.TranslatePoint(new Point(0, 0), visual);
@@ -155,8 +155,8 @@ internal static class Next05GuiHarness
         {
             // Decode the ACTUAL Avalonia screenshot and inspect the visible center
             // pixel; checking Image.Source is not evidence that pixels were drawn.
-            using var captured = SKBitmap.Decode(filename);
-            Demand(captured is not null, "MEDIA_SCREENSHOT_PNG_UNREADABLE");
+            using var captured = SKBitmap.Decode(filename) ??
+                throw new InvalidDataException("MEDIA_SCREENSHOT_PNG_UNREADABLE");
             var px = captured.GetPixel((int)Math.Round(point.X), (int)Math.Round(point.Y));
             var expected = name switch
             {
