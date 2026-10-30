@@ -139,6 +139,36 @@
           <TextBlock Text="Jeu identifié : non établi · aucune identité commerciale certifiée." TextWrapping="Wrap"/>
           <TextBlock Text="Association candidate : non établie · aucun rapprochement automatique." TextWrapping="Wrap"/>
           <TextBlock Text="{Binding MediaNotice}" TextWrapping="Wrap"/>
+          <Border x:Name="MediaPanel" Background="#1B1F25" BorderBrush="#424A54" BorderThickness="1" CornerRadius="8" Padding="12">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Médias locaux · preuves et aperçus" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
+              <TextBlock Text="Aucune jaquette associée automatiquement. Un aperçu ne constitue pas une approbation." Foreground="#AAB2BF" TextWrapping="Wrap"/>
+              <TextBlock x:Name="MediaEvidenceStatus" Text="{Binding Media.EvidenceStatus}" FontWeight="Bold" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding Media.EvidenceDetails}" TextWrapping="Wrap"/>
+              <TextBlock Text="Candidats et galerie indépendante · choisir explicitement une image :" FontWeight="Bold" TextWrapping="Wrap"/>
+              <ListBox x:Name="MediaChoicesList" ItemsSource="{Binding Media.Choices}"
+                       SelectedItem="{Binding Media.SelectedChoice, Mode=TwoWay}"
+                       MinHeight="65" MaxHeight="185">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MediaChoice">
+                    <StackPanel Margin="4" Spacing="2">
+                      <TextBlock Text="{Binding Caption}" FontWeight="Bold" TextWrapping="Wrap"/>
+                      <TextBlock Text="{Binding Provenance}" Foreground="#AAB2BF" TextWrapping="Wrap"/>
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <WrapPanel>
+                <Button Content="Aperçu du média sélectionné" Command="{Binding Media.PreviewCommand}"
+                        IsEnabled="{Binding Media.CanPreview}" MinHeight="40" Margin="0,0,8,4"/>
+                <Button Content="Annuler / effacer l'aperçu" Command="{Binding Media.CancelCommand}" MinHeight="40"/>
+              </WrapPanel>
+              <TextBlock x:Name="MediaPreviewStatusText" Text="{Binding Media.PreviewStatus}" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding Media.Diagnostic}" Foreground="#AAB2BF" TextWrapping="Wrap"/>
+              <Image x:Name="MediaPreviewImage" Width="290" Height="210" HorizontalAlignment="Left" Stretch="Uniform"/>
+              <TextBlock Text="Ajout manuel, décision d'association et sauvegarde après redémarrage : non disponibles dans ce lot." Foreground="#AAB2BF" TextWrapping="Wrap"/>
+            </StackPanel>
+          </Border>
         </StackPanel>
       </Border>
       <Border Background="#23262B" CornerRadius="8" Padding="16">

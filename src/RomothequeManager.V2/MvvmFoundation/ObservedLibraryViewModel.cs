@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using RomothequeManager.V2.Inventory;
+using RomothequeManager.V2.Inventory.Media;
 
 namespace RomothequeManager.V2.MvvmFoundation;
 
@@ -35,6 +36,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     {
         _inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
         _fixtureMode = fixtureMode;
+        Media = new MediaPanelViewModel(new MediaPresentationService(), new MediaPreviewService());
         _dashboard = new InventoryCommand(_ => View = ObservedView.Dashboard, _ => true);
         _collection = new InventoryCommand(_ => View = ObservedView.Collection, _ => true);
         _openFile = new InventoryCommand(_ => OpenSelected(), _ => _selected is not null);
@@ -47,6 +49,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public InventoryViewModel Inventory => _inventory;
+    public MediaPanelViewModel Media { get; }
     public bool FixtureMode => _fixtureMode;
     public bool CanInventoryFixture => _fixtureMode && _inventory.CanStart;
     public string ModeNotice => _fixtureMode
@@ -66,6 +69,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         {
             if (_view == value) return;
             _view = value;
+            if (value != ObservedView.FileDetail) Media.ClearPreview();
             Notify();
             Notify(nameof(IsDashboard));
             Notify(nameof(IsCollection));
@@ -124,6 +128,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
             if (value is not null && !Rows.Any(r =>
                 r.Observation.ObservationId == value.Observation.ObservationId)) return;
             _selected = value;
+            Media.SelectRom(value?.Observation.ObservationId);
             Notify();
             _openFile.NotifyCanExecuteChanged();
         }
@@ -150,7 +155,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         MatchingFileCount == 0
         ? "Aucun fichier observé ne correspond aux filtres. Ceci n'est pas une preuve d'absence de jeux."
         : "";
-    public string MediaNotice => "Jaquette locale : non associée. Futur index MEDIA indépendant des XML ; aucune image attribuée sans preuve de provenance et d'unicité.";
+    public string MediaNotice => "Jaquette locale : non associée. Une proposition de média ou un aperçu ne valide jamais une association avec ce fichier.";
 
     private string Summarize(Func<FileObservation, string> selector)
     {
@@ -166,6 +171,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     {
         _pageIndex = 0;
         _selected = null;
+        Media.SelectRom(null);
         RefreshPage();
         Notify(nameof(SearchText));
         Notify(nameof(PlatformFilter));
@@ -187,6 +193,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         if (ReferenceEquals(_generation, newGeneration)) return;
         _generation = newGeneration;
         _selected = null;
+        Media.SelectRom(null);
         _pageIndex = 0;
         _platform = "Toutes";
         _extension = "Toutes";
@@ -250,6 +257,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         if (_disposed) return;
         _disposed = true;
         _inventory.PropertyChanged -= OnInventoryChanged;
+        Media.Dispose();
     }
 }
 

@@ -1,10 +1,16 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using RomothequeManager.V2.Inventory;
 using RomothequeManager.V2.Inventory.Application;
+using RomothequeManager.V2.Inventory.Media;
 
 namespace RomothequeManager.V2.MvvmFoundation;
 
@@ -17,6 +23,7 @@ public partial class ObservedLibraryWindow : Window
     private readonly InventoryViewModel _inventoryVm;
     private readonly ObservedLibraryViewModel _vm;
     private Bitmap? _brand;
+    private WriteableBitmap? _mediaBitmap;
 
     public ObservedLibraryWindow() : this(new InventoryApplicationService(), null) { }
 
@@ -32,6 +39,7 @@ public partial class ObservedLibraryWindow : Window
             else Dispatcher.UIThread.Post(action);
         });
         _vm = new ObservedLibraryViewModel(_inventoryVm, _syntheticRoots is not null);
+        _vm.Media.PropertyChanged += OnMediaChanged;
         DataContext = _vm;
 
         var root = AppContext.BaseDirectory;
@@ -53,6 +61,10 @@ public partial class ObservedLibraryWindow : Window
         }
         Closed += async (_, _) =>
         {
+            _vm.Media.PropertyChanged -= OnMediaChanged;
+            this.FindControl<Image>("MediaPreviewImage")!.Source = null;
+            _mediaBitmap?.Dispose();
+            _mediaBitmap = null;
             _vm.Dispose();
             _inventoryVm.Dispose();
             _brand?.Dispose();
@@ -70,17 +82,65 @@ public partial class ObservedLibraryWindow : Window
     internal ObservedLibraryViewModel ModelForCi => _vm;
 
     internal InventorySelectionResult SelectFixtureForCi(string key,
-        Action<int>? chunkObserved = null)
+        Action<int>? chunkObserved = null,
+        IReadOnlyDictionary<string, string>? platformAliases = null)
     {
         if (_syntheticRoots is null || !_syntheticRoots.TryGetValue(key, out var root))
             return new(false, "SYNTHETIC_SCOPE_NOT_ALLOWED",
                 _service.State.SelectionVersion);
-        return _inventoryVm.PrepareSelectedFolder(new InventoryScope(root)
+        return _inventoryVm.PrepareSelectedFolder(new InventoryScope(root, platformAliases)
         {
             PlaylistChunkObserved = chunkObserved
         });
     }
 #endif
+
+    // Presentation-only RGBA memory adapter: no image path, file access or decoding in a View.
+    private void OnMediaChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName != nameof(MediaPanelViewModel.PreviewResult)) return;
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(RefreshMediaBitmap);
+            return;
+        }
+        RefreshMediaBitmap();
+    }
+
+    private void RefreshMediaBitmap()
+    {
+        var control = this.FindControl<Image>("MediaPreviewImage");
+        if (control is null) return;
+        control.Source = null;
+        _mediaBitmap?.Dispose();
+        _mediaBitmap = null;
+        if (_vm.Media.PreviewResult is not { Status: MediaPreviewStatus.Ready, Image: { } decoded })
+            return;
+        // The backend Skia SKAlphaType.Premul RGBA8888 bytes must be declared
+        // AlphaFormat.Premul in Avalonia (including translucent PNGs).
+        // No pixel format conversion or opening of source images happens here.
+        // The service/result never gives the View a path or a Skia file/bitmap.
+        var bitmap = new WriteableBitmap(new PixelSize(decoded.Width, decoded.Height),
+            new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Premul);
+        try
+        {
+            var bytes = decoded.Pixels.ToArray();
+            using (var frame = bitmap.Lock())
+            {
+                for (var row = 0; row < decoded.Height; row++)
+                    Marshal.Copy(bytes, checked(row * decoded.Width * 4),
+                        IntPtr.Add(frame.Address, checked(row * frame.RowBytes)),
+                        checked(decoded.Width * 4));
+            }
+            control.Source = bitmap;
+            _mediaBitmap = bitmap;
+        }
+        catch
+        {
+            bitmap.Dispose();
+            // A rendering failure must never fall back to a guessed cover.
+        }
+    }
 
     private void ChooseFixture_OnClick(object? sender, RoutedEventArgs e)
     {

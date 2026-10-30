@@ -1,7 +1,6 @@
 # Journal des changements
 
-
-PERSIST-01 #111 — correctifs P1 en cours de CI : restore validé sur staging (schéma/FK/version/colonnes) avant remplacement, rollback après swap ; claims append-only par sujet et révision, provenance historique préservée, migration v2→v3 et tests adversariaux. ZIP Windows / nouveau HEAD et DEV 2 re-revue requis, aucun accès réel.
+PERSIST-01 #111 — correctifs P1 validés sur l'ancien HEAD (nouvelle CI après synchronisation à vérifier) : restore validé sur staging (schéma/FK/version/colonnes) avant remplacement, rollback après swap ; claims append-only par sujet et révision, provenance historique préservée, migration v2→v3 et tests adversariaux. ZIP Windows / nouveau HEAD et DEV 2 re-revue requis, aucun accès réel.
 
 ## PERSIST-01 — SQLite minimal sur fixtures (backend en revue)
 
@@ -9,6 +8,12 @@ PERSIST-01 #111 — correctifs P1 en cours de CI : restore validé sur staging (
 - `SaveAttempt` transactionnel conserve Current Complete en cas de Partial/Failed/Offline/Stale, historique des décisions manuelles et claims sourcées, `LoadLastKnown` restaure Offline/Stale sans scan ni SSD.
 - Backup SQLite cohérent avec `integrity_check`, migration v1→v2→v3, journal DELETE, sauvegarde/restauration de fixtures. Dépendances natives épinglées et lockfiles générés sur Windows.
 - Canaris PERS-01…08 Windows et tests source-neutral, CI/ZIP et revue DEV 2 à valider. **Stockage personnel, scan réel, UI, fusion et Release désactivés.**
+
+## NEXT-05 — DEV 3 / Avalonia médias sur fixtures (PR en revue)
+
+- Fiche observée enrichie d'une galerie de candidats/références sourcés et d'aperçus PNG/JPEG déclenchés manuellement à partir de tampons RGBA du service #108, sans fichier lu par la View/VM. Ambiguïtés, absent localement et non comparable affichés sans choix automatique.
+- Annulation, changement de sélection/run et Dispose des ressources de présentation, permissions de scan et preview personnelles toujours refusées ; harnais Windows NEXT-05 réutilisé avec 9 captures historiques et 10 médias supplémentaires sur fixtures fictives uniquement.
+- Pas de décision d'association, ajout manuel, persistance, refonte graphique V3, scan personnel, fusion ni Release dans ce lot ; CI/ZIP à vérifier sur HEAD final.
 
 ## NEXT-06 — Backend de présentation et aperçu média (PR #108, revue en cours)
 
