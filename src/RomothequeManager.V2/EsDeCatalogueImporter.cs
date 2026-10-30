@@ -332,10 +332,12 @@ public static class EsDeCatalogueImporter
         return ResolveRelative(root, normalized, domain);
     }
 
-    /// <summary>Loads one ES-DE gamelist in read-only mode with bounded XML bytes and characters.</summary>
-    /// <remarks>The byte budget is enforced during the actual read, not only by a prior
-    /// FileInfo length check. This prevents unbounded reads after concurrent growth.
-    /// DTDs and external XML resources remain prohibited; no content is written.</remarks>
+    /// <summary>Loads a standard gamelist or the documented ES-DE alternative-emulator preamble.</summary>
+    /// <remarks>Both attempts use the same bounded in-memory source and the strict .NET XML
+    /// reader with DTDs prohibited, an absent resolver and a character budget.
+    /// Fragment parsing is attempted only after the normal XML document reader rejects the
+    /// source, and accepts exactly one alternativeEmulator before exactly one gameList.
+    /// The preamble is not a game source, and never changes the imported projection.</remarks>
     private static XDocument LoadXml(string path)
     {
         using var input = ReadBoundedStream(path, XmlLimit, "ESDE_XML_BYTES_LIMIT");
@@ -343,10 +345,89 @@ public static class EsDeCatalogueImporter
         {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
-            MaxCharactersInDocument = XmlLimit
+            MaxCharactersInDocument = XmlLimit,
+            CheckCharacters = true,
+            CloseInput = false,
+            ConformanceLevel = ConformanceLevel.Document
         };
-        using var reader = XmlReader.Create(input, options);
-        return XDocument.Load(reader, LoadOptions.None);
+
+        try
+        {
+            using var documentReader = XmlReader.Create(input, options);
+            return XDocument.Load(documentReader, LoadOptions.None);
+        }
+        catch (XmlException)
+        {
+            // No byte replacement, regex, preamble removal or fallback to permissive XML.
+            // Fragment mode allows the two explicit ES-DE siblings; all other fragment
+            // shapes, extra roots, text, entities, and unsupported content are rejected.
+            input.Position = 0;
+            options.ConformanceLevel = ConformanceLevel.Fragment;
+            using var fragmentReader = XmlReader.Create(input, options);
+            return ReadKnownAlternativeEmulatorFragment(fragmentReader);
+        }
+    }
+
+    /// <summary>Accepts only alternativeEmulator(label) followed by one gameList root.</summary>
+    private static XDocument ReadKnownAlternativeEmulatorFragment(XmlReader reader)
+    {
+        XElement? gameList = null;
+        var rootCount = 0;
+        while (!reader.EOF)
+        {
+            if (reader.ReadState == ReadState.Initial && !reader.Read()) break;
+            switch (reader.NodeType)
+            {
+                case XmlNodeType.XmlDeclaration:
+                case XmlNodeType.Comment:
+                case XmlNodeType.Whitespace:
+                case XmlNodeType.SignificantWhitespace:
+                    if (!reader.Read()) break;
+                    continue;
+                case XmlNodeType.Element:
+                    if (rootCount == 0 && (reader.Name != "alternativeEmulator" ||
+                                           !string.IsNullOrEmpty(reader.NamespaceURI)))
+                        throw new XmlException("ESDE_ALTERNATIVE_EMULATOR_STRUCTURE_UNSUPPORTED");
+                    if (rootCount == 1 && (reader.Name != "gameList" ||
+                                           !string.IsNullOrEmpty(reader.NamespaceURI)))
+                        throw new XmlException("ESDE_ALTERNATIVE_EMULATOR_STRUCTURE_UNSUPPORTED");
+                    if (rootCount >= 2)
+                        throw new XmlException("ESDE_ALTERNATIVE_EMULATOR_STRUCTURE_UNSUPPORTED");
+
+                    var element = (XElement)XNode.ReadFrom(reader);
+                    if (rootCount == 0)
+                        ValidateAlternativeEmulatorPreamble(element);
+                    else
+                        gameList = element;
+                    rootCount++;
+                    continue;
+                default:
+                    // Fragment mode by itself accepts top-level text and arbitrary
+                    // fragments. They are NOT accepted by this ES-DE compatibility.
+                    throw new XmlException("ESDE_ALTERNATIVE_EMULATOR_STRUCTURE_UNSUPPORTED");
+            }
+        }
+
+        if (rootCount != 2 || gameList is null)
+            throw new XmlException("ESDE_ALTERNATIVE_EMULATOR_STRUCTURE_UNSUPPORTED");
+        return new XDocument(gameList);
+    }
+
+    /// <summary>Checks the sole supported alternative emulator label without interpreting it.</summary>
+    private static void ValidateAlternativeEmulatorPreamble(XElement preamble)
+    {
+        if (preamble.Name != "alternativeEmulator" || preamble.HasAttributes)
+            throw new XmlException("ESDE_ALTERNATIVE_EMULATOR_STRUCTURE_UNSUPPORTED");
+
+        var labels = preamble.Elements().ToArray();
+        if (labels.Length != 1 || labels[0].Name != "label" ||
+            labels[0].HasAttributes || labels[0].HasElements ||
+            string.IsNullOrWhiteSpace(labels[0].Value) ||
+            labels[0].Value.Length > 512 ||
+            labels[0].Nodes().Any(node => node is not XText) ||
+            preamble.Nodes().Any(node => node is not XElement &&
+                (node is not XText text || !string.IsNullOrWhiteSpace(text.Value))))
+            throw new XmlException("ESDE_ALTERNATIVE_EMULATOR_STRUCTURE_UNSUPPORTED");
     }
 
     /// <summary>Reads one opened file into a bounded and reusable in-memory stream.</summary>

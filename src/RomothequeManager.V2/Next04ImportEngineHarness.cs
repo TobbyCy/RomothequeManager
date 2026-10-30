@@ -70,6 +70,7 @@ internal static class Next04ImportEngineHarness
         foreach (var convention in new[] { "local", "historic", "modern" })
             CheckConvention(scratch, convention);
         CheckAtomicReimport(scratch);
+        CheckKnownAlternativeEmulator(scratch);
         CheckLargeSynthetic(scratch);
 
         Console.WriteLine("NEXT04_IMPORT_ENGINE_NATIVE_PASS source=DEMO01_SYNTHETIC " +
@@ -151,6 +152,79 @@ internal static class Next04ImportEngineHarness
             Require(ReferenceEquals(current, session.Current), "LASTGOOD_AFTER_DTD_FAILURE");
         }
         Console.WriteLine("NEXT04_ENGINE_LASTGOOD_PASS metadataOnly=1 xmlRejected=1 dtdRejected=1");
+    }
+
+    // Native Windows EXE proof: 6 ordinary and 5 known ES-DE alternative-emulator
+    // gamelists are all discovered and the last-good snapshot remains atomic.
+    private static void CheckKnownAlternativeEmulator(string scratch)
+    {
+        var root = Path.Combine(scratch, "alternative-emulator-11-synthetic");
+        const string prefix = "<?xml version=\"1.0\"?>\n" +
+            "<alternativeEmulator><label>FICTIONAL EMULATOR</label></alternativeEmulator>\n";
+        const string game =
+            "<gameList><game><path>./Invented.gba</path><name>Fixture</name></game></gameList>";
+        string? rejectedXml = null;
+        for (var i = 0; i < 11; i++)
+        {
+            var platform = "synthetic" + i.ToString("D2");
+            var romRoot = Path.Combine(root, "ROMS", platform);
+            Directory.CreateDirectory(romRoot);
+            var rom = Path.Combine(romRoot, "Invented.gba");
+            File.WriteAllText(rom, "INERT_FICTIONAL_ROM_PLACEHOLDER");
+            var dir = Path.Combine(root, "MEDIAS", platform, "metadata");
+            Directory.CreateDirectory(dir);
+            var xml = Path.Combine(dir, "es-de-gamelist.xml");
+            File.WriteAllText(xml, (i < 5 ? prefix : "") + game,
+                new UTF8Encoding(false));
+            if (i == 0) rejectedXml = xml;
+        }
+
+        var session = new EsDeImportSession(root);
+        var accepted = session.Import();
+        Require(accepted.Games.Count == 11 &&
+            accepted.Games.Select(g => g.Platform).Distinct().Count() == 11 &&
+            accepted.Games.All(g => g.RomExists), "ALTERNATIVE_MIXED_11_SYSTEMS");
+
+        var beforeHashes = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+            .ToDictionary(f => f, f => System.Security.Cryptography.SHA256.HashData(
+                File.ReadAllBytes(f)));
+        var again = session.Import();
+        Require(again.LibraryId == accepted.LibraryId &&
+            again.ContentFingerprint == accepted.ContentFingerprint,
+            "ALTERNATIVE_REIMPORT_IDEMPOTENT");
+
+        File.WriteAllText(rejectedXml!, prefix + game + "<thirdRoot/>");
+        try
+        {
+            session.Import();
+            throw new InvalidOperationException("ALTERNATIVE_THIRD_ROOT_FALSE_SUCCESS");
+        }
+        catch (EsDeXmlReadException)
+        {
+            Require(ReferenceEquals(again, session.Current), "ALTERNATIVE_LASTGOOD_ATOMIC");
+        }
+        File.WriteAllText(rejectedXml!, "<!DOCTYPE gameList>" + prefix + game);
+        try
+        {
+            session.Import();
+            throw new InvalidOperationException("ALTERNATIVE_DTD_FALSE_SUCCESS");
+        }
+        catch (EsDeXmlReadException)
+        {
+            Require(ReferenceEquals(again, session.Current), "ALTERNATIVE_DTD_ATOMIC");
+        }
+
+        // Only the purposely replaced fixture XML may differ. Every ROM and all
+        // other synthetic metadata sources remain byte-exact.
+        foreach (var (path, checksum) in beforeHashes)
+        {
+            if (string.Equals(path, rejectedXml, StringComparison.OrdinalIgnoreCase))
+                continue;
+            Require(checksum.SequenceEqual(System.Security.Cryptography.SHA256.HashData(
+                File.ReadAllBytes(path))), "ALTERNATIVE_SOURCES_READ_ONLY");
+        }
+        Console.WriteLine("NEXT04_ENGINE_ESDE_ALTERNATIVE_PASS " +
+            "systems=11 ordinary=6 preamble=5 thirdRoot=REJECTED dtd=REJECTED lastGood=KEPT");
     }
 
     private static void CheckLargeSynthetic(string scratch)
