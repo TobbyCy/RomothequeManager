@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+PERSIST-01 #111 — correctifs P1 validés sur l'ancien HEAD (nouvelle CI après synchronisation à vérifier) : restore validé sur staging (schéma/FK/version/colonnes) avant remplacement, rollback après swap ; claims append-only par sujet et révision, provenance historique préservée, migration v2→v3 et tests adversariaux. ZIP Windows / nouveau HEAD et DEV 2 re-revue requis, aucun accès réel.
+
+## NEXT-05 / PERSIST-01 — backend SQLite synthétique
+
+Périmètre autorisé : une seule PR DEV 1 sur fixtures (`ICatalogStore`), distincte de la PR Avalonia DEV 3 #110. Schéma minimal SQLite avec UUID durables, chemins relatifs, CurrentComplete et LastAttempt transactionnels, claims sourcées et décisions manuelles exclusivement explicites. `LoadLastKnown` renvoie la mémoire historique Offline/Stale sans ouvrir ROMS/MEDIAS, ni ES-DE, ni réseau. Backup avec API SQLite + integrity_check, migration v1→v2→v3 et journal DELETE sont proposés à la revue, sans allégation de durabilité USB/SSD physique non testée. Le constructeur public de stockage reste fail-closed : aucun catalogue personnel ouvert. Tests PERS-01…08, preuve native/packaging Windows, SHA et revue indépendante **en cours** ; aucune fusion ni Release autorisée.
+
 ## NEXT-05 / DEV 3 — Avalonia média, affichage de propositions sans validation (PR en revue)
 
 La fiche FileObservation conserve son MVVM et ajoute un panneau médias : candidats/references exactes sourcés, galerie non liée, ambiguïtés et couverture. L'aperçu est demandé explicitement ; la View convertit uniquement un tampon RGBA fourni par IMediaPreviewService en bitmap Avalonia et le libère ; le ViewModel annule et ignore les résultats tardifs. Aucun fichier/image source ouvert par la View/VM, aucun lien approuvé ou UserDecision fabriqué. Le service public reste fail-closed (REAL_LIBRARY_SCAN_HOLD, REAL_MEDIA_SCAN_HOLD, REAL_MEDIA_PREVIEW_HOLD). La preuve Windows nécessite les neuf captures historiques et dix captures medias sur copies fictives, plus ZIP standard sans permission de fixture. Les limites natives de Skia et TOCTOU physique restent HOLD ; aucune autorisation d'accès personnel. Les parcours ajout manuel/association/persistance font partie de la définition NEXT-05, mais ne sont pas livrés par cette PR et nécessitent contrats et GO distincts.
