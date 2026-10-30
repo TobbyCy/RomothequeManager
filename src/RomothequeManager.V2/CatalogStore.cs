@@ -211,10 +211,8 @@ public sealed class SqliteCatalogStore : ICatalogStore
             freshness == InventoryFreshness.Fresh &&
             total.HasValue && total.Value == count &&
             coverage.Count > 0 && coverage.All(c => c.Status == InventoryScanStatus.Complete);
-        // A supposedly Complete-but-stale or incomplete record is never adopted, even if
-        // the scanner supplied ScanStatus=Complete. Store its attempted facts, not a fake Current.
-        if (status == InventoryScanStatus.Complete && !complete)
-            throw new InvalidDataException("PERSIST01_COMPLETE_COVERAGE_UNPROVEN");
+        // A Complete-labelled attempt with Offline/Stale or incomplete coverage
+        // is retained as LastAttempt only; it must never overwrite Current.
         var id = Guid.NewGuid().ToString("D");
         ExecuteWrite((db, tx) =>
         {
