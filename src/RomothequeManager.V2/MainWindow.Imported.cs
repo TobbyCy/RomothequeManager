@@ -22,6 +22,7 @@ public sealed partial class MainWindow
     private bool _importBusy;
     private int _diagnosticsPageIndex;
     private POCView ActiveView => _importedUi.IsImported ? _importedUi.CurrentView :
+        _importedUi.Mode == CatalogueMode.NoCatalog ? _emptyView :
         _scenarioUi.Active && _scenarioDetail ? POCView.GameDetail : _state.CurrentView;
 
     private void Navigate(POCView view)
@@ -31,6 +32,8 @@ public sealed partial class MainWindow
         _scenarioDetail = false;
         if (_importedUi.IsImported)
             _importedUi.Navigate(view);
+        else if (_importedUi.Mode == CatalogueMode.NoCatalog)
+            _emptyView = view == POCView.GameDetail ? POCView.Collection : view;
         else
         {
             switch (view)
@@ -274,6 +277,8 @@ public sealed partial class MainWindow
     public bool CiNext041EmptyWelcome()
     {
         if (_importedUi.Mode != CatalogueMode.NoCatalog || _importedUi.Snapshot is not null ||
+            _demoNavigation.IsValueCreated || _demoProjection.IsValueCreated ||
+            _demoLibraries.IsValueCreated || _demoScenario.IsValueCreated ||
             _importedUi.TotalCount != 0 || _importedUi.Systems.Count != 0 ||
             ActiveView != POCView.Dashboard || Title != "ROMothèque Manager")
             return false;

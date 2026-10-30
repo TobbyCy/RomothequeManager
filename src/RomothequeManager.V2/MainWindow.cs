@@ -10,9 +10,15 @@ namespace RomothequeManager.V2;
 
 public sealed partial class MainWindow : Window
 {
-    private readonly NavigationState _state = new(ReadOnlyCatalogue.Synthetic());
-    private readonly LibraryProjection _libraryProjection;
-    private readonly LibraryViewState _libraryViewState;
+    // Never construct the built-in demo catalogue on a normal, empty launch.
+    // The legacy demo and its projection are instantiated only after an explicit choice.
+    private readonly Lazy<NavigationState> _demoNavigation = new(() => new NavigationState(ReadOnlyCatalogue.Synthetic()));
+    private readonly Lazy<LibraryProjection> _demoProjection;
+    private readonly Lazy<LibraryViewState> _demoLibraries;
+    private NavigationState _state => _demoNavigation.Value;
+    private LibraryProjection _libraryProjection => _demoProjection.Value;
+    private LibraryViewState _libraryViewState => _demoLibraries.Value;
+    private POCView _emptyView = POCView.Dashboard;
     private readonly StackPanel _page = new() { Spacing = 16 };
     private ScrollViewer? _contentScroll;
     private Image? _officialSidebarLogo;
@@ -102,8 +108,8 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
-        _libraryProjection = LibraryProjection.LoadSynthetic(_state.Catalogue);
-        _libraryViewState = new LibraryViewState(_libraryProjection);
+        _demoProjection = new Lazy<LibraryProjection>(() => LibraryProjection.LoadSynthetic(_state.Catalogue));
+        _demoLibraries = new Lazy<LibraryViewState>(() => new LibraryViewState(_libraryProjection));
         SizeChanged += (_, _) =>
         {
             UpdateContentWidth();
@@ -114,7 +120,8 @@ public sealed partial class MainWindow : Window
                 _importedColumns = columns;
                 Render();
             }
-            else if (_scenarioUi.Active || ActiveView is POCView.Dashboard or POCView.Libraries)
+            else if ((_importedUi.Mode == CatalogueMode.Demonstration && _scenarioUi.Active) ||
+                     ActiveView is POCView.Dashboard or POCView.Libraries)
                 Render();
         };
         Title = "ROMothèque Manager";
@@ -388,7 +395,7 @@ public sealed partial class MainWindow : Window
 
     private void RenderNoCatalog()
     {
-        var view = _state.CurrentView;
+        var view = _emptyView;
         var title = view switch
         {
             POCView.Collection => "Collection vide",
