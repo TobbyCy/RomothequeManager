@@ -34,7 +34,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'git ls-files failed' }
     Require ($paths.Count -gt 0) 'No tracked files'
     $allowed = @(
-        '^global\.json$', '^LICENSE$', '^BRANDING\.md$', '^LEGAL\.md$', '^README\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
+        '^global\.json$', '^LICENSE$', '^BRANDING\.md$', '^LEGAL\.md$', '^README\.md$', '^STATUS\.md$', '^CHANGELOG\.md$', '^CONTRIBUTING\.md$', '^SECURITY\.md$', '^SUPPORT\.md$', '^\.gitignore$', '^\.gitattributes$', '^Initialize\.ps1$',
         '^assets/branding/RM_V2_Horizontal_Fond_Sombre\.png$', '^assets/branding/README\.md$',
         '^assets/branding/RM_V2_Horizontal_Couleur\.svg$', '^assets/branding/RM_V2_Icone_Detaillee_Couleur\.svg$',
         '^assets/branding/RM_V2_Icone_Simplifiee_Couleur\.svg$', '^assets/branding/RM_V2_Favicon\.ico$',

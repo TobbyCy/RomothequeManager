@@ -17,6 +17,14 @@ import ci_policy as p
 
 
 class ClassificationTests(unittest.TestCase):
+    def test_root_status_markdown_is_docs_only_and_exactly_allowlisted(self):
+        self.assertEqual("DOCS_ONLY", p.classify([("A", "STATUS.md")]))
+        self.assertEqual("INFRA_SECURITY_UNKNOWN", p.classify([("A", "STATUS.md.exe")]))
+        self.assertEqual("INFRA_SECURITY_UNKNOWN", p.classify([("A", "STATUS.md/extra")]))
+        self.assertTrue(p.re.fullmatch(p.DOC, "STATUS.md"))
+        self.assertIsNone(p.re.fullmatch(p.DOC, "STATUS.md.exe"))
+        self.assertIsNone(p.re.fullmatch(p.DOC, "STATUS.md/extra"))
+
     def test_routes(self):
         cases = {
             "DOCS_ONLY": ["README.md", "BRANDING.md", "LEGAL.md", "docs/developer/workflow.md", "docs/decisions/0001-demo.md"],
@@ -292,13 +300,13 @@ class DocumentTests(unittest.TestCase):
     def test_policy_uses_existing_allowlist(self):
         root = Path(__file__).resolve().parent.parent
         rules, _ = p.path_rules(root)
-        for path in ("LICENSE", "BRANDING.md", "LEGAL.md", "README.md", "tests/ci_policy.py", "tests/test_ci_policy.py", "tests/Invoke-CiE1PreflightSynthetic.ps1"):
+        for path in ("LICENSE", "BRANDING.md", "LEGAL.md", "README.md", "STATUS.md", "tests/ci_policy.py", "tests/test_ci_policy.py", "tests/Invoke-CiE1PreflightSynthetic.ps1"):
             self.assertTrue(any(__import__('re').fullmatch(r, path) for r in rules))
         license_text = (root / "LICENSE").read_text(encoding="utf-8")
         self.assertTrue(license_text.startswith("MIT License\n\nCopyright (c) 2026 Cyril Tobler\n\n"))
         self.assertTrue(license_text.endswith("OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"))
         self.assertEqual("INFRA_SECURITY_UNKNOWN", p.classify([("A", "LICENSE")]))
-        for path in (".github/workflows/unreviewed.yml", "tests/ci_policy_extra.py", "docs/secret.exe", "ROMS/demo.gba", "SECURITY.txt", "LICENSE.txt", "LICENSE.bak", "license", "BRANDING.md.bak", "LEGAL.txt", "LEGAL.md/evil", "tests/Invoke-CiE1PreflightSynthetic.ps1.bak", "tests/Invoke-CiE1PreflightSynthetic.ps1/extra"):
+        for path in (".github/workflows/unreviewed.yml", "tests/ci_policy_extra.py", "docs/secret.exe", "ROMS/demo.gba", "SECURITY.txt", "LICENSE.txt", "LICENSE.bak", "license", "STATUS.md.bak", "STATUS.md/extra", "BRANDING.md.bak", "LEGAL.txt", "LEGAL.md/evil", "tests/Invoke-CiE1PreflightSynthetic.ps1.bak", "tests/Invoke-CiE1PreflightSynthetic.ps1/extra"):
             self.assertFalse(any(__import__('re').fullmatch(r, path) for r in rules))
 
     def test_ux_v2_mockup_index_only_no_image_or_archive(self):
@@ -888,6 +896,15 @@ class CliRoutingProofTests(unittest.TestCase):
             p.require(workspace.parent == Path(tempfile.gettempdir()).resolve() and not workspace.is_symlink(), "FIXTURE_BOUNDARY")
             root = workspace / "repo"
             subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", "--no-local", "--", str(source), str(root)], check=True, capture_output=True)
+            # A local clone checks out the committed main, which may predate the
+            # policy under test. Use exactly the current checkout's policy in
+            # the disposable clone; do not alter the source checkout or gates.
+            source_policy = source / "tests" / "ci_policy.py"
+            cloned_policy = root / "tests" / "ci_policy.py"
+            p.require(source_policy.is_file() and cloned_policy.is_file()
+                      and cloned_policy.resolve().is_relative_to(root.resolve()),
+                      "ROUTING_POLICY_FIXTURE_BOUNDARY")
+            shutil.copyfile(source_policy, cloned_policy)
             for key, value in (("user.name", "Synthetic CI"), ("user.email", "ci@example.invalid"), ("commit.gpgsign", "false"), ("core.autocrlf", "false")):
                 p.git(root, "config", key, value)
             # The clone tests policy behavior, not the separate documentation PR.

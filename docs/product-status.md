@@ -1,33 +1,7 @@
-# État des fonctionnalités
+# Historique technique des fonctionnalités
 
-## NEXT-04 / USAGE-01 — démonstration prête à tester sans Node (Issue #97)
+> **ARCHIVE, non état actuel.** Les anciens HEAD, PR Draft, validations et mentions « non fusionné » décrivent la situation lors de leur rédaction. Pour la version réellement téléchargeable, le code actuel et les limites de recette humaine, consulter [STATUS.md](../STATUS.md). Cet historique est conservé pour la traçabilité, pas comme deuxième tableau de bord.
 
-Le workflow Windows UX de PR #93 produit deux ZIP séparés dans un seul artefact temporaire : application standard .NET embarqué et démo fictive ES-DE pré-générée côté CI, avec 5 racines (`IDEAL`, `CHAOS`, `MYSTERY`, `MALFORMED`, `LONG`), hashes par fichier/ZIP et notices. Le PC de recette ne requiert que Windows. La validation du packaging ne prouve **pas** le vrai parcours humain picker/confirmation/annulation/import : HUM-01..10 restent NOT_EXECUTED, `USER_VALUE_PROVEN` reste HOLD. Pas de ROM personnelle, ni Release.
-
-
-## NEXT-04 / IMPORT-HARDENING — moteur ES-DE en recette synthétique (PR Draft)
-
-Le moteur conserve les trois conventions ES-DE sous la racine volontairement sélectionnée contenant `ROMS/`. Import en lecture seule, catalogue en mémoire de session, aucun scan NEXT-03. Le plafond XML **8 Mio d'octets effectivement lus**, celui des playlists **64 Kio et 256 lignes**, et le confinement des chemins sont contrôlés. Les collisions de noms portables sont refusées ; un dépassement ou XML invalide conserve le dernier `Current` valide.
-
-La batterie .NET couvre les refus et 2 000 références fictives. Un workflow dédié compile le **vrai exécutable Windows natif** avec `NEXT04_IMPORT_CI` exclusivement pour la recette, teste IDEAL/CHAOS/MYSTERY et vérifie les hashes des fixtures générées. Un build normal séparé ne contient pas l'entrée de test. Les performances seront mesurées sans seuil arbitraire. Tests sur la ROMothèque personnelle et recette humaine : `NOT_EXECUTED`, revue DEV 2 et gates avant toute fusion.
-
-
-## NEXT-04 / Durcissement UX et branding — PR #93 (en validation)
-
-Le pack officiel reste byte-for-byte : barre latérale 264 DIP, logo PNG natif 1960×576 présenté au ratio 228×67, ICO officiel 7 tailles pour fenêtre et exécutable. Mise en page responsive et contenu limité à 1580 DIP ; Dashboard à compteurs qualifiés, Collection en cartes, fiche adaptable et diagnostics consultables dans Bibliothèques. Parcours d'import racine/confirmation/lecture seule, état d'attente indéterminé et messages neutres. Importeur, session ES-DE et protections NEXT-03 inchangés.
-
-Comparaison avec dix références de conception **sur structure et exigences documentées seulement** : binaires privés non visualisables via l'accès courant, illustrations commerciales non redistribuées. CI Windows prévoit 13 captures dont deux **simulations** de DPI 125/200 %, source PNG/ICO contrôlée dans le ZIP normal. Aucune recette humaine DPI/clavier/ultralarge ni usage personnel revendiqué. Voir `docs/ux/next04-hardening-ux-branding.md`. **CI du HEAD exact et revue indépendante en attente ; aucune Release ni fusion autonome.**
-
-
-## NEXT-04 / ESDE-REAL-IMPORT-01 — amélioration ciblée de l'import ES-DE (PR Draft)
-
-Le parseur existant reconnaît désormais, depuis la racine explicitement sélectionnée contenant `ROMS/`, trois conventions fixes : `ROMS/<système>/gamelist.xml`, `MEDIAS/<système>/metadata/es-de-gamelist.xml` et `ES-DE/gamelists/<système>/gamelist.xml`. Il ne découvre pas les gamelists en dehors de cette racine et refuse les sources concurrentes. Pour la convention ES-DE, les médias **uniquement référencés dans le XML** sont confinés à `ES-DE/downloaded_media/`, jamais à `ES-DE/settings/` ni à une recherche par nom de ROM ; aucun média supplémentaire n'est inféré. Les erreurs de lecture XML sont désormais distinguées des structures XML incompatibles ; aucun diagnostic n'expose de chemin local complet. Genre, développeur et date de sortie sont projetés **uniquement depuis les champs XML déclarés**, sinon non renseignés. Les valeurs invalides facultatives sont ignorées avec diagnostic sans perdre le jeu. Pas de persistance ni d'enrichissement réseau. Import/reimport restent volontaires et en lecture seule, sans modification des sources. La PR backend #92 a été fusionnée dans `main` par le Contrôleur après revue contractuelle et CI ; la compatibilité de la ROMothèque personnelle reste non vérifiée, et la revue de l'interface #93 reste distincte.
-
-## NEXT-04 / DEV 3 — premier lot interface ES-DE préparée (PR Draft)
-
-Travail UI isolé : systèmes uniquement dérivés des jeux effectivement référencés dans les gamelists, sélection de système, recherche et pages 50 après filtre, retour de fiche avec contexte (dont défilement) et reimport conservant la vue en cours. Amélioration responsive de Collection et qualité de redimensionnement du logo officiel, sans changer les images du branding. Confirmation de l'import en lecture seule, sans déclenchement de NEXT-03 ni écriture dans les ROMS/MEDIAS.
-
-La branche DEV 3 #93 **inclut pour test combiné** les blobs exacts du parseur ES-DE #92 et projette Genre, Développeur et Date ES-DE dans la fiche (valeur absente : « Non renseigné »). La PR backend #92 est fusionnée dans `main` et #93 a été synchronisée sur ce `main` sans écraser les modifications UX ni les tests backend. La Collection conserve filtre, recherche, page et offset via la navigation et le réimport ; une recette de 155 entrées synthétiques vérifie le défilement profond. Bibliothèques donne accès à l'aperçu NEXT-03 **SIMULATION seulement**. Aucun stockage persistant ou scan personnel. La recette automatisée Windows du même arbre source a validé 147 tests .NET, 11 captures GUI Avalonia, filtre/page 2/scroll 490, fiche avec/sans métadonnées, réimport et dernier catalogue valide. La CI du HEAD synchronisé exact et la revue indépendante sont à confirmer ; essais humains souris, clavier, DPI et écran physique ultralarge **NOT_EXECUTED**, aucune livraison Beta.
 
 ## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
 
