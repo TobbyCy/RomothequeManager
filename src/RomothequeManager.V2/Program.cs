@@ -92,6 +92,23 @@ internal static class Program
         }
 #endif
 #if NEXT05_CI
+        // Separate child process: SQLite-only restoration, no Avalonia, ROMS or MEDIAS access.
+        if (args.Length == 5 && args[0] == "--ci-next05-sqlite-reopen")
+        {
+            try
+            {
+                Environment.ExitCode = Next05GuiHarness.VerifyReopened(
+                    args[1], args[2], args[3], args[4]);
+            }
+            catch (Exception ex)
+            {
+                Environment.ExitCode = 46;
+                Console.Error.WriteLine("SQLITE_UI_CHILD_FAILED " + ex.GetType().Name);
+            }
+            return;
+        }
+#endif
+#if NEXT05_CI
         if (args.Contains("--ci-next05-observed-gui", StringComparer.Ordinal))
         {
             var index = Array.IndexOf(args, "--ci-next05-observed-gui");
