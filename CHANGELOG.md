@@ -1,10 +1,13 @@
 # Journal des changements
 
+
+PERSIST-01 #111 — correctifs P1 en cours de CI : restore validé sur staging (schéma/FK/version/colonnes) avant remplacement, rollback après swap ; claims append-only par sujet et révision, provenance historique préservée, migration v2→v3 et tests adversariaux. ZIP Windows / nouveau HEAD et DEV 2 re-revue requis, aucun accès réel.
+
 ## PERSIST-01 — SQLite minimal sur fixtures (backend en revue)
 
 - Stockage applicatif `ICatalogStore` et schéma SQLite versionné : Library, StorageRoot, ScanSnapshot, MetadataClaim, UserDecision, sans ES-DE maître, sans identité de jeu fabriquée.
 - `SaveAttempt` transactionnel conserve Current Complete en cas de Partial/Failed/Offline/Stale, historique des décisions manuelles et claims sourcées, `LoadLastKnown` restaure Offline/Stale sans scan ni SSD.
-- Backup SQLite cohérent avec `integrity_check`, migration v1→v2, journal DELETE, sauvegarde/restauration de fixtures. Dépendances natives épinglées et lockfiles générés sur Windows.
+- Backup SQLite cohérent avec `integrity_check`, migration v1→v2→v3, journal DELETE, sauvegarde/restauration de fixtures. Dépendances natives épinglées et lockfiles générés sur Windows.
 - Canaris PERS-01…08 Windows et tests source-neutral, CI/ZIP et revue DEV 2 à valider. **Stockage personnel, scan réel, UI, fusion et Release désactivés.**
 
 ## NEXT-06 — Backend de présentation et aperçu média (PR #108, revue en cours)
