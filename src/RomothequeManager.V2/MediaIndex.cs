@@ -339,6 +339,13 @@ internal static class MediaIndexReader
                                             count += n;
                                             headerBytesTotal += n;
                                             scope.HeaderObserved?.Invoke(count);
+                                            if (token.IsCancellationRequested)
+                                            {
+                                                partial = true;
+                                                stop = true;
+                                                Warn("MEDIA_CANCELLED", "Header read cancelled.");
+                                                break;
+                                            }
                                         }
                                     }
                                     if (!stop)
