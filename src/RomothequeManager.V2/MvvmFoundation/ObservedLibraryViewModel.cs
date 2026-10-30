@@ -79,22 +79,22 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     public string SearchText
     {
         get => _search;
-        set { if (_search == value) return; _search = value ?? ""; FiltersChanged(); }
+        set { var next = value ?? ""; if (_search == next) return; _search = next; FiltersChanged(); }
     }
     public string PlatformFilter
     {
         get => _platform;
-        set { if (_platform == value) return; _platform = value ?? "Toutes"; FiltersChanged(); }
+        set { var next = value ?? "Toutes"; if (_platform == next) return; _platform = next; FiltersChanged(); }
     }
     public string ExtensionFilter
     {
         get => _extension;
-        set { if (_extension == value) return; _extension = value ?? "Toutes"; FiltersChanged(); }
+        set { var next = value ?? "Toutes"; if (_extension == next) return; _extension = next; FiltersChanged(); }
     }
     public string KindFilter
     {
         get => _kind;
-        set { if (_kind == value) return; _kind = value ?? "Tous"; FiltersChanged(); }
+        set { var next = value ?? "Tous"; if (_kind == next) return; _kind = next; FiltersChanged(); }
     }
     public IReadOnlyList<string> PlatformOptions => new[] { "Toutes" }
         .Concat(_inventory.Observations.Select(x => string.IsNullOrWhiteSpace(x.PlatformKey)
@@ -176,18 +176,26 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     private void OnInventoryChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (_disposed) return;
+        // The inventory VM emits a property batch for one state transition.
+        // Rebuild the expensive page and ComboBox options only for a new snapshot,
+        // otherwise TwoWay SelectedItem can re-enter the filters indefinitely.
+        if (e.PropertyName is nameof(InventoryViewModel.CanStart) or
+            nameof(InventoryViewModel.ConsentConfirmed) or nameof(InventoryViewModel.Phase))
+            Notify(nameof(CanInventoryFixture));
+        if (e.PropertyName != nameof(InventoryViewModel.DisplayedSnapshot)) return;
         var newGeneration = _inventory.DisplayedSnapshot;
-        if (!ReferenceEquals(_generation, newGeneration))
-        {
-            _generation = newGeneration;
-            _selected = null;
-            _pageIndex = 0;
-            _platform = "Toutes";
-            _extension = "Toutes";
-            _kind = "Tous";
-            _search = "";
-        }
+        if (ReferenceEquals(_generation, newGeneration)) return;
+        _generation = newGeneration;
+        _selected = null;
+        _pageIndex = 0;
+        _platform = "Toutes";
+        _extension = "Toutes";
+        _kind = "Tous";
+        _search = "";
         RefreshPage();
+        Notify(nameof(PlatformOptions));
+        Notify(nameof(ExtensionOptions));
+        Notify(nameof(KindOptions));
     }
 
     private void RefreshPage()
@@ -219,8 +227,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
             nameof(SelectedName), nameof(SnapshotStatus), nameof(Summary),
             nameof(PlatformSummary), nameof(ExtensionSummary), nameof(TypeSummary),
             nameof(GenerationLabel), nameof(Diagnostics), nameof(Coverage),
-            nameof(DiagnosticSummary), nameof(EmptyText), nameof(PlatformOptions),
-            nameof(ExtensionOptions), nameof(KindOptions), nameof(PlatformFilter),
+            nameof(DiagnosticSummary), nameof(EmptyText), nameof(PlatformFilter),
             nameof(ExtensionFilter), nameof(KindFilter), nameof(SearchText)
         }) Notify(property);
         _previous.NotifyCanExecuteChanged();
