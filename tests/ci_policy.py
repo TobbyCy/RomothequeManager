@@ -539,6 +539,23 @@ def documents(root, plan):
     for unsafe in ("pull_request_target:", "workflow_run:", "repository_dispatch:",
                    "contents: write", "gh release", "secrets.", "continue-on-error:"):
         require(unsafe not in n05, "NEXT05_UX_WORKFLOW_UNSAFE:" + unsafe)
+    media_ui = (root / ".github/workflows/next05-media-ui-proof.yml").read_text(encoding="utf-8")
+    require("branches: [dev3/next05-media-ui]" in media_ui and
+            "github.ref == 'refs/heads/dev3/next05-media-ui'" in media_ui and
+            "github.actor == 'TobbyCy'" in media_ui and
+            "permissions:\n  contents: read" in media_ui and
+            "persist-credentials: false" in media_ui and
+            "N05_GUI_WINDOWS_CAPTURE_PASS" in media_ui and
+            "MEDIA_GUI_WINDOWS_CAPTURE_PASS" in media_ui and
+            "MEDIA_STANDARD_PUBLIC_PREVIEW_HOLD_PASS" in media_ui and
+            "N05_PORTABLE_ZIP_VERIFIED_PASS" in media_ui and
+            "if-no-files-found: error" in media_ui and
+            "retention-days: 3" in media_ui and
+            media_ui.count("actions/upload-artifact@") == 1,
+            "NEXT05_MEDIA_UI_WORKFLOW_GUARDS")
+    for unsafe in ("pull_request_target:", "workflow_run:", "repository_dispatch:",
+                   "contents: write", "gh release", "secrets.", "continue-on-error:"):
+        require(unsafe not in media_ui, "NEXT05_MEDIA_UI_WORKFLOW_UNSAFE:" + unsafe)
     visual_workflow = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
     require("branches: [dev3/visual-poc-01]" in visual_workflow and
             "github.actor == 'TobbyCy'" in visual_workflow and

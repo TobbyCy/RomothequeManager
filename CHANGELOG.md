@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-05 — DEV 3 / Avalonia médias sur fixtures (PR en revue)
+
+- Fiche observée enrichie d'une galerie de candidats/références sourcés et d'aperçus PNG/JPEG déclenchés manuellement à partir de tampons RGBA du service #108, sans fichier lu par la View/VM. Ambiguïtés, absent localement et non comparable affichés sans choix automatique.
+- Annulation, changement de sélection/run et Dispose des ressources de présentation, permissions de scan et preview personnelles toujours refusées ; harnais Windows NEXT-05 réutilisé avec 9 captures historiques et 10 médias supplémentaires sur fixtures fictives uniquement.
+- Pas de décision d'association, ajout manuel, persistance, refonte graphique V3, scan personnel, fusion ni Release dans ce lot ; CI/ZIP à vérifier sur HEAD final.
+
 ## NEXT-06 — Backend de présentation et aperçu média (PR #108, revue en cours)
 
 - Services source-neutral `IMediaPresentationService` et `IMediaPreviewService` ; lecture des candidats de #107 sans ES-DE obligatoire, états de provenance sans validation automatique.
