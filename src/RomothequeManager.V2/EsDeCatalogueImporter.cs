@@ -356,15 +356,25 @@ public static class EsDeCatalogueImporter
             using var documentReader = XmlReader.Create(input, options);
             return XDocument.Load(documentReader, LoadOptions.None);
         }
-        catch (XmlException)
+        catch (XmlException strictDocumentError)
         {
             // No byte replacement, regex, preamble removal or fallback to permissive XML.
             // Fragment mode allows the two explicit ES-DE siblings; all other fragment
             // shapes, extra roots, text, entities, and unsupported content are rejected.
+            // Preserve precise syntax diagnostics of ordinary documents: a rejected
+            // compatibility shape must never replace the original XML line/column
+            // with an unlocated structural rejection from the fallback reader.
             input.Position = 0;
             options.ConformanceLevel = ConformanceLevel.Fragment;
             using var fragmentReader = XmlReader.Create(input, options);
-            return ReadKnownAlternativeEmulatorFragment(fragmentReader);
+            try
+            {
+                return ReadKnownAlternativeEmulatorFragment(fragmentReader);
+            }
+            catch (XmlException compatibilityError) when (compatibilityError.LineNumber == 0)
+            {
+                throw strictDocumentError;
+            }
         }
     }
 
