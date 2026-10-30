@@ -115,10 +115,23 @@ jobs:
           foreach ($f in @('RomothequeManager.V2.exe','RM_V2_Favicon.ico','RM_V2_Horizontal_Fond_Sombre.png')) {
             if (-not (Test-Path -LiteralPath (Join-Path $out $f) -PathType Leaf)) { throw ('N05_BUILD_MISSING:' + $f) }
           }
-          if (-not (Test-Path -LiteralPath (Join-Path $out 'e_sqlite3.dll') -PathType Leaf)) { throw 'UI05_SQLITE_NATIVE_MISSING' }
-          if (-not (Test-Path -LiteralPath (Join-Path $out 'Microsoft.Data.Sqlite.dll') -PathType Leaf)) { throw 'UI05_SQLITE_PROVIDER_MISSING' }
+          # PublishSingleFile + IncludeNativeLibrariesForSelfExtract embeds the
+          # native provider in the EXE; a standalone e_sqlite3.dll is NOT expected.
+          # Prove the exact locked RID assets in a separate non-distribution,
+          # non-single-file staging directory, then keep only the clean EXE in ZIP.
+          $providerProof = Join-Path $env:RUNNER_TEMP 'next05-sqlite-provider-staging'
+          dotnet publish $app -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $providerProof
+          if ($LASTEXITCODE -ne 0) { throw 'UI05_SQLITE_PROVIDER_STAGE_BUILD_FAILED' }
+          foreach ($file in @('e_sqlite3.dll','Microsoft.Data.Sqlite.dll')) {
+            $native = Join-Path $providerProof $file
+            if (-not (Test-Path -LiteralPath $native -PathType Leaf)) {
+              throw ('UI05_SQLITE_PROVIDER_STAGE_MISSING:' + $file)
+            }
+            $hash = (Get-FileHash -LiteralPath $native -Algorithm SHA256).Hash.ToLowerInvariant()
+            Write-Host ('UI05_SQLITE_PROVIDER_FILE_PASS name=' + $file + ' sha256=' + $hash)
+          }
           Write-Host 'N05_STANDARD_WITHOUT_CI_PERMISSION_PASS'
-          Write-Host 'UI05_SQLITE_PROVIDER_NATIVE_PASS public_catalog_hold=true'
+          Write-Host 'UI05_SQLITE_PROVIDER_NATIVE_PASS public_catalog_hold=true single_file_embedded=true'
           Write-Host 'MEDIA_STANDARD_PUBLIC_PREVIEW_HOLD_PASS'
       - name: Assemble quarantined candidate ZIP and verify SHA-256
         shell: pwsh
