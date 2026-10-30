@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05-2 — Index MEDIAS indépendant (backend en revue)
+
+Le nouveau moteur observe uniquement la racine MEDIAS explicitement sélectionnée, jamais ROMS ni XML. Le service public refuse tout scan réel (`REAL_MEDIA_SCAN_HOLD`) ; les fixtures temporaires autorisées passent par injection `internal`. En-têtes PNG/JPEG et dimensions vérifiés sans garantie de décodage ; WebP non supporté. `MediaLinkProjection` fonctionne en mémoire sur observations et mapping explicite : références exactes sourcées, candidats de convention unique, ambiguïtés, absences locales prouvables uniquement sous couverture complète. Aucun choix automatique de jaquette, ni GameId ou MediaAssetId durable, ni écriture ou persistance.
+
+Canaris N05-M-A..J fictifs incluant 2 200 références mixtes ; CI et revue DEV 2 à vérifier sur HEAD exact. TOCTOU sur SSD physique, lecture d'images complètes, ROMothèque personnelle, SQLite, interface Avalonia et DocFX sont NOT_EXECUTED/HOLD. Aucun scraper/Release.
+
 ## NEXT-05-1 — Projection backend des fichiers observés, en revue
 
 `InventoryObservationProjection.GetPage(InventorySnapshot, InventoryObservationFilter)` présente les `FileObservation` inchangées avec un nom de fichier provisoire, filtres et pages. Identités scan/session distinctes des futurs IDs durables de SQLite et de `GameId`. MYSTERY sans XML reste consultable. État, couverture et diagnostics de l'inventaire initial ne sont jamais transformés en compte de jeux ou suppression. La protection de scan personnel de `InventoryApplicationService()` reste en place ; tests N05-A..J uniquement sur fixtures temporaires inventées. Aucun média autonome, SQLite, XML, scan personnel ou scraper implémenté dans cette PR. Tests et CI à contrôler au HEAD exact ; DEV 2 et Contrôleur doivent réceptionner. DocFX fera l'objet d'une preuve ultérieure.

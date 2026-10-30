@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-05-2 — Media-index backend on synthetic fixtures (PR review pending)
+
+- Independent explicit MEDIAS root indexing, no XML/ROM access: bounded PNG/JPEG header inspection (not image decoding), provenance and diagnostics, WebP marked unsupported, fail-closed production permission.
+- Pure read-only media-to-file reconciliation with explicit scoped mapping, sourced exact paths, unique-convention candidates, ambiguity and offline/incomplete gates. No covers accepted silently, no SQLite or view changes.
+- N05-M-A..J run exclusively on invented temporary fixtures, including 2,200 mixed references; results and CI require review at the exact PR HEAD. No personal scan, source write, scraper, fusion or Release.
+
 ## NEXT-05-1 — Inventaire autonome, backend fictif (PR à réceptionner)
 
 - Projection pure des observations NEXT-02/03 par `InventoryObservationProjection.GetPage`, filtres plateforme/extension/type/texte, ordre stable, pagination et label provisoire issu du fichier. Aucun `GameId`, titre commercial ni média inventé ; `ConfirmedGameCount=null` conservé.
