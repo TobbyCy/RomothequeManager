@@ -249,7 +249,9 @@ public sealed class Persist01SqliteTests
         var state = store.LoadLastKnown(_romRootId);
         Assert.AreEqual("ROMS", state.StorageRoot.RelativeBinding);
         Assert.AreEqual(InventoryFreshness.Stale, state.CurrentComplete!.DisplayFreshness);
-        Assert.IsFalse(CatalogStorageLocations.PortableAutoActivation);
+        var portableField = typeof(CatalogStorageLocations).GetField(
+            nameof(CatalogStorageLocations.PortableAutoActivation));
+        Assert.AreEqual(false, portableField?.GetRawConstantValue());
         Assert.IsTrue(CatalogStorageLocations.DefaultLocalCandidate.EndsWith(
             Path.Combine("RomothequeManager", "data", "catalog.sqlite")));
         Assert.ThrowsExactly<InvalidOperationException>(() => new SqliteCatalogStore());
