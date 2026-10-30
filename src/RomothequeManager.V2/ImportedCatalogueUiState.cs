@@ -2,7 +2,7 @@ namespace RomothequeManager.V2;
 
 // UI-only selection, search, paging and mode. The ES-DE importer remains the sole
 // authority for XML parsing, media paths and read-only file access.
-public enum CatalogueMode { Demonstration, Imported }
+public enum CatalogueMode { NoCatalog, Demonstration, Imported }
 
 // A system is proven only by games referenced in imported ES-DE XML.
 public sealed record ImportedSystem(string Platform, int ReferencedGames);
@@ -10,7 +10,8 @@ public sealed record ImportedSystem(string Platform, int ReferencedGames);
 public sealed class ImportedCatalogueUiState
 {
     private EsDeImportSession? _session;
-    public CatalogueMode Mode { get; private set; } = CatalogueMode.Demonstration;
+    public CatalogueMode Mode { get; private set; } = CatalogueMode.NoCatalog;
+    public bool HasImportedCatalogue => Snapshot is not null;
     public EsDeCatalogueSnapshot? Snapshot => _session?.Current;
     public bool IsImported => Mode == CatalogueMode.Imported && Snapshot is not null;
     public string? ErrorMessage { get; private set; }
@@ -113,6 +114,16 @@ public sealed class ImportedCatalogueUiState
     public void ShowDemo()
     {
         Mode = CatalogueMode.Demonstration;
+        ErrorMessage = null;
+        SelectedGameId = null;
+        CurrentView = POCView.Dashboard;
+    }
+
+    // Empty welcome never loads/saves the previous filesystem path or exposes demo data.
+    public void ShowWelcome()
+    {
+        Mode = CatalogueMode.NoCatalog;
+        ErrorMessage = null;
         SelectedGameId = null;
         CurrentView = POCView.Dashboard;
     }

@@ -59,6 +59,14 @@ internal static class Next04Capture
                 if (!window.CiNext04BrandingLayout())
                     throw new InvalidDataException("NEXT04_BRANDING_NATIVE_SIZE_OR_ICON_FAILED");
                 Console.WriteLine("NEXT04_BRANDING_PASS logo=1960x576 display=228x67 icon=present");
+                if (!window.CiNext041EmptyWelcome())
+                    throw new InvalidDataException("NEXT041_EMPTY_WELCOME_FAILED");
+                Capture("NEXT041-Welcome-1120x720", 1120, 720);
+                Capture("NEXT041-Welcome-760x480", 760, 480);
+                if (!window.CiNext041EmptyCollectionAndDemoOptIn())
+                    throw new InvalidDataException("NEXT041_EMPTY_COLLECTION_OR_OPTIN_FAILED");
+                Capture("NEXT041-Empty-Libraries-1120x720", 1120, 720);
+                Console.WriteLine("NEXT041_BOOT_NO_CATALOG_PASS demo=opt_in empty_collection=1 empty_libraries=1");
                 if (!window.CiNext04Import(Path.Combine(fixtureRoot, "IDEAL"), 30, 13))
                     throw new InvalidDataException("NEXT04_IDEAL_IMPORT_FAILED");
                 Capture("IDEAL-Dashboard-1120x720", 1120, 720);
@@ -68,6 +76,18 @@ internal static class Next04Capture
                 if (!window.CiNext04FirstSystem())
                     throw new InvalidDataException("NEXT04_SYSTEM_NAVIGATION_FAILED");
                 Capture("IDEAL-System-Collection-1120x720", 1120, 720);
+                // Synthetic viewport only: the hosted runner is not physically ultrawide.
+                // The production column algorithm uses real Bounds.Width unchanged.
+                window.CiNext041SetSyntheticViewport(2200);
+                Capture("NEXT041-System-Collection-Ultrawide-2200x900", 2200, 900);
+                if (!window.CiNext041WideCollectionAligned())
+                    throw new InvalidDataException("NEXT041_COLLECTION_GRID_ALIGNMENT_ULTRAWIDE_FAILED");
+                window.CiNext041SetSyntheticViewport(1920);
+                Capture("NEXT041-System-Collection-DPI150-2880x1800", 1920, 1200, 1.5);
+                if (!window.CiNext041WideCollectionAligned())
+                    throw new InvalidDataException("NEXT041_COLLECTION_GRID_ALIGNMENT_DPI150_FAILED");
+                Console.WriteLine("NEXT041_COLLECTION_GRID_PASS columns=3 widths=equal viewport=simulated dpi_render=150_simulated");
+                window.CiNext041ClearSyntheticViewport();
                 if (!window.CiNext04OpenFirst())
                     throw new InvalidDataException("NEXT04_GAME_NAVIGATION_FAILED");
                 Capture("IDEAL-GameDetail-1120x720", 1120, 720);

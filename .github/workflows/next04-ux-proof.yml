@@ -1,7 +1,7 @@
 name: NEXT-04 / ES-DE Avalonia Windows synthetic UX proof
 on:
   push:
-    branches: [dev3/next04-esde-ux]
+    branches: [dev3/next04-esde-ux, dev3/portable-packaging-101]
 permissions:
   contents: read
 concurrency:
@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   windows-ui:
-    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev3/next04-esde-ux' && github.actor == 'TobbyCy'
+    if: github.repository == 'TobbyCy/RomothequeManager' && (github.ref == 'refs/heads/dev3/next04-esde-ux' || github.ref == 'refs/heads/dev3/portable-packaging-101') && github.actor == 'TobbyCy'
     runs-on: windows-2022
     timeout-minutes: 35
     steps:
@@ -41,7 +41,7 @@ jobs:
           dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_APP_RESTORE_FAILED' }
           $ci = Join-Path $env:RUNNER_TEMP 'next04-ci-gui'
-          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:DefineConstants=NEXT04_CI -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $ci
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:DefineConstants=NEXT04_CI -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -p:TreatWarningsAsErrors=true -o $ci
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_CI_GUI_BUILD_FAILED' }
           if (-not (Test-Path -LiteralPath (Join-Path $ci 'RomothequeManager.V2.exe') -PathType Leaf)) { throw 'NEXT04_GUI_EXE_MISSING' }
       - name: Generate and verify IDEAL CHAOS MYSTERY only
@@ -73,7 +73,7 @@ jobs:
             ('<gameList>' + ($entries -join '') + '</gameList>'), [Text.UTF8Encoding]::new($false))
           Write-Host 'NEXT04_LONG_FIXTURE_PASS entries=155 metadata=1 no_personal_paths=1'
           [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'next04-fixtures.txt'),$fixtures,[Text.UTF8Encoding]::new($false))
-      - name: Real Avalonia imported GUI and thirteen PNG captures
+      - name: Real Avalonia imported GUI, first-launch welcome and eighteen PNG captures
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -93,7 +93,7 @@ jobs:
           } finally { $process.Dispose() }
           $output = Join-Path $env:RUNNER_TEMP 'next04-ux-captures'
           $png = @(Get-ChildItem -LiteralPath $output -File -Filter '*.png')
-          if ($png.Count -ne 13) { throw ('NEXT04_PNG_COUNT:' + $png.Count) }
+          if ($png.Count -ne 18) { throw ('NEXT04_PNG_COUNT:' + $png.Count) }
           Add-Type -AssemblyName System.Drawing
           foreach ($file in $png) {
             $bitmap = [Drawing.Bitmap]::FromFile($file.FullName)
@@ -103,10 +103,10 @@ jobs:
           }
           node tools/demo-library/generate.cjs --verify $fixture
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_FIXTURE_CHANGED' }
-          $manifest = [ordered]@{sourceCommit='${{ github.sha }}'; windowsAttachedAvalonia=$true; snapshots=13; syntheticOnly=$true; personalScanAllowed=$false; release=$false
+          $manifest = [ordered]@{sourceCommit='${{ github.sha }}'; windowsAttachedAvalonia=$true; snapshots=18; syntheticOnly=$true; personalScanAllowed=$false; release=$false
              captures=@($png | ForEach-Object { [ordered]@{file=$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()} }) }
           ($manifest | ConvertTo-Json -Depth 5) | Set-Content (Join-Path $output 'NEXT04-PROOF.json') -Encoding utf8
-          Write-Host ('NEXT04_GUI_WINDOWS_CAPTURE_PASS source=${{ github.sha }} count=13 untouchedFixtures=1')
+          Write-Host ('NEXT04_GUI_WINDOWS_CAPTURE_PASS source=${{ github.sha }} count=18 untouchedFixtures=1')
       - name: Assemble and verify ready-to-select fictional ES-DE demo ZIP
         shell: pwsh
         run: |
@@ -234,7 +234,7 @@ jobs:
           dotnet clean $app -c Release -r win-x64
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_PRODUCT_CLEAN_FAILED' }
           $output = Join-Path $env:RUNNER_TEMP 'next04-standard'
-          dotnet publish $app -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $output
+          dotnet publish $app -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -p:TreatWarningsAsErrors=true -o $output
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_STANDARD_PUBLISH_FAILED' }
           if (-not (Test-Path -LiteralPath (Join-Path $output 'RomothequeManager.V2.exe'))) { throw 'NEXT04_STANDARD_EXE_MISSING' }
           # Byte-for-byte official resources only. Check physical PNG source and ICO
@@ -263,6 +263,19 @@ jobs:
           if ($null -eq $exeIcon) { throw 'NEXT04_EXE_ICON_MISSING' }
           $exeIcon.Dispose()
           Write-Host 'NEXT04_BRANDING_PACKAGE_PASS native_png=1960x576 ico_entries=7 exe_icon=present byte_exact=1'
+          # Single-file must keep the EXE as the one and only top-level executable.
+          # Debug symbols are not runtime dependencies; keep the user ZIP minimal.
+          @(Get-ChildItem -LiteralPath $output -File -Filter '*.pdb') | ForEach-Object {
+            Write-Host ('PORTABLE101_NONRUNTIME_SYMBOL_OMITTED ' + $_.Name)
+            Remove-Item -LiteralPath $_.FullName -Force
+          }
+          $binaryFiles = @(Get-ChildItem -LiteralPath $output -File | Where-Object { $_.Extension -in @('.dll','.so','.dylib') })
+          if ($binaryFiles.Count -ne 0) {
+            Write-Host ('PORTABLE101_UNBUNDLED_LIST ' + (($binaryFiles | ForEach-Object Name) -join ','))
+            throw 'PORTABLE101_UNBUNDLED_BINARY_ROOT'
+          }
+          if (@(Get-ChildItem -LiteralPath $output -File -Filter '*.exe').Count -ne 1) { throw 'PORTABLE101_EXE_NOT_UNIQUE' }
+          Write-Host 'PORTABLE101_SINGLE_FILE_PUBLISH_PASS native=self-extract trimmed=false branding=external'
           Write-Host 'NEXT04_STANDARD_BUILD_WITHOUT_CI_HARNESS_PASS'
       - name: Verify quarantined portable Windows ZIP with licence notices and SHA-256
         shell: pwsh
@@ -290,14 +303,17 @@ jobs:
             Copy-Item -LiteralPath $found[0].FullName -Destination (Join-Path $notices $file)
           }
           $guide = @'
-          NEXT-04 / USAGE-01 - WINDOWS + SYNTHETIC DEMO WITHOUT NODE
+          NEXT-04.1 / USAGE-02 - EMPTY WELCOME + PORTABLE WINDOWS (NO NODE)
           Source revision: ${{ github.sha }}. Temporary CI test, NOT a Release.
           From the SAME artifact, download TWO archives:
           * RomothequeManager-NEXT04-UX-win-x64-*.zip       (app)
           * RomothequeManager-NEXT04-DEMO-FICTIVE-*.zip    (demo)
           Verify both SHA-256 files; extract the archives separately.
-          Run RomothequeManager.V2.exe (standard normal self-contained EXE).
-          In Bibliotheques -> Import ES-DE, first CANCEL the native picker.
+          Launch RomothequeManager.V2.exe at the ZIP root (single-file,
+          self-contained; two official image assets and legal files stay outside).
+          Normal launch must display the empty welcome (NO DEMO by default).
+          Click Importer une bibliotheque ES-DE, then CANCEL the native picker.
+          The opt-in demo is separate and must never appear automatically.
           Next select DEMO-NEXT04/IDEAL (it contains ROMS/) and CANCEL the
           read-only confirmation; select IDEAL again and ACCEPT the import.
           Navigate Systems -> Collection -> Game detail -> Back.
@@ -312,7 +328,7 @@ jobs:
           No personal scans/uploads, Release or NEXT-05 authorization.
           '@
           [IO.File]::WriteAllText((Join-Path $publish 'GUIDE-NEXT04-WINDOWS.txt'),$guide,[Text.UTF8Encoding]::new($false))
-          $manifest = [ordered]@{sourceCommit=$source;runtime='win-x64';selfContained=$true;ciHarnessIncluded=$false;personalScanAllowed=$false;release=$false;cataloguePersistence=$false}
+          $manifest = [ordered]@{sourceCommit=$source;runtime='win-x64';selfContained=$true;singleFile=$true;nativeLibrariesSelfExtract=$true;trimmed=$false;ciHarnessIncluded=$false;personalScanAllowed=$false;release=$false;cataloguePersistence=$false}
           ($manifest | ConvertTo-Json) | Set-Content -LiteralPath (Join-Path $publish 'NEXT04-MANIFEST.json') -Encoding utf8
           $files = @(Get-ChildItem -LiteralPath $publish -File -Recurse)
           foreach ($file in $files) {
@@ -335,6 +351,89 @@ jobs:
               throw ('NEXT04_EXTRACT_HASH_MISMATCH:' + $relative)
             }
           }
+          # Packaging-101: prove that root is clean, ZIP can be moved and native
+          # extraction runs without the developer SDK or an installed .NET runtime.
+          $rootFiles = @(Get-ChildItem -LiteralPath $extract -File)
+          if ($rootFiles.Count -gt 12 -or @($rootFiles | Where-Object Extension -EQ '.exe').Count -ne 1 -or
+              @($rootFiles | Where-Object Extension -EQ '.dll').Count -ne 0) {
+            throw 'PORTABLE101_ZIP_ROOT_NOT_CLEAN'
+          }
+          foreach ($name in @('RomothequeManager.V2.exe','RM_V2_Horizontal_Fond_Sombre.png',
+              'RM_V2_Favicon.ico','GUIDE-NEXT04-WINDOWS.txt','LICENSE','LEGAL.md','BRANDING.md',
+              'THIRD-PARTY-NOTICES.txt','THIRD-PARTY-INVENTORY.md','NEXT04-MANIFEST.json')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $extract $name) -PathType Leaf)) {
+              throw ('PORTABLE101_REQUIRED_ROOT_FILE_MISSING:' + $name)
+            }
+          }
+          foreach ($name in @('RM_V2_Horizontal_Fond_Sombre.png','RM_V2_Favicon.ico')) {
+            $original = Join-Path 'assets/branding' $name
+            if ((Get-FileHash -LiteralPath $original -Algorithm SHA256).Hash -cne
+                (Get-FileHash -LiteralPath (Join-Path $extract $name) -Algorithm SHA256).Hash) {
+              throw ('PORTABLE101_BRANDING_CHANGED:' + $name)
+            }
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $extract 'licenses/dotnet-runtime/LICENSE.TXT') -PathType Leaf) -or
+              -not (Test-Path -LiteralPath (Join-Path $extract 'licenses/dotnet-runtime/THIRD-PARTY-NOTICES.TXT') -PathType Leaf)) {
+            throw 'PORTABLE101_RUNTIME_LICENSE_MISSING'
+          }
+          $checkedManifest = Get-Content -LiteralPath (Join-Path $extract 'NEXT04-MANIFEST.json') -Raw | ConvertFrom-Json
+          if ($checkedManifest.sourceCommit -cne $source -or -not $checkedManifest.singleFile -or
+              -not $checkedManifest.selfContained -or -not $checkedManifest.nativeLibrariesSelfExtract -or
+              $checkedManifest.trimmed -or $checkedManifest.ciHarnessIncluded -or $checkedManifest.release) {
+            throw 'PORTABLE101_MANIFEST_INVALID'
+          }
+          function Assert-PortableStartup([string]$Folder, [string]$Label) {
+            $exe = Join-Path $Folder 'RomothequeManager.V2.exe'
+            $start = [Diagnostics.ProcessStartInfo]::new()
+            $start.FileName = $exe
+            $start.WorkingDirectory = $env:RUNNER_TEMP # test absolute AppContext.BaseDirectory
+            $start.Arguments = '--smoke-window'
+            $start.UseShellExecute = $false
+            $start.RedirectStandardOutput = $true
+            $start.RedirectStandardError = $true
+            # Deliberately isolate dotnet/Node executables and installed SDK from PATH.
+            $start.Environment['PATH'] = $env:SystemRoot + '\System32;' + $env:SystemRoot
+            $start.Environment['DOTNET_ROOT'] = Join-Path $env:RUNNER_TEMP 'portable101-no-dotnet'
+            $start.Environment['DOTNET_MULTILEVEL_LOOKUP'] = '0'
+            $start.Environment['DOTNET_BUNDLE_EXTRACT_BASE_DIR'] = Join-Path $env:RUNNER_TEMP 'portable101-native-cache'
+            $process = [Diagnostics.Process]::Start($start)
+            if ($null -eq $process) { throw ('PORTABLE101_LAUNCH_FAILED:' + $Label) }
+            try {
+              $stdout = $process.StandardOutput.ReadToEndAsync()
+              $stderr = $process.StandardError.ReadToEndAsync()
+              if (-not $process.WaitForExit(60000)) {
+                $process.Kill()
+                throw ('PORTABLE101_SMOKE_TIMEOUT:' + $Label)
+              }
+              if ($process.ExitCode -ne 0 -or -not $stdout.Result.Contains('POC_WINDOW_OPENED_PASS')) {
+                throw ('PORTABLE101_SMOKE_FAILED:' + $Label + ':exit=' + $process.ExitCode +
+                  ';stdout=' + $stdout.Result + ';stderr=' + $stderr.Result)
+              }
+              Write-Host ('PORTABLE101_NATIVE_START_PASS location=' + $Label + ' installedDotnetUsed=false')
+            } finally { $process.Dispose() }
+          }
+          Assert-PortableStartup $extract 'unzipped'
+          $relocateFrom = Join-Path $env:RUNNER_TEMP 'portable101-original'
+          New-Item -ItemType Directory -Path $relocateFrom | Out-Null
+          Copy-Item -Path (Join-Path $extract '*') -Destination $relocateFrom -Recurse
+          Assert-PortableStartup $relocateFrom 'first-folder'
+          $relocateTo = Join-Path $env:RUNNER_TEMP 'portable101-moved-with-spaces'
+          Move-Item -LiteralPath $relocateFrom -Destination $relocateTo
+          Assert-PortableStartup $relocateTo 'relocated-folder'
+          # SUBST exercises letter rebinding on Windows; NOT physical removable SSD proof.
+          foreach ($drive in @('R','S')) {
+            if (Test-Path ($drive + ':\')) { throw ('PORTABLE101_TEST_DRIVE_IN_USE:' + $drive) }
+            & subst.exe ($drive + ':') $relocateTo
+            if ($LASTEXITCODE -ne 0) { throw ('PORTABLE101_SUBST_FAILED:' + $drive) }
+            try {
+              Assert-PortableStartup ($drive + ':\') ('simulated-drive-' + $drive)
+            } finally {
+              & subst.exe ($drive + ':') /D
+              if ($LASTEXITCODE -ne 0) { throw ('PORTABLE101_SUBST_CLEANUP_FAILED:' + $drive) }
+            }
+          }
+          Write-Host ('PORTABLE101_ZIP_VERIFIED_PASS source=' + $source + ' rootFiles=' +
+            $rootFiles.Count + ' physicalRemovableSsd=NOT_EXECUTED release=false')
           Write-Host ('NEXT04_ZIP_VERIFIED_PASS source=' + $source + ' sha256=' + $sha + ' files=' + $files.Count + ' bytes=' + (Get-Item $zip).Length)
       - name: Upload temporary synthetic Windows images and evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

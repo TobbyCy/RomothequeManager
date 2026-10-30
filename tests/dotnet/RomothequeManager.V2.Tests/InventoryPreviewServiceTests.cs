@@ -41,9 +41,11 @@ public sealed class InventoryPreviewServiceTests
         Assert.AreEqual(3, complete.Current?.ObservedFileCount);
         Assert.IsTrue(complete.Current!.Observations.All(x => x.SourceKind == "NEXT03_UI_SIMULATION"));
         var second = service.StartConfirmedScanAsync(new(sel.SelectionVersion, true));
+        // Verify refusal while Running. After cancellation, the asynchronous
+        // simulation may complete before the next assertion on a busy runner.
+        Assert.AreEqual(InventoryRunPhase.Running, service.State.Phase);
+        Assert.IsFalse(service.ClearSelection(), "Running simulation must keep its selection");
         Assert.IsTrue(service.RequestCancellation());
-        Assert.AreEqual(InventoryRunPhase.CancellationRequested, service.State.Phase);
-        Assert.IsFalse(service.ClearSelection());
         var partial = await second;
         Assert.AreSame(complete.Current, partial.Current);
         Assert.AreEqual(InventoryScanStatus.Partial, partial.LastAttempt?.ScanStatus);
@@ -79,8 +81,10 @@ public sealed class InventoryPreviewServiceTests
         Assert.IsFalse(rejected.Accepted);
         Assert.AreEqual("SIMULATION_BUSY", rejected.SafeDiagnosticCode);
         Assert.AreEqual(UncreatedPath, service.State.SelectedLocalRoot);
+        // Test the busy-state guard before requesting cancellation: the
+        // cancellation continuation may legitimately complete immediately.
+        Assert.IsFalse(service.ClearSelection(), "Running simulation must refuse clearing selection");
         Assert.IsTrue(service.RequestCancellation());
-        Assert.IsFalse(service.ClearSelection());
         var completed = await running;
         Assert.AreEqual(InventoryScanStatus.Partial, completed.LastAttempt?.ScanStatus);
         var second = service.PrepareSelection(new InventoryScope(@"C:\UNCREATED_OTHER_UI_ONLY"));

@@ -9,7 +9,8 @@ namespace RomothequeManager.V2;
 // they do not represent observed files, identified MYSTERY games or a live scan.
 public sealed partial class MainWindow
 {
-    private readonly DemoScenarioUiState _scenarioUi = DemoScenarioUiState.LoadCanonical();
+    private readonly Lazy<DemoScenarioUiState> _demoScenario = new(DemoScenarioUiState.LoadCanonical);
+    private DemoScenarioUiState _scenarioUi => _demoScenario.Value;
     private bool _scenarioDetail;
     private StackPanel? _scenarioResults;
 

@@ -1,30 +1,33 @@
-# NEXT-04 / USAGE-01 — recette humaine Windows sans Node.js
+# NEXT-04.1 / USAGE-02 — recette humaine Windows du ZIP portable
 
-**État : HUM-01..10 = NOT_EXECUTED.** Le vrai exécutable, le picker natif, la confirmation et le moteur #96 sont utilisés, **pas** un mode simulé.
+**Historique :** les dix scénarios HUM-01..10 de NEXT-04 ont été exécutés et reçus **10/10 PASS** avec le précédent ZIP entièrement fictif ([Produit #97](https://github.com/TobbyCy/RomothequeManager/issues/97)). Ce résultat ne valide **pas** le nouveau binaire NEXT-04.1.
 
-## Préparation (deux ZIP, un seul artefact)
+**Nouvelle recette NEXT-04.1 (#99/#100/#101) : 12 contrôles NOT_EXECUTED avant essai humain.** La CI Windows automatise le moteur, l'interface, l'archive et une simulation de déplacement ; elle ne prouve ni clics réels, ni DPI physique, ni SSD amovible réel.
 
-Ouvrir le [workflow Windows UX](https://github.com/TobbyCy/RomothequeManager/actions/workflows/next04-ux-proof.yml) sur le **dernier HEAD de #93** ; télécharger l'artefact temporaire contenant **un ZIP application**, **un ZIP DEMO-FICTIVE**, leurs `*.zip.sha256` et les captures CI. Vérifier séparément les SHA avec `Get-FileHash -Algorithm SHA256 <fichier.zip>` et décompresser dans deux dossiers distincts. L'application Windows est autonome : **aucun Node.js, Git, SDK, source ou installation** nécessaires.
+## Préparation — ZIP application et démo fictive séparés
 
-Lancer `RomothequeManager.V2.exe`, puis **Bibliothèques → Import ES-DE**. Sélectionner **`DEMO-NEXT04/IDEAL`** (contient directement `ROMS/`), jamais son sous-dossier `ROMS/`. Annuler une fois le picker, puis la confirmation, puis recommencer et **confirmer** l'import réel en lecture seule.
+1. Depuis [PR #102](https://github.com/TobbyCy/RomothequeManager/pull/102), relever le **HEAD exact** et le run `NEXT-04 / ES-DE Avalonia Windows synthetic UX proof` **SUCCESS** de ce HEAD. Télécharger l'artefact temporaire (rétention 3 jours) : ZIP applicatif, ZIP DEMO-FICTIVE, deux fichiers `.zip.sha256` et captures CI.
+2. Vérifier chaque archive séparément avec `Get-FileHash -Algorithm SHA256 .\<nom>.zip` et la valeur du `.sha256`. Extraire les deux ZIP dans des dossiers distincts, sans modifier leurs fichiers.
+3. Le dossier application doit présenter immédiatement **`RomothequeManager.V2.exe` à la racine**, le logo, l'ICO, des notices et le dossier `licenses/`. L'EXE est `win-x64`, autonome, single-file self-contained non trimé. Aucun Node, Git, SDK ou installateur nécessaire. L'application non signée peut déclencher SmartScreen ; aucun contournement automatique.
+4. Les racines fictives dans DEMO-NEXT04 sont **IDEAL** (30 jeux/13 systèmes), **CHAOS** (manquants), **MYSTERY** (sans XML), **MALFORMED** (XML invalide) et **LONG** (155 références GBA). Choisir toujours le **parent de ROMS/**, jamais ROMS/ seul. Les pseudo-ROMs sont des fichiers texte inertes, les images générées, sans élément commercial.
 
-Le pack a les racines suivantes : `IDEAL` (30 jeux entièrement fictifs, 13 systèmes) ; `CHAOS` (manquants) ; `MYSTERY` (sans XML, refus attendu) ; `MALFORMED` (XML cassé, refus attendu) ; `LONG` (155 jeux fictifs GBA, test réel page 2/scroll). Les pseudo-ROMs sont des **fichiers texte inertes**, les PNG sont générés, sans couverture commerciale. Le pack comporte notices, SHA par fichier et provenance. Aucune bibliothèque privée n'est autorisée.
-
-## Grille à renseigner : PASS / FAIL / NOT_EXECUTED
+## Matrice de réception humaine — PASS / FAIL / NOT_EXECUTED
 
 | ID | Action humaine Windows | Attendu |
 | --- | --- | --- |
-| HUM-01 | Vérifier 2 ZIP/hash, lancer EXE, icône/logo | Autonome et utilisable |
-| HUM-02 | Ouvrir picker, cliquer **Annuler** | Aucun import |
-| HUM-03 | Choisir IDEAL puis **Annuler la confirmation** | Aucun import |
-| HUM-04 | Rechoisir IDEAL, **Confirmer** | 30 jeux / 13 systèmes ; Systèmes → Collection → Fiche → retour |
-| HUM-05 | Recherche/filtre, fiche, retour, réimport | États, métadonnées et sélection cohérents |
-| HUM-06 | Import CHAOS, puis tenter MYSTERY et MALFORMED | Manquants documentés, refus sans perte de dernier `Current` |
-| HUM-07 | Import LONG, page 2, scroll/recherche/fiche/retour/réimport | Pagination 50, position conservée |
-| HUM-08 | Choisir `IDEAL/ROMS` au lieu d'`IDEAL` | Refus clair, sans scan implicite ni chemin sensible |
-| HUM-09 | Tab/Shift+Tab/Entrée/Échap/focus, redimensionnement | Parcours atteignable, icône/logo lisibles |
-| HUM-10 | Relancer EXE et vérifier fichiers fictifs inchangés | Pas de persistance ni modification source |
+| HUM-01 | Vérifier archives/SHA, extraire et lancer EXE normal | EXE évident à la racine, fenêtre « ROMothèque Manager », **aucun jeu/démo préchargé**, logo/ICO et guide lisibles |
+| HUM-02 | Sur l'accueil vide, ouvrir picker puis Annuler | Accueil vide inchangé, aucun accès implicite ni import |
+| HUM-03 | Choisir IDEAL puis annuler confirmation | Accueil vide inchangé ; aucune lecture de catalogue adoptée |
+| HUM-04 | Rechoisir IDEAL, confirmer lecture seule | 30 références/13 systèmes ; Tableau de bord → Collection → Fiche → retour |
+| HUM-05 | Recherche, filtre, fiche, retour, actualisation | Recherche, page, sélection, médias et scroll cohérents |
+| HUM-06 | Import CHAOS puis tenter MYSTERY et MALFORMED | Diagnostics neutres, refus atomique, dernier catalogue valide conservé |
+| HUM-07 | Import LONG, page 2, scroll, recherche, fiche, retour, actualisation | Limite 50/page, page et position conservées |
+| HUM-08 | Choisir IDEAL/ROMS au lieu d'IDEAL | Refus clair, sans scan ni modification source |
+| HUM-09 | Collection IDEAL et LONG : comparer largeurs « Ouvrir la fiche », bord droit grille/recherche/résultats ; Tab, Shift+Tab, Entrée, Échap et redimensionnement | Boutons homogènes et alignement aux formats compacts et larges ; noter tout test réellement effectué à 5120×1440 125 % et 1920×1200 150 % |
+| HUM-10 | Fermer et relancer l'application après import | **Retour à l'accueil vide** : aucun chemin ou catalogue persisté, fichiers démo inchangés |
+| HUM-11 | Depuis l'accueil : « Essayer une démonstration fictive », puis « Revenir à l'accueil vide » | Démo uniquement sur choix conscient, puis état vide |
+| HUM-12 | Copier le dossier complet et relancer ; si autorisé, essayer depuis un SSD amovible et après changement de lettre | Exécutable portable, images et licences toujours accessibles ; ne déclarer SSD physique PASS que si essayé |
 
-Pour un **FAIL** : `action → attendu → observé → sévérité P0/P1/P2`. Relever Windows, HEAD, **SHA de chacun des deux ZIP**, écran/DPI **réellement** testés et, au besoin, captures **uniquement fictives**. Les DPI simulés en CI ne sont pas des tests humains. Ne pas inférer la réussite du picker depuis les 13 PNG.
+Documenter pour chaque FAIL : `action → attendu → observé → sévérité P0/P1/P2`, OS/architecture, SHA **des deux ZIP**, résolution/DPI réellement testés et captures **uniquement fictives**. Les DPI de la CI sont simulés ; l'exécution `SUBST R:/S:` simule des lettres, pas un SSD réel.
 
-**Interdits :** ROMs personnelles, BIOS, jeux réels, suppression, export, release, scan NEXT-03 réel. **USER_VALUE_PROVEN reste HOLD** avant la recette humaine attestée et décision du Contrôleur.
+**Hors de cette recette :** la ROMothèque personnelle, le XML GameCube, fichiers de jeux, BIOS et médias privés ; une première lecture de source réelle relève d'une autorisation locale distincte et du diagnostic DEV 1/Agent PC. Pas de Release ni scan NEXT-03 réel sans GO du Contrôleur.

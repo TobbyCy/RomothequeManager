@@ -36,14 +36,22 @@ public sealed class ImportedCatalogueUiStateTests
         Put("MEDIAS/gba/metadata/es-de-gamelist.xml", "<gameList>" + entries + "</gameList>");
 
     [TestMethod]
-    public void DemoIsDefaultAndImportRequiresExplicitSelection()
+    public void NoCatalogIsDefaultAndDemoRequiresExplicitChoice()
     {
         var state = new ImportedCatalogueUiState();
-        Assert.AreEqual(CatalogueMode.Demonstration, state.Mode);
+        Assert.AreEqual(CatalogueMode.NoCatalog, state.Mode);
         Assert.IsFalse(state.IsImported);
+        Assert.IsFalse(state.HasImportedCatalogue);
+        Assert.AreEqual(0, state.Systems.Count);
+        Assert.AreEqual(0, state.TotalCount);
+        Assert.AreEqual(0, state.PageGames.Count);
+        Assert.IsNull(state.Snapshot);
+        state.ShowDemo();
+        Assert.AreEqual(CatalogueMode.Demonstration, state.Mode);
+        state.ShowWelcome();
+        Assert.AreEqual(CatalogueMode.NoCatalog, state.Mode);
         Assert.IsFalse(state.ShowImported());
         Assert.IsNotNull(state.ErrorMessage);
-        Assert.IsNull(state.Snapshot);
     }
 
     [TestMethod]
@@ -67,6 +75,24 @@ public sealed class ImportedCatalogueUiStateTests
         Assert.IsFalse(state.IsImported);
         Assert.IsTrue(state.ShowImported());
         Assert.AreEqual(2, state.TotalCount);
+    }
+
+    [TestMethod]
+    public void OptInDemoCanReturnToWelcomeWithoutLosingValidImport()
+    {
+        Put("ROMS/gba/A.gba");
+        Gamelist("<game><path>./A.gba</path><name>Fiction</name></game>");
+        var state = new ImportedCatalogueUiState();
+        Assert.IsTrue(state.TryImport(_root));
+        var current = state.Snapshot;
+        state.ShowDemo();
+        Assert.AreEqual(CatalogueMode.Demonstration, state.Mode);
+        state.ShowWelcome();
+        Assert.AreEqual(CatalogueMode.NoCatalog, state.Mode);
+        Assert.AreSame(current, state.Snapshot);
+        Assert.IsTrue(state.ShowImported());
+        Assert.AreSame(current, state.Snapshot);
+        Assert.IsTrue(state.IsImported);
     }
 
     [TestMethod]

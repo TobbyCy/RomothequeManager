@@ -10,25 +10,64 @@ namespace RomothequeManager.V2;
 
 public sealed partial class MainWindow : Window
 {
-    private readonly NavigationState _state = new(ReadOnlyCatalogue.Synthetic());
-    private readonly LibraryProjection _libraryProjection;
-    private readonly LibraryViewState _libraryViewState;
+    // Never construct the built-in demo catalogue on a normal, empty launch.
+    // The legacy demo and its projection are instantiated only after an explicit choice.
+    private readonly Lazy<NavigationState> _demoNavigation = new(() => new NavigationState(ReadOnlyCatalogue.Synthetic()));
+    private readonly Lazy<LibraryProjection> _demoProjection;
+    private readonly Lazy<LibraryViewState> _demoLibraries;
+    private NavigationState _state => _demoNavigation.Value;
+    private LibraryProjection _libraryProjection => _demoProjection.Value;
+    private LibraryViewState _libraryViewState => _demoLibraries.Value;
+    private POCView _emptyView = POCView.Dashboard;
     private readonly StackPanel _page = new() { Spacing = 16 };
     private ScrollViewer? _contentScroll;
     private Image? _officialSidebarLogo;
+    private Button? _refreshImportButton;
+    private Button? _viewImportButton;
     private Vector _demoCollectionOffset;
     private Vector _importedCollectionOffset;
     private int _importedColumns = 1;
 
-    private void UpdateContentWidth()
+#if NEXT04_CI
+    // The headless Windows runner cannot expose a physical ultrawide monitor.
+    // Use a CI-only logical viewport for synthetic layout proof, never production.
+    private double? _ciViewportWidth;
+    internal void CiNext041SetSyntheticViewport(double width)
     {
-        // Wider than the old column, but never a five-thousand-pixel text line.
-        // Content remains readable on ultrawide screens and fits 760 DIP windows.
-        _page.Width = Math.Max(420, Math.Min(1580, Bounds.Width - 306));
+        _ciViewportWidth = width;
+        UpdateContentWidth();
+        _importedColumns = ImportedColumnCount();
+        Render();
     }
 
-    private int ImportedColumnCount() => Bounds.Width >= 1900 ? 3 :
-        Bounds.Width >= 1150 ? 2 : 1;
+    internal void CiNext041ClearSyntheticViewport()
+    {
+        _ciViewportWidth = null;
+        UpdateContentWidth();
+        _importedColumns = ImportedColumnCount();
+        Render();
+    }
+#endif
+
+    private double LayoutViewportWidth()
+    {
+#if NEXT04_CI
+        if (_ciViewportWidth is double synthetic) return synthetic;
+#endif
+        return Bounds.Width;
+    }
+
+    private void UpdateContentWidth()
+    {
+        // Physical viewport in production, explicit synthetic width only in isolated CI.
+        _page.Width = Math.Max(420, Math.Min(1580, LayoutViewportWidth() - 306));
+    }
+
+    private int ImportedColumnCount()
+    {
+        var viewport = LayoutViewportWidth();
+        return viewport >= 1900 ? 3 : viewport >= 1150 ? 2 : 1;
+    }
 
     private void RestoreCollectionOffset(bool imported)
     {
@@ -75,6 +114,8 @@ public sealed partial class MainWindow : Window
     // The normal UI still uses actual buttons/textbox for human interaction.
     public bool SmokeExerciseFourViews()
     {
+        // --smoke-window is an explicit synthetic test, not normal startup.
+        ShowDemo();
         if (_state.CurrentView != POCView.Dashboard || _page.Children.Count < 3) return false;
         _state.ShowCollection();
         Render();
@@ -98,8 +139,8 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
-        _libraryProjection = LibraryProjection.LoadSynthetic(_state.Catalogue);
-        _libraryViewState = new LibraryViewState(_libraryProjection);
+        _demoProjection = new Lazy<LibraryProjection>(() => LibraryProjection.LoadSynthetic(_state.Catalogue));
+        _demoLibraries = new Lazy<LibraryViewState>(() => new LibraryViewState(_libraryProjection));
         SizeChanged += (_, _) =>
         {
             UpdateContentWidth();
@@ -110,7 +151,8 @@ public sealed partial class MainWindow : Window
                 _importedColumns = columns;
                 Render();
             }
-            else if (_scenarioUi.Active || ActiveView is POCView.Dashboard or POCView.Libraries)
+            else if ((_importedUi.Mode == CatalogueMode.Demonstration && _scenarioUi.Active) ||
+                     ActiveView is POCView.Dashboard or POCView.Libraries)
                 Render();
         };
         Title = "ROMothèque Manager";
@@ -173,9 +215,11 @@ public sealed partial class MainWindow : Window
         });
         menu.Children.Add(Text("OUTILS · LECTURE SEULE", 11, true));
         menu.Children.Add(SidebarButton("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
-        menu.Children.Add(SidebarButton("Actualiser l'import", () => _ = RefreshImportAsync()));
-        menu.Children.Add(SidebarButton("Voir l'import", ShowImported));
-        menu.Children.Add(SidebarButton("Mode démonstration", ShowDemo));
+        _refreshImportButton = SidebarButton("Actualiser l'import", () => _ = RefreshImportAsync());
+        menu.Children.Add(_refreshImportButton);
+        _viewImportButton = SidebarButton("Voir l'import", ShowImported);
+        menu.Children.Add(_viewImportButton);
+        menu.Children.Add(SidebarButton("Essayer une démonstration fictive", ShowDemo));
         menu.Children.Add(Text("Aucun scan au démarrage. Import sur sélection.", 11));
         var sidebar = new Border
         {
@@ -335,6 +379,8 @@ public sealed partial class MainWindow : Window
     private void Render()
     {
         UpdateSidebarStyles();
+        if (_refreshImportButton is not null) _refreshImportButton.IsEnabled = _importedUi.IsImported && !_importBusy;
+        if (_viewImportButton is not null) _viewImportButton.IsEnabled = _importedUi.HasImportedCatalogue && !_importBusy;
         // Detaching a ComboBox/TextBox may emit late SelectionChanged/TextChanged.
         // Invalidate the previous controls before clearing the visual tree.
         _liveImportedSystemSelector = null;
@@ -343,7 +389,8 @@ public sealed partial class MainWindow : Window
         ReleaseCoverImages();
         _importedList = null;
         Title = "ROMothèque Manager" + (_importedUi.IsImported ?
-            " — Bibliothèque ES-DE" : " — Démonstration");
+            " — Bibliothèque ES-DE" : _importedUi.Mode == CatalogueMode.Demonstration ?
+            " — Démonstration" : "");
         if (_importedUi.ErrorMessage is not null)
             _page.Children.Add(Notice("Import non effectué", _importedUi.ErrorMessage, warning: true));
         if (_importBusy)
@@ -357,6 +404,12 @@ public sealed partial class MainWindow : Window
             RenderImported();
             return;
         }
+        if (_importedUi.Mode == CatalogueMode.NoCatalog)
+        {
+            RenderNoCatalog();
+            return;
+        }
+        _page.Children.Add(Button("Revenir à l'accueil vide", ReturnToWelcome));
         if (_scenarioUi.Active)
         {
             RenderScenario();
@@ -369,6 +422,35 @@ public sealed partial class MainWindow : Window
             case POCView.GameDetail: Detail(); break;
             case POCView.Libraries: Libraries(); break;
         }
+    }
+
+    private void RenderNoCatalog()
+    {
+        var view = _emptyView;
+        var title = view switch
+        {
+            POCView.Collection => "Collection vide",
+            POCView.Libraries => "Bibliothèques",
+            _ => "Bienvenue dans ROMothèque Manager"
+        };
+        var explanation = view switch
+        {
+            POCView.Collection => "Aucun jeu affiché. Importez votre bibliothèque ES-DE pour explorer les systèmes et les fiches.",
+            POCView.Libraries => "Aucune bibliothèque importée dans cette session. Choisissez un dossier pour commencer.",
+            _ => "Votre bibliothèque est prête à être importée, sans données fictives préchargées."
+        };
+        _page.Children.Add(Hero("Premiers pas  /  bibliothèque", title, explanation));
+        _page.Children.Add(PrimaryButton("Importer une bibliothèque ES-DE", () => _ = ChooseLibraryAsync()));
+        _page.Children.Add(Panel(Group(
+            Text("Comment importer votre ROMothèque", 19, true),
+            Text("1. Préparez le dossier principal contenant ROMS/ et, selon votre installation, MEDIAS/ ou ES-DE/gamelists/."),
+            Text("2. Sélectionnez le dossier PARENT de ROMS/, et non le sous-dossier ROMS/."),
+            Text("3. Confirmez l'import en lecture seule, puis consultez les systèmes, la Collection et les fiches.")
+        )));
+        _page.Children.Add(Notice("Informations importantes",
+            "Les gamelists ES-DE sont actuellement nécessaires. Aucun scan autonome des ROMs sans XML. " +
+            "Les imports ne sont pas conservés après fermeture. Aucun fichier ROM modifié."));
+        _page.Children.Add(Button("Essayer une démonstration fictive", ShowDemo));
     }
 
     private void Dashboard()

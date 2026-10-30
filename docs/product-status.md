@@ -8,6 +8,14 @@ Tests fictifs et preuve Windows native `#101` sont requis sur le HEAD final, ain
 
 > **ARCHIVE, non état actuel.** Les anciens HEAD, PR Draft, validations et mentions « non fusionné » décrivent la situation lors de leur rédaction. Pour la version réellement téléchargeable, le code actuel et les limites de recette humaine, consulter [STATUS.md](../STATUS.md). Cet historique est conservé pour la traçabilité, pas comme deuxième tableau de bord.
 
+## NEXT-04.1 — Accueil et Collection / Produit #100 et #99 (30 octobre 2026)
+
+La PR DEV 3 #102 réunit la correction UX et le packaging. L'application normale démarre sans catalogue fictif : accueil avec guide et import ES-DE manuel ; les fixtures de démonstration nécessitent une action explicite. La Collection utilise une grille à largeur homogène, sans changement moteur. Le parcours natif et le rendu compact sont à vérifier sur le HEAD CI exact ; écran physique DPI 125/150 et SSD réel restent NOT_EXECUTED. La cause du refus GameCube a été identifiée (préambule `alternativeEmulator`) ; la compatibilité #103 est intégrée au moteur, mais aucun nouvel essai personnel n'a encore validé le cas.
+
+## PACKAGING-101 — candidat portable Windows single-file (30 octobre 2026)
+
+Le lot technique de l'[Issue Produit #101](https://github.com/TobbyCy/RomothequeManager/issues/101) est regroupé dans la PR #102 avec l'accueil vide et la grille Collection ; aucune Release autorisée. Il réutilise le packaging ZIP Windows NEXT-04 et ses licences, compile un EXE autonome non trimé avec `IncludeNativeLibrariesForSelfExtract`, conserve les ressources de marque externes et ajoute une recette Windows native de mobilité (répertoire déplacé, lettres simulées). Les résultats CI du **HEAD final** restent à confirmer ; l'essai SSD amovible physique est **NOT_EXECUTED**. L'accueil sans bibliothèque fictive #100 et le correctif de présentation #99 font partie de la même PR #102. Le correctif de compatibilité XML #103, fusionné séparément, doit être vérifié avec ce nouveau packaging sur données fictives.
+
 
 ## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
 
