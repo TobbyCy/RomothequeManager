@@ -185,6 +185,26 @@ public sealed class Next05ObservedFilesTests
     }
 
     [TestMethod]
+    public void N05_E_PageRowsRejectArrayCastAndListMutation()
+    {
+        Put("ROMS/gba/Fictitious.gba");
+        var snapshot = new InventorySession(Scope(aliases: ExplicitAliases)).Scan();
+        var page = InventoryObservationProjection.GetPage(snapshot);
+        Assert.AreEqual(1, page.Rows.Count);
+        Assert.IsFalse(page.Rows is InventoryObservationRow[],
+            "IReadOnlyList backed by an exposed array can be mutated by casting.");
+        Assert.IsTrue(page.Rows is IList<InventoryObservationRow>);
+        var rows = (IList<InventoryObservationRow>)page.Rows;
+        Assert.IsTrue(rows.IsReadOnly);
+        var original = rows[0];
+        Assert.ThrowsExactly<NotSupportedException>(() => rows[0] = original);
+        Assert.ThrowsExactly<NotSupportedException>(() => rows.Add(original));
+        Assert.AreSame(original, page.Rows[0]);
+        Assert.AreSame(snapshot.Observations.Single(), page.Rows[0].Observation);
+        Assert.AreSame(snapshot, page.Snapshot);
+    }
+
+    [TestMethod]
     public async Task N05_F_ProductionConstructorDeniesEvenWithConsentAndRejectsOtherScope()
     {
         Put("ROMS/gba/Inert.gba");
