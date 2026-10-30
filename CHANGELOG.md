@@ -7,6 +7,12 @@
 - Observations, couverture, disponibilité, fraîcheur, diagnostics, dernier complet et dernière tentative distingués. Jeu identifié et association candidate non établis sans preuves ; jaquettes locales non associées, l'index MEDIA indépendant est un lot futur.
 - Un harnais NEXT05_CI strictement isolé fournit la preuve sur IDEAL, CHAOS et MYSTERY sans XML ; CI Windows, captures et ZIP standard autonome contrôlés sur HEAD. Aucun scan d'une ROMothèque personnelle, SSD réel, image réelle, SQLite, fusion ou Release.
 
+## NEXT-05-2 — Media-index backend on synthetic fixtures (PR review pending)
+
+- Independent explicit MEDIAS root indexing, no XML/ROM access: bounded PNG/JPEG header inspection (not image decoding), provenance and diagnostics, WebP marked unsupported, fail-closed production permission.
+- Pure read-only media-to-file reconciliation with explicit scoped mapping, sourced exact paths, unique-convention candidates, ambiguity and offline/incomplete gates. No covers accepted silently, no SQLite or view changes.
+- N05-M-A..J run exclusively on invented temporary fixtures, including 2,200 mixed references; results and CI require review at the exact PR HEAD. No personal scan, source write, scraper, fusion or Release.
+
 ## NEXT-05-1 — Inventaire autonome, backend fictif (PR à réceptionner)
 
 - Projection pure des observations NEXT-02/03 par `InventoryObservationProjection.GetPage`, filtres plateforme/extension/type/texte, ordre stable, pagination et label provisoire issu du fichier. Aucun `GameId`, titre commercial ni média inventé ; `ConfirmedGameCount=null` conservé.
