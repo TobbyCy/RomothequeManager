@@ -1,0 +1,177 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RomothequeManager.V2.MvvmFoundation"
+        xmlns:inv="using:RomothequeManager.V2.Inventory"
+        x:Class="RomothequeManager.V2.MvvmFoundation.ObservedLibraryWindow"
+        x:CompileBindings="False"
+        Title="ROMothèque Manager · Inventaire des fichiers observés"
+        Width="1120" Height="720" MinWidth="760" MinHeight="480"
+        Background="#16181D" Foreground="#E8E6E3">
+  <ScrollViewer x:Name="RootScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="20" Spacing="12">
+      <Image x:Name="OfficialLogo" Width="230" Height="66" HorizontalAlignment="Left" Stretch="Uniform"/>
+      <Border Background="#38262B" BorderBrush="#A9444B" BorderThickness="1" CornerRadius="8" Padding="14">
+        <StackPanel Spacing="5">
+          <TextBlock FontSize="20" FontWeight="Bold" Text="NEXT-05 · INVENTAIRE AUTONOME DES FICHIERS" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding ModeNotice}" TextWrapping="Wrap"/>
+          <TextBlock Text="Fichier observé ≠ jeu identifié ≠ association candidate. Aucun XML ES-DE nécessaire." TextWrapping="Wrap"/>
+          <TextBlock Text="Sans persistance : la session et les résultats disparaissent à la fermeture. Aucun fichier source modifié." TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+      <Border Background="#23262B" CornerRadius="8" Padding="15">
+        <StackPanel Spacing="9">
+          <TextBlock Text="1 · Choisir → confirmer → inventorier en lecture seule" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
+          <WrapPanel>
+            <Button x:Name="ChooseFolderButton" Content="Choisir une racine (sélection seule)" Click="ChooseFolder_OnClick" IsEnabled="{Binding Inventory.CanChangeFolder}" MinHeight="40" Margin="0,0,8,4"/>
+            <ComboBox x:Name="FixtureChoices" IsVisible="False" SelectedIndex="0" MinWidth="220" Margin="0,0,8,4">
+              <ComboBoxItem Content="IDEAL · fictive"/>
+              <ComboBoxItem Content="CHAOS · fictive"/>
+              <ComboBoxItem Content="MYSTERY · sans XML"/>
+            </ComboBox>
+            <Button x:Name="ChooseFixtureButton" IsVisible="False" Content="Sélectionner cette fixture" Click="ChooseFixture_OnClick" MinHeight="40"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding Inventory.SelectedLocalRoot, FallbackValue='Aucune sélection'}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding ScopeText}" TextWrapping="Wrap" Foreground="#AAB2BF"/>
+          <CheckBox Content="Je confirme la lecture seule de la fixture autorisée (aucun accès personnel)" IsChecked="{Binding Inventory.ConsentConfirmed, Mode=TwoWay}" IsEnabled="{Binding Inventory.CanChangeFolder}"/>
+          <WrapPanel>
+            <Button x:Name="InventoryStartButton" Content="Inventorier en lecture seule" Command="{Binding Inventory.StartInventoryCommand}" IsEnabled="{Binding CanInventoryFixture}" MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Annuler" Command="{Binding Inventory.CancelInventoryCommand}" MinHeight="40"/>
+            <Button Content="Dernier complet" Command="{Binding Inventory.ShowLastCompleteCommand}" MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Dernière tentative" Command="{Binding Inventory.ShowLastAttemptCommand}" MinHeight="40"/>
+          </WrapPanel>
+          <ProgressBar IsVisible="{Binding Inventory.IsBusy}" IsIndeterminate="{Binding Inventory.IsProgressIndeterminate}" Height="7"/>
+          <TextBlock Text="{Binding Inventory.StatusMessage}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding Inventory.LatestAttemptText}" Foreground="#AAB2BF" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding GenerationLabel}" FontWeight="Bold" TextWrapping="Wrap"/>
+          <TextBlock Text="Navigation clavier : Tab, Maj+Tab, Entrée/Espace, flèches dans la Collection. Fenêtre défilante à 760×480." Foreground="#AAB2BF" TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+      <WrapPanel>
+        <Button Content="Tableau de bord" Command="{Binding ShowDashboardCommand}" MinHeight="40" Margin="0,0,8,4"/>
+        <Button Content="Collection de fichiers" Command="{Binding ShowCollectionCommand}" MinHeight="40" Margin="0,0,8,4"/>
+        <Button Content="Fiche sélectionnée" Command="{Binding OpenFileCommand}" MinHeight="40"/>
+      </WrapPanel>
+      <Border Background="#23262B" CornerRadius="8" Padding="16" IsVisible="{Binding IsDashboard}">
+        <StackPanel Spacing="11">
+          <TextBlock FontSize="23" FontWeight="Bold" Text="Tableau de bord · fichiers observés"/>
+          <TextBlock Text="{Binding Summary}" FontSize="17" FontWeight="Bold" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding SnapshotStatus}" TextWrapping="Wrap"/>
+          <TextBlock Text="Plateformes observées" FontWeight="Bold"/>
+          <TextBlock Text="{Binding PlatformSummary}" TextWrapping="Wrap"/>
+          <TextBlock Text="Extensions observées" FontWeight="Bold"/>
+          <TextBlock Text="{Binding ExtensionSummary}" TextWrapping="Wrap"/>
+          <TextBlock Text="Types de fichiers" FontWeight="Bold"/>
+          <TextBlock Text="{Binding TypeSummary}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding DiagnosticSummary}" TextWrapping="Wrap"/>
+          <TextBlock Text="Une observation ne prouve ni la jouabilité, ni l'identité commerciale, ni la présence d'un jeu unique." TextWrapping="Wrap" Foreground="#AAB2BF"/>
+          <Button Content="Consulter les fichiers observés" Command="{Binding ShowCollectionCommand}" MinHeight="40"/>
+        </StackPanel>
+      </Border>
+      <Border Background="#23262B" CornerRadius="8" Padding="16" IsVisible="{Binding IsCollection}">
+        <StackPanel Spacing="10">
+          <TextBlock FontSize="23" FontWeight="Bold" Text="Collection · fichiers observés"/>
+          <TextBlock Text="Noms de fichiers provisoires uniquement. Aucun titre commercial ni jaquette déduit." TextWrapping="Wrap"/>
+          <TextBox Watermark="Rechercher un nom ou un chemin relatif" Text="{Binding SearchText, Mode=TwoWay}" MinHeight="40"/>
+          <WrapPanel>
+            <StackPanel Margin="0,0,12,6" Spacing="3">
+              <TextBlock Text="Plateforme"/>
+              <ComboBox ItemsSource="{Binding PlatformOptions}" SelectedItem="{Binding PlatformFilter, Mode=TwoWay}" MinWidth="155"/>
+            </StackPanel>
+            <StackPanel Margin="0,0,12,6" Spacing="3">
+              <TextBlock Text="Extension"/>
+              <ComboBox ItemsSource="{Binding ExtensionOptions}" SelectedItem="{Binding ExtensionFilter, Mode=TwoWay}" MinWidth="155"/>
+            </StackPanel>
+            <StackPanel Margin="0,0,12,6" Spacing="3">
+              <TextBlock Text="Type"/>
+              <ComboBox ItemsSource="{Binding KindOptions}" SelectedItem="{Binding KindFilter, Mode=TwoWay}" MinWidth="155"/>
+            </StackPanel>
+          </WrapPanel>
+          <TextBlock Text="{Binding PageText}" FontWeight="Bold" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding EmptyText}" TextWrapping="Wrap"/>
+          <ListBox x:Name="ObservedList" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}" MinHeight="90" MaxHeight="280">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="inv:InventoryObservationRow">
+                <StackPanel Margin="4" Spacing="3">
+                  <TextBlock Text="{Binding ProvisionalLabel}" FontWeight="Bold" TextWrapping="Wrap"/>
+                  <TextBlock Text="{Binding Observation.RelativePath}" Foreground="#AAB2BF" TextWrapping="Wrap"/>
+                  <WrapPanel>
+                    <TextBlock Text="{Binding Observation.PlatformKey}" Margin="0,0,14,0"/>
+                    <TextBlock Text="{Binding Observation.Extension}" Margin="0,0,14,0"/>
+                    <TextBlock Text="{Binding Observation.Kind}"/>
+                  </WrapPanel>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <WrapPanel>
+            <Button Content="← Page précédente" Command="{Binding PreviousPageCommand}" MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Page suivante →" Command="{Binding NextPageCommand}" MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Ouvrir la fiche du fichier sélectionné" Command="{Binding OpenFileCommand}" MinHeight="40"/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+      <Border Background="#23262B" CornerRadius="8" Padding="16" IsVisible="{Binding IsFileDetail}">
+        <StackPanel Spacing="9">
+          <Button Content="← Retour à la collection" Command="{Binding ReturnCollectionCommand}" MinHeight="40"/>
+          <TextBlock FontSize="23" FontWeight="Bold" Text="Fiche · fichier observé" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding SelectedName}" FontSize="19" FontWeight="Bold" TextWrapping="Wrap"/>
+          <TextBlock Text="Nom de fichier provisoire, pas un titre de jeu identifié." Foreground="#AAB2BF" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding SelectedRow.Observation.RelativePath}" TextWrapping="Wrap"/>
+          <WrapPanel>
+            <TextBlock Text="Plateforme : " FontWeight="Bold"/>
+            <TextBlock Text="{Binding SelectedRow.Observation.PlatformKey}" Margin="0,0,12,0"/>
+            <TextBlock Text="Extension : " FontWeight="Bold"/>
+            <TextBlock Text="{Binding SelectedRow.Observation.Extension}"/>
+          </WrapPanel>
+          <WrapPanel>
+            <TextBlock Text="Type : " FontWeight="Bold"/>
+            <TextBlock Text="{Binding SelectedRow.Observation.Kind}" Margin="0,0,12,0"/>
+            <TextBlock Text="Disponibilité : " FontWeight="Bold"/>
+            <TextBlock Text="{Binding SelectedRow.Observation.Availability}"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding SelectedRow.Observation.SizeBytes, StringFormat='Taille observée : {0} octets'}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding SelectedRow.Observation.ModifiedUtc, StringFormat='Date fichier : {0}'}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding SelectedRow.Observation.SourceKind, StringFormat='Source : {0}'}" TextWrapping="Wrap"/>
+          <TextBlock Text="Identifiant d'observation (non durable)" FontWeight="Bold"/>
+          <TextBlock Text="{Binding SelectedRow.Observation.ObservationId}" TextWrapping="Wrap"/>
+          <TextBlock Text="Diagnostics référencés" FontWeight="Bold"/>
+          <ItemsControl ItemsSource="{Binding SelectedRow.Observation.DiagnosticRefs}"/>
+          <TextBlock Text="Jeu identifié : non établi · aucune identité commerciale certifiée." TextWrapping="Wrap"/>
+          <TextBlock Text="Association candidate : non établie · aucun rapprochement automatique." TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding MediaNotice}" TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+      <Border Background="#23262B" CornerRadius="8" Padding="16">
+        <StackPanel Spacing="7">
+          <TextBlock FontSize="18" FontWeight="Bold" Text="Couverture et diagnostics"/>
+          <TextBlock Text="{Binding SnapshotStatus}" TextWrapping="Wrap"/>
+          <ItemsControl ItemsSource="{Binding Coverage}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="inv:InventoryCoverage">
+                <WrapPanel Margin="0,2">
+                  <TextBlock Text="{Binding PartitionKey}" Margin="0,0,12,0"/>
+                  <TextBlock Text="{Binding Status}"/>
+                </WrapPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="{Binding DiagnosticSummary}" FontWeight="Bold" TextWrapping="Wrap"/>
+          <ItemsControl ItemsSource="{Binding Diagnostics}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="inv:InventoryDiagnostic">
+                <StackPanel Spacing="2" Margin="0,5">
+                  <WrapPanel>
+                    <TextBlock Text="{Binding Severity}" Margin="0,0,10,0"/>
+                    <TextBlock Text="{Binding Code}"/>
+                  </WrapPanel>
+                  <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Foreground="#AAB2BF"/>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="Une couverture incomplète, une panne ou un support hors ligne ne prouve jamais la suppression de fichiers." TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</Window>

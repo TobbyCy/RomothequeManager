@@ -1,0 +1,154 @@
+name: NEXT-05 / Avalonia MVVM observed files Windows synthetic proof
+on:
+  push:
+    branches: [dev3/next05-avalonia-mvvm]
+permissions:
+  contents: read
+concurrency:
+  group: next05-avalonia-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows-ui:
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev3/next05-avalonia-mvvm' && github.actor == 'TobbyCy'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact HEAD without credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify integrated backend and HEAD
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'N05_HEAD_MISMATCH' }
+          if (-not (Test-Path 'src/RomothequeManager.V2/InventoryObservationProjection.cs')) { throw 'N05_BACKEND_NOT_MERGED' }
+          Write-Host ('N05_EXACT_SOURCE_PASS sha=' + $env:GITHUB_SHA)
+      - name: Setup pinned .NET 10
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Locked tests and CI-only executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'N05_TEST_RESTORE_FAILED' }
+          dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'N05_TEST_FAILED' }
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'N05_APP_RESTORE_FAILED' }
+          $ci = Join-Path $env:RUNNER_TEMP 'next05-gui-ci'
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:DefineConstants=NEXT05_CI -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $ci
+          if ($LASTEXITCODE -ne 0) { throw 'N05_GUI_BUILD_FAILED' }
+          Write-Host 'N05_GUI_CI_BUILD_PASS'
+      - name: Generate and isolate three entirely fictional libraries without XML
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP ('NEXT05-AVALONIA-' + [Guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $root | Out-Null
+          $original = Join-Path $root 'generated'
+          node tools/demo-library/generate.cjs --output $original
+          if ($LASTEXITCODE -ne 0) { throw 'N05_GENERATOR_FAILED' }
+          node tools/demo-library/generate.cjs --verify $original
+          if ($LASTEXITCODE -ne 0) { throw 'N05_GENERATOR_VERIFY_FAILED' }
+          $copy = Join-Path $root 'no-xml'
+          Copy-Item -LiteralPath $original -Destination $copy -Recurse
+          Get-ChildItem -LiteralPath $copy -Recurse -File -Filter '*.xml' | Remove-Item -Force
+          if (@(Get-ChildItem -LiteralPath $copy -Recurse -File -Filter '*.xml').Count -ne 0) { throw 'N05_XML_NOT_REMOVED' }
+          foreach ($name in @('IDEAL','CHAOS','MYSTERY')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $copy "$name/ROMS") -PathType Container)) { throw 'N05_SYNTHETIC_TREE_MISSING' }
+          }
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'next05-fixtures.txt'), $copy, [Text.UTF8Encoding]::new($false))
+          Write-Host 'N05_XML_FREE_FIXTURES_PASS'
+      - name: Exercise real service in Avalonia and validate nine GUI captures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $copy = [IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'next05-fixtures.txt'))
+          $exe = Join-Path $env:RUNNER_TEMP 'next05-gui-ci/RomothequeManager.V2.exe'
+          $p = [Diagnostics.ProcessStartInfo]::new()
+          $p.FileName = $exe
+          $p.WorkingDirectory = Split-Path $exe
+          $p.ArgumentList.Add('--ci-next05-observed-gui')
+          $p.ArgumentList.Add($copy)
+          $p.UseShellExecute = $false
+          $process = [Diagnostics.Process]::Start($p)
+          if ($null -eq $process) { throw 'N05_GUI_START_FAILED' }
+          try {
+            if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'N05_GUI_TIMEOUT' }
+            if ($process.ExitCode -ne 0) { throw ('N05_GUI_FAILED:' + $process.ExitCode) }
+          } finally { $process.Dispose() }
+          $png = @(Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'next05-gui-captures') -File -Filter '*.png')
+          if ($png.Count -ne 9) { throw ('N05_PNG_COUNT:' + $png.Count) }
+          Add-Type -AssemblyName System.Drawing
+          foreach ($file in $png) {
+            $img = [Drawing.Bitmap]::FromFile($file.FullName)
+            try {
+              if ($img.Width -lt 760 -or $img.Height -lt 480 -or $file.Length -lt 4000) { throw ('N05_PNG_INVALID:' + $file.Name) }
+            } finally { $img.Dispose() }
+          }
+          node tools/demo-library/generate.cjs --verify (Join-Path (Split-Path $copy) 'generated')
+          if ($LASTEXITCODE -ne 0) { throw 'N05_SOURCE_MUTATED' }
+          Write-Host ('N05_GUI_WINDOWS_CAPTURE_PASS source=' + $env:GITHUB_SHA + ' count=9 no_xml=true untouched=true')
+      - name: Clean standard self-contained single-file Windows package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet clean $app -c Release -r win-x64
+          if ($LASTEXITCODE -ne 0) { throw 'N05_CLEAN_FAILED' }
+          $out = Join-Path $env:RUNNER_TEMP 'next05-product'
+          dotnet publish $app -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $out
+          if ($LASTEXITCODE -ne 0) { throw 'N05_NORMAL_BUILD_FAILED' }
+          foreach ($f in @('RomothequeManager.V2.exe','RM_V2_Favicon.ico','RM_V2_Horizontal_Fond_Sombre.png')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $out $f) -PathType Leaf)) { throw ('N05_BUILD_MISSING:' + $f) }
+          }
+          Write-Host 'N05_STANDARD_WITHOUT_CI_PERMISSION_PASS'
+      - name: Assemble quarantined candidate ZIP and verify SHA-256
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'next05-product'
+          $proof = Join-Path $env:RUNNER_TEMP 'next05-gui-captures'
+          $inventory = 'docs/developer/lic-zip-01-inventory.md'
+          if (-not (Select-String -LiteralPath $inventory -Pattern 'LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED' -Quiet)) { throw 'N05_LICENCE_HOLD' }
+          foreach ($f in @('LICENSE','LEGAL.md','BRANDING.md')) { Copy-Item -LiteralPath $f -Destination $out }
+          Copy-Item -LiteralPath 'packaging/THIRD-PARTY-NOTICES.txt' -Destination $out
+          Copy-Item -LiteralPath $inventory -Destination (Join-Path $out 'THIRD-PARTY-INVENTORY.md')
+          Copy-Item -LiteralPath 'packaging/licenses' -Destination (Join-Path $out 'licenses') -Recurse
+          [IO.File]::WriteAllText((Join-Path $out 'GUIDE-NEXT05.txt'),('NEXT-05 / Windows candidate; source=' + $env:GITHUB_SHA + '; no real library scan; CI-only fixture permission excluded; ES-DE optional; no release.'),[Text.UTF8Encoding]::new($false))
+          (@{source=$env:GITHUB_SHA;personalScanAllowed=$false;ciHarnessIncluded=$false;release=$false}|ConvertTo-Json) | Set-Content (Join-Path $out 'NEXT05-MANIFEST.json') -Encoding utf8
+          $files = @(Get-ChildItem -LiteralPath $out -File -Recurse)
+          foreach ($file in $files) {
+            if (@('.gba','.rom','.chd','.iso','.cue','.m3u','.sav','.nsp','.xci','.wad','.pfx','.pem','.key') -contains $file.Extension.ToLowerInvariant()) { throw ('N05_FORBIDDEN_PAYLOAD:' + $file.Name) }
+          }
+          $name = 'RomothequeManager-NEXT05-win-x64-' + $env:GITHUB_SHA.Substring(0,8) + '.zip'
+          $zip = Join-Path $proof $name
+          Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText(($zip+'.sha256'),($sha+'  '+$name+[Environment]::NewLine),[Text.Encoding]::ASCII)
+          $extract = Join-Path $env:RUNNER_TEMP 'next05-extract'
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+          if (@(Get-ChildItem -LiteralPath $extract -File -Recurse).Count -ne $files.Count) { throw 'N05_EXTRACT_COUNT_MISMATCH' }
+          foreach ($file in $files) {
+            $relative = $file.FullName.Substring($out.Length+1)
+            $other = Join-Path $extract $relative
+            if (-not (Test-Path -LiteralPath $other -PathType Leaf) -or (Get-FileHash -LiteralPath $other -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) { throw 'N05_EXTRACT_HASH_MISMATCH' }
+          }
+          Write-Host ('N05_PORTABLE_ZIP_VERIFIED_PASS source=' + $env:GITHUB_SHA + ' sha256=' + $sha + ' files=' + $files.Count)
+      - name: Upload short-lived evidence only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: NEXT05-Avalonia-Synthetic-Windows
+          path: |
+            ${{ runner.temp }}/next05-gui-captures/*.png
+            ${{ runner.temp }}/next05-gui-captures/*.zip
+            ${{ runner.temp }}/next05-gui-captures/*.sha256
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6

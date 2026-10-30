@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / Interface Avalonia MVVM basée sur FileObservation (DEV 3, 30 octobre 2026)
+
+Lot UX séparé après l'intégration du backend #105. Le flux UI fonctionne sur le service d'inventaire existant avec observations source-neutral : accueil vide, parcours de sélection et consentement, Dashboard, Collection filtrable/paginée et fiche « fichier observé ». InventoryObservationProjection.GetPage reste la seule projection de recherche/tri ; le ViewModel transporte les filtres/états/commandes et la fenêtre Avalonia ne lit ni ROM ni XML. En production, l'autorisation de scan personnel reste bloquée par le constructeur public du service et le bouton de lancement désactivé : les screenshots de fixtures sont construits séparément avec NEXT05_CI sur runner Windows et sources fictives uniquement. Le ZIP standard est reconstruit proprement sans permission CI.
+
+MYSTERY sans XML est un test de visibilité de fichiers observés, pas de reconnaissance commerciale ou un indice de jeux confirmés. Current et LastAttempt ne sont pas un état de persistance ; Offline/Partial/Stale n'impliquent aucune suppression. Jaquettes locales et associations sûres sont une préparation d'interface et nécessiteront un service autonome d'index MEDIAS, des sources de provenance, un GO séparé et ensuite SQLite. Tests Windows/CI et preuve ZIP du HEAD final à contrôler dans la PR ; aucun SSD personnel ou index d'images réel testé.
+
 ## NEXT-05-1 — Projection backend des fichiers observés, en revue
 
 `InventoryObservationProjection.GetPage(InventorySnapshot, InventoryObservationFilter)` présente les `FileObservation` inchangées avec un nom de fichier provisoire, filtres et pages. Identités scan/session distinctes des futurs IDs durables de SQLite et de `GameId`. MYSTERY sans XML reste consultable. État, couverture et diagnostics de l'inventaire initial ne sont jamais transformés en compte de jeux ou suppression. La protection de scan personnel de `InventoryApplicationService()` reste en place ; tests N05-A..J uniquement sur fixtures temporaires inventées. Aucun média autonome, SQLite, XML, scan personnel ou scraper implémenté dans cette PR. Tests et CI à contrôler au HEAD exact ; DEV 2 et Contrôleur doivent réceptionner. DocFX fera l'objet d'une preuve ultérieure.

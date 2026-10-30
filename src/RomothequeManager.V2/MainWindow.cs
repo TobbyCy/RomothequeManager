@@ -206,6 +206,8 @@ public sealed partial class MainWindow : Window
         menu.Children.Add(Text("Exports · à venir", 13));
         menu.Children.Add(Text("Fonction non disponible dans cette version.", 11));
         menu.Children.Add(Text("OUTILS · LECTURE SEULE", 11, true));
+        menu.Children.Add(SidebarButton("Inventaire de fichiers · sans ES-DE", () =>
+            new ObservedLibraryWindow().Show(this)));
         menu.Children.Add(SidebarButton("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
         _refreshImportButton = SidebarButton("Actualiser l'import", () => _ = RefreshImportAsync());
         menu.Children.Add(_refreshImportButton);
@@ -441,7 +443,10 @@ public sealed partial class MainWindow : Window
             _ => "Votre bibliothèque est prête à être importée, sans données fictives préchargées."
         };
         _page.Children.Add(Hero("Premiers pas  /  bibliothèque", title, explanation));
-        _page.Children.Add(PrimaryButton("Importer une bibliothèque ES-DE", () => _ = ChooseLibraryAsync()));
+        _page.Children.Add(PrimaryButton("Inventorier les fichiers · sans ES-DE", () =>
+            new ObservedLibraryWindow().Show(this)));
+        _page.Children.Add(Text("Inventaire réel désactivé dans cette Alpha ; seules les fixtures de validation sont autorisées en CI.", 12));
+        _page.Children.Add(Button("Importer des métadonnées ES-DE (facultatif)", () => _ = ChooseLibraryAsync()));
         _page.Children.Add(Panel(Group(
             Text("Comment importer votre ROMothèque", 19, true),
             Text("1. Préparez le dossier principal contenant ROMS/ et, selon votre installation, MEDIAS/ ou ES-DE/gamelists/."),
@@ -449,8 +454,8 @@ public sealed partial class MainWindow : Window
             Text("3. Confirmez l'import en lecture seule, puis consultez les systèmes, la Collection et les fiches.")
         )));
         _page.Children.Add(Notice("Informations importantes",
-            "Les gamelists ES-DE sont actuellement nécessaires. Aucun scan autonome des ROMs sans XML. " +
-            "Les imports ne sont pas conservés après fermeture. Aucun fichier ROM modifié."));
+            "L'inventaire des fichiers ne dépend pas d'ES-DE, mais le scan personnel reste verrouillé. " +
+            "L'import historique ES-DE est facultatif et indépendant. Aucune persistance après fermeture, aucun fichier ROM modifié."));
         _page.Children.Add(Button("Essayer une démonstration fictive", ShowDemo));
     }
 

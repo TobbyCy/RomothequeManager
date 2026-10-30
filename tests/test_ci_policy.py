@@ -1050,5 +1050,32 @@ class Next041P2UxWorkflowTests(unittest.TestCase):
                           "  contents: write", "release:"):
             self.assertNotIn(forbidden, source)
 
+
+class Next05AvaloniaWorkflowCanaries(unittest.TestCase):
+    def test_strict_synthetic_only_windows_artifact(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/next05-avalonia-proof.yml").read_text(encoding="utf-8")
+        self.assertIn("branches: [dev3/next05-avalonia-mvvm]", workflow)
+        self.assertIn("github.ref == 'refs/heads/dev3/next05-avalonia-mvvm'", workflow)
+        self.assertIn("github.actor == 'TobbyCy'", workflow)
+        self.assertIn("permissions:\n  contents: read", workflow)
+        self.assertIn("persist-credentials: false", workflow)
+        self.assertIn("-p:DefineConstants=NEXT05_CI", workflow)
+        self.assertIn("N05_XML_FREE_FIXTURES_PASS", workflow)
+        self.assertIn("N05_GUI_WINDOWS_CAPTURE_PASS", workflow)
+        self.assertIn("N05_STANDARD_WITHOUT_CI_PERMISSION_PASS", workflow)
+        self.assertIn("N05_PORTABLE_ZIP_VERIFIED_PASS", workflow)
+        self.assertIn("retention-days: 3", workflow)
+        self.assertIn("if-no-files-found: error", workflow)
+        self.assertEqual(1, workflow.count("actions/upload-artifact@"))
+        for forbidden in ("pull_request_target:", "workflow_run:", "repository_dispatch:",
+                          "contents: write", "gh release", "secrets.", "continue-on-error:"):
+            self.assertNotIn(forbidden, workflow)
+        rules, _ = p.path_rules(root)
+        self.assertTrue(any(p.re.fullmatch(rule, ".github/workflows/next05-avalonia-proof.yml")
+                            for rule in rules))
+        self.assertFalse(any(p.re.fullmatch(rule, ".github/workflows/next05-arbitrary.yml")
+                             for rule in rules))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
