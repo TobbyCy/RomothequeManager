@@ -24,12 +24,16 @@ public sealed class RsAWindowsFixtureTests
         _root = Path.Combine(_fixture, "ROMS");
         _rootId = Guid.NewGuid().ToString("D");
         Directory.CreateDirectory(_root);
-        Console.WriteLine("RS_A_NATIVE_ENV OS=" + Environment.OSVersion +
+        var elevated = false;
+        if (OperatingSystem.IsWindows())
+        {
+            using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            elevated = new System.Security.Principal.WindowsPrincipal(identity).IsInRole(
+                System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        Console.WriteLine("RS_A_NATIVE_ENV OS=" + Environment.OSVersion.VersionString +
             " Framework=" + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription +
-            " WindowsIdentity=" + System.Security.Principal.WindowsIdentity.GetCurrent().Name +
-            " Elevated=" + new System.Security.Principal.WindowsPrincipal(
-                System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(
-                    System.Security.Principal.WindowsBuiltInRole.Administrator));
+            " Elevated=" + elevated);
     }
 
     [TestCleanup]
