@@ -1,14 +1,20 @@
 # Historique technique des fonctionnalités
 
+## NEXT-04.1 / compatibilité ES-DE alternativeEmulator (PR #103, 30.10.2026)
+
+Correctif **en revue, non fusionné et non distribué** : prise en charge en lecture seule du préambule public `alternativeEmulator` à un seul `label` suivi d'une unique `gameList`, uniquement lorsque le lecteur XML document strict refuse cette structure. Le parseur de fragment valide l'ordre et le nombre exacts d'éléments, sans modifier les XML ni autoriser d'autre racine, texte libre, DTD ou entité. Les bornes XML de 8 Mio (octets et caractères), racines explicitement sélectionnées, médias déclarés, reparse, chemin confinés et dernier catalogue `Current` valide demeurent inchangés. La valeur du label n'influence pas les jeux importés ni leurs identités.
+
+Tests fictifs et preuve Windows native `#101` sont requis sur le HEAD final, ainsi que la CI Adaptive et sa revue DEV 2. **Aucun nouvel import de bibliothèque personnelle**, aucune écriture ni fusion/Release autonome. Le défaut réel historique a été classifié localement (5 sur 11 gamelists de convention concernée) mais **sa réparation n'est pas attestée par ce correctif tant qu'un nouvel essai expressément autorisé n'a pas eu lieu**.
+
 > **ARCHIVE, non état actuel.** Les anciens HEAD, PR Draft, validations et mentions « non fusionné » décrivent la situation lors de leur rédaction. Pour la version réellement téléchargeable, le code actuel et les limites de recette humaine, consulter [STATUS.md](../STATUS.md). Cet historique est conservé pour la traçabilité, pas comme deuxième tableau de bord.
 
 ## NEXT-04.1 — Accueil et Collection / Produit #100 et #99 (30 octobre 2026)
 
-La PR DEV 3 #102 réunit la correction UX et le packaging. L'application normale démarre sans catalogue fictif : accueil avec guide et import ES-DE manuel ; les fixtures de démonstration nécessitent une action explicite. La Collection utilise une grille à largeur homogène, sans changement moteur. Le parcours natif et le rendu compact sont à vérifier sur le HEAD CI exact ; écran physique DPI 125/150 et SSD réel restent NOT_EXECUTED. La bibliothèque personnelle GameCube demeure bloquée tant que la classification DEV 1 n'a pas établi la cause.
+La PR DEV 3 #102 réunit la correction UX et le packaging. L'application normale démarre sans catalogue fictif : accueil avec guide et import ES-DE manuel ; les fixtures de démonstration nécessitent une action explicite. La Collection utilise une grille à largeur homogène, sans changement moteur. Le parcours natif et le rendu compact sont à vérifier sur le HEAD CI exact ; écran physique DPI 125/150 et SSD réel restent NOT_EXECUTED. La cause du refus GameCube a été identifiée (préambule `alternativeEmulator`) ; la compatibilité #103 est intégrée au moteur, mais aucun nouvel essai personnel n'a encore validé le cas.
 
 ## PACKAGING-101 — candidat portable Windows single-file (30 octobre 2026)
 
-Le lot technique de l'[Issue Produit #101](https://github.com/TobbyCy/RomothequeManager/issues/101) est **en revue sur une branche distincte**, sans Release ni fusion. Il réutilise le packaging ZIP Windows NEXT-04 et ses licences, compile un EXE autonome non trimé avec `IncludeNativeLibrariesForSelfExtract`, conserve les ressources de marque externes et ajoute une recette Windows native de mobilité (répertoire déplacé, lettres simulées). Les résultats CI du **HEAD final** restent à confirmer ; l'essai SSD amovible physique est **NOT_EXECUTED**. L'accueil sans bibliothèque fictive #100, le défaut de présentation #99 et la panne XML réelle (cause inconnue) sont des chantiers distincts à ne pas écraser.
+Le lot technique de l'[Issue Produit #101](https://github.com/TobbyCy/RomothequeManager/issues/101) est regroupé dans la PR #102 avec l'accueil vide et la grille Collection ; aucune Release autorisée. Il réutilise le packaging ZIP Windows NEXT-04 et ses licences, compile un EXE autonome non trimé avec `IncludeNativeLibrariesForSelfExtract`, conserve les ressources de marque externes et ajoute une recette Windows native de mobilité (répertoire déplacé, lettres simulées). Les résultats CI du **HEAD final** restent à confirmer ; l'essai SSD amovible physique est **NOT_EXECUTED**. L'accueil sans bibliothèque fictive #100 et le correctif de présentation #99 font partie de la même PR #102. Le correctif de compatibilité XML #103, fusionné séparément, doit être vérifié avec ce nouveau packaging sur données fictives.
 
 
 ## UX V2 / PR #78 — index documentaire seulement (29 octobre 2026)
