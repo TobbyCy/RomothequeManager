@@ -215,6 +215,40 @@ public sealed class ImportedCatalogueUiState
 /// French read-only presentation of the ES-DE contract's diagnostic codes.
 /// No additional filesystem inspection; the original diagnostics remain intact.
 /// </summary>
+// Presentation only. The importer's original ReleaseDate is never normalized,
+// rewritten or assigned a timezone. A year-only source remains year-only.
+public static class EsDeReleaseDatePresentation
+{
+    public static string Display(string? original)
+    {
+        if (string.IsNullOrWhiteSpace(original)) return "Non renseigné";
+        var formats = new (string Source, string Display)[]
+        {
+            ("yyyyMMdd'T'HHmmss", "d MMMM yyyy 'à' HH:mm:ss"),
+            ("yyyyMMdd", "d MMMM yyyy"),
+            ("yyyy-MM-dd", "d MMMM yyyy"),
+            ("yyyy", "yyyy")
+        };
+        foreach (var (source, output) in formats)
+        {
+            if (DateTime.TryParseExact(original, source,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var date))
+            {
+                var formatted = date.ToString(output,
+                    System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
+                if (source != "yyyy" && date.Day == 1)
+                    formatted = "1er" + formatted[1..];
+                return formatted;
+            }
+        }
+        // Display unrecognized strings verbatim; never pretend an invented date.
+        return original;
+    }
+}
+
+public sealed record EsDeDiagnosticGroup(string Code, string Title, int Count, bool NeedsAttention);
+
 public static class EsDeDiagnosticPresentation
 {
     public static bool NeedsAttention(EsDeDiagnostic diagnostic) =>
@@ -226,6 +260,17 @@ public static class EsDeDiagnosticPresentation
         return attention + " point(s) à vérifier · " +
             (diagnostics.Count - attention) + " information(s) · aucune suppression automatique.";
     }
+
+    // All codes are counted, including future/unknown codes. This is a bounded
+    // presentation aggregation over the existing immutable snapshot, no file reads.
+    public static IReadOnlyList<EsDeDiagnosticGroup> ByType(IReadOnlyList<EsDeDiagnostic> diagnostics) =>
+        diagnostics.GroupBy(d => d.Code, StringComparer.Ordinal)
+            .Select(group => new EsDeDiagnosticGroup(group.Key, Title(group.First()),
+                group.Count(), group.Any(NeedsAttention)))
+            .OrderByDescending(group => group.NeedsAttention)
+            .ThenByDescending(group => group.Count)
+            .ThenBy(group => group.Code, StringComparer.Ordinal)
+            .ToArray();
 
     public static string Title(EsDeDiagnostic diagnostic) => diagnostic.Code switch
     {

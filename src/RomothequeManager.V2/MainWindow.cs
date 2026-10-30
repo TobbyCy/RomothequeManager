@@ -24,6 +24,8 @@ public sealed partial class MainWindow : Window
     private Image? _officialSidebarLogo;
     private Button? _refreshImportButton;
     private Button? _viewImportButton;
+    private TextBlock? _refreshImportHint;
+    private TextBlock? _viewImportHint;
     private Vector _demoCollectionOffset;
     private Vector _importedCollectionOffset;
     private int _importedColumns = 1;
@@ -103,6 +105,8 @@ public sealed partial class MainWindow : Window
     {
         public required Border Surface { get; init; }
         public required TextBlock Label { get; init; }
+        public required string Caption { get; init; }
+        public Button? Control { get; set; }
         public POCView? View { get; init; }
         public bool Hovered { get; set; }
     }
@@ -198,27 +202,19 @@ public sealed partial class MainWindow : Window
         menu.Children.Add(Text("BIBLIOTHÈQUES", 11, true));
         menu.Children.Add(SidebarButton("Bibliothèques & supports", () => Navigate(POCView.Libraries), POCView.Libraries));
         menu.Children.Add(Text("GESTION", 11, true));
-        // Readable, non-interactive placeholder: no disabled button with invisible text.
-        var disabledVisual = SidebarNavigationPalette.Resolve(false, false, false);
-        menu.Children.Add(new Border
-        {
-            Background = new SolidColorBrush(Color.Parse(disabledVisual.Background)),
-            BorderBrush = new SolidColorBrush(Color.Parse("#41454B")),
-            BorderThickness = new Thickness(3, 0, 0, 0),
-            CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(11, 9),
-            Child = new TextBlock
-            {
-                Text = "Exports · à venir", FontSize = 13, TextWrapping = TextWrapping.Wrap,
-                Foreground = new SolidColorBrush(Color.Parse(disabledVisual.Foreground))
-            }
-        });
+        // Plain informational label, not a control or a faux-disabled action.
+        menu.Children.Add(Text("Exports · à venir", 13));
+        menu.Children.Add(Text("Fonction non disponible dans cette version.", 11));
         menu.Children.Add(Text("OUTILS · LECTURE SEULE", 11, true));
         menu.Children.Add(SidebarButton("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
         _refreshImportButton = SidebarButton("Actualiser l'import", () => _ = RefreshImportAsync());
         menu.Children.Add(_refreshImportButton);
+        _refreshImportHint = Text("Disponible après import d'une bibliothèque ES-DE.", 11);
+        menu.Children.Add(_refreshImportHint);
         _viewImportButton = SidebarButton("Voir l'import", ShowImported);
         menu.Children.Add(_viewImportButton);
+        _viewImportHint = Text("Aucun catalogue importé à afficher.", 11);
+        menu.Children.Add(_viewImportHint);
         menu.Children.Add(SidebarButton("Essayer une démonstration fictive", ShowDemo));
         menu.Children.Add(Text("Aucun scan au démarrage. Import sur sélection.", 11));
         var sidebar = new Border
@@ -287,7 +283,7 @@ public sealed partial class MainWindow : Window
             BorderThickness = new Thickness(3, 0, 0, 0),
             Padding = new Thickness(10, 7), MinHeight = 34, Child = label
         };
-        var state = new SidebarVisual { Surface = surface, Label = label, View = view };
+        var state = new SidebarVisual { Surface = surface, Label = label, Caption = title, View = view };
         _sidebarVisuals.Add(state);
         var button = new Button
         {
@@ -296,6 +292,7 @@ public sealed partial class MainWindow : Window
             MinHeight = 36, HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
+        state.Control = button;
         button.PointerEntered += (_, _) => { state.Hovered = true; UpdateSidebarStyles(); };
         button.PointerExited += (_, _) => { state.Hovered = false; UpdateSidebarStyles(); };
         button.Click += (_, _) => action();
@@ -306,8 +303,10 @@ public sealed partial class MainWindow : Window
     {
         foreach (var state in _sidebarVisuals)
         {
-            bool active = state.View is POCView view && view == ActiveView;
-            var colors = SidebarNavigationPalette.Resolve(active, state.Hovered, true);
+            var enabled = state.Control?.IsEnabled != false;
+            bool active = enabled && state.View is POCView view && view == ActiveView;
+            var colors = SidebarNavigationPalette.Resolve(active, enabled && state.Hovered, enabled);
+            state.Label.Text = enabled ? state.Caption : state.Caption + " · indisponible";
             state.Surface.Background = new SolidColorBrush(Color.Parse(colors.Background));
             state.Surface.BorderBrush = new SolidColorBrush(Color.Parse(colors.Accent));
             state.Label.Foreground = new SolidColorBrush(Color.Parse(colors.Foreground));
@@ -378,9 +377,11 @@ public sealed partial class MainWindow : Window
 
     private void Render()
     {
-        UpdateSidebarStyles();
         if (_refreshImportButton is not null) _refreshImportButton.IsEnabled = _importedUi.IsImported && !_importBusy;
         if (_viewImportButton is not null) _viewImportButton.IsEnabled = _importedUi.HasImportedCatalogue && !_importBusy;
+        if (_refreshImportHint is not null) _refreshImportHint.IsVisible = _refreshImportButton?.IsEnabled != true;
+        if (_viewImportHint is not null) _viewImportHint.IsVisible = _viewImportButton?.IsEnabled != true;
+        UpdateSidebarStyles();
         // Detaching a ComboBox/TextBox may emit late SelectionChanged/TextChanged.
         // Invalidate the previous controls before clearing the visual tree.
         _liveImportedSystemSelector = null;

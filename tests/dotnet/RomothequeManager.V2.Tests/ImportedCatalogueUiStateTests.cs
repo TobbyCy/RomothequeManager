@@ -446,6 +446,57 @@ public sealed class ImportedCatalogueUiStateTests
     }
 
     [TestMethod]
+    [DataRow("2024", "2024")]
+    [DataRow("20240101", "1er janvier 2024")]
+    [DataRow("2024-07-22", "22 juillet 2024")]
+    [DataRow("20241231T235959", "31 décembre 2024 à 23:59:59")]
+    [DataRow("", "Non renseigné")]
+    public void ReleaseDatePresentationIsFrenchButNeverInventsPrecision(string raw, string expected)
+    {
+        Assert.AreEqual(expected, EsDeReleaseDatePresentation.Display(raw));
+    }
+
+    [TestMethod]
+    public void ReleaseDatePresentationPreservesUnknownTextAndOriginalMetadata()
+    {
+        Assert.AreEqual("Non renseigné", EsDeReleaseDatePresentation.Display(null));
+        Assert.AreEqual("UNKNOWN", EsDeReleaseDatePresentation.Display("UNKNOWN"));
+        Put("ROMS/gba/A.gba");
+        Gamelist("<game><path>./A.gba</path><name>Fiction</name>" +
+            "<releasedate>20240507T135942</releasedate></game>");
+        var ui = new ImportedCatalogueUiState();
+        Assert.IsTrue(ui.TryImport(_root));
+        var game = ui.Snapshot!.Games.Single();
+        Assert.AreEqual("20240507T135942", game.ReleaseDate);
+        Assert.AreEqual("7 mai 2024 à 13:59:42",
+            EsDeReleaseDatePresentation.Display(game.ReleaseDate));
+        Assert.AreEqual("20240507T135942", game.ReleaseDate);
+    }
+
+    [TestMethod]
+    public void DiagnosticGroupsCountAllTypesWithoutDiscardingUnknownCodes()
+    {
+        var diagnostics = new[]
+        {
+            new EsDeDiagnostic("MEDIA_MISSING", "x", "a", "synthetic"),
+            new EsDeDiagnostic("TITLE_FALLBACK", "x", "b", "synthetic"),
+            new EsDeDiagnostic("MEDIA_MISSING", "x", "c", "synthetic"),
+            new EsDeDiagnostic("UNKNOWN_TEST", "x", "d", "synthetic"),
+            new EsDeDiagnostic("ROM_MISSING", "x", "e", "synthetic")
+        };
+        var types = EsDeDiagnosticPresentation.ByType(diagnostics);
+        Assert.AreEqual(4, types.Count);
+        Assert.AreEqual(diagnostics.Length, types.Sum(t => t.Count));
+        Assert.AreEqual("MEDIA_MISSING", types[0].Code);
+        Assert.AreEqual(2, types[0].Count);
+        Assert.IsTrue(types[0].NeedsAttention);
+        Assert.AreEqual(1, types.Single(t => t.Code == "UNKNOWN_TEST").Count);
+        Assert.IsFalse(types.Single(t => t.Code == "UNKNOWN_TEST").NeedsAttention);
+        Assert.AreEqual("Diagnostic ES-DE (UNKNOWN_TEST)",
+            types.Single(t => t.Code == "UNKNOWN_TEST").Title);
+    }
+
+    [TestMethod]
     public void OptionalEsDeMetadataUsesOnlyDeclaredFieldsAndNonInventedFallback()
     {
         Put("ROMS/gba/A.gba");

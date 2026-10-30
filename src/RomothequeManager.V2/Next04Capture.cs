@@ -61,6 +61,8 @@ internal static class Next04Capture
                 Console.WriteLine("NEXT04_BRANDING_PASS logo=1960x576 display=228x67 icon=present");
                 if (!window.CiNext041EmptyWelcome())
                     throw new InvalidDataException("NEXT041_EMPTY_WELCOME_FAILED");
+                if (!window.CiNext041SidebarActions(false))
+                    throw new InvalidDataException("NEXT041_DISABLED_SIDEBAR_FAILED");
                 Capture("NEXT041-Welcome-1120x720", 1120, 720);
                 Capture("NEXT041-Welcome-760x480", 760, 480);
                 if (!window.CiNext041EmptyCollectionAndDemoOptIn())
@@ -69,6 +71,8 @@ internal static class Next04Capture
                 Console.WriteLine("NEXT041_BOOT_NO_CATALOG_PASS demo=opt_in empty_collection=1 empty_libraries=1");
                 if (!window.CiNext04Import(Path.Combine(fixtureRoot, "IDEAL"), 30, 13))
                     throw new InvalidDataException("NEXT04_IDEAL_IMPORT_FAILED");
+                if (!window.CiNext041SidebarActions(true))
+                    throw new InvalidDataException("NEXT041_ENABLED_SIDEBAR_FAILED");
                 Capture("IDEAL-Dashboard-1120x720", 1120, 720);
                 Capture("IDEAL-Dashboard-Ultrawide-2200x900", 2200, 900);
                 Capture("IDEAL-Dashboard-DPI125-1400x900", 1120, 720, 1.25);
@@ -132,10 +136,15 @@ internal static class Next04Capture
                 Capture("LONG-Inventory-Preview-Accessible-1120x720", 1120, 720);
                 if (!window.CiNext04DiagnosticsPagination())
                     throw new InvalidDataException("NEXT04_DIAGNOSTICS_LAST_PAGE_INACCESSIBLE");
+                if (!window.CiNext041DiagnosticSummaryCapture())
+                    throw new InvalidDataException("NEXT041_DIAGNOSTICS_GROUPED_PAGING_FAILED");
+                Capture("NEXT041-Diagnostics-1120x720", 1120, 720);
+                Capture("NEXT041-Diagnostics-760x480", 760, 480);
+                Console.WriteLine("NEXT041_DIAGNOSTICS_GROUPED_PASS types=3 total=27 last_page=accessible");
                 Console.WriteLine("NEXT04_DIAGNOSTICS_PAGING_PASS total=27 page_size=20 last=accessible");
                 Console.WriteLine("NEXT04_GUI_RENDER_IMPORT_INTERNAL_PASS picker_confirm_cancel=NOT_EXECUTED");
                 Console.WriteLine("NEXT04_DEEP_GUI_PASS page=2 search=kept system=gba scroll_nonzero=restored detail_reimport=kept collection_reimport=kept invalid_xml=last_good metadata_optional=visible inventory_simulation=accessible");
-                Console.WriteLine("NEXT04_REAL_ESDE_GUI_PASS captures=13 ideal=30 systems=13 chaos=30 mystery=REJECTED lastGood=KEPT dpi_render=125_200 simulated_only=1");
+                Console.WriteLine("NEXT04_REAL_ESDE_GUI_PASS captures=20 ideal=30 systems=13 chaos=30 mystery=REJECTED lastGood=KEPT dpi_render=125_200 simulated_only=1");
             }
             catch (Exception error)
             {
