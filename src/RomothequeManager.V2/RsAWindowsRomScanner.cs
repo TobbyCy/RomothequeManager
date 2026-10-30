@@ -18,17 +18,20 @@ internal enum RsAOperation { RomsInventory }
 
 internal sealed class RsAReadGrant
 {
-    internal RsAReadGrant(string rootId, long selectionVersion, DateTimeOffset expiresUtc)
+    internal RsAReadGrant(string rootId, long selectionVersion, DateTimeOffset expiresUtc,
+        RsAHandleIdentity rootIdentity)
     {
         StorageRootId = rootId;
         SelectionVersion = selectionVersion;
         ExpiresUtc = expiresUtc;
+        RootIdentity = rootIdentity;
     }
 
     internal RsAOperation Operation => RsAOperation.RomsInventory;
     internal string StorageRootId { get; }
     internal long SelectionVersion { get; }
     internal DateTimeOffset ExpiresUtc { get; }
+    internal RsAHandleIdentity RootIdentity { get; }
     internal bool Revoked { get; private set; }
     internal void Revoke() => Revoked = true;
     internal bool Valid(string rootId, long version) =>
@@ -92,8 +95,12 @@ internal sealed class RsAFixtureRomSession
             expiresUtc <= DateTimeOffset.UtcNow ||
             expiresUtc > DateTimeOffset.UtcNow.AddMinutes(5))
             throw new UnauthorizedAccessException("RS_A_EXPLICIT_FRESH_CONSENT_REQUIRED");
+        // A consent is bound to an OPENED root's native file identity, never
+        // just a drive letter, directory name or cached SQLite StorageRootId.
+        using var opened = RsAAnchoredReader.OpenRoot(_root);
+        var identity = RsAAnchoredReader.Identity(opened);
         _grant?.Revoke();
-        return _grant = new RsAReadGrant(_storageRootId, _version, expiresUtc);
+        return _grant = new RsAReadGrant(_storageRootId, _version, expiresUtc, identity);
     }
 
     internal void Revoke() { _grant?.Revoke(); }
@@ -129,6 +136,9 @@ internal sealed class RsAFixtureRomSession
             CheckPermission();
             var root = _root ?? throw new UnauthorizedAccessException("RS_A_NO_SELECTION");
             using var pinnedRoot = RsAAnchoredReader.OpenRoot(root);
+            if (supplied is null ||
+                !RsAAnchoredReader.Identity(pinnedRoot).Equals(supplied.RootIdentity))
+                throw new UnauthorizedAccessException("RS_A_ROOT_IDENTITY_CHANGED");
             availability = InventoryAvailability.Online;
             void Visit(SafeFileHandle directory, string prefix, int depth)
             {
@@ -227,6 +237,8 @@ internal sealed class RsAFixtureRomSession
 
 internal sealed class RsAStopException(string message) : Exception(message);
 
+internal readonly record struct RsAHandleIdentity(ulong VolumeSerial, string FileIdHex);
+
 /// <summary>Win32 directory enumeration and NtCreateFile relative to a pinned parent handle.
 /// No Directory.EnumerateFiles(path) or FileStream(path) may be used inside this reader.
 /// Reject every reparse point; deny DELETE sharing so a held directory cannot be moved.</summary>
@@ -251,6 +263,7 @@ internal static class RsAAnchoredReader
     private const uint DirectoryFlag = 0x10;
     private const int TagInfo = 9;
     private const int StandardInfo = 1;
+    private const int FileIdInfo = 18;
     private const int BothDirInfo = 10;
     private const int BothDirRestart = 11;
 
@@ -376,6 +389,25 @@ internal static class RsAAnchoredReader
             var attr = unchecked((uint)Marshal.ReadInt32(memory));
             if ((attr & ReparsePoint) != 0 || ((attr & DirectoryFlag) != 0) != expectedDirectory)
                 throw new UnauthorizedAccessException("RS_A_REPARSE_OR_TYPE_REJECTED");
+        }
+        finally { Marshal.FreeHGlobal(memory); }
+    }
+
+    internal static RsAHandleIdentity Identity(SafeFileHandle root)
+    {
+        // FILE_ID_INFO: ULONGLONG VolumeSerialNumber + FILE_ID_128 Identifier.
+        // Compare both; a newly substituted directory at the SAME path must
+        // not inherit an earlier grant, even when its label/contents match.
+        var memory = Marshal.AllocHGlobal(24);
+        try
+        {
+            if (!GetFileInformationByHandleEx(root, FileIdInfo, memory, 24))
+                throw new IOException("RS_A_ROOT_FILE_ID_UNAVAILABLE");
+            var id = new byte[16];
+            Marshal.Copy(IntPtr.Add(memory, 8), id, 0, id.Length);
+            return new RsAHandleIdentity(
+                unchecked((ulong)Marshal.ReadInt64(memory)),
+                Convert.ToHexString(id));
         }
         finally { Marshal.FreeHGlobal(memory); }
     }
