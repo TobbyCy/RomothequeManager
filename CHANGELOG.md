@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-04.1 / UX P2 — Lisibilité des dates, diagnostics et actions (Produit #100, 30.10.2026)
+
+- Dates ES-DE présentées en français à précision inchangée (année seule, jour ou horodatage à la seconde). Valeur brute ES-DE toujours visible en fiche ; aucune altération de l'importeur, des identités ou des métadonnées.
+- Diagnostics regroupés par type et fréquence avec avertissements prioritaires, détails complets et pagination existante. Aucun diagnostic omis, même de code inconnu ; captures synthétiques Windows de la page de synthèse.
+- Actions « Actualiser l'import » / « Voir l'import » explicitement marquées indisponibles avant un catalogue et expliquées ; « Exports · à venir » reste un texte informatif non cliquable. Accueil NoCatalog, clavier et grille #99 conservés.
+- PR UX P2 séparée et sans Release ; tests et CI à qualifier au HEAD exact, aucun contenu utilisateur utilisé.
+
 ## NEXT-04.1 / ES-DE alternativeEmulator compatibility — PR #103 (30.10.2026)
 
 - Compatibilité ciblée avec le seul format public ES-DE à deux éléments racine : `alternativeEmulator` contenant exactement un `label`, puis une unique `gameList`. Le lecteur XML document strict reste prioritaire ; le fragment n'est accepté qu'après validation de cette structure connue, sans suppression/réécriture de préambule.

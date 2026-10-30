@@ -1,7 +1,7 @@
 name: NEXT-04 / ES-DE Avalonia Windows synthetic UX proof
 on:
   push:
-    branches: [dev3/next04-esde-ux, dev3/portable-packaging-101]
+    branches: [dev3/next04-esde-ux, dev3/portable-packaging-101, dev3/next041-p2-ux]
 permissions:
   contents: read
 concurrency:
@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   windows-ui:
-    if: github.repository == 'TobbyCy/RomothequeManager' && (github.ref == 'refs/heads/dev3/next04-esde-ux' || github.ref == 'refs/heads/dev3/portable-packaging-101') && github.actor == 'TobbyCy'
+    if: github.repository == 'TobbyCy/RomothequeManager' && (github.ref == 'refs/heads/dev3/next04-esde-ux' || github.ref == 'refs/heads/dev3/portable-packaging-101' || github.ref == 'refs/heads/dev3/next041-p2-ux') && github.actor == 'TobbyCy'
     runs-on: windows-2022
     timeout-minutes: 35
     steps:
@@ -93,7 +93,7 @@ jobs:
           } finally { $process.Dispose() }
           $output = Join-Path $env:RUNNER_TEMP 'next04-ux-captures'
           $png = @(Get-ChildItem -LiteralPath $output -File -Filter '*.png')
-          if ($png.Count -ne 18) { throw ('NEXT04_PNG_COUNT:' + $png.Count) }
+          if ($png.Count -ne 20) { throw ('NEXT04_PNG_COUNT:' + $png.Count) }
           Add-Type -AssemblyName System.Drawing
           foreach ($file in $png) {
             $bitmap = [Drawing.Bitmap]::FromFile($file.FullName)
@@ -103,10 +103,10 @@ jobs:
           }
           node tools/demo-library/generate.cjs --verify $fixture
           if ($LASTEXITCODE -ne 0) { throw 'NEXT04_FIXTURE_CHANGED' }
-          $manifest = [ordered]@{sourceCommit='${{ github.sha }}'; windowsAttachedAvalonia=$true; snapshots=18; syntheticOnly=$true; personalScanAllowed=$false; release=$false
+          $manifest = [ordered]@{sourceCommit='${{ github.sha }}'; windowsAttachedAvalonia=$true; snapshots=20; syntheticOnly=$true; personalScanAllowed=$false; release=$false
              captures=@($png | ForEach-Object { [ordered]@{file=$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()} }) }
           ($manifest | ConvertTo-Json -Depth 5) | Set-Content (Join-Path $output 'NEXT04-PROOF.json') -Encoding utf8
-          Write-Host ('NEXT04_GUI_WINDOWS_CAPTURE_PASS source=${{ github.sha }} count=18 untouchedFixtures=1')
+          Write-Host ('NEXT04_GUI_WINDOWS_CAPTURE_PASS source=${{ github.sha }} count=20 untouchedFixtures=1')
       - name: Assemble and verify ready-to-select fictional ES-DE demo ZIP
         shell: pwsh
         run: |

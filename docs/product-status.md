@@ -1,5 +1,9 @@
 # Historique technique des fonctionnalités
 
+## NEXT-04.1 / UX P2 — Finitions de présentation (30 octobre 2026)
+
+Lot DEV 3 isolé à partir de `main=6445f537` : présentation française des dates de sortie avec origine ES-DE lisible, synthèse des diagnostics par code/fréquence tout en conservant les détails et la pagination, signalisation claire des actions d'import désactivées et export non interactif. Aucun accès supplémentaire aux ROMs ni changement du parseur XML. Recette Windows, SDK autonome et CI Adaptive à vérifier sur SHA final. Tests DPI/SSD physiques et nouvelle recette humaine non revendiqués.
+
 ## NEXT-04.1 / compatibilité ES-DE alternativeEmulator (PR #103, 30.10.2026)
 
 Correctif **en revue, non fusionné et non distribué** : prise en charge en lecture seule du préambule public `alternativeEmulator` à un seul `label` suivi d'une unique `gameList`, uniquement lorsque le lecteur XML document strict refuse cette structure. Le parseur de fragment valide l'ordre et le nombre exacts d'éléments, sans modifier les XML ni autoriser d'autre racine, texte libre, DTD ou entité. Les bornes XML de 8 Mio (octets et caractères), racines explicitement sélectionnées, médias déclarés, reparse, chemin confinés et dernier catalogue `Current` valide demeurent inchangés. La valeur du label n'influence pas les jeux importés ni leurs identités.

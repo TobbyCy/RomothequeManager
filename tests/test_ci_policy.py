@@ -1033,5 +1033,22 @@ class Pr64UxArtifactPolicyTests(unittest.TestCase):
             self.assertNotIn(sentinel, mutated)
 
 
+
+class Next041P2UxWorkflowTests(unittest.TestCase):
+    def test_native_windows_ux_workflow_allowlist_is_narrow_and_read_only(self):
+        source = (Path(__file__).resolve().parents[1] /
+                  ".github/workflows/next04-ux-proof.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "branches: [dev3/next04-esde-ux, dev3/portable-packaging-101, dev3/next041-p2-ux]",
+            source)
+        self.assertIn("github.ref == 'refs/heads/dev3/next041-p2-ux'", source)
+        self.assertIn("github.actor == 'TobbyCy'", source)
+        self.assertIn("permissions:\\n  contents: read".replace("\\n", "\n"), source)
+        self.assertIn("if ($png.Count -ne 20)", source)
+        self.assertIn("retention-days: 3", source)
+        for forbidden in ("pull_request_target:", "workflow_run:", "repository_dispatch:",
+                          "  contents: write", "release:"):
+            self.assertNotIn(forbidden, source)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

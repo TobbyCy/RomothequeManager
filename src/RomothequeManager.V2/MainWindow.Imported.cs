@@ -399,6 +399,24 @@ public sealed partial class MainWindow
         var panel = new StackPanel { Spacing = 10 };
         panel.Children.Add(Text("Diagnostics de l'import", 22, true));
         panel.Children.Add(Text(EsDeDiagnosticPresentation.Summary(snapshot.Diagnostics), 13));
+        if (total > 0)
+        {
+            // Aggregate the entire snapshot, not just the current diagnostics page.
+            // Keep unknown codes visible rather than hiding future warning types.
+            var types = EsDeDiagnosticPresentation.ByType(snapshot.Diagnostics);
+            panel.Children.Add(Text("Synthèse par type", 16, true));
+            foreach (var group in (compact ? types.Take(4) : types))
+            {
+                var category = group.NeedsAttention ? "À vérifier" : "Information";
+                panel.Children.Add(Text(category + " · " + group.Title + " : " +
+                    group.Count + " occurrence(s)", 13, group.NeedsAttention));
+            }
+            if (compact && types.Count > 4)
+                panel.Children.Add(Text("Et " + (types.Count - 4) +
+                    " autre(s) type(s) dans Bibliothèques.", 12));
+            panel.Children.Add(Text(compact ? "Aperçu des diagnostics" :
+                "Détails des diagnostics · liste paginée", 16, true));
+        }
         if (total == 0)
             panel.Children.Add(Text(
                 "Aucune anomalie remontée par les XML lus. La couverture physique n'est pas certifiée.", 12));
@@ -603,7 +621,9 @@ public sealed partial class MainWindow
             Text("Variante : " + game.VariantId),
             Text("Genre (ES-DE) : " + ImportedCatalogueUiState.MetadataOrUnspecified(game.Genre)),
             Text("Développeur (ES-DE) : " + ImportedCatalogueUiState.MetadataOrUnspecified(game.Developer)),
-            Text("Date de sortie (ES-DE) : " + ImportedCatalogueUiState.MetadataOrUnspecified(game.ReleaseDate)),
+            Text("Date de sortie (ES-DE) : " + EsDeReleaseDatePresentation.Display(game.ReleaseDate)),
+            Text(string.IsNullOrWhiteSpace(game.ReleaseDate) ? "Valeur source ES-DE : non renseignée" :
+                "Valeur source ES-DE : " + game.ReleaseDate, 12),
             Text("Description : " + (string.IsNullOrWhiteSpace(game.Description) ?
                 "Non renseignée" : game.Description)),
             Text("ROM : " + game.RomRelativePath, 12),
@@ -755,6 +775,44 @@ public sealed partial class MainWindow
     }
 
 #if NEXT04_CI
+    public bool CiNext041SidebarActions(bool imported)
+    {
+        var refresh = _refreshImportButton;
+        var view = _viewImportButton;
+        var result = refresh is not null && view is not null &&
+            refresh.IsEnabled == imported && view.IsEnabled == imported &&
+            _refreshImportHint?.IsVisible == !imported &&
+            _viewImportHint?.IsVisible == !imported;
+        Console.WriteLine("NEXT041_SIDEBAR_STATE_CHECK imported=" + imported + " passed=" + result);
+        return result;
+    }
+
+    public bool CiNext041DiagnosticSummaryCapture()
+    {
+        var issues = Enumerable.Range(0, 27).Select(i =>
+            new EsDeDiagnostic(i < 20 ? "MEDIA_MISSING" : i < 25 ? "ROM_MISSING" :
+                "TITLE_FALLBACK", "test-platform", "TEST-ENTRY-" + i.ToString("D3"),
+                "Entirely fictional")).ToArray();
+        var snapshot = new EsDeCatalogueSnapshot(
+            "test-library", "ES-DE", "test-only", Array.Empty<EsDeGame>(), issues);
+        var groups = EsDeDiagnosticPresentation.ByType(issues);
+        if (groups.Count != 3 || groups.Sum(g => g.Count) != 27 ||
+            groups[0].Code != "MEDIA_MISSING" || groups[0].Count != 20 ||
+            groups[1].Code != "ROM_MISSING" || groups[1].Count != 5 ||
+            groups[2].Code != "TITLE_FALLBACK" || groups[2].Count != 2)
+            return false;
+        _diagnosticsPageIndex = 1;
+        _page.Children.Clear();
+        _page.Children.Add(ImportedDiagnostics(snapshot, compact: false));
+        var visible = SmokeVisibleTexts();
+        return visible.Contains("Synthèse par type", StringComparison.Ordinal) &&
+            visible.Contains("Média indisponible : 20 occurrence(s)", StringComparison.Ordinal) &&
+            visible.Contains("ROM indisponible : 5 occurrence(s)", StringComparison.Ordinal) &&
+            visible.Contains("Titre repris du nom de fichier : 2 occurrence(s)", StringComparison.Ordinal) &&
+            visible.Contains("Détails des diagnostics · liste paginée", StringComparison.Ordinal) &&
+            visible.Contains("21–27 sur 27", StringComparison.Ordinal);
+    }
+
     // Validates the actual presentation tree and bounded last-page access on
     // synthetic diagnostics only, independently of any personal library.
     internal bool CiNext04DiagnosticsPagination()
@@ -877,7 +935,8 @@ public sealed partial class MainWindow
         var visible = SmokeVisibleTexts();
         var genre = visible.Contains("Genre (ES-DE) : Exploration", StringComparison.Ordinal);
         var developer = visible.Contains("Développeur (ES-DE) : Test Studio", StringComparison.Ordinal);
-        var date = visible.Contains("Date de sortie (ES-DE) : 20240101", StringComparison.Ordinal);
+        var date = visible.Contains("Date de sortie (ES-DE) : 1er janvier 2024", StringComparison.Ordinal) &&
+            visible.Contains("Valeur source ES-DE : 20240101", StringComparison.Ordinal);
         Console.WriteLine("NEXT04_DEEP_DETAIL_CHECK view=" + _importedUi.CurrentView +
             " selected=" + (_importedUi.SelectedGameId == target.GameId) +
             " genre=" + genre + " developer=" + developer + " date=" + date);
