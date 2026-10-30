@@ -700,7 +700,7 @@ class WorkflowTests(unittest.TestCase):
     def test_next04_ux_workflow_is_branch_only_and_temporary(self):
         root = Path(__file__).resolve().parent.parent
         workflow = (root / ".github/workflows/next04-ux-proof.yml").read_text(encoding="utf-8")
-        self.assertIn("branches: [dev3/next04-esde-ux, dev3/portable-packaging-101]", workflow)
+        self.assertIn("branches: [dev3/next04-esde-ux, dev3/portable-packaging-101, dev3/next041-p2-ux]", workflow)
         self.assertNotIn("branches: [main]", workflow)
         self.assertIn("PORTABLE101_ZIP_VERIFIED_PASS", workflow)
         self.assertIn("PublishSingleFile=true", workflow)
