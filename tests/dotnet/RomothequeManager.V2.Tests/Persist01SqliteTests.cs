@@ -35,7 +35,9 @@ public sealed class Persist01SqliteTests
             Directory.Delete(_fixture, recursive: true);
     }
 
-    private SqliteCatalogStore Store(Action? beforeCommit = null) => new(_db, beforeCommit);
+    private SqliteCatalogStore Store(Action? beforeCommit = null,
+        Action? beforeRestoreSwap = null, Action? afterRestoreSwap = null) =>
+        new(_db, beforeCommit, beforeRestoreSwap, afterRestoreSwap);
 
     private void Seed(ICatalogStore store)
     {
@@ -108,7 +110,12 @@ public sealed class Persist01SqliteTests
             store.SaveClaim(Claim("claim-b", "Fiction Two"));
             store.SaveManualDecision(Decision(), explicitUserAction: true);
         }
-        // PERSIST01 child is a new dotnet/vstest process; it does not select any ROMS/MEDIAS folder.
+        VerifyNewProcessRestoration();
+    }
+
+    private void VerifyNewProcessRestoration()
+    {
+        // A new dotnet/vstest process without any selected ROMS/MEDIAS path.
         var assembly = typeof(Persist01SqliteTests).Assembly.Location;
         var start = new ProcessStartInfo("dotnet")
         {
@@ -318,11 +325,209 @@ public sealed class Persist01SqliteTests
         verified.Open();
         using var query = verified.CreateCommand();
         query.CommandText = "PRAGMA user_version";
-        Assert.AreEqual(2L, Convert.ToInt64(query.ExecuteScalar()));
+        Assert.AreEqual(3L, Convert.ToInt64(query.ExecuteScalar()));
         query.CommandText = "PRAGMA integrity_check";
         Assert.AreEqual("ok", query.ExecuteScalar()?.ToString());
         Assert.IsTrue(Directory.EnumerateFiles(Path.Combine(_fixture,
             "ROMOTHEQUE_MANAGER", "backups"), "pre-v2-*.sqlite").Any());
+        Assert.IsTrue(Directory.EnumerateFiles(Path.Combine(_fixture,
+            "ROMOTHEQUE_MANAGER", "backups"), "pre-v3-*.sqlite").Any());
+    }
+
+
+    [TestMethod]
+    public void PERS_P1A_IncompatibleButIntegrityValidBackupNeverDestroysCurrentOrChoices()
+    {
+        string backup;
+        var initial = RomSnapshot();
+        var decision = Decision();
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveAttempt(_romRootId, initial);
+            store.SaveAttempt(_mediaRootId, MediaSnapshot());
+            store.SaveClaim(Claim("claim-a", "Fiction One"));
+            store.SaveClaim(Claim("claim-b", "Fiction Two"));
+            store.SaveManualDecision(decision, true);
+            backup = store.BackupVerified();
+        }
+        var variants = new (string Name, string Sql)[]
+        {
+            ("future-schema", "PRAGMA user_version=4;"),
+            ("missing-table", "DROP TABLE MetadataClaim;"),
+            ("missing-column", "DROP INDEX UX_MetadataClaim_Revision; ALTER TABLE MetadataClaim DROP COLUMN RuleVersion;"),
+            ("broken-foreign-key", "INSERT INTO UserDecision(DecisionId,LibraryId,SubjectKey,Action,ChoiceValue,DecidedAtUtc) VALUES('bad-id','absent-library','bad','bad','bad','2026-01-01T00:00:00Z');")
+        };
+        foreach (var (name, sql) in variants)
+        {
+            var copy = MutateBackup(backup, name, sql);
+            using (var store = Store())
+                Assert.ThrowsExactly<InvalidDataException>(() => store.RestoreVerified(copy),
+                    "Expected rejection for " + name);
+            using (var reopened = Store())
+            {
+                var state = reopened.LoadLastKnown(_romRootId);
+                Assert.AreEqual(initial.ScanId, state.CurrentComplete!.Inventory!.ScanId, name);
+                Assert.AreEqual(decision.DecisionId, state.Decisions.Single().DecisionId, name);
+                Assert.AreEqual(2, state.Claims.Count, name);
+            }
+        }
+        // A truly NEW process also sees exactly the original Current and choices.
+        VerifyNewProcessRestoration();
+    }
+
+    [TestMethod]
+    public void PERS_P1A_StagingMigrationFailureAndPostSwapFailureBothPreserveOldDatabase()
+    {
+        string backup;
+        var initial = RomSnapshot();
+        var decision = Decision();
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveAttempt(_romRootId, initial);
+            store.SaveAttempt(_mediaRootId, MediaSnapshot());
+            store.SaveClaim(Claim("claim-a", "Fiction One"));
+            store.SaveClaim(Claim("claim-b", "Fiction Two"));
+            store.SaveManualDecision(decision, true);
+            backup = store.BackupVerified();
+            store.SaveAttempt(_romRootId, RomSnapshot(stem: "CurrentAfterBackup"));
+        }
+        var currentBefore = "";
+        using (var store = Store())
+            currentBefore = store.LoadLastKnown(_romRootId).CurrentComplete!.Inventory!.ScanId;
+
+        // A synthetically downgraded v1 backup MUST migrate on the staging copy only.
+        var legacy = MutateBackup(backup, "legacy-v1",
+            "DROP INDEX UX_MetadataClaim_Revision; " +
+            "ALTER TABLE MetadataClaim DROP COLUMN RuleVersion; PRAGMA user_version=1;");
+        using (var failOnStage = Store(beforeRestoreSwap:
+            () => throw new IOException("P1A_SYNTHETIC_STAGING_FAILURE")))
+            Assert.ThrowsExactly<IOException>(() => failOnStage.RestoreVerified(legacy));
+
+        using (var reopened = Store())
+            Assert.AreEqual(currentBefore,
+                reopened.LoadLastKnown(_romRootId).CurrentComplete!.Inventory!.ScanId);
+
+        // Even if a failure is injected after the target file was replaced,
+        // RestoreVerified must actively roll back despite destination existence.
+        using (var failAfterSwap = Store(afterRestoreSwap:
+            () => throw new IOException("P1A_SYNTHETIC_POST_SWAP_FAILURE")))
+            Assert.ThrowsExactly<IOException>(() => failAfterSwap.RestoreVerified(backup));
+        using (var reopened = Store())
+        {
+            var state = reopened.LoadLastKnown(_romRootId);
+            Assert.AreEqual(currentBefore, state.CurrentComplete!.Inventory!.ScanId);
+            Assert.AreEqual(decision.DecisionId, state.Decisions.Single().DecisionId);
+        }
+    }
+
+    [TestMethod]
+    public void PERS_P1B_ClaimsDifferentSubjectsAndRevisionsAreAppendOnlyAndIdempotent()
+    {
+        var first = Claim("same-external", "First title") with
+        {
+            SubjectKey = "game:alpha", Provenance = "source-a/v1", RuleVersion = "rule/1"
+        };
+        var second = first with
+        {
+            ClaimId = Guid.NewGuid().ToString("D"),
+            SubjectKey = "game:beta",
+            Value = "Other title", Provenance = "source-b/v1"
+        };
+        var revision = first with
+        {
+            ClaimId = Guid.NewGuid().ToString("D"),
+            Value = "Revised title", Provenance = "source-a/v2",
+            RuleVersion = "rule/2", CapturedAtUtc = first.CapturedAtUtc.AddMinutes(1)
+        };
+        var duplicateImport = first with
+        {
+            ClaimId = Guid.NewGuid().ToString("D"),
+            CapturedAtUtc = first.CapturedAtUtc.AddMinutes(20)
+        };
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveClaim(first);
+            store.SaveClaim(second);
+            store.SaveClaim(revision);
+            store.SaveClaim(duplicateImport); // identical assertion is not another row
+            store.SaveClaim(duplicateImport); // idempotent across repeat imports
+            Assert.AreEqual(0, store.LoadLastKnown(_romRootId).Decisions.Count);
+        }
+        using (var reopened = Store())
+        {
+            var state = reopened.LoadLastKnown(_romRootId);
+            Assert.AreEqual(3, state.Claims.Count);
+            var alpha = state.Claims.Where(x => x.SubjectKey == "game:alpha").ToArray();
+            Assert.AreEqual(2, alpha.Length);
+            Assert.IsTrue(alpha.Any(x => x.Value == "First title" &&
+                x.Provenance == "source-a/v1" && x.ClaimId == first.ClaimId));
+            Assert.IsTrue(alpha.Any(x => x.Value == "Revised title" &&
+                x.Provenance == "source-a/v2" && x.ClaimId == revision.ClaimId));
+            Assert.IsTrue(state.Claims.Any(x => x.SubjectKey == "game:beta" &&
+                x.Value == "Other title" && x.Provenance == "source-b/v1"));
+            Assert.AreEqual(0, state.Decisions.Count);
+        }
+    }
+
+    [TestMethod]
+    public void PERS_P1B_V2LegacyMigrationPreservesClaimsAndEnablesDistinctSubjects()
+    {
+        var original = Claim("shared-key", "Legacy title");
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveClaim(original);
+        }
+        // Synthetic legacy DDL restored in the fixture to exercise v2 → v3.
+        using (var db = new SqliteConnection(new SqliteConnectionStringBuilder
+            { DataSource = _db, Pooling = false }.ToString()))
+        {
+            db.Open();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = @"DROP INDEX UX_MetadataClaim_Revision;
+                CREATE UNIQUE INDEX UX_LegacyMetadataClaim
+                  ON MetadataClaim(LibraryId,SourceKind,ExternalKey,FieldKey);
+                PRAGMA user_version=2;";
+            cmd.ExecuteNonQuery();
+        }
+        using (var migrated = Store())
+        {
+            var state = migrated.LoadLastKnown(_romRootId);
+            Assert.AreEqual(1, state.Claims.Count);
+            Assert.AreEqual(original.Provenance, state.Claims.Single().Provenance);
+            migrated.SaveClaim(original with {
+                ClaimId = Guid.NewGuid().ToString("D"),
+                SubjectKey = "game:another-subject",
+                Value = "Different title",
+                Provenance = "second-claim"
+            });
+        }
+        using var reopened = Store();
+        var after = reopened.LoadLastKnown(_romRootId);
+        Assert.AreEqual(2, after.Claims.Count);
+        Assert.AreEqual(2, after.Claims.Select(x => x.SubjectKey).Distinct().Count());
+    }
+
+    private string MutateBackup(string original, string label, string sql)
+    {
+        var result = Path.Combine(Path.GetDirectoryName(original)!,
+            label + "-" + Guid.NewGuid().ToString("N") + ".sqlite");
+        File.Copy(original, result);
+        using var db = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = result, Pooling = false
+        }.ToString());
+        db.Open();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "PRAGMA foreign_keys=OFF; " + sql;
+        cmd.ExecuteNonQuery();
+        cmd.CommandText = "PRAGMA integrity_check";
+        Assert.AreEqual("ok", cmd.ExecuteScalar()?.ToString(),
+            "Backup must be physically intact, even if its application schema is invalid.");
+        return result;
     }
 
     [TestMethod]
