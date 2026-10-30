@@ -82,12 +82,13 @@ public partial class ObservedLibraryWindow : Window
     internal ObservedLibraryViewModel ModelForCi => _vm;
 
     internal InventorySelectionResult SelectFixtureForCi(string key,
-        Action<int>? chunkObserved = null)
+        Action<int>? chunkObserved = null,
+        IReadOnlyDictionary<string, string>? platformAliases = null)
     {
         if (_syntheticRoots is null || !_syntheticRoots.TryGetValue(key, out var root))
             return new(false, "SYNTHETIC_SCOPE_NOT_ALLOWED",
                 _service.State.SelectionVersion);
-        return _inventoryVm.PrepareSelectedFolder(new InventoryScope(root)
+        return _inventoryVm.PrepareSelectedFolder(new InventoryScope(root, platformAliases)
         {
             PlaylistChunkObserved = chunkObserved
         });

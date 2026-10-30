@@ -292,7 +292,12 @@ internal static class Next05GuiHarness
 
         foreach (var name in new[] { "IDEAL", "CHAOS", "MYSTERY" })
         {
-            var selected = window.SelectFixtureForCi(name);
+            // Explicit aliases for generated fixture platforms; no implicit game identification.
+            var aliases = Directory.EnumerateDirectories(Path.Combine(roots[name], "ROMS"))
+                .Select(Path.GetFileName).Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!)
+                .ToDictionary(x => x, x => x, StringComparer.OrdinalIgnoreCase);
+            var selected = window.SelectFixtureForCi(name, platformAliases: aliases);
             Demand(selected.Accepted && !vm.CanInventoryFixture &&
                 inventory.Phase == InventoryRunPhase.Ready,
                 "N05_GUI_SELECTION_OR_CONSENT_FAILED_" + name);
