@@ -76,23 +76,18 @@ internal static class Next04Capture
                 if (!window.CiNext04FirstSystem())
                     throw new InvalidDataException("NEXT04_SYSTEM_NAVIGATION_FAILED");
                 Capture("IDEAL-System-Collection-1120x720", 1120, 720);
-                // Native SizeChanged is dispatched asynchronously after setting Width/Height.
-                // Yield to the real Avalonia dispatcher before testing responsive columns.
-                window.Width = 2200;
-                window.Height = 900;
-                await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+                // Synthetic viewport only: the hosted runner is not physically ultrawide.
+                // The production column algorithm uses real Bounds.Width unchanged.
+                window.CiNext041SetSyntheticViewport(2200);
                 Capture("NEXT041-System-Collection-Ultrawide-2200x900", 2200, 900);
-                await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
                 if (!window.CiNext041WideCollectionAligned())
                     throw new InvalidDataException("NEXT041_COLLECTION_GRID_ALIGNMENT_ULTRAWIDE_FAILED");
-                window.Width = 1920;
-                window.Height = 1200;
-                await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+                window.CiNext041SetSyntheticViewport(1920);
                 Capture("NEXT041-System-Collection-DPI150-2880x1800", 1920, 1200, 1.5);
-                await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
                 if (!window.CiNext041WideCollectionAligned())
                     throw new InvalidDataException("NEXT041_COLLECTION_GRID_ALIGNMENT_DPI150_FAILED");
-                Console.WriteLine("NEXT041_COLLECTION_GRID_PASS columns=3 widths=equal dpi_render=150_simulated");
+                Console.WriteLine("NEXT041_COLLECTION_GRID_PASS columns=3 widths=equal viewport=simulated dpi_render=150_simulated");
+                window.CiNext041ClearSyntheticViewport();
                 if (!window.CiNext04OpenFirst())
                     throw new InvalidDataException("NEXT04_GAME_NAVIGATION_FAILED");
                 Capture("IDEAL-GameDetail-1120x720", 1120, 720);

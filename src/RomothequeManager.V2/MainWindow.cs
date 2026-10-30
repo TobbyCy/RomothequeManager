@@ -28,15 +28,46 @@ public sealed partial class MainWindow : Window
     private Vector _importedCollectionOffset;
     private int _importedColumns = 1;
 
-    private void UpdateContentWidth()
+#if NEXT04_CI
+    // The headless Windows runner cannot expose a physical ultrawide monitor.
+    // Use a CI-only logical viewport for synthetic layout proof, never production.
+    private double? _ciViewportWidth;
+    internal void CiNext041SetSyntheticViewport(double width)
     {
-        // Wider than the old column, but never a five-thousand-pixel text line.
-        // Content remains readable on ultrawide screens and fits 760 DIP windows.
-        _page.Width = Math.Max(420, Math.Min(1580, Bounds.Width - 306));
+        _ciViewportWidth = width;
+        UpdateContentWidth();
+        _importedColumns = ImportedColumnCount();
+        Render();
     }
 
-    private int ImportedColumnCount() => Bounds.Width >= 1900 ? 3 :
-        Bounds.Width >= 1150 ? 2 : 1;
+    internal void CiNext041ClearSyntheticViewport()
+    {
+        _ciViewportWidth = null;
+        UpdateContentWidth();
+        _importedColumns = ImportedColumnCount();
+        Render();
+    }
+#endif
+
+    private double LayoutViewportWidth()
+    {
+#if NEXT04_CI
+        if (_ciViewportWidth is double synthetic) return synthetic;
+#endif
+        return Bounds.Width;
+    }
+
+    private void UpdateContentWidth()
+    {
+        // Physical viewport in production, explicit synthetic width only in isolated CI.
+        _page.Width = Math.Max(420, Math.Min(1580, LayoutViewportWidth() - 306));
+    }
+
+    private int ImportedColumnCount()
+    {
+        var viewport = LayoutViewportWidth();
+        return viewport >= 1900 ? 3 : viewport >= 1150 ? 2 : 1;
+    }
 
     private void RestoreCollectionOffset(bool imported)
     {
