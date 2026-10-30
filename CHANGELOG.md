@@ -1,5 +1,11 @@
 # Journal des changements
 
+## PACKAGING-101 — candidat portable single-file (30 octobre 2026, Issue #101)
+
+- Candidat Windows x64 autonome non tronqué : `PublishSingleFile=true`, bibliothèques natives extraites automatiquement, EXE unique en racine, deux assets officiels externes, notices/licences conservées. Le mode CI-only reste distinct du binaire utilisateur.
+- Contrôles Windows prévus sur un HEAD précis : véritable GUI Avalonia/fixtures fictives, ZIP et SHA-256, ouverture sans SDK, redémarrage après déplacement du dossier et simulation de changement de lettre par `subst`. Un SSD physique reste **NOT_EXECUTED** jusqu'à recette humaine.
+- Travail isolé du défaut XML GameCube #101 (cause inconnue), de l'accueil vide #100 et du correctif Collection #99 ; aucune Release, aucune écriture de ROM ni persistance.
+
 ## NEXT-04 / USAGE-01 — essai Windows autonome, preuve humaine en attente (Produit #97)
 
 - Deux ZIP distincts dans l'artefact temporaire CI : application Windows autonome et démo ES-DE déjà générée (IDEAL, CHAOS, MYSTERY, MALFORMED, LONG 155 jeux fictifs), sans Node.js ni sources à préparer sur le PC du testeur.
