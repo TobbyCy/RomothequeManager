@@ -1,8 +1,11 @@
 # Historique technique des fonctionnalités
 
+
+PERSIST-01 #111 — correctifs P1 en cours de CI : restore validé sur staging (schéma/FK/version/colonnes) avant remplacement, rollback après swap ; claims append-only par sujet et révision, provenance historique préservée, migration v2→v3 et tests adversariaux. ZIP Windows / nouveau HEAD et DEV 2 re-revue requis, aucun accès réel.
+
 ## NEXT-05 / PERSIST-01 — backend SQLite synthétique
 
-Périmètre autorisé : une seule PR DEV 1 sur fixtures (`ICatalogStore`), distincte de la PR Avalonia DEV 3 #110. Schéma minimal SQLite avec UUID durables, chemins relatifs, CurrentComplete et LastAttempt transactionnels, claims sourcées et décisions manuelles exclusivement explicites. `LoadLastKnown` renvoie la mémoire historique Offline/Stale sans ouvrir ROMS/MEDIAS, ni ES-DE, ni réseau. Backup avec API SQLite + integrity_check, migration v1→v2 et journal DELETE sont proposés à la revue, sans allégation de durabilité USB/SSD physique non testée. Le constructeur public de stockage reste fail-closed : aucun catalogue personnel ouvert. Tests PERS-01…08, preuve native/packaging Windows, SHA et revue indépendante **en cours** ; aucune fusion ni Release autorisée.
+Périmètre autorisé : une seule PR DEV 1 sur fixtures (`ICatalogStore`), distincte de la PR Avalonia DEV 3 #110. Schéma minimal SQLite avec UUID durables, chemins relatifs, CurrentComplete et LastAttempt transactionnels, claims sourcées et décisions manuelles exclusivement explicites. `LoadLastKnown` renvoie la mémoire historique Offline/Stale sans ouvrir ROMS/MEDIAS, ni ES-DE, ni réseau. Backup avec API SQLite + integrity_check, migration v1→v2→v3 et journal DELETE sont proposés à la revue, sans allégation de durabilité USB/SSD physique non testée. Le constructeur public de stockage reste fail-closed : aucun catalogue personnel ouvert. Tests PERS-01…08, preuve native/packaging Windows, SHA et revue indépendante **en cours** ; aucune fusion ni Release autorisée.
 
 ## NEXT-06 — Moteur médias → présentation, backend en revue
 
