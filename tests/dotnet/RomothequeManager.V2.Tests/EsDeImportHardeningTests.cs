@@ -296,4 +296,168 @@ public sealed class EsDeImportHardeningTests
         Assert.AreSame(accepted, session.Current);
     }
 
+
+    private const string FictionalGame =
+        "<gameList><game><path>./Invented.gba</path>" +
+        "<name>Fixture Only</name><genre>Test</genre></game></gameList>";
+    private const string KnownAlternative =
+        "<alternativeEmulator><label>TEST EMULATOR (Synthetic)</label></alternativeEmulator>";
+
+    [TestMethod]
+    [DataRow("local")]
+    [DataRow("historical")]
+    [DataRow("modern")]
+    public void PublicEsDeAlternativeEmulatorBeforeGameListImportsInAllConventions(string convention)
+    {
+        var rom = Put("ROMS/gba/Invented.gba");
+        var xml = Put(Convention(convention),
+            "<?xml version=\"1.0\"?>\n" + KnownAlternative + "\n" + FictionalGame);
+        var romHash = SHA256.HashData(File.ReadAllBytes(rom));
+        var xmlHash = SHA256.HashData(File.ReadAllBytes(xml));
+        var session = new EsDeImportSession(_root);
+        var imported = session.Import();
+        Assert.AreEqual("ES_DE_READ_ONLY", imported.SourceKind);
+        Assert.AreEqual(1, imported.Games.Count);
+        Assert.AreEqual("Fixture Only", imported.Games.Single().Title);
+        Assert.AreEqual("Test", imported.Games.Single().Genre);
+        Assert.IsTrue(imported.Games.Single().RomExists);
+        Assert.IsFalse(imported.Diagnostics.Any(d => d.Code == "IGNORED_ENTRY"));
+
+        // The alternative emulator label is not a game, metadata or identity input.
+        File.WriteAllText(xml, FictionalGame, new UTF8Encoding(false));
+        var conventional = session.Import();
+        Assert.AreEqual(imported.LibraryId, conventional.LibraryId);
+        Assert.AreEqual(imported.Games.Single().GameId, conventional.Games.Single().GameId);
+        Assert.AreEqual(imported.ContentFingerprint, conventional.ContentFingerprint);
+
+        File.WriteAllText(xml, "<?xml version=\"1.0\"?>\n" +
+            "<alternativeEmulator><label>ANOTHER FICTIONAL LABEL</label></alternativeEmulator>\n" +
+            FictionalGame, new UTF8Encoding(false));
+        var reimported = session.Import();
+        Assert.AreEqual(conventional.ContentFingerprint, reimported.ContentFingerprint);
+        Assert.AreEqual(conventional.Games.Single().GameId, reimported.Games.Single().GameId);
+        CollectionAssert.AreEqual(romHash, SHA256.HashData(File.ReadAllBytes(rom)));
+        Assert.IsFalse(xmlHash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(xml))));
+    }
+
+    [TestMethod]
+    public void MixedElevenSyntheticSystemsImportSixOrdinaryAndFiveAlternativePreambles()
+    {
+        const int systems = 11;
+        for (var i = 0; i < systems; i++)
+        {
+            var platform = i == 0 ? "gba" : "synthetic" + i.ToString("D2");
+            Put("ROMS/" + platform + "/Invented.gba");
+            var xml = i < 5
+                ? "<?xml version=\"1.0\"?>\n" + KnownAlternative + "\n" + FictionalGame
+                : "<?xml version=\"1.0\"?>\n" + FictionalGame;
+            Put("MEDIAS/" + platform + "/metadata/es-de-gamelist.xml", xml);
+        }
+        var result = EsDeCatalogueImporter.Read(_root);
+        Assert.AreEqual(systems, result.Games.Count);
+        Assert.AreEqual(systems, result.Games.Select(g => g.Platform).Distinct().Count());
+        Assert.IsTrue(result.Games.All(g => g.RomExists));
+        Assert.AreEqual(11, result.Games.Select(g => g.GameId).Distinct().Count());
+        Assert.AreEqual(0, result.Diagnostics.Count(d => d.Code == "XML_MISSING"));
+    }
+
+    [TestMethod]
+    public void KnownAlternativeEmulatorUtf8AndUtf16DeclarationsPreserveReadOnlyFiles()
+    {
+        Put("ROMS/gba/Invented.gba");
+        var xml = Put(Convention("historical"), FictionalGame);
+        var fixture = "<?xml version=\"1.0\" encoding=\"utf-16\"?>\n" +
+            KnownAlternative + "\n" + FictionalGame;
+        File.WriteAllBytes(xml, Encoding.Unicode.GetPreamble()
+            .Concat(Encoding.Unicode.GetBytes(fixture)).ToArray());
+        var hash = SHA256.HashData(File.ReadAllBytes(xml));
+        var imported = EsDeCatalogueImporter.Read(_root);
+        Assert.AreEqual("Fixture Only", imported.Games.Single().Title);
+        CollectionAssert.AreEqual(hash, SHA256.HashData(File.ReadAllBytes(xml)));
+
+        File.WriteAllBytes(xml, Encoding.UTF8.GetPreamble()
+            .Concat(Encoding.UTF8.GetBytes(fixture.Replace("utf-16", "utf-8", StringComparison.Ordinal))).ToArray());
+        var utf8Hash = SHA256.HashData(File.ReadAllBytes(xml));
+        Assert.AreEqual("Fixture Only", EsDeCatalogueImporter.Read(_root).Games.Single().Title);
+        CollectionAssert.AreEqual(utf8Hash, SHA256.HashData(File.ReadAllBytes(xml)));
+    }
+
+    [TestMethod]
+    public void MalformedOrUnauthorizedAlternativePreamblesNeverReplaceCurrent()
+    {
+        Put("ROMS/gba/Invented.gba");
+        var xml = Put(Convention("historical"), FictionalGame);
+        var session = new EsDeImportSession(_root);
+        var lastGood = session.Import();
+        var invalid = new[]
+        {
+            "<alternativeEmulator/>" + FictionalGame,
+            "<alternativeEmulator><label>   </label></alternativeEmulator>" + FictionalGame,
+            "<alternativeEmulator><label>Test</label><label>Again</label></alternativeEmulator>" + FictionalGame,
+            "<alternativeEmulator><label><game>Nested</game></label></alternativeEmulator>" + FictionalGame,
+            "<alternativeEmulator id=\"surprise\"><label>Test</label></alternativeEmulator>" + FictionalGame,
+            "<alternativeEmulator><label x=\"1\">Test</label></alternativeEmulator>" + FictionalGame,
+            "<alternativeEmulator><name>Wrong</name></alternativeEmulator>" + FictionalGame,
+            "<alternativeEmulator><label>Test</label>INJECTED</alternativeEmulator>" + FictionalGame,
+            "<alternativeEmulator xmlns=\"urn:untrusted\"><label>Test</label></alternativeEmulator>" + FictionalGame,
+            "<alternativeEmulator><label>Test</label></alternativeEmulator><gameList/><gameList/>",
+            "<alternativeEmulator><label>Test</label></alternativeEmulator><gameList/><foreign/>",
+            KnownAlternative + KnownAlternative + FictionalGame,
+            FictionalGame + KnownAlternative,
+            "<otherRoot/>" + FictionalGame,
+            KnownAlternative + "<otherRoot/>",
+            KnownAlternative + "<gameList><game><path>./Invented.gba</path>",
+            KnownAlternative + "<gameList/>FORBIDDEN_TEXT",
+            KnownAlternative + "<gameList/><![CDATA[UNEXPECTED]]>",
+            KnownAlternative + "<?unexpected test?>" + FictionalGame
+        };
+        for (var i = 0; i < invalid.Length; i++)
+        {
+            File.WriteAllText(xml, invalid[i], new UTF8Encoding(false));
+            try
+            {
+                session.Import();
+                Assert.Fail("Invalid synthetic preamble unexpectedly imported, fixture index " + i);
+            }
+            catch (EsDeXmlReadException)
+            {
+                Assert.AreSame(lastGood, session.Current);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void AlternativeEmulatorCannotBypassDtdEntityXmlBudgetOrTraversalProtections()
+    {
+        Put("ROMS/gba/Invented.gba");
+        var xml = Put(Convention("historical"), FictionalGame);
+        var session = new EsDeImportSession(_root);
+        var good = session.Import();
+
+        File.WriteAllText(xml, "<!DOCTYPE gameList [<!ENTITY test SYSTEM 'file:///invented'>]>" +
+            KnownAlternative + "<gameList><game><path>./Invented.gba</path>" +
+            "<name>&test;</name></game></gameList>", new UTF8Encoding(false));
+        Assert.ThrowsExactly<EsDeXmlReadException>(() => session.Import());
+        Assert.AreSame(good, session.Current);
+
+        File.WriteAllText(xml, "<?xml version=\"1.0\"?>\n" + KnownAlternative +
+            "\n<gameList><game><path>../../escape.gba</path></game></gameList>",
+            new UTF8Encoding(false));
+        Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
+        Assert.AreSame(good, session.Current);
+
+        File.WriteAllText(xml, "<?xml version=\"1.0\"?>\n" + KnownAlternative +
+            "\n<gameList>" + new string(' ', 8 * 1024 * 1024) + "</gameList>",
+            new UTF8Encoding(false));
+        var limit = Assert.ThrowsExactly<InvalidDataException>(() => session.Import());
+        Assert.AreEqual("ESDE_XML_BYTES_LIMIT", limit.Message);
+        Assert.AreSame(good, session.Current);
+
+        File.WriteAllText(xml, "<?xml version=\"1.0\"?>\n" + KnownAlternative +
+            "\n<gameList><game><path>./Invented.gba</path>" +
+            "<name>unescaped & invalid</name></game></gameList>", new UTF8Encoding(false));
+        Assert.ThrowsExactly<EsDeXmlReadException>(() => session.Import());
+        Assert.AreSame(good, session.Current);
+    }
+
 }

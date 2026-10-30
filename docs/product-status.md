@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-04.1 / compatibilité ES-DE alternativeEmulator (PR #103, 30.10.2026)
+
+Correctif **en revue, non fusionné et non distribué** : prise en charge en lecture seule du préambule public `alternativeEmulator` à un seul `label` suivi d'une unique `gameList`, uniquement lorsque le lecteur XML document strict refuse cette structure. Le parseur de fragment valide l'ordre et le nombre exacts d'éléments, sans modifier les XML ni autoriser d'autre racine, texte libre, DTD ou entité. Les bornes XML de 8 Mio (octets et caractères), racines explicitement sélectionnées, médias déclarés, reparse, chemin confinés et dernier catalogue `Current` valide demeurent inchangés. La valeur du label n'influence pas les jeux importés ni leurs identités.
+
+Tests fictifs et preuve Windows native `#101` sont requis sur le HEAD final, ainsi que la CI Adaptive et sa revue DEV 2. **Aucun nouvel import de bibliothèque personnelle**, aucune écriture ni fusion/Release autonome. Le défaut réel historique a été classifié localement (5 sur 11 gamelists de convention concernée) mais **sa réparation n'est pas attestée par ce correctif tant qu'un nouvel essai expressément autorisé n'a pas eu lieu**.
+
 > **ARCHIVE, non état actuel.** Les anciens HEAD, PR Draft, validations et mentions « non fusionné » décrivent la situation lors de leur rédaction. Pour la version réellement téléchargeable, le code actuel et les limites de recette humaine, consulter [STATUS.md](../STATUS.md). Cet historique est conservé pour la traçabilité, pas comme deuxième tableau de bord.
 
 

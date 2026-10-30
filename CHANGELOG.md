@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-04.1 / ES-DE alternativeEmulator compatibility — PR #103 (30.10.2026)
+
+- Compatibilité ciblée avec le seul format public ES-DE à deux éléments racine : `alternativeEmulator` contenant exactement un `label`, puis une unique `gameList`. Le lecteur XML document strict reste prioritaire ; le fragment n'est accepté qu'après validation de cette structure connue, sans suppression/réécriture de préambule.
+- DTD, entités externes, caractères invalides, sources supplémentaires, traversées de chemins et dépassement de 8 Mio restent refusés ; aucune importation partielle automatique. Le label alternatif n'est ni un jeu ni une métadonnée, et n'affecte pas les identités/fingerprints.
+- Recettes entièrement fictives : trois emplacements XML, six systèmes ordinaires plus cinq préambules, encodages UTF-8/16, attaques de racines, atomicité du dernier catalogue et test dans l'EXE Windows natif CI-only. CI et revue sur HEAD exact en cours ; aucune ROMothèque personnelle testée, pas de fusion/Release automatique.
+
 ## NEXT-04 / USAGE-01 — essai Windows autonome, preuve humaine en attente (Produit #97)
 
 - Deux ZIP distincts dans l'artefact temporaire CI : application Windows autonome et démo ES-DE déjà générée (IDEAL, CHAOS, MYSTERY, MALFORMED, LONG 155 jeux fictifs), sans Node.js ni sources à préparer sur le PC du testeur.
