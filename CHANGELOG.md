@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-06 — Backend de présentation et aperçu média (PR #108, revue en cours)
+
+- Services source-neutral `IMediaPresentationService` et `IMediaPreviewService` ; lecture des candidats de #107 sans ES-DE obligatoire, états de provenance sans validation automatique.
+- Preview PNG/JPEG réel sur fixtures synthétiques via SkiaSharp déjà présent, service public `REAL_MEDIA_PREVIEW_HOLD` ; sources ≤8 Mio, dimensions ≤2048 px/axe et 3,5 Mpx, buffers RGBA cumulés ≤16 Mio, sortie ≤512 px, cache nul et sémaphore unitaire.
+- Canaris MU-01..08 ajoutés ; CI, consommation de mémoire native, Windows GUI/ZIP et test SSD réel à qualifier au HEAD exact. Aucun View/ViewModel, SQLite, scan privé, scraper, écriture source, fusion ou Release.
+
 ## NEXT-05 / DEV 3 — interface Avalonia MVVM des fichiers observés (30.10.2026)
 
 - Nouvelle fenêtre « Inventaire de fichiers · sans ES-DE » accessible depuis l'accueil vide et la barre latérale. Service normal InventoryApplicationService() toujours fail-closed : aucun scan personnel autorisé, aucune persistance.
