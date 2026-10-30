@@ -277,7 +277,15 @@ public sealed class Persist01SqliteTests
             var bytes = File.ReadAllBytes(damaged);
             bytes[0] ^= 255;
             File.WriteAllBytes(damaged, bytes);
-            Assert.ThrowsException<Exception>(() => store.RestoreVerified(damaged));
+            try
+            {
+                store.RestoreVerified(damaged);
+                Assert.Fail("A corrupt backup must be rejected.");
+            }
+            catch (Exception ex) when (ex is SqliteException or InvalidDataException)
+            {
+                // Expected: invalid fixture backup, active catalog untouched.
+            }
             store.RestoreVerified(backup);
         }
         using (var store = Store())
@@ -357,10 +365,11 @@ public sealed class Persist01SqliteTests
         Assert.AreEqual("delete", cmd.ExecuteScalar()?.ToString()?.ToLowerInvariant());
         cmd.CommandText = "PRAGMA foreign_keys";
         // This separate connection has no FK pragma requirement by default.
-        using var denied = new MediaPreviewService();
-        Assert.AreEqual(MediaPreviewStatus.Rejected,
-            denied.LoadAsync(new MediaPreviewRequest("unknown","unknown","unknown",128))
-                .GetAwaiter().GetResult().Status);
+        var denied = new MediaPreviewService();
+        using var deniedResult = denied.LoadAsync(
+            new MediaPreviewRequest("unknown","unknown","unknown",128))
+            .GetAwaiter().GetResult();
+        Assert.AreEqual(MediaPreviewStatus.Rejected, deniedResult.Status);
         var inventory = new RomothequeManager.V2.Inventory.Application.InventoryApplicationService();
         Assert.IsNotNull(inventory); // public constructor still fail-closed
         Assert.IsNotNull(new MediaIndexApplicationService());
