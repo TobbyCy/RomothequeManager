@@ -83,7 +83,7 @@ public sealed class RsAWindowsFixtureTests
         Assert.AreEqual(InventoryScanStatus.Failed,
             restoredNewProcessModel.Scan(null).ScanStatus);
         var expired = new RsAReadGrant(_rootId, session.SelectionVersion,
-            DateTimeOffset.UtcNow.AddSeconds(-1));
+            DateTimeOffset.UtcNow.AddSeconds(-1), second.RootIdentity);
         Assert.IsFalse(expired.Valid(_rootId, session.SelectionVersion));
         Console.WriteLine("RS_A01_PASS no grant/explicit/revoke/selection/expiry/restart model; " +
             "no I/O before authorization");
@@ -257,6 +257,14 @@ public sealed class RsAWindowsFixtureTests
         Assert.IsNull(offline.TotalFileCount);
         Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
             RsAAnchoredReader.ValidateFixturePath(unplugged));
+        // Replacement under exactly the SAME path must not reuse the prior grant.
+        Directory.CreateDirectory(_root);
+        Put("gba/replacement.gba");
+        var samePathReplacement = s.Scan(g);
+        Assert.AreNotEqual(InventoryScanStatus.Complete, samePathReplacement.ScanStatus);
+        Assert.AreSame(good, s.Current);
+        Assert.IsTrue(samePathReplacement.Diagnostics.Any(x => x.Code == "RS_A_DENIED"));
+        Console.WriteLine("RS_A04_SAME_PATH_DIFFERENT_FILEID_REJECTED real_windows=1");
         var another = Path.Combine(Path.GetTempPath(),
             "rm-rsa-fixture-" + Guid.NewGuid().ToString("N"), "ROMS");
         Directory.CreateDirectory(another);
