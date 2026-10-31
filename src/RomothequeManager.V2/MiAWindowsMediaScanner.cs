@@ -75,16 +75,20 @@ internal sealed class MiAFixtureMediaSession
     private static readonly ConcurrentDictionary<string, byte> ActiveScopes =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly MiABudget _budget;
-    private readonly string _mediaRootRef = "mia-media-" + Guid.NewGuid().ToString("N");
+    private readonly object _selectionGate = new();
+    // A selection-scoped ref, never a constant per MiAFixtureMediaSession.
+    private string _mediaRootRef = "mia-media-" + Guid.NewGuid().ToString("N");
     private string? _root;
     private string? _rootId;
     private long _version;
     private long _generation;
     private MiAReadGrant? _grant;
-    internal MediaIndexSnapshot? Current { get; private set; }
-    internal MediaIndexSnapshot? LastAttempt { get; private set; }
+    private MediaIndexSnapshot? _current;
+    private MediaIndexSnapshot? _lastAttempt;
+    internal MediaIndexSnapshot? Current { get { lock (_selectionGate) return _current; } }
+    internal MediaIndexSnapshot? LastAttempt { get { lock (_selectionGate) return _lastAttempt; } }
     internal long LastHeaderBytesRead { get; private set; }
-    internal long SelectionVersion => _version;
+    internal long SelectionVersion { get { lock (_selectionGate) return _version; } }
 
     internal MiAFixtureMediaSession(MiABudget? budget = null)
     {
@@ -94,33 +98,49 @@ internal sealed class MiAFixtureMediaSession
 
     internal void SelectFixture(string root, string storageRootId)
     {
-        _grant?.Revoke();
-        _grant = null;
-        _root = null;
-        _rootId = null;
-        Interlocked.Increment(ref _version);
-        Interlocked.Increment(ref _generation);
-        if (!Guid.TryParse(storageRootId, out _))
-            throw new ArgumentException("MI_A_STORAGE_ROOT_ID_REQUIRED");
-        _root = MiAAnchoredMediaReader.ValidateFixturePath(root);
-        _rootId = storageRootId;
-        // Selection has no filesystem side effects.
+        lock (_selectionGate)
+        {
+            // Invalidate an old permission before any new selection is accepted.
+            _grant?.Revoke();
+            _grant = null;
+            _root = null;
+            _rootId = null;
+            _version++;
+            _generation++;
+            _mediaRootRef = "mia-media-" + Guid.NewGuid().ToString("N");
+            // Snapshots belong to a selection, not to this mutable session.
+            // Never expose Current(A) or LastAttempt(A) as results of B.
+            _current = null;
+            _lastAttempt = null;
+            LastHeaderBytesRead = 0;
+            if (!Guid.TryParse(storageRootId, out _))
+                throw new ArgumentException("MI_A_STORAGE_ROOT_ID_REQUIRED");
+            _root = MiAAnchoredMediaReader.ValidateFixturePath(root);
+            _rootId = storageRootId;
+            // No filesystem opening or scanning by selection.
+        }
     }
 
     internal MiAReadGrant AuthorizeFixture(bool explicitUserAction, DateTimeOffset expiresUtc)
     {
-        if (!explicitUserAction || _root is null || _rootId is null ||
-            expiresUtc <= DateTimeOffset.UtcNow ||
-            expiresUtc > DateTimeOffset.UtcNow.AddMinutes(5))
-            throw new UnauthorizedAccessException("MI_A_EXPLICIT_CONSENT_REQUIRED");
-        using var root = MiAAnchoredMediaReader.OpenFixtureRoot(_root);
-        var identity = RsAAnchoredReader.Identity(root);
-        _grant?.Revoke();
-        return _grant = MiAReadGrant.Issue(_rootId, _version,
-            Interlocked.Increment(ref _generation), expiresUtc, identity, _budget);
+        lock (_selectionGate)
+        {
+            if (!explicitUserAction || _root is null || _rootId is null ||
+                expiresUtc <= DateTimeOffset.UtcNow ||
+                expiresUtc > DateTimeOffset.UtcNow.AddMinutes(5))
+                throw new UnauthorizedAccessException("MI_A_EXPLICIT_CONSENT_REQUIRED");
+            using var root = MiAAnchoredMediaReader.OpenFixtureRoot(_root);
+            var identity = RsAAnchoredReader.Identity(root);
+            _grant?.Revoke();
+            return _grant = MiAReadGrant.Issue(_rootId, _version,
+                ++_generation, expiresUtc, identity, _budget);
+        }
     }
 
-    internal void Revoke() => _grant?.Revoke();
+    internal void Revoke()
+    {
+        lock (_selectionGate) _grant?.Revoke();
+    }
 
     internal MediaIndexSnapshot Scan(MiAReadGrant? supplied,
         CancellationToken cancellationToken = default,
@@ -137,16 +157,35 @@ internal sealed class MiAFixtureMediaSession
         var bytesRead = 0L;
         var files = 0;
         var dirs = 0;
-        var root = _root;
+        string? root;
+        string? rootId;
+        string mediaRootRef;
+        long selectionVersion;
+        long generation;
+        lock (_selectionGate)
+        {
+            root = _root;
+            rootId = _rootId;
+            mediaRootRef = _mediaRootRef;
+            selectionVersion = _version;
+            generation = _generation;
+        }
         var acquired = false;
 
         void Check()
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (supplied is null || _grant is null ||
-                !ReferenceEquals(supplied, _grant) || _rootId is null ||
-                !supplied.Valid(_rootId, _version, _generation))
+            if (supplied is null)
                 throw new UnauthorizedAccessException("MI_A_GRANT_INVALID");
+            lock (_selectionGate)
+            {
+                if (rootId is null || _version != selectionVersion ||
+                    _generation != generation || _mediaRootRef != mediaRootRef ||
+                    _rootId != rootId || _root != root ||
+                    !ReferenceEquals(supplied, _grant) ||
+                    !supplied.Valid(rootId, selectionVersion, generation))
+                    throw new UnauthorizedAccessException("MI_A_GRANT_INVALID");
+            }
             if (stopwatch.Elapsed >= supplied.Budget.EffectiveTimeLimit)
                 throw new MiAStopException("MI_A_TIMEOUT");
         }
@@ -213,7 +252,7 @@ internal sealed class MiAFixtureMediaSession
                 var pieces = relative.Split('/');
                 var platform = pieces.Length > 1 ? pieces[0].ToLowerInvariant() : "UNKNOWN";
                 observations.Add(new MediaObservation(
-                    "mia-observation-" + runId + "-" + observations.Count, _mediaRootRef,
+                    "mia-observation-" + runId + "-" + observations.Count, mediaRootRef,
                     "MEDIAS/" + relative, platform, MediaKind.Unknown, extension,
                     info.Format, info.Valid, size, info.Width, info.Height,
                     MiAAnchoredMediaReader.ModifiedUtc(file), when,
@@ -265,19 +304,33 @@ internal sealed class MiAFixtureMediaSession
         finally
         {
             if (acquired && root is not null) ActiveScopes.TryRemove(root, out _);
-            LastHeaderBytesRead = bytesRead;
+            lock (_selectionGate)
+            {
+                if (_version == selectionVersion && _generation == generation &&
+                    _mediaRootRef == mediaRootRef)
+                    LastHeaderBytesRead = bytesRead;
+            }
         }
 
         var complete = status == InventoryScanStatus.Complete;
-        var snapshot = new MediaIndexSnapshot(runId, _mediaRootRef, when,
+        var snapshot = new MediaIndexSnapshot(runId, mediaRootRef, when,
             status, availability,
             complete ? InventoryFreshness.Fresh : InventoryFreshness.Unknown,
             new[] { new InventoryCoverage("MEDIAS", status) },
             observations.AsReadOnly(), diagnostics.AsReadOnly(),
             observations.Count, complete ? observations.Count : null);
-        LastAttempt = snapshot;
-        if (complete && availability == InventoryAvailability.Online)
-            Current = snapshot;
+        lock (_selectionGate)
+        {
+            // A concurrently completed scan of A must never publish into B,
+            // even if selection changed after the last native handle check.
+            if (_version == selectionVersion && _generation == generation &&
+                _mediaRootRef == mediaRootRef && _rootId == rootId && _root == root)
+            {
+                _lastAttempt = snapshot;
+                if (complete && availability == InventoryAvailability.Online)
+                    _current = snapshot;
+            }
+        }
         return snapshot;
     }
 
