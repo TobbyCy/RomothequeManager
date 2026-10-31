@@ -39,7 +39,11 @@ public sealed class LegacyImportedImageBudgetTests
         var image = FakePng(width, height);
         Assert.IsTrue(image.Length < LegacyImportedImageBudget.MaxCompressedBytes,
             "LM02_AXIS_ONLY_COMPRESSED_BYTES_WITHIN_BUDGET");
-        Assert.IsTrue((long)width * height < LegacyImportedImageBudget.MaxSourcePixels,
+        var encodedWidth = BinaryPrimitives.ReadInt32BigEndian(image.AsSpan(16, 4));
+        var encodedHeight = BinaryPrimitives.ReadInt32BigEndian(image.AsSpan(20, 4));
+        Assert.AreEqual(width, encodedWidth, "LM02_REAL_PNG_IHDR_WIDTH");
+        Assert.AreEqual(height, encodedHeight, "LM02_REAL_PNG_IHDR_HEIGHT");
+        Assert.IsTrue((long)encodedWidth * encodedHeight < LegacyImportedImageBudget.MaxSourcePixels,
             "LM02_AXIS_ONLY_SURFACE_WITHIN_BUDGET");
 
         // Separate reference decode proves this is a genuine decodable PNG,
