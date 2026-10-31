@@ -168,8 +168,23 @@ public sealed class G1PermissionBoundaryFixtureTests
         // still reject the token, preserving both last known complete results.
         var otherRom = Roms();
         var otherMedia = Medias();
-        RomDenied(rom.Scan(RomGrant(otherRom)));
-        MediaDenied(media.Scan(MediaGrant(otherMedia)));
+        var romForeignOpenSeam = 0;
+        var mediaForeignOpenSeam = 0;
+        var mediaForeignReadSeam = 0;
+        RomDenied(rom.Scan(RomGrant(otherRom), beforeChildOpenForTest: _ =>
+            Interlocked.Increment(ref romForeignOpenSeam)));
+        MediaDenied(media.Scan(MediaGrant(otherMedia),
+            beforeChildOpenForTest: _ => Interlocked.Increment(ref mediaForeignOpenSeam),
+            afterHeaderReadForTest: n => Interlocked.Add(ref mediaForeignReadSeam, n)));
+        Assert.AreEqual(0, romForeignOpenSeam,
+            "PERM_F01_FOREIGN_RSA_ENTERED_CHILD_OPEN_SEAM");
+        Assert.AreEqual(0, mediaForeignOpenSeam,
+            "PERM_F01_FOREIGN_MIA_ENTERED_CHILD_OPEN_SEAM");
+        Assert.AreEqual(0, mediaForeignReadSeam,
+            "PERM_F01_FOREIGN_MIA_READ_HEADER");
+        Assert.AreEqual(0L, media.LastHeaderBytesRead,
+            "PERM_F01_FOREIGN_MIA_ACCOUNTED_HEADER_READ");
+        Console.WriteLine("PERM_F01_RUNTIME_FOREIGN_SESSION_REFUSED child_open_callbacks=0 header_read_callbacks=0");
         Assert.AreSame(romGood, rom.Current);
         Assert.AreSame(mediaGood, media.Current);
         Console.WriteLine("PERM_F01_PASS CLR_CROSS_TYPE_REJECTED OWN_GRANTS_READ_FIXTURE FOREIGN_SESSION_DENIED");
@@ -198,6 +213,20 @@ public sealed class G1PermissionBoundaryFixtureTests
         Assert.AreEqual("REAL_MEDIA_PREVIEW_HOLD", denied.DiagnosticCode);
         Assert.IsNull(denied.Image);
         Assert.AreEqual(0L, denied.BufferBytesUpperBound);
+        // A production-constructed Preview returns its HOLD even when a REAL
+        // fixture file is exclusively locked by the test. This is an observable
+        // fail-closed public result, NOT syscall-level evidence of zero stat/open.
+        using (var lockedFixture = new FileStream(Path.Combine(_medias, "gba", "fixture.png"),
+            FileMode.Open, FileAccess.Read, FileShare.None))
+        using (var duringLock = await preview.LoadAsync(request))
+        {
+            Assert.AreEqual(MediaPreviewStatus.Rejected, duringLock.Status);
+            Assert.AreEqual("REAL_MEDIA_PREVIEW_HOLD", duringLock.DiagnosticCode);
+            Assert.IsNull(duringLock.Image);
+            Assert.AreEqual(0L, duringLock.BufferBytesUpperBound);
+        }
+        Console.WriteLine("PERM_F02_PUBLIC_PREVIEW_FAIL_CLOSED_WITH_EXCLUSIVE_FILE_LOCK " +
+            "native_stat_open_trace=NOT_EXECUTED");
         using var forged = await preview.LoadAsync(request with { MediaObservationId = "forged" });
         Assert.AreEqual(MediaPreviewStatus.Rejected, forged.Status);
         Assert.AreEqual("REAL_MEDIA_PREVIEW_HOLD", forged.DiagnosticCode);
@@ -540,5 +569,259 @@ public sealed class G1PermissionBoundaryFixtureTests
         Assert.IsTrue(session.LastHeaderBytesRead > 0);
         Assert.AreSame(first, session.Current);
         Console.WriteLine("G1_MIA_ATOMIC_CLAIM_FIRST_SCAN_COMPLETED");
+    }
+
+    // New, deliberately isolated G1 gap: replay AFTER a consumed grant's first
+    // attempt was Partial, Failed or Cancelled. Current was established with a
+    // DIFFERENT previously consented grant. The second attempt must not even
+    // reach the child-open callback; this is not a native syscall trace.
+    [TestMethod]
+    public void PERM_G1_REPLAY_RSA_AfterPartialFailedCancelMustNotReadOrReplaceCurrent()
+    {
+        foreach (var scenario in new[] { "Partial", "Failed", "Cancel" })
+        {
+            var session = new RsAFixtureRomSession(
+                scenario == "Partial" ? new RsABudget(MaxFiles: 1) : null);
+            session.SelectFixture(_roms, _romId);
+            var complete = session.Scan(RomGrant(session));
+            Assert.AreEqual(InventoryScanStatus.Complete, complete.ScanStatus, scenario);
+            var grant = RomGrant(session); // New consent for the actual attempt.
+            var extra = Path.Combine(_roms, "gba", "extra.gba");
+            using var cancellation = new CancellationTokenSource();
+            if (scenario == "Partial")
+                File.WriteAllBytes(extra, "SYNTHETIC_SECOND_FILE"u8.ToArray());
+            try
+            {
+                var first = scenario switch
+                {
+                    "Partial" => session.Scan(grant),
+                    "Failed" => session.Scan(grant, beforeChildOpenForTest: _ =>
+                        throw new UnauthorizedAccessException("G1_SYNTHETIC_DENIAL_AFTER_CLAIM")),
+                    _ => session.Scan(grant, cancellation.Token,
+                        beforeChildOpenForTest: _ => cancellation.Cancel())
+                };
+                Assert.AreEqual(scenario == "Partial" ? InventoryScanStatus.Partial :
+                    InventoryScanStatus.Failed, first.ScanStatus, scenario);
+                if (scenario == "Cancel")
+                    Assert.IsTrue(first.Diagnostics.Any(x => x.Code == "RS_A_CANCELLED"));
+                if (scenario == "Failed")
+                    Assert.IsTrue(first.Diagnostics.Any(x => x.Code == "RS_A_DENIED"));
+                Assert.IsTrue(grant.Valid(_romId, session.SelectionVersion),
+                    "G1_RSA_GRANT_EXPIRED_OR_REVOKED_NOT_A_ONE_SHOT_PROOF");
+                Assert.AreSame(complete, session.Current,
+                    "G1_RSA_NONCOMPLETE_REPLACED_CURRENT");
+
+                var reachedChildOpen = 0;
+                var replay = session.Scan(grant, beforeChildOpenForTest: _ =>
+                    Interlocked.Increment(ref reachedChildOpen));
+                RomDenied(replay);
+                Assert.AreEqual(0, reachedChildOpen, scenario);
+                Assert.AreSame(complete, session.Current, scenario);
+                Assert.AreSame(replay, session.LastAttempt, scenario);
+                Assert.AreEqual(0, replay.ObservedFileCount, scenario);
+                Console.WriteLine("G1_RSA_NONCOMPLETE_REPLAY_DENIED scenario=" + scenario +
+                    " first=" + first.ScanStatus + " second=" + replay.ScanStatus +
+                    " child_open_callbacks=0 observations=0 current_preserved=true " +
+                    "native_syscall_trace=NOT_EXECUTED");
+            }
+            finally
+            {
+                if (File.Exists(extra)) File.Delete(extra);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void PERM_G1_REPLAY_MIA_AfterPartialFailedCancelMustReadZeroHeaders()
+    {
+        foreach (var scenario in new[] { "Partial", "Failed", "Cancel" })
+        {
+            var session = new MiAFixtureMediaSession(
+                scenario == "Partial" ? new MiABudget(MaxFiles: 1) : null);
+            session.SelectFixture(_medias, _mediaId);
+            var complete = session.Scan(MediaGrant(session));
+            Assert.AreEqual(InventoryScanStatus.Complete, complete.ScanStatus, scenario);
+            Assert.IsTrue(session.LastHeaderBytesRead > 0);
+            var grant = MediaGrant(session); // Fresh grant for the next run.
+            var extra = Path.Combine(_medias, "gba", "extra.png");
+            using var cancellation = new CancellationTokenSource();
+            if (scenario == "Partial")
+                File.WriteAllBytes(extra, TinyPngHeader());
+            try
+            {
+                var first = scenario switch
+                {
+                    "Partial" => session.Scan(grant),
+                    "Failed" => session.Scan(grant, beforeChildOpenForTest: _ =>
+                        throw new UnauthorizedAccessException("G1_SYNTHETIC_DENIAL_AFTER_CLAIM")),
+                    _ => session.Scan(grant, cancellation.Token,
+                        beforeChildOpenForTest: _ => cancellation.Cancel())
+                };
+                Assert.AreEqual(scenario == "Failed" ? InventoryScanStatus.Failed :
+                    InventoryScanStatus.Partial, first.ScanStatus, scenario);
+                if (scenario == "Cancel")
+                    Assert.IsTrue(first.Diagnostics.Any(x => x.Code == "MI_A_CANCELLED"));
+                if (scenario == "Failed")
+                    Assert.IsTrue(first.Diagnostics.Any(x => x.Code == "MI_A_DENIED"));
+                Assert.IsTrue(grant.Valid(_mediaId, session.SelectionVersion, grant.Generation),
+                    "G1_MIA_GRANT_EXPIRED_OR_REVOKED_NOT_A_ONE_SHOT_PROOF");
+                Assert.AreSame(complete, session.Current,
+                    "G1_MIA_NONCOMPLETE_REPLACED_CURRENT");
+
+                var childOpens = 0;
+                var headerReads = 0;
+                var replay = session.Scan(grant,
+                    beforeChildOpenForTest: _ => Interlocked.Increment(ref childOpens),
+                    afterHeaderReadForTest: bytes => Interlocked.Add(ref headerReads, bytes));
+                MediaDenied(replay);
+                Assert.AreEqual(0, childOpens, scenario);
+                Assert.AreEqual(0, headerReads, scenario);
+                Assert.AreEqual(0L, session.LastHeaderBytesRead, scenario);
+                Assert.AreSame(complete, session.Current, scenario);
+                Assert.AreSame(replay, session.LastAttempt, scenario);
+                Console.WriteLine("G1_MIA_NONCOMPLETE_REPLAY_DENIED scenario=" + scenario +
+                    " first=" + first.ScanStatus + " second=" + replay.ScanStatus +
+                    " child_open_callbacks=0 header_read_callbacks=0 accounted_header_bytes=0 " +
+                    "current_preserved=true native_syscall_trace=NOT_EXECUTED");
+            }
+            finally
+            {
+                if (File.Exists(extra)) File.Delete(extra);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void PERM_F04_BackupRestoreVerifiedThenSeparateProcessReallyLoadsWithoutGrant()
+    {
+        // Generated ROMS/MEDIAS snapshots from the production fixture scanners.
+        var rom = Roms();
+        var media = Medias();
+        var romRun = rom.Scan(RomGrant(rom));
+        var mediaRun = media.Scan(MediaGrant(media));
+        Assert.AreEqual(InventoryScanStatus.Complete, romRun.ScanStatus);
+        Assert.AreEqual(InventoryScanStatus.Complete, mediaRun.ScanStatus);
+        string backup;
+        using (var store = new SqliteCatalogStore(_database))
+        {
+            store.AddLibrary(new CatalogLibrary(_libraryId, "G1 restored test library"));
+            store.AddStorageRoot(new CatalogStorageRoot(_romId, _libraryId, "ROMS", "ROMS"));
+            store.AddStorageRoot(new CatalogStorageRoot(_mediaId, _libraryId, "MEDIAS", "MEDIAS"));
+            store.SaveAttempt(_romId, romRun);
+            store.SaveAttempt(_mediaId, mediaRun);
+            backup = store.BackupVerified();
+            Assert.IsTrue(File.Exists(backup), "G1_BACKUP_FILE_NOT_CREATED");
+            store.SaveManualDecision(new CatalogUserDecision(
+                Guid.NewGuid().ToString("D"), _libraryId, "roms:gba/fixture.gba",
+                "MANUAL_COVER_CHOICE", "medias:gba/fixture.png", DateTimeOffset.UtcNow), true);
+            Assert.AreEqual(1, store.LoadLastKnown(_romId).Decisions.Count,
+                "G1_BACKUP_POSITIVE_MUTATION_NOT_VISIBLE");
+            store.RestoreVerified(backup);
+            var restored = store.LoadLastKnown(_romId);
+            Assert.AreEqual(0, restored.Decisions.Count,
+                "G1_RESTORE_VERIFIED_DID_NOT_RESTORE_PRE_DECISION_STATE");
+            Assert.AreEqual(romRun.ScanId, restored.CurrentComplete!.Inventory!.ScanId);
+            Assert.AreEqual(mediaRun.RunId,
+                store.LoadLastKnown(_mediaId).CurrentComplete!.Media!.RunId);
+        }
+
+        // A NEW OS process (not a second in-process SqliteCatalogStore instance)
+        // is sent only the fixture DB, durable root IDs and expected saved run IDs.
+        // It is NOT supplied either physical source root or a consent/grant.
+        var childProof = Path.Combine(_dbFixture, "g1-restored-child-proof.txt");
+        var start = new ProcessStartInfo("dotnet")
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        start.ArgumentList.Add("vstest");
+        start.ArgumentList.Add(typeof(G1PermissionBoundaryFixtureTests).Assembly.Location);
+        start.ArgumentList.Add("/TestCaseFilter:FullyQualifiedName~PERM_F04_ChildProcessOpenRestoredBackupNoGrant");
+        start.ArgumentList.Add("/Logger:console;verbosity=minimal");
+        start.Environment["G1_RESTORED_CHILD_DB"] = _database;
+        start.Environment["G1_RESTORED_CHILD_ROM_ID"] = _romId;
+        start.Environment["G1_RESTORED_CHILD_MEDIA_ID"] = _mediaId;
+        start.Environment["G1_RESTORED_CHILD_ROM_RUN"] = romRun.ScanId;
+        start.Environment["G1_RESTORED_CHILD_MEDIA_RUN"] = mediaRun.RunId;
+        start.Environment["G1_RESTORED_CHILD_PROOF"] = childProof;
+        start.Environment["G1_RESTORED_CHILD_PARENT_PID"] = Environment.ProcessId.ToString(
+            System.Globalization.CultureInfo.InvariantCulture);
+        using var child = Process.Start(start) ??
+            throw new InvalidOperationException("G1_RESTORED_CHILD_START_FAILED");
+        var stdout = child.StandardOutput.ReadToEnd();
+        var stderr = child.StandardError.ReadToEnd();
+        if (!child.WaitForExit(90000))
+        {
+            child.Kill(entireProcessTree: true);
+            Assert.Fail("G1_RESTORED_CHILD_TIMEOUT");
+        }
+        Assert.AreEqual(0, child.ExitCode, stdout + "\n" + stderr);
+        StringAssert.Contains(stdout, "Passed");
+        Assert.IsTrue(File.Exists(childProof),
+            "G1_RESTORED_CHILD_NO_COMPLETION_PROOF");
+        var proof = File.ReadAllText(childProof);
+        StringAssert.Contains(proof, "G1_RESTORED_BACKUP_CHILD_PASS");
+        StringAssert.Contains(proof, romRun.ScanId);
+        StringAssert.Contains(proof, mediaRun.RunId);
+        Console.WriteLine("G1_RESTORED_BACKUP_SECOND_PROCESS_PASS " +
+            "actual_sqlite_reopened=true offline_stale=true child_scan_without_grant_denied=true " +
+            "implicit_source_open=NOT_EXECUTED_NATIVELY");
+    }
+
+    // Standalone vstest child method. With no child-only environment it is
+    // deliberately inert when enumerated by the normal parent test suite.
+    [TestMethod]
+    public void PERM_F04_ChildProcessOpenRestoredBackupNoGrant()
+    {
+        var path = Environment.GetEnvironmentVariable("G1_RESTORED_CHILD_DB");
+        if (path is null) return;
+        Assert.IsTrue(Environment.ProcessId != int.Parse(
+            Environment.GetEnvironmentVariable("G1_RESTORED_CHILD_PARENT_PID")!,
+            System.Globalization.CultureInfo.InvariantCulture),
+            "G1_SQLITE_CHILD_IS_NOT_SEPARATE_PROCESS");
+
+        using var store = new SqliteCatalogStore(path);
+        var romId = Environment.GetEnvironmentVariable("G1_RESTORED_CHILD_ROM_ID")!;
+        var mediaId = Environment.GetEnvironmentVariable("G1_RESTORED_CHILD_MEDIA_ID")!;
+        var expectedRom = Environment.GetEnvironmentVariable("G1_RESTORED_CHILD_ROM_RUN")!;
+        var expectedMedia = Environment.GetEnvironmentVariable("G1_RESTORED_CHILD_MEDIA_RUN")!;
+        var rom = store.LoadLastKnown(romId);
+        var media = store.LoadLastKnown(mediaId);
+        Assert.IsNotNull(rom.CurrentComplete?.Inventory);
+        Assert.IsNotNull(media.CurrentComplete?.Media);
+        Assert.AreEqual(expectedRom, rom.CurrentComplete.Inventory.ScanId);
+        Assert.AreEqual(expectedMedia, media.CurrentComplete.Media.RunId);
+        Assert.AreEqual(InventoryAvailability.Offline, rom.CurrentComplete.DisplayAvailability);
+        Assert.AreEqual(InventoryFreshness.Stale, rom.CurrentComplete.DisplayFreshness);
+        Assert.AreEqual(InventoryAvailability.Offline, media.CurrentComplete.DisplayAvailability);
+        Assert.AreEqual(InventoryFreshness.Stale, media.CurrentComplete.DisplayFreshness);
+        Assert.AreEqual(0, rom.Decisions.Count, "G1_RESTORED_DECISION_MUST_BE_ABSENT");
+        Assert.AreEqual("ROMS", rom.StorageRoot.RelativeBinding);
+        Assert.AreEqual("MEDIAS", media.StorageRoot.RelativeBinding);
+
+        // The only data received from SQLite are historical facts. A fresh
+        // scanner in THIS NEW process has no selection or grant to restore.
+        var romScanner = new RsAFixtureRomSession();
+        var mediaScanner = new MiAFixtureMediaSession();
+        RomDenied(romScanner.Scan(null));
+        MediaDenied(mediaScanner.Scan(null));
+        Assert.IsNull(romScanner.Current);
+        Assert.IsNull(mediaScanner.Current);
+        Assert.AreEqual(0L, mediaScanner.LastHeaderBytesRead);
+        Assert.ThrowsExactly<UnauthorizedAccessException>(() => RealRomInventoryGate.Scan());
+        Assert.ThrowsExactly<InvalidOperationException>(() => new SqliteCatalogStore());
+        using var publicPreview = new MediaPreviewService().LoadAsync(
+            new MediaPreviewRequest("restored", "restored", "restored", 128))
+            .GetAwaiter().GetResult();
+        Assert.AreEqual(MediaPreviewStatus.Rejected, publicPreview.Status);
+        Assert.AreEqual("REAL_MEDIA_PREVIEW_HOLD", publicPreview.DiagnosticCode);
+        Assert.IsNull(publicPreview.Image);
+        var proofFile = Environment.GetEnvironmentVariable("G1_RESTORED_CHILD_PROOF")!;
+        File.WriteAllText(proofFile, "G1_RESTORED_BACKUP_CHILD_PASS pid=" +
+            Environment.ProcessId + " rom=" + expectedRom + " media=" + expectedMedia);
+        Console.WriteLine("G1_RESTORED_BACKUP_CHILD_PASS sqlite_opened=true " +
+            "roms_and_medias_no_grant=true public_holds=true");
     }
 }
