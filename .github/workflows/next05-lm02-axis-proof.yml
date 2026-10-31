@@ -1,0 +1,87 @@
+name: NEXT-05 LM-02 axis-only causal Windows proof (temporary)
+on:
+  push:
+    branches: [dev1/next05-g1-perm-fixtures]
+permissions:
+  contents: read
+jobs:
+  axis-causality:
+    if: github.repository == 'TobbyCy/RomothequeManager'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source SHA without credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Pinned .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: GREEN original test against genuine PNG
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'LM02_SOURCE_SHA_MISMATCH' }
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          $filter = 'FullyQualifiedName~LM_02_AxisOnly2049x512RealPngMustBeRefusedBeforeDecode'
+          $out = Join-Path $env:RUNNER_TEMP 'LM02-AXIS-PROOF'
+          New-Item -ItemType Directory -Path $out -Force | Out-Null
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'LM02_RESTORE_FAILED' }
+          dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true --filter $filter --logger 'console;verbosity=normal' 2>&1 | Tee-Object -FilePath (Join-Path $out '01-original-green.log')
+          if ($LASTEXITCODE -ne 0) { throw 'LM02_ORIGINAL_NOT_GREEN' }
+          Write-Host ('LM02_ORIGINAL_GREEN_PASS source=' + $env:GITHUB_SHA)
+      - name: RED axis-only mutation in disposable archive, then GREEN restored
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'LM02-AXIS-PROOF'
+          $copy = Join-Path $env:RUNNER_TEMP 'LM02-DISPOSABLE'
+          $archive = Join-Path $env:RUNNER_TEMP 'lm02-source.tar'
+          New-Item -ItemType Directory -Path $copy -Force | Out-Null
+          git archive --format=tar HEAD -o $archive
+          if ($LASTEXITCODE -ne 0) { throw 'LM02_ARCHIVE_FAILED' }
+          tar -xf $archive -C $copy
+          if ($LASTEXITCODE -ne 0) { throw 'LM02_EXTRACT_FAILED' }
+          $relative = 'src/RomothequeManager.V2/LegacyImportedImageBudget.cs'
+          $original = Join-Path $env:GITHUB_WORKSPACE $relative
+          $mutant = Join-Path $copy $relative
+          $before = (Get-FileHash -LiteralPath $original -Algorithm SHA256).Hash
+          $s = [IO.File]::ReadAllText($mutant)
+          $old = 'width < 1 || height < 1 || width > MaxSidePixels || height > MaxSidePixels'
+          $new = 'width < 1 || height < 1'
+          if ([regex]::Matches($s, [regex]::Escape($old)).Count -ne 1) { throw 'LM02_AXIS_GUARD_NOT_UNIQUE' }
+          [IO.File]::WriteAllText($mutant, $s.Replace($old, $new), [Text.UTF8Encoding]::new($false))
+          $changed = (Get-FileHash -LiteralPath $mutant -Algorithm SHA256).Hash
+          if ($before -eq $changed) { throw 'LM02_MUTATION_NOT_APPLIED' }
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          $filter = 'FullyQualifiedName~LM_02_AxisOnly2049x512RealPngMustBeRefusedBeforeDecode'
+          Push-Location $copy
+          try {
+            dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+            if ($LASTEXITCODE -ne 0) { throw 'LM02_MUTANT_RESTORE_FAILED' }
+            dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true --filter $filter --logger 'console;verbosity=normal' 2>&1 | Tee-Object -FilePath (Join-Path $out '02-axis-mutant-red.log')
+            $exitCode = $LASTEXITCODE
+            $raw = Get-Content -LiteralPath (Join-Path $out '02-axis-mutant-red.log') -Raw
+            if ($exitCode -eq 0 -or -not $raw.Contains('LM02_AXIS_ONLY_MUST_REJECT_WITH_EXACT_REASON')) {
+              throw ('LM02_MUTANT_NOT_CAUSALLY_KILLED exit=' + $exitCode)
+            }
+            Write-Host ('LM02_AXIS_MUTATION_RED_CAUSAL_PASS source=' + $env:GITHUB_SHA + ' originalSha256=' + $before + ' mutantSha256=' + $changed)
+            Copy-Item -LiteralPath $original -Destination $mutant -Force
+            $restored = (Get-FileHash -LiteralPath $mutant -Algorithm SHA256).Hash
+            if ($before -ne $restored) { throw 'LM02_GUARD_RESTORE_MISMATCH' }
+            dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true --filter $filter --logger 'console;verbosity=normal' 2>&1 | Tee-Object -FilePath (Join-Path $out '03-restored-green.log')
+            if ($LASTEXITCODE -ne 0) { throw 'LM02_RESTORED_NOT_GREEN' }
+            Write-Host ('LM02_AXIS_RESTORED_GREEN_PASS source=' + $env:GITHUB_SHA + ' restoredSha256=' + $restored)
+            Write-Host 'LM02_AXIS_ONLY_CAUSAL_RED_GREEN_PASS fixture=real_png_2049x512 area=1049088 production_guard_unchanged=true'
+          } finally { Pop-Location }
+      - name: Upload bounded synthetic logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: LM02-Axis-Causal-Red-Green
+          path: ${{ runner.temp }}/LM02-AXIS-PROOF/*.log
+          retention-days: 3
+          if-no-files-found: warn
