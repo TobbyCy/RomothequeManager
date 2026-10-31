@@ -1,5 +1,10 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #140 — tests rouges SQLite en cours (31.10.2026)
+
+- Même branche et PR #143. Ajout de **six scénarios d'acceptation** SQL_01-R/M (Complete contradictoire), SQL_03-S/P/R (manifestes SQL/JSON altérés au redémarrage), SQL_04-B (backup métier incompatible avant substitution), deux sentinelles SQL_02 des chemins en écriture et un témoin positif Complete vide ROMS/MEDIAS. **Statut au commit initial : résultats rouges NON ENCORE EXÉCUTÉS, aucune correction de CatalogStore.** Prochaines étapes après logs : validateur partagé écriture/lecture/staging, sauvegarde intégrale Current/LastAttempt/décisions, mutation SQL_02 en copie jetable. Aucun schéma durable modifié ; `REAL_CATALOG_STORAGE_HOLD` maintenu.
+
+
 ## NEXT-05 / DEV 1 — G1 #143 : derniers oracles avant revue (31.10.2026)
 
 - **Uniquement tests** ajoutés au correctif one-shot déjà validé : replay RS-A et MI-A après les premiers résultats `Partial`, `Failed` et `Cancel` (Cancel RS-A se traduit en statut Failed + diagnostic `RS_A_CANCELLED`; MI-A en Partial + `MI_A_CANCELLED`). Contrôler véritable `Current` antérieur, `LastAttempt` du refus, zéro observation de retry et zéro callback open/header-read sur les refus.
