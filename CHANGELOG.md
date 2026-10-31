@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-05 / DEV 1 — G1 ONE-SHOT : tests de replay directs RS-A/MI-A (31.10.2026)
+
+- PR #143, **même branche** : deux oracles Windows supplémentaires tentent le second `Scan(grant)` direct sur RS-A et MI-A, avec **la même instance, le même grant encore vivant, sans `Revoke`, nouveau consentement ou changement de sélection**. Contrôles positifs du premier scan et compteurs réels `ObservedFileCount` (ROMS) / `LastHeaderBytesRead` (MEDIAS), puis **échec de test exigé si le second scan est Complete**. Le code de permission/scanner n'est pas modifié.
+- **Statut provisoire** : preuve native Windows à recueillir, ne pas annoncer FAIL ou PASS avant le run. En cas de replay réel, **STOP sans correction des permissions**, constat et arbitrage propriétaire. Les autres oracles causaux et mutation sur copie jetable restent à qualifier selon ce résultat ; aucun faux PASS, aucune Release.
+
+
 ## NEXT-05 / DEV 1 — G1 PERM-F01–04 : adversarial tests sur fixtures (31.10.2026)
 
 - PR #143 : quatre tests Windows sur les véritables scanners RS-A et MI-A, adaptateur MI-B, portes publiques PREVIEW/ROMS/MEDIAS, UI et SQLite ; aucun mock de permissions ni modification de code produit. Confinement strict dans des fixtures sous %TEMP%, avec témoins positifs d'en-têtes/fichiers générés et contrôles négatifs des mauvais grants, expirations, révocations, changement de sélection, restauration et CLI.
