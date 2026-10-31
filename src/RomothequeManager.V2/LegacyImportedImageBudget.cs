@@ -28,6 +28,19 @@ internal static class LegacyImportedImageBudget
 
     private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 
+    private static bool ValidIhdrCrc(ReadOnlySpan<byte> png)
+    {
+        // PNG IHDR type (4 bytes) + data (13 bytes), followed by stored CRC32.
+        uint crc = 0xFFFFFFFFu;
+        foreach (var b in png.Slice(12, 17))
+        {
+            crc ^= b;
+            for (var i = 0; i < 8; i++)
+                crc = (crc & 1) == 0 ? crc >> 1 : (crc >> 1) ^ 0xEDB88320u;
+        }
+        return ~crc == BinaryPrimitives.ReadUInt32BigEndian(png.Slice(29, 4));
+    }
+
     internal static bool Preflight(byte[] bytes, out string reason) =>
         TryProbe(bytes.AsSpan(), out _, out _, out reason);
 
@@ -47,11 +60,14 @@ internal static class LegacyImportedImageBudget
         {
             if (bytes.Length < 33 ||
                 BinaryPrimitives.ReadInt32BigEndian(bytes.Slice(8, 4)) != 13 ||
-                !bytes.Slice(12, 4).SequenceEqual("IHDR"u8))
+                !bytes.Slice(12, 4).SequenceEqual("IHDR"u8) ||
+                !ValidIhdrCrc(bytes))
                 return false;
             width = BinaryPrimitives.ReadInt32BigEndian(bytes.Slice(16, 4));
             height = BinaryPrimitives.ReadInt32BigEndian(bytes.Slice(20, 4));
-            if (bytes[24] is not (1 or 2 or 4 or 8 or 16) ||
+            // 16-bit-per-channel source expands beyond the 4 bytes/pixel
+            // admission model; fail closed until a separate contract exists.
+            if (bytes[24] is not (1 or 2 or 4 or 8) ||
                 bytes[25] is not (0 or 2 or 3 or 4 or 6) ||
                 bytes[26] != 0 || bytes[27] != 0 || bytes[28] is not (0 or 1))
                 return false;
@@ -98,7 +114,7 @@ internal static class LegacyImportedImageBudget
                 if (size < 2 || pos + size > end) return false;
                 if (marker is 0xC0 or 0xC1 or 0xC2)
                 {
-                    if (size < 8) return false;
+                    if (size < 8 || bytes[pos + 2] != 8) return false;
                     height = BinaryPrimitives.ReadUInt16BigEndian(bytes.Slice(pos + 3, 2));
                     width = BinaryPrimitives.ReadUInt16BigEndian(bytes.Slice(pos + 5, 2));
                     found = true;
