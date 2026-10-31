@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / UI MI-B — DEV 3 / PR #137 (WIP fixtures, 31.10.2026)
+
+- Raccordement MVVM au service interne `IMiBFixtureMediaApplicationService` validé par DEV 2 dans #135 et fusionné via #136 sur `main=e4796b58`. Vue Avalonia MEDIAS séparée du scanner MI-A, de ROMS, de PREVIEW et du catalogue.
+- Sélection MEDIAS explicite, consentement volatil distinct, Start one-shot, Cancel, progression indéterminée, CurrentComplete et LastAttempt distincts, filtrage des notifications tardives par version et génération, labels sûrs et Offline/Stale sans regrant. En-têtes uniquement, sans Skia.
+- Tests UI-MI-B01..05 ajoutés ; **CI et captures natives Windows non encore prouvées**, fenêtre CI-only et 24 captures restent à intégrer et à vérifier avant APPROVABLE. PR Draft, aucune fusion autonome, permission publique, accès personnel ni Release.
+
+
 ## NEXT-05 / MI-B — DTO et adaptateur backend MEDIAS (PR DEV 1, fixtures uniquement)
 
 - DTO **internes** `MiBMediaRow`, `MiBRunView`, `MiBProjectionState` : en-têtes PNG/JPEG/WebP non décodés, observations en lecture seule, comptes de médias observés distincts des totaux connus, champs inconnus/Partial explicites, codes diagnostics allowlist et labels sans chemin source.
