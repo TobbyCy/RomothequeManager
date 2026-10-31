@@ -1,5 +1,13 @@
 # Journal des changements
 
+## NEXT-05 / DEV 1 — G1 #143 : compléments ciblés de preuve (31.10.2026)
+
+- **Extension limitée aux tests** (sans modifier les grants ni scanners validés) : deux nouvelles méthodes Windows vérifient le refus d'un même grant **après Partial, Failed ou Cancel**, sur RS-A puis MI-A, avec contrôle d'un `CurrentComplete` antérieur et zéro callback `beforeChildOpen` pour le replay. MI-A vérifie également zéro callback de lecture d'en-tête et `LastHeaderBytesRead=0` sur le refus.
+- **PERM-F01/F02 renforcés aux points observables** : émetteur étranger même type et méthodes réelles `Scan`, compteurs de callbacks child-open/header-read, PREVIEW public en présence d'un fichier de fixture verrouillé exclusivement. Le rejet CLR pour mauvais type reste **pré-dispatch** ; absence **totale** d'I/O native/stat hors callback reste `NOT_EXECUTED` faute de télémétrie de syscalls.
+- **PERM-F04** : vrai `BackupVerified` → mutation d'une décision manuelle sur fixture → `RestoreVerified` → fermeture → **nouveau processus dotnet vstest** qui ouvre effectivement la base restaurée, lit les deux Current, vérifie Offline/Stale, l'absence de choix post-backup et le refus sans grant. Le processus enfant reçoit **uniquement** SQLite, IDs et scans attendus ; le témoin de complétion est écrit dans un fichier temporaire distinct, pas confondu avec le smoke CLI antérieur.
+- **Statut** : CI Windows et re-revue DEV 2 requises au HEAD final ; aucune preuve PASS anticipée. Les preuves one-shot CAS 274/274 et mutation causale précédentes sont **réutilisées sans nouvelle exécution délibérée**. Aucun droit réel, SQLite A01/A02/A05, ES-DE, support USB ou Release.
+
+
 ## NEXT-05 / DEV 1 — #143 : correctif P1-G1 one-shot strict des scanners internes (31.10.2026)
 
 - **GO propriétaire reçu ; même branche `dev1/next05-g1-perm-fixtures`, même PR #143.** Les grants internes RS-A (`RomsInventory`) et MI-A (`MediaIndex`) possèdent désormais un `TryClaim` atomique par `Interlocked.CompareExchange`, appelé **avant l'ouverture de la racine**. Un deuxième `Scan(grant)` est refusé, y compris lorsqu'il concurrence le premier ; le scan déjà engagé continue de vérifier validité, expiration, révocation, identité, budgets et annulation. Aucun grant PREVIEW, droit public ou activation réelle.
