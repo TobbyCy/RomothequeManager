@@ -46,13 +46,13 @@ public sealed class LegacyImportedImageBudgetTests
         Assert.IsTrue((long)encodedWidth * encodedHeight < LegacyImportedImageBudget.MaxSourcePixels,
             "LM02_AXIS_ONLY_SURFACE_WITHIN_BUDGET");
 
-        // Separate reference decode proves this is a genuine decodable PNG,
-        // not a header-only fixture. This is NOT the guarded Decode call.
-        using (var reference = new MemoryStream(image, writable: false))
-        using (var control = new Avalonia.Media.Imaging.Bitmap(reference))
+        // Independent synthetic fixture decoding, not the guarded Decode call.
+        // SkiaSharp has no Avalonia platform/window initialization dependency.
+        using (var control = SkiaSharp.SKBitmap.Decode(image))
         {
-            Assert.AreEqual(width, control.PixelSize.Width, "LM02_REFERENCE_WIDTH");
-            Assert.AreEqual(height, control.PixelSize.Height, "LM02_REFERENCE_HEIGHT");
+            Assert.IsNotNull(control, "LM02_REFERENCE_REAL_PNG_MUST_DECODE");
+            Assert.AreEqual(width, control.Width, "LM02_REFERENCE_WIDTH");
+            Assert.AreEqual(height, control.Height, "LM02_REFERENCE_HEIGHT");
         }
 
         var decoderEntered = 0;
