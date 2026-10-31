@@ -1,0 +1,49 @@
+name: MI-B native Windows fixture canaries (temporary proof)
+on:
+  push:
+    branches: [dev1/next05-mib-backend-fixtures]
+    paths:
+      - .github/workflows/mib-native-windows-proof.yml
+permissions:
+  contents: read
+jobs:
+  windows-mib:
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev1/next05-mib-backend-fixtures'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact synthetic sources
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: Pin .NET SDK 10.0.401
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Run Windows MI-B01-04 and emit real TRX matrix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          $out = Join-Path $env:RUNNER_TEMP 'mib-native-results'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          dotnet restore $p --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'MI_B_LOCKED_RESTORE_FAILED' }
+          dotnet test $p -c Release --no-restore --filter 'FullyQualifiedName~MiBFixtureMediaApplicationTests' --logger 'trx;LogFileName=mib.trx' --results-directory $out
+          if ($LASTEXITCODE -ne 0) { throw 'MI_B_NATIVE_DOTNET_TEST_FAILED' }
+          @'
+          import glob, os, sys, xml.etree.ElementTree as ET
+          paths = glob.glob(os.path.join(os.environ['RUNNER_TEMP'], 'mib-native-results', '*.trx'))
+          if len(paths) != 1: sys.exit('MI_B_TRX_MISSING_OR_AMBIGUOUS')
+          root = ET.parse(paths[0]).getroot()
+          results = [x for x in root.iter() if x.tag.split('}')[-1] == 'UnitTestResult']
+          if len(results) != 4: sys.exit('MI_B_EXPECTED_FOUR_CASES_' + str(len(results)))
+          for r in results:
+              print('MI_B_NATIVE_CASE ' + str(r.attrib.get('testName')) + ' outcome=' + str(r.attrib.get('outcome')))
+              for node in r.iter():
+                  if node.tag.split('}')[-1] == 'StdOut' and node.text:
+                      for line in node.text.strip().splitlines(): print('MI_B_NATIVE_EVIDENCE ' + line.strip())
+          if any(x.attrib.get('outcome') != 'Passed' for x in results): sys.exit('MI_B_NATIVE_CASE_FAILED')
+          print('MI_B_NATIVE_TRX_4_PASS REAL_WINDOWS_FIXTURES')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'MI_B_TRX_PROOF_FAILED' }
