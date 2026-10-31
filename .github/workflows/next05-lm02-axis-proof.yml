@@ -72,6 +72,9 @@ jobs:
             Copy-Item -LiteralPath $original -Destination $mutant -Force
             $restored = (Get-FileHash -LiteralPath $mutant -Algorithm SHA256).Hash
             if ($before -ne $restored) { throw 'LM02_GUARD_RESTORE_MISMATCH' }
+            # Avoid a stale binary from the intentionally mutated source: force rebuild.
+            dotnet clean $test -c Release
+            if ($LASTEXITCODE -ne 0) { throw 'LM02_DISPOSABLE_CLEAN_FAILED' }
             dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true --filter $filter --logger 'console;verbosity=normal' 2>&1 | Tee-Object -FilePath (Join-Path $out '03-restored-green.log')
             if ($LASTEXITCODE -ne 0) { throw 'LM02_RESTORED_NOT_GREEN' }
             Write-Host ('LM02_AXIS_RESTORED_GREEN_PASS source=' + $env:GITHUB_SHA + ' restoredSha256=' + $restored)
