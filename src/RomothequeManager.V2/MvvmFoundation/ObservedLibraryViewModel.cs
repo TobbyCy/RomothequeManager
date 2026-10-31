@@ -32,6 +32,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     private ObservedView _view = ObservedView.Dashboard;
     private bool _disposed;
     private RestoredCatalogSession? _restored;
+    private RsAUiViewModel? _rsa;
 
     public ObservedLibraryViewModel(InventoryViewModel inventory, bool fixtureMode)
     {
@@ -51,22 +52,29 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     public event PropertyChangedEventHandler? PropertyChanged;
     public InventoryViewModel Inventory => _inventory;
     public RestoredCatalogSession? RestoredSession => _restored;
+    public RsAUiViewModel? RsA => _rsa;
+    public bool HasRsA => _rsa is not null;
     public bool HasRestoredSession => _restored is not null;
-    public bool HasLiveMediaPanel => _restored is null;
-    private InventorySnapshot? DisplayedSnapshot => _restored is null ?
-        _inventory.DisplayedSnapshot : _restored.DisplayedInventory;
+    public bool HasLiveMediaPanel => _restored is null && _rsa is null;
+    private InventorySnapshot? DisplayedSnapshot => _restored is not null
+        ? _restored.DisplayedInventory : _rsa is not null
+        ? _rsa.DisplayedSnapshot : _inventory.DisplayedSnapshot;
     private IReadOnlyList<FileObservation> DisplayedObservations =>
         DisplayedSnapshot?.Observations ?? Array.Empty<FileObservation>();
     public MediaPanelViewModel Media { get; }
     public bool FixtureMode => _fixtureMode;
-    public bool CanInventoryFixture => _fixtureMode && _restored is null && _inventory.CanStart;
+    public bool CanInventoryFixture => _fixtureMode && _restored is null && _rsa is null && _inventory.CanStart;
     public string ModeNotice => _restored is not null
         ? "Collection SQLite fictive restaurée : consultation OFFLINE / STALE ; aucun accès disque."
+        : _rsa is not null
+        ? "RS-A · simulation Windows confinée aux fixtures internes. Aucun droit de scan personnel."
         : _fixtureMode
         ? "PREUVE WINDOWS · vrais fichiers fictifs, autorisation limitée à ces fixtures uniquement."
         : "Inventaire personnel désactivé dans cette version. Le service de production refuse tout scan.";
     public string ScopeText => _restored is not null
         ? "Historique SQLite uniquement : aucun scan, aucune lecture média ou revalidation du SSD."
+        : _rsa is not null
+        ? "RS-A · handles Windows, ROMS métadonnées seulement, grant non persistant, sans MEDIAS ni Skia."
         : "ROMS/ uniquement · profondeur 8 · 100 000 fichiers max · 10 000 dossiers max · playlists M3U 32 Kio / 256 lignes. Lecture seule, sans hash ROM, XML ni sauvegarde.";
     public ICommand ShowDashboardCommand => _dashboard;
     public ICommand ShowCollectionCommand => _collection;
@@ -148,6 +156,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     }
     public string SelectedName => _selected?.ProvisionalLabel ?? "Aucun fichier sélectionné";
     public string SnapshotStatus => _restored is not null ? _restored.StatusLabel :
+        _rsa is { IsOffline: true } ? _rsa.SnapshotLabel :
         DisplayedSnapshot is { } s
         ? "Inventaire " + s.ScanStatus + " · disponibilité " + s.Availability +
           " · fraîcheur " + s.Freshness + " · capturé " + s.CapturedAtUtc.ToString("u")
@@ -161,8 +170,8 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     public string PlatformSummary => Summarize(x => x.PlatformKey);
     public string ExtensionSummary => Summarize(x => x.Extension);
     public string TypeSummary => Summarize(x => x.Kind.ToString());
-    public string GenerationLabel => _restored is null
-        ? _inventory.DisplayedGenerationText : _restored.StatusLabel;
+    public string GenerationLabel => _restored is not null ? _restored.StatusLabel
+        : _rsa is not null ? _rsa.SnapshotLabel : _inventory.DisplayedGenerationText;
     public IReadOnlyList<InventoryDiagnostic> Diagnostics =>
         DisplayedSnapshot?.Diagnostics ?? Array.Empty<InventoryDiagnostic>();
     public IReadOnlyList<InventoryCoverage> Coverage =>
@@ -172,7 +181,9 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         MatchingFileCount == 0
         ? "Aucun fichier observé ne correspond aux filtres. Ceci n'est pas une preuve d'absence de jeux."
         : "";
-    public string MediaNotice => _restored is null
+    public string MediaNotice => _rsa is not null
+        ? "RS-A n'accorde aucun droit MEDIAS, aperçu ou association."
+        : _restored is null
         ? "Jaquette locale : non associée. Une proposition de média ou un aperçu ne valide jamais une association avec ce fichier."
         : "Choix manuel depuis un index historique fictif : aucun aperçu ni lien physique vérifié.";
 
@@ -201,7 +212,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
 
     private void OnInventoryChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (_disposed || _restored is not null) return;
+        if (_disposed || _restored is not null || _rsa is not null) return;
         // The inventory VM emits a property batch for one state transition.
         // Rebuild the expensive page and ComboBox options only for a new snapshot,
         // otherwise TwoWay SelectedItem can re-enter the filters indefinitely.
@@ -225,11 +236,56 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         Notify(nameof(KindOptions));
     }
 
+    /// <summary>Attach a narrowly scoped RS-A fixture adapter; never available from production UI.</summary>
+    internal void AttachRsAForCi(RsAUiViewModel session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (!_fixtureMode || _disposed || _restored is not null || _rsa is not null)
+            throw new InvalidOperationException("UI_RSA_FIXTURE_SESSION_REQUIRED");
+        _rsa = session;
+        _rsa.PropertyChanged += OnRsAChanged;
+        _inventory.PropertyChanged -= OnInventoryChanged;
+        _selected = null;
+        _pageIndex = 0;
+        _search = "";
+        _platform = "Toutes";
+        _extension = "Toutes";
+        _kind = "Tous";
+        Media.SelectRom(null);
+        Notify(nameof(RsA));
+        Notify(nameof(HasRsA));
+        Notify(nameof(HasLiveMediaPanel));
+        Notify(nameof(CanInventoryFixture));
+        Notify(nameof(ModeNotice));
+        Notify(nameof(ScopeText));
+        Notify(nameof(MediaNotice));
+        RefreshPage();
+    }
+
+    private void OnRsAChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_disposed || e.PropertyName != nameof(RsAUiViewModel.DisplayedSnapshot)) return;
+        var next = _rsa?.DisplayedSnapshot;
+        if (ReferenceEquals(_generation, next)) return;
+        _generation = next;
+        _selected = null;
+        _pageIndex = 0;
+        _platform = "Toutes";
+        _extension = "Toutes";
+        _kind = "Tous";
+        _search = "";
+        Media.SelectRom(null);
+        RefreshPage();
+        Notify(nameof(PlatformOptions));
+        Notify(nameof(ExtensionOptions));
+        Notify(nameof(KindOptions));
+    }
+
     /// <summary>Inject one fixture-owned restored session. Normal product startup does not call this.</summary>
     internal void AttachRestoredForCi(RestoredCatalogSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
-        if (!_fixtureMode || _disposed || _restored is not null)
+        if (!_fixtureMode || _disposed || _restored is not null || _rsa is not null)
             throw new InvalidOperationException("UI05_FIXTURE_SESSION_REQUIRED");
         _restored = session;
         _restored.PropertyChanged += OnRestoredChanged;
@@ -315,6 +371,11 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         if (_disposed) return;
         _disposed = true;
         _inventory.PropertyChanged -= OnInventoryChanged;
+        if (_rsa is not null)
+        {
+            _rsa.PropertyChanged -= OnRsAChanged;
+            _rsa.Dispose();
+        }
         if (_restored is not null)
         {
             _restored.PropertyChanged -= OnRestoredChanged;
