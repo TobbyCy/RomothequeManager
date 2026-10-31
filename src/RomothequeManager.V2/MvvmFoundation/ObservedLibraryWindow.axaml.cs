@@ -89,6 +89,22 @@ public partial class ObservedLibraryWindow : Window
         this.FindControl<Button>("ChooseFolderButton")!.IsVisible = false;
     }
 
+    // RS-A is attached only by the CI-only composition, never a normal EXE.
+    internal void AttachRsAForCi(RsAUiViewModel rsA)
+    {
+        _vm.AttachRsAForCi(rsA);
+        this.FindControl<Button>("ChooseFixtureButton")!.IsVisible = false;
+        this.FindControl<ComboBox>("FixtureChoices")!.IsVisible = false;
+        this.FindControl<Button>("ChooseFolderButton")!.IsVisible = false;
+    }
+
+    internal bool SelectRsAFixtureForCi(string key, string rootId)
+    {
+        if (!_vm.HasRsA || _syntheticRoots is null ||
+            !_syntheticRoots.TryGetValue(key, out var root)) return false;
+        return _vm.RsA!.SelectFixture(root, rootId);
+    }
+
     internal InventorySelectionResult SelectFixtureForCi(string key,
         Action<int>? chunkObserved = null,
         IReadOnlyDictionary<string, string>? platformAliases = null)
@@ -163,6 +179,16 @@ public partial class ObservedLibraryWindow : Window
             _ => null
         };
         if (name is not null) SelectFixtureForCi(name);
+#endif
+    }
+
+    private void RsASelect_OnClick(object? sender, RoutedEventArgs e)
+    {
+#if NEXT05_CI
+        // Only the harness's own non-personal, freshly generated ROMS fixture
+        // can be chosen. No native folder picker or persisted grant exists here.
+        if (_vm.HasRsA && _vm.RsA!.CanSelect)
+            SelectRsAFixtureForCi("RSA", Guid.NewGuid().ToString("D"));
 #endif
     }
 
