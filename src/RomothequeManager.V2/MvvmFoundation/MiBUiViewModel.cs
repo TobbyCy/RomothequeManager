@@ -46,6 +46,8 @@ internal sealed class MiBUiViewModel : INotifyPropertyChanged, IAsyncDisposable
     public bool CanStart => !_disposed && _consent && _state.Phase == MiBPhase.Ready;
     public bool CanCancel => !_disposed && _state.Phase == MiBPhase.Running;
     public bool ConsentConfirmed => _consent;
+    public string SelectionLabel => "Sélection MEDIAS · version " + _state.SelectionVersion + " · aucun chemin affiché";
+    public string DisplayModeLabel => _showLast ? "Affichage : LastAttempt" : "Affichage : CurrentComplete";
     public string ConsentLabel => _consent ? "Consentement temporaire confirmé pour cette sélection." : "Aucun consentement actif ; sélectionner ne donne aucun droit.";
     public string PhaseLabel => _state.Phase.ToString() + (_state.CurrentIsHistorical ? " · historique" : "");
     public string DiagnosticLabel => _state.SafeNoticeCode ?? LastAttempt?.SafeDiagnosticCodes.FirstOrDefault() ?? "Aucun diagnostic";
@@ -115,7 +117,7 @@ internal sealed class MiBUiViewModel : INotifyPropertyChanged, IAsyncDisposable
     {
         foreach (var property in new[] { nameof(State), nameof(CurrentComplete), nameof(LastAttempt),
             nameof(Displayed), nameof(IsBusy), nameof(CanSelect), nameof(CanConfirm), nameof(CanStart),
-            nameof(CanCancel), nameof(ConsentConfirmed), nameof(ConsentLabel), nameof(PhaseLabel), nameof(DiagnosticLabel),
+            nameof(CanCancel), nameof(ConsentConfirmed), nameof(ConsentLabel), nameof(SelectionLabel), nameof(DisplayModeLabel), nameof(PhaseLabel), nameof(DiagnosticLabel),
             nameof(ProgressLabel), nameof(AvailabilityLabel), nameof(Rows), nameof(ProgressIndeterminate) })
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         foreach (var command in new[] { _select, _confirm, _start, _cancel, _showCurrent, _showAttempt })
