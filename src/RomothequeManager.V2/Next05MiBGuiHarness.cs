@@ -141,6 +141,8 @@ internal static class Next05MiBGuiHarness
                 Pair(window, output, "CompleteA");
                 vm.ShowAttemptCommand.Execute(null);
                 Pair(window, output, "LastAttemptA");
+                vm.ShowCurrentCommand.Execute(null);
+                Pair(window, output, "CurrentA");
 
                 var pickedB = service.SelectFixtureRoot(b);
                 await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
@@ -160,6 +162,10 @@ internal static class Next05MiBGuiHarness
                     vm.LastAttempt?.ObservedMediaCount == 2000,
                     "UI_MIB04_B_COMPLETE_WRONG_ROOT");
                 Pair(window, output, "CompleteB");
+                vm.ShowAttemptCommand.Execute(null);
+                Pair(window, output, "LastAttemptB");
+                vm.ShowCurrentCommand.Execute(null);
+                Pair(window, output, "CurrentB");
 
                 Demand(vm.Confirm(), "UI_MIB02_RECONSENT_REQUIRED");
                 var secondB = vm.StartAsync();
