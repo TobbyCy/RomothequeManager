@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-05 / RS-A — ROMS Windows handles confinés (PR #114, fixtures uniquement)
+
+- Scanner de métadonnées ROMS interne aux fixtures Windows, sélection explicite, ReadGrant volatile/versionné, refus de tous les accès via l'API publique REAL_LIBRARY_SCAN_HOLD.
+- Énumération par handles Windows (NtCreateFile relatif, FileIdBothDirectoryInfo), refus reparse et traversal, budgets, annulation, conservation Current Complete en cas d'échec.
+- RS-A01 à 06 exécutés sur Windows Server 2022 (build 20348, .NET 10.0.14) : 6/6 PASS natifs dans le run de preuve #41134189591 ; jonction réelle refusée, rename parent tenté et bloqué, swap final réellement réussi côté attaquant mais lecture refusée, racine remplacée à chemin identique rejetée. Nouveau processus sans grant, révocation entre threads, budgets et exclusions validés ; documentation/CI finale du HEAD sans workflow temporaire encore requise. Aucune ROM réelle, aucun MEDIAS/Skia, aucune fusion ni Release.
+
 ## NEXT-05 / Avalonia SQLite + associations manuelles (PR #112, DRAFT)
 
 - Restauration sur **fixtures IDEAL** du dernier inventaire SQLite via `ICatalogStore`, consultation historique **OFFLINE / STALE** dans les vues Avalonia existantes, sans scan ni revalidation implicite.
