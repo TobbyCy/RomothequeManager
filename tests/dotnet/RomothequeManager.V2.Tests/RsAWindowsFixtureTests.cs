@@ -145,7 +145,7 @@ public sealed class RsAWindowsFixtureTests
         bool junctionCreated = TryJunction(junction, outside);
         if (junctionCreated)
         {
-            var denied = s.Scan(grant);
+            var denied = s.Scan(Grant(s));
             Assert.AreNotEqual(InventoryScanStatus.Complete, denied.ScanStatus);
             Assert.IsTrue(denied.Diagnostics.Any(x => x.Code == "RS_A_DENIED"));
             Assert.AreSame(snapshot, s.Current);
@@ -160,7 +160,7 @@ public sealed class RsAWindowsFixtureTests
         // the original pinned parent or refuses, never follows the injected junction.
         var parent = Path.Combine(_root, "gba");
         bool attempted = false, mutated = false;
-        var race = s.Scan(grant, beforeChildOpenForTest: relative =>
+        var race = s.Scan(Grant(s), beforeChildOpenForTest: relative =>
         {
             if (relative != "gba/one.gba" || attempted) return;
             attempted = true;
@@ -194,7 +194,7 @@ public sealed class RsAWindowsFixtureTests
         if (File.Exists(file))
         {
             bool attemptedFinal = false, replacedFinal = false;
-            var last = s.Scan(grant, beforeChildOpenForTest: relative =>
+            var last = s.Scan(Grant(s), beforeChildOpenForTest: relative =>
             {
                 if (relative != "gba/one.gba" || attemptedFinal) return;
                 attemptedFinal = true;
@@ -259,7 +259,7 @@ public sealed class RsAWindowsFixtureTests
         Assert.IsNull(partial.TotalFileCount);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
-        var cancelled = s.Scan(grant, cts.Token);
+        var cancelled = s.Scan(Grant(s), cts.Token);
         Assert.AreNotEqual(InventoryScanStatus.Complete, cancelled.ScanStatus);
         Assert.AreSame(complete, s.Current);
         Assert.IsTrue(before.SequenceEqual(SHA256.HashData(File.ReadAllBytes(file))));
@@ -291,8 +291,10 @@ public sealed class RsAWindowsFixtureTests
         var good = s.Scan(g);
         Assert.AreEqual(InventoryScanStatus.Complete, good.ScanStatus);
         var unplugged = _root + "-disconnected";
+        // A grant attested BEFORE disconnect must fail to re-open the missing root.
+        var offlineGrant = Grant(s);
         Directory.Move(_root, unplugged);
-        var offline = s.Scan(g);
+        var offline = s.Scan(offlineGrant);
         Assert.AreNotEqual(InventoryScanStatus.Complete, offline.ScanStatus);
         Assert.AreEqual(InventoryAvailability.Offline, offline.Availability);
         Assert.AreSame(good, s.Current);
@@ -300,10 +302,14 @@ public sealed class RsAWindowsFixtureTests
         Assert.IsNull(offline.TotalFileCount);
         Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
             RsAAnchoredReader.ValidateFixturePath(unplugged));
-        // Replacement under exactly the SAME path must not reuse the prior grant.
+        // Reconnect original fixture and re-consent BEFORE the adversarial swap;
+        // the replacement then has a different native FileID under the same path.
+        Directory.Move(unplugged, _root);
+        var replacementGrant = Grant(s);
+        Directory.Move(_root, unplugged);
         Directory.CreateDirectory(_root);
         Put("gba/replacement.gba");
-        var samePathReplacement = s.Scan(g);
+        var samePathReplacement = s.Scan(replacementGrant);
         Assert.AreNotEqual(InventoryScanStatus.Complete, samePathReplacement.ScanStatus);
         Assert.AreSame(good, s.Current);
         Assert.IsTrue(samePathReplacement.Diagnostics.Any(x => x.Code == "RS_A_DENIED"));
