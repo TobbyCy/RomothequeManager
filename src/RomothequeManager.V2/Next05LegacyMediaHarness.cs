@@ -35,7 +35,7 @@ internal static class Next05LegacyMediaHarness
         Directory.CreateDirectory(gallery);
         var fixture = BuildFixture(root, jpg);
         var memory = new MemorySample();
-        using var sampler = new System.Threading.Timer(_ => memory.Tick(), null, 0, 20);
+        var sampler = new System.Threading.Timer(_ => memory.Tick(), null, 0, 20);
         window.Opened += (_, _) => Dispatcher.UIThread.Post(async () =>
         {
             try
@@ -226,6 +226,12 @@ internal static class Next05LegacyMediaHarness
                 Console.Error.WriteLine("LM141_WINDOWS_FIXTURE_FAIL " +
                     ex.GetType().Name + " " + ex.Message);
                 window.Close();
+            }
+            finally
+            {
+                // Owned for the entire async native fixture session, not only
+                // the synchronous Configure call that registered this callback.
+                sampler.Dispose();
             }
         }, DispatcherPriority.Background);
     }
