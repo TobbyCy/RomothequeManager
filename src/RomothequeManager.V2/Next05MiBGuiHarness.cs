@@ -137,7 +137,9 @@ internal static class Next05MiBGuiHarness
         public uint Type;
         public WinInputUnion Union;
     }
-    [StructLayout(LayoutKind.Explicit)]
+    // Win32 INPUT union also contains MOUSEINPUT (32 bytes on x64), even though this
+    // fixture driver uses KEYBDINPUT only. Preserve the native 40-byte INPUT ABI.
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
     private struct WinInputUnion
     {
         [FieldOffset(0)] public WinKeyboardInput Keyboard;
