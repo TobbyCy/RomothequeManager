@@ -2,16 +2,51 @@
  x:Class="RomothequeManager.V2.MvvmFoundation.MiBFixtureWindow"
  x:CompileBindings="False" Title="NEXT-05 · MEDIAS fictifs" Width="1120" Height="720"
  MinWidth="760" MinHeight="480" Background="#16181D" Foreground="#E8E6E3">
+ <Window.Styles>
+  <!-- Scoped MI-B styles, including the template's actual text presenter. -->
+  <Style Selector="Button">
+   <Setter Property="Foreground" Value="#F5FAFF"/>
+   <Setter Property="Background" Value="#325C74"/>
+   <Setter Property="BorderBrush" Value="#B7E5FA"/>
+   <Setter Property="BorderThickness" Value="2"/>
+   <Setter Property="Opacity" Value="1"/>
+  </Style>
+  <Style Selector="Button /template/ ContentPresenter">
+   <Setter Property="Foreground" Value="#F5FAFF"/>
+  </Style>
+  <Style Selector="Button:pointerover">
+   <Setter Property="Background" Value="#437A96"/>
+  </Style>
+  <Style Selector="Button:pressed">
+   <Setter Property="Background" Value="#23475D"/>
+  </Style>
+  <Style Selector="Button:disabled">
+   <Setter Property="Foreground" Value="#E0EAF1"/>
+   <Setter Property="Background" Value="#263C49"/>
+   <Setter Property="BorderBrush" Value="#8BAFBE"/>
+   <Setter Property="Opacity" Value="1"/>
+  </Style>
+  <Style Selector="Button:disabled /template/ ContentPresenter">
+   <Setter Property="Foreground" Value="#E0EAF1"/>
+   <Setter Property="Opacity" Value="1"/>
+  </Style>
+  <Style Selector="Button:focus">
+   <Setter Property="BorderBrush" Value="#FFFFB6"/>
+   <Setter Property="BorderThickness" Value="3"/>
+  </Style>
+ </Window.Styles>
  <ScrollViewer x:Name="RootScroll">
   <StackPanel Margin="20" Spacing="12">
    <TextBlock FontSize="23" FontWeight="Bold" Text="MI-B · MEDIAS · FIXTURES UNIQUEMENT" TextWrapping="Wrap"/>
    <TextBlock Text="MEDIAS est indépendant de ROMS et PREVIEW. Aucun accès personnel, aperçu ou jaquette automatique." TextWrapping="Wrap"/>
-   <WrapPanel>
-    <Button x:Name="MiBSelect" Content="1 · Sélectionner MEDIAS fictif" Command="{Binding SelectCommand}" MinHeight="40" Margin="0,0,8,4"/>
-    <Button x:Name="MiBConsent" Content="2 · Consentement ponctuel" Command="{Binding ConfirmCommand}" MinHeight="40" Margin="0,0,8,4"/>
-    <Button x:Name="MiBStart" Content="3 · Start" Command="{Binding StartCommand}" MinHeight="40" Margin="0,0,8,4"/>
-    <Button x:Name="MiBCancel" Content="Cancel" Command="{Binding CancelCommand}" MinHeight="40"/>
-   </WrapPanel>
+   <Border Background="#223341" BorderBrush="#A0C9D9" BorderThickness="1" CornerRadius="6" Padding="8">
+    <WrapPanel>
+     <Button x:Name="MiBSelect" Content="1 · Sélectionner MEDIAS fictif" Command="{Binding SelectCommand}" MinHeight="40" Margin="0,0,8,4"/>
+     <Button x:Name="MiBConsent" Content="2 · Consentement ponctuel" Command="{Binding ConfirmCommand}" MinHeight="40" Margin="0,0,8,4"/>
+     <Button x:Name="MiBStart" Content="3 · Start" Command="{Binding StartCommand}" MinHeight="40" Margin="0,0,8,4"/>
+     <Button x:Name="MiBCancel" Content="Cancel" Command="{Binding CancelCommand}" MinHeight="40"/>
+    </WrapPanel>
+   </Border>
    <TextBlock Text="{Binding SelectionLabel}" TextWrapping="Wrap"/>
    <TextBlock x:Name="MiBConsentLabel" Text="{Binding ConsentLabel}" TextWrapping="Wrap"/>
    <ProgressBar Height="8" IsVisible="{Binding IsBusy}" IsIndeterminate="{Binding ProgressIndeterminate}"/>
@@ -19,10 +54,12 @@
    <TextBlock Text="{Binding ProgressLabel}" TextWrapping="Wrap"/>
    <TextBlock Text="{Binding AvailabilityLabel}" TextWrapping="Wrap"/>
    <TextBlock Text="{Binding DiagnosticLabel}" TextWrapping="Wrap"/>
-   <WrapPanel>
-    <Button Content="CurrentComplete" Command="{Binding ShowCurrentCommand}" MinHeight="40" Margin="0,0,8,4"/>
-    <Button Content="LastAttempt" Command="{Binding ShowAttemptCommand}" MinHeight="40"/>
-   </WrapPanel>
+   <Border Background="#223341" BorderBrush="#A0C9D9" BorderThickness="1" CornerRadius="6" Padding="8">
+    <WrapPanel>
+     <Button x:Name="MiBCurrent" Content="CurrentComplete" Command="{Binding ShowCurrentCommand}" MinHeight="40" Margin="0,0,8,4"/>
+     <Button x:Name="MiBAttempt" Content="LastAttempt" Command="{Binding ShowAttemptCommand}" MinHeight="40"/>
+    </WrapPanel>
+   </Border>
    <TextBlock Text="{Binding DisplayModeLabel}" TextWrapping="Wrap"/>
    <TextBlock Text="Les compteurs inconnus ne prouvent aucune absence. Offline/Stale n'autorise jamais un nouveau scan." TextWrapping="Wrap"/>
    <ItemsControl ItemsSource="{Binding Rows}">

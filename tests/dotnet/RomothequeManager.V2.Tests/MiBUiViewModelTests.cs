@@ -110,14 +110,45 @@ public sealed class MiBUiViewModelTests
             SafeDiagnosticCodes = new[] { "MI_A_CANCELLED" }
         };
         service.Finish(service.State with { Phase = MiBPhase.Completed, CurrentComplete = current,
-            LastAttempt = failed, SafeNoticeCode = "MI_B_CANCELLED", ProgressIsIndeterminate = false });
+            LastAttempt = failed, CurrentIsHistorical = true,
+            SafeNoticeCode = "MI_B_CANCELLED", ProgressIsIndeterminate = false });
         await second;
         Assert.AreEqual("mia-current", vm.CurrentComplete!.RunRef);
         Assert.AreEqual("mia-cancelled", vm.LastAttempt!.RunRef);
         Assert.AreEqual("MI_A_CANCELLED", vm.DiagnosticLabel);
+        Assert.IsTrue(vm.State.CurrentIsHistorical,
+            "Backend marks retained Complete as historical even on a same-root cancellation.");
         StringAssert.Contains(vm.PhaseLabel, "Annulée");
+        StringAssert.Contains(vm.PhaseLabel, "dernier complet conservé");
+        Assert.IsFalse(vm.PhaseLabel.Contains("OFFLINE / STALE", StringComparison.Ordinal),
+            "Online/Fresh cancellation must never show the offline archive banner.");
         vm.ShowAttemptCommand.Execute(null);
         Assert.AreEqual("mia-cancelled", vm.Displayed!.RunRef);
+    }
+
+    [TestMethod]
+    public async Task UI_MI_B03_PartialSameRootWithRetainedCompleteIsNotOffline()
+    {
+        var service = new FakeService();
+        await using var vm = new MiBUiViewModel(service, "fixture", a => a());
+        vm.Select(); vm.Confirm();
+        var current = Run("mia-complete");
+        var partial = Run("mia-partial") with {
+            ScanStatus = RomothequeManager.V2.Inventory.InventoryScanStatus.Partial,
+            KnownObservedMediaTotal = null,
+            SafeDiagnosticCodes = new[] { "MI_A_FILE_BUDGET" }
+        };
+        service.PublishState(service.State with {
+            Phase = MiBPhase.Completed,
+            CurrentComplete = current,
+            LastAttempt = partial,
+            CurrentIsHistorical = true
+        });
+        StringAssert.Contains(vm.PhaseLabel, "partielle");
+        Assert.IsFalse(vm.PhaseLabel.Contains("OFFLINE / STALE", StringComparison.Ordinal));
+        Assert.IsFalse(vm.PhaseLabel.Contains("Annulée", StringComparison.Ordinal));
+        Assert.AreEqual("mia-complete", vm.CurrentComplete!.RunRef);
+        Assert.AreEqual("mia-partial", vm.LastAttempt!.RunRef);
     }
 
     [TestMethod]
@@ -155,6 +186,7 @@ public sealed class MiBUiViewModelTests
         Assert.IsNotNull(vm.Displayed);
         Assert.IsTrue(vm.AvailabilityLabel.Contains("Offline"));
         Assert.IsTrue(vm.AvailabilityLabel.Contains("Stale"));
+        StringAssert.Contains(vm.PhaseLabel, "Historique OFFLINE / STALE");
         Assert.AreEqual(0, service.ConsentCount);
         Assert.AreEqual(0, service.StartCount);
     }

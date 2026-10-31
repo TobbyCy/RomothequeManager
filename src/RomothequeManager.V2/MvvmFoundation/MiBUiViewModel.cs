@@ -51,18 +51,25 @@ internal sealed class MiBUiViewModel : INotifyPropertyChanged, IAsyncDisposable
     public string ConsentLabel => _consent ? "Consentement temporaire confirmé pour cette sélection." : "Aucun consentement actif ; sélectionner ne donne aucun droit.";
     private bool LastAttemptCancelled => LastAttempt?.SafeDiagnosticCodes.Contains("MI_A_CANCELLED") == true;
     private bool LastAttemptDenied => LastAttempt?.SafeDiagnosticCodes.Contains("MI_A_DENIED") == true;
-    public string PhaseLabel => _state.CurrentIsHistorical
-        ? "Historique OFFLINE / STALE · aucune revalidation"
-        : _state.Phase switch
+    // CurrentIsHistorical also means a retained Complete after a same-root cancellation.
+    // It does NOT prove Offline/Stale. Only an explicit archived fixture with source facts
+    // can render the offline banner; the backend's MI_A_CANCELLED always takes precedence.
+    private bool IsOfflineStaleArchive => Displayed is { IsHistoricalFixture: true } run &&
+        (run.Availability == RomothequeManager.V2.Inventory.InventoryAvailability.Offline ||
+         run.SourceFreshness == RomothequeManager.V2.Inventory.InventoryFreshness.Stale);
+    public string PhaseLabel => _state.Phase switch
         {
+            MiBPhase.Completed when LastAttemptCancelled =>
+                "Annulée (MI_A_CANCELLED) · dernier complet conservé",
+            MiBPhase.Completed when LastAttemptDenied => "Refusée (MI_A_DENIED)",
+            _ when IsOfflineStaleArchive =>
+                "Historique OFFLINE / STALE · aucune revalidation",
             MiBPhase.NoSelection => "Aucune sélection MEDIAS",
             MiBPhase.Ready => "Prêt · consentement explicite requis",
             MiBPhase.Running => "Analyse des en-têtes en cours",
             MiBPhase.CancellationRequested => "Annulation demandée · révocation en cours",
             MiBPhase.Rejected => "Accès refusé · aucun scan implicite",
             MiBPhase.Faulted => "Échec technique · aucune absence déduite",
-            MiBPhase.Completed when LastAttemptCancelled => "Annulée (MI_A_CANCELLED) · dernier complet conservé",
-            MiBPhase.Completed when LastAttemptDenied => "Refusée (MI_A_DENIED)",
             MiBPhase.Completed when LastAttempt?.ScanStatus == RomothequeManager.V2.Inventory.InventoryScanStatus.Partial =>
                 "Tentative partielle · couverture incomplète",
             MiBPhase.Completed when LastAttempt?.ScanStatus == RomothequeManager.V2.Inventory.InventoryScanStatus.Failed =>
