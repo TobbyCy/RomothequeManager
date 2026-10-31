@@ -214,8 +214,10 @@ public sealed class MiBFixtureMediaApplicationTests
         Assert.IsTrue(view.Rows.Any(x => x.Format == MediaImageFormat.Png && x.HeaderValidated));
         Assert.IsTrue(view.Rows.Any(x => x.Format == MediaImageFormat.Webp &&
             !x.HeaderValidated && x.SafeDiagnosticCodes.Contains("UNSUPPORTED_FORMAT")));
-        Assert.IsTrue(view.Rows.Any(x => x.Format == MediaImageFormat.Jpeg &&
-            !x.HeaderValidated));
+        Assert.IsTrue(view.Rows.Any(x => x.DisplayLabel == "invalid.jpg" &&
+            x.Format == MediaImageFormat.Unknown && !x.HeaderValidated &&
+            x.SafeDiagnosticCodes.Contains("MI_A_SIGNATURE_OR_EXTENSION_MISMATCH")),
+            "A .jpg extension with invalid bytes is Unknown, never a detected JPEG.");
         Assert.IsTrue(view.Rows.All(x => x.ObservationRef.StartsWith("mia-observation-")));
         Assert.IsTrue(view.Rows.All(x => x.DisplayLabel.IndexOfAny(new[] { '/', '\\' }) < 0));
         Assert.ThrowsExactly<NotSupportedException>(() =>
