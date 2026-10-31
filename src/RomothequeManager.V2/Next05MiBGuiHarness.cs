@@ -178,7 +178,7 @@ internal static class Next05MiBGuiHarness
     }
 
     private static bool ActiveButton(Button button) =>
-        button.IsVisible && button.IsEnabled &&
+        button.IsEffectivelyVisible && button.IsEffectivelyEnabled &&
         button.Command?.CanExecute(button.CommandParameter) == true;
 
     private static async Task ProveNativeKeyboardAsync(MiBFixtureWindow window,
@@ -209,7 +209,7 @@ internal static class Next05MiBGuiHarness
         if (scenario == "SelectedA")
         {
             Demand(!vm.CanStart && !vm.ConsentConfirmed &&
-                !buttons["MiBStart"].IsEnabled &&
+                !buttons["MiBStart"].IsEffectivelyEnabled &&
                 !buttons["MiBStart"].Command!.CanExecute(null) &&
                 vm.LastAttempt is null && vm.CurrentComplete is null,
                 "UI_MIB_KEYBOARD_NO_CONSENT_START_ENABLED");
