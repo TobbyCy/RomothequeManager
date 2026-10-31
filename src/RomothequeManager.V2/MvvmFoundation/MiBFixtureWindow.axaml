@@ -12,6 +12,7 @@
     <Button x:Name="MiBStart" Content="3 · Start" Command="{Binding StartCommand}" MinHeight="40" Margin="0,0,8,4"/>
     <Button x:Name="MiBCancel" Content="Cancel" Command="{Binding CancelCommand}" MinHeight="40"/>
    </WrapPanel>
+   <TextBlock Text="{Binding SelectionLabel}" TextWrapping="Wrap"/>
    <TextBlock x:Name="MiBConsentLabel" Text="{Binding ConsentLabel}" TextWrapping="Wrap"/>
    <ProgressBar Height="8" IsVisible="{Binding IsBusy}" IsIndeterminate="{Binding ProgressIndeterminate}"/>
    <TextBlock x:Name="MiBPhase" Text="{Binding PhaseLabel}" FontWeight="Bold" TextWrapping="Wrap"/>
@@ -22,6 +23,7 @@
     <Button Content="CurrentComplete" Command="{Binding ShowCurrentCommand}" MinHeight="40" Margin="0,0,8,4"/>
     <Button Content="LastAttempt" Command="{Binding ShowAttemptCommand}" MinHeight="40"/>
    </WrapPanel>
+   <TextBlock Text="{Binding DisplayModeLabel}" TextWrapping="Wrap"/>
    <TextBlock Text="Les compteurs inconnus ne prouvent aucune absence. Offline/Stale n'autorise jamais un nouveau scan." TextWrapping="Wrap"/>
    <ItemsControl ItemsSource="{Binding Rows}">
     <ItemsControl.ItemTemplate>
