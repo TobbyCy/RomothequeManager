@@ -21,7 +21,11 @@ public sealed class MiAWindowsFixtureTests
     [TestInitialize]
     public void Setup()
     {
-        if (!OperatingSystem.IsWindows()) Assert.Inconclusive("MI_A_WINDOWS_ONLY");
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Inconclusive("MI_A_WINDOWS_ONLY");
+            return; // Explicit platform-flow guard for CA1416 on Windows APIs.
+        }
         _fixture = Path.Combine(Path.GetTempPath(),
             "rm-mia-fixture-" + Guid.NewGuid().ToString("N"));
         _root = Path.Combine(_fixture, "MEDIAS");
