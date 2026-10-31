@@ -83,40 +83,40 @@ jobs:
           if ($html.Count -lt 2) { throw 'DOCFX88_HTML_MISSING' }
           # Independent real hyperlink-target oracle: a successful docfx build alone is not enough.
           $linkChecker = @'
-import pathlib,sys
-from html.parser import HTMLParser
-from urllib.parse import urlsplit,unquote
-root = pathlib.Path(sys.argv[1]).resolve()
-broken=[]
-count=0
-class Parser(HTMLParser):
-    def __init__(self, source):
-        super().__init__()
-        self.source=source
-    def handle_starttag(self, tag, attrs):
-        global count
-        for key,value in attrs:
-            if key not in ("href","src") or not value:
-                continue
-            u=urlsplit(value)
-            if u.scheme or u.netloc or not u.path:
-                continue
-            name=unquote(u.path)
-            dest=(root/name.lstrip("/")) if name.startswith("/") else (self.source.parent/name)
-            dest=dest.resolve()
-            if dest.is_dir():
-                dest=dest/"index.html"
-            count+=1
-            if not dest.is_file():
-                broken.append((str(self.source.relative_to(root)),value))
-for path in root.rglob("*.html"):
-    Parser(path).feed(path.read_text(encoding="utf-8",errors="replace"))
-print(f"DOCFX88_INTERNAL_LINK_TARGETS_CHECKED={count}")
-print(f"DOCFX88_INTERNAL_LINKS_BROKEN={len(broken)}")
-for source,href in broken[:10]:
-    print(f"DOCFX88_BROKEN {source} => {href}")
-sys.exit(1 if broken else 0)
-'@
+          import pathlib,sys
+          from html.parser import HTMLParser
+          from urllib.parse import urlsplit,unquote
+          root = pathlib.Path(sys.argv[1]).resolve()
+          broken=[]
+          count=0
+          class Parser(HTMLParser):
+              def __init__(self, source):
+                  super().__init__()
+                  self.source=source
+              def handle_starttag(self, tag, attrs):
+                  global count
+                  for key,value in attrs:
+                      if key not in ("href","src") or not value:
+                          continue
+                      u=urlsplit(value)
+                      if u.scheme or u.netloc or not u.path:
+                          continue
+                      name=unquote(u.path)
+                      dest=(root/name.lstrip("/")) if name.startswith("/") else (self.source.parent/name)
+                      dest=dest.resolve()
+                      if dest.is_dir():
+                          dest=dest/"index.html"
+                      count+=1
+                      if not dest.is_file():
+                          broken.append((str(self.source.relative_to(root)),value))
+          for path in root.rglob("*.html"):
+              Parser(path).feed(path.read_text(encoding="utf-8",errors="replace"))
+          print(f"DOCFX88_INTERNAL_LINK_TARGETS_CHECKED={count}")
+          print(f"DOCFX88_INTERNAL_LINKS_BROKEN={len(broken)}")
+          for source,href in broken[:10]:
+              print(f"DOCFX88_BROKEN {source} => {href}")
+          sys.exit(1 if broken else 0)
+          '@
           $checkerPath=Join-Path $proof 'link-check.py'
           [IO.File]::WriteAllText($checkerPath,$linkChecker,[Text.UTF8Encoding]::new($false))
           python $checkerPath (Join-Path $proof '_site')
