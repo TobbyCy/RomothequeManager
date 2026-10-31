@@ -208,7 +208,7 @@ public sealed class Persist01SqliteTests
             Seed(store);
             store.SaveAttempt(_romRootId, rom);
         }
-        MutateStoredManifest(_db, _romRootId, x => x["ScanStatus"] = "Failed");
+        MutateStoredManifest(_db, _romRootId, x => x["ScanStatus"] = (int)InventoryScanStatus.Failed);
         using var reopened = Store();
         Assert.ThrowsExactly<InvalidDataException>(() => reopened.LoadLastKnown(_romRootId),
             "SQL_03_S_SQL_JSON_STATUS_CONTRADICTION");
@@ -269,7 +269,7 @@ public sealed class Persist01SqliteTests
             "semantically-invalid-" + Guid.NewGuid().ToString("N") + ".sqlite");
         File.Copy(backup, badBackup);
         MutateStoredManifest(badBackup, _romRootId,
-            x => x["ScanStatus"] = "Failed");
+            x => x["ScanStatus"] = (int)InventoryScanStatus.Failed);
         using (var store = Store())
             Assert.ThrowsExactly<InvalidDataException>(() => store.RestoreVerified(badBackup),
                 "SQL_04_B_STAGING_MUST_REJECT_BEFORE_SWAP");
