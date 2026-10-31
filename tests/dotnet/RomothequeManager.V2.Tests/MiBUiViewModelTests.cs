@@ -43,6 +43,8 @@ public sealed class MiBUiViewModelTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public void Finish(MiBProjectionState result) { Set(result); Pending?.TrySetResult(result); }
         public void FinishLate(MiBProjectionState result) { Pending?.TrySetResult(result); }
+        public void EmitStale(MiBProjectionState result) => StateChanged?.Invoke(this, result);
+        public void PublishState(MiBProjectionState result) => Set(result);
     }
 
     private static MiBRunView Run(string id) =>
@@ -123,6 +125,7 @@ public sealed class MiBUiViewModelTests
         service.SelectFixtureRoot("B");
         service.FinishLate(new(versionA, MiBPhase.Completed, false, Run("mia-A"), Run("mia-A"), false, null));
         await running;
+        service.EmitStale(new(versionA, MiBPhase.Completed, false, Run("mia-A"), Run("mia-A"), false, null));
         Assert.IsNull(vm.CurrentComplete);
         Assert.IsNull(vm.LastAttempt);
     }
@@ -132,10 +135,20 @@ public sealed class MiBUiViewModelTests
     {
         var service = new FakeService();
         await using var vm = new MiBUiViewModel(service, "fixture", a => a());
-        vm.Select();
+        var archived = Run("mia-archive") with {
+            Availability = RomothequeManager.V2.Inventory.InventoryAvailability.Offline,
+            SourceFreshness = RomothequeManager.V2.Inventory.InventoryFreshness.Stale,
+            IsHistoricalFixture = true
+        };
+        service.PublishState(new(0, MiBPhase.NoSelection, false,
+            archived, null, true, "MI_B_HISTORY_OFFLINE"));
+        Assert.IsFalse(vm.CanStart);
+        Assert.IsFalse(vm.CanConfirm);
+        Assert.IsFalse(vm.ConsentConfirmed);
+        Assert.IsNotNull(vm.Displayed);
+        Assert.IsTrue(vm.AvailabilityLabel.Contains("Offline"));
+        Assert.IsTrue(vm.AvailabilityLabel.Contains("Stale"));
         Assert.AreEqual(0, service.ConsentCount);
         Assert.AreEqual(0, service.StartCount);
-        Assert.IsFalse(vm.CanStart);
-        Assert.IsNull(vm.Displayed);
     }
 }
