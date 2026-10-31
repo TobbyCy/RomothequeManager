@@ -848,8 +848,10 @@ public sealed class SqliteCatalogStore : ICatalogStore
         s.ScanStatus == InventoryScanStatus.Complete &&
         s.CapturedAvailability == InventoryAvailability.Online &&
         s.CapturedFreshness == InventoryFreshness.Fresh &&
-        (s.Inventory?.TotalFileCount == s.Inventory?.ObservedFileCount ||
-         s.Media?.TotalFileCount == s.Media?.ObservedFileCount);
+        ((s.Inventory is { } inventory &&
+          inventory.TotalFileCount == inventory.ObservedFileCount) ||
+         (s.Media is { } media &&
+          media.TotalFileCount == media.ObservedFileCount));
 
     private static void ValidateDatabaseBusiness(string path)
     {
