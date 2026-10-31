@@ -42,10 +42,11 @@ internal sealed class MiBUiViewModel : INotifyPropertyChanged, IAsyncDisposable
     public MiBRunView? Displayed => _showLast && LastAttempt is not null ? LastAttempt : CurrentComplete ?? LastAttempt;
     public bool IsBusy => _state.Phase is MiBPhase.Running or MiBPhase.CancellationRequested;
     public bool CanSelect => !_disposed && !IsBusy;
-    public bool CanConfirm => !_disposed && _state.Phase == MiBPhase.Ready && !_consent;
+    public bool CanConfirm => !_disposed && !_consent && _state.Phase is (MiBPhase.Ready or MiBPhase.Completed or MiBPhase.Rejected or MiBPhase.Faulted);
     public bool CanStart => !_disposed && _consent && _state.Phase == MiBPhase.Ready;
     public bool CanCancel => !_disposed && _state.Phase == MiBPhase.Running;
     public bool ConsentConfirmed => _consent;
+    public string ConsentLabel => _consent ? "Consentement temporaire confirmé pour cette sélection." : "Aucun consentement actif ; sélectionner ne donne aucun droit.";
     public string PhaseLabel => _state.Phase.ToString() + (_state.CurrentIsHistorical ? " · historique" : "");
     public string DiagnosticLabel => _state.SafeNoticeCode ?? LastAttempt?.SafeDiagnosticCodes.FirstOrDefault() ?? "Aucun diagnostic";
     public string ProgressLabel => IsBusy ? "Lecture des en-têtes · progression indéterminée · total inconnu" :
@@ -101,6 +102,12 @@ internal sealed class MiBUiViewModel : INotifyPropertyChanged, IAsyncDisposable
         _dispatch(() => {
             if (_disposed || state.SelectionVersion != _service.State.SelectionVersion ||
                 !ReferenceEquals(state, _service.State)) return;
+            if (state.SelectionVersion != _state.SelectionVersion)
+            {
+                ++_uiGeneration;
+                _consent = false;
+                _showLast = false;
+            }
             _state = state;
             Publish();
         });
@@ -108,7 +115,7 @@ internal sealed class MiBUiViewModel : INotifyPropertyChanged, IAsyncDisposable
     {
         foreach (var property in new[] { nameof(State), nameof(CurrentComplete), nameof(LastAttempt),
             nameof(Displayed), nameof(IsBusy), nameof(CanSelect), nameof(CanConfirm), nameof(CanStart),
-            nameof(CanCancel), nameof(ConsentConfirmed), nameof(PhaseLabel), nameof(DiagnosticLabel),
+            nameof(CanCancel), nameof(ConsentConfirmed), nameof(ConsentLabel), nameof(PhaseLabel), nameof(DiagnosticLabel),
             nameof(ProgressLabel), nameof(AvailabilityLabel), nameof(Rows), nameof(ProgressIndeterminate) })
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         foreach (var command in new[] { _select, _confirm, _start, _cancel, _showCurrent, _showAttempt })
