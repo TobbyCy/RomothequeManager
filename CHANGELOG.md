@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / MI-A #127 — correctif P1-MI-A-ROOT-01 après fusion #116
+
+- Synchronisation non destructive depuis `main=ebc5ebe2` (UI-RSA #116 fusionnée) ; permissions RS-A et vue UI préservées.
+- Isolation des observations et des références de portée entre sélections MEDIAS A/B ; `Current` et `LastAttempt` d'une ancienne sélection ne peuvent être réattribués à une nouvelle. Une tentative incomplète sur une **même** sélection conserve son dernier `Current` complet. Publications asynchrones de l'ancien scope rejetées.
+- Canaris MI-A10 et MI-A11 ajoutés : A→B, annulation/refus, conservation sur B et changement de sélection pendant un scan. **Preuves du nouveau HEAD à valider**, aucun accès personnel, grant public ou Release.
+
+
 ## NEXT-05 / MI-A — Scanner MEDIAS Windows par handles (PR #127, DRAFT / FIXTURES ONLY)
 
 - Nouvelle session de tests `MediaIndex` interne, grant MEDIAS indépendant de ROMS/PREVIEW, sélection explicite, identité native du handle, version/révocation et refus de tout grant en production.
