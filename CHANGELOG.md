@@ -1,5 +1,10 @@
 # Journal des changements
 
+## NEXT-05 / #140 — SQL_01/03/04 six tests rouges avant correctif (31.10.2026)
+
+- Même branche et PR #143. Ajout de **six scénarios d'acceptation** SQL_01-R/M (Complete contradictoire), SQL_03-S/P/R (manifestes SQL/JSON altérés au redémarrage), SQL_04-B (backup métier incompatible avant substitution), deux sentinelles SQL_02 des chemins en écriture et un témoin positif Complete vide ROMS/MEDIAS. **Statut au commit initial : résultats rouges NON ENCORE EXÉCUTÉS, aucune correction de CatalogStore.** Prochaines étapes après logs : validateur partagé écriture/lecture/staging, sauvegarde intégrale Current/LastAttempt/décisions, mutation SQL_02 en copie jetable. Aucun schéma durable modifié ; `REAL_CATALOG_STORAGE_HOLD` maintenu.
+
+
 ## NEXT-05 / DEV 1 — G1 #143 : compléments ciblés de preuve (31.10.2026)
 
 - **Extension limitée aux tests** (sans modifier les grants ni scanners validés) : deux nouvelles méthodes Windows vérifient le refus d'un même grant **après Partial, Failed ou Cancel**, sur RS-A puis MI-A, avec contrôle d'un `CurrentComplete` antérieur et zéro callback `beforeChildOpen` pour le replay. MI-A vérifie également zéro callback de lecture d'en-tête et `LastHeaderBytesRead=0` sur le refus.
