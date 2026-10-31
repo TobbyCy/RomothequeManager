@@ -109,6 +109,8 @@ internal static class Program
         }
 #endif
 #if NEXT05_CI
+        if (args.Contains("--ci-next05-mib-gui", StringComparer.Ordinal))
+            Next05MiBGuiHarness.Configure(window);
         // Native RS-A fixture UI recipe. The production build has no such entrypoint.
         if (args.Contains("--ci-next05-rsa-gui", StringComparer.Ordinal))
             Next05RsAGuiHarness.Configure(window);
