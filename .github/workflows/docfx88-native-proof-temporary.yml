@@ -60,9 +60,10 @@ jobs:
           if ($version -notmatch '2\.81\.0') { throw ('DOCFX88_DOCFX_VERSION_MISMATCH:' + $version) }
           Write-Host ('DOCFX88_DOCFX_VERSION=' + $version)
           $bin = Split-Path $dll[0].FullName
+          @('# ROMothèque Manager — API native DocFX', '', 'Documentation temporaire générée sur fixtures et code public, sans site publié.', '', '[Référence API](api/toc.html)') | Set-Content -LiteralPath (Join-Path $proof 'index.md') -Encoding utf8
           $config = @{
             metadata = @(@{src=@(@{files=@('RomothequeManager.V2.dll');src=$bin});dest='api';disableGitFeatures=$true})
-            build = @{content=@(@{files=@('api/*.yml','api/toc.yml')});template=@('default');output='_site'}
+            build = @{content=@(@{files=@('index.md','api/*.yml','api/toc.yml')});template=@('default');output='_site'}
           }
           $cfgPath = Join-Path $proof 'docfx.json'
           $config | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $cfgPath -Encoding utf8
@@ -80,6 +81,46 @@ jobs:
           $html = @(Get-ChildItem (Join-Path $proof '_site') -Recurse -File -Filter '*.html')
           Write-Host ('DOCFX88_HTML_COUNT=' + $html.Count)
           if ($html.Count -lt 2) { throw 'DOCFX88_HTML_MISSING' }
+          # Independent real hyperlink-target oracle: a successful docfx build alone is not enough.
+          $linkChecker = @'
+import pathlib,sys
+from html.parser import HTMLParser
+from urllib.parse import urlsplit,unquote
+root = pathlib.Path(sys.argv[1]).resolve()
+broken=[]
+count=0
+class Parser(HTMLParser):
+    def __init__(self, source):
+        super().__init__()
+        self.source=source
+    def handle_starttag(self, tag, attrs):
+        global count
+        for key,value in attrs:
+            if key not in ("href","src") or not value:
+                continue
+            u=urlsplit(value)
+            if u.scheme or u.netloc or not u.path:
+                continue
+            name=unquote(u.path)
+            dest=(root/name.lstrip("/")) if name.startswith("/") else (self.source.parent/name)
+            dest=dest.resolve()
+            if dest.is_dir():
+                dest=dest/"index.html"
+            count+=1
+            if not dest.is_file():
+                broken.append((str(self.source.relative_to(root)),value))
+for path in root.rglob("*.html"):
+    Parser(path).feed(path.read_text(encoding="utf-8",errors="replace"))
+print(f"DOCFX88_INTERNAL_LINK_TARGETS_CHECKED={count}")
+print(f"DOCFX88_INTERNAL_LINKS_BROKEN={len(broken)}")
+for source,href in broken[:10]:
+    print(f"DOCFX88_BROKEN {source} => {href}")
+sys.exit(1 if broken else 0)
+'@
+          $checkerPath=Join-Path $proof 'link-check.py'
+          [IO.File]::WriteAllText($checkerPath,$linkChecker,[Text.UTF8Encoding]::new($false))
+          python $checkerPath (Join-Path $proof '_site')
+          if ($LASTEXITCODE -ne 0) { throw 'DOCFX88_BROKEN_INTERNAL_LINKS' }
           $required = @('InventorySnapshot','IInventoryApplicationService','MediaIndexApplicationService','MediaLinkProjection','ObservedLibraryViewModel','MediaPresentationService','MediaPreviewService')
           $missing = @()
           foreach ($name in $required) {
