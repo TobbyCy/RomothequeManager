@@ -24,6 +24,7 @@ public sealed class MiBUiViewModelTests
         {
             if (!action || version != State.SelectionVersion) return false;
             ConsentCount++;
+            Set(State with { Phase = MiBPhase.Ready, SafeNoticeCode = null });
             return true;
         }
         public Task<MiBProjectionState> StartConfirmedAsync(long version, CancellationToken token = default)
