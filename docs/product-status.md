@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / DEV 1 — G1 : gate one-shot direct RS-A / MI-A — reproduction en cours (31.10.2026)
+
+- Sur la **branche existante** `dev1/next05-g1-perm-fixtures` / PR #143, ajout exclusif de deux tests adversariaux `PERM_G1_REPLAY_RSA` et `PERM_G1_REPLAY_MIA`. Chacun effectue deux scans successifs avec **le même token vivant et la même session** sans révocation/reconsentement entre eux. Un premier Complete de contrôle positif est exigé ; un second Complete entraîne délibérément un **test FAIL** avec compteur d'observations ROMS ou d'octets d'en-têtes MEDIAS. **Aucun code de permission n'a été touché.**
+- **État attendu avant preuve** : `REPLAY_NOT_YET_EXECUTED`. Si replay effectivement observé sur le runner Windows, statut `P1-G1-ONE-SHOT_CONFIRMED / STOP_OWNER_ARBITRATION` ; ni CI rouge ni tests antérieurs verts n'autorisent une activation. Préserver les HOLD ROMS/MEDIAS/PREVIEW/SQLite et Release, sans traitement #140 avant arbitrage G1.
+
+
 ## NEXT-05 / DEV 1 — G1 permissions ROMS/MEDIAS/PREVIEW : PR #143 (31.10.2026)
 
 - Après #139 MERGED et CI post-fusion main #41228537170 SUCCESS, première PR G1 **tests seuls** : `PERM-F01` (types et instances de grants ROMS/MEDIAS, témoins positifs), `PERM-F02` (PREVIEW non hérité, portes publiques), `PERM-F03` (null/consentement/expiry/revoke/reselect/one-shot), `PERM-F04` (SQLite reopen Offline/Stale, UI réelle sans consentement, commandes CLI non autorisées en smoke produit). Utilise les vraies classes du produit et uniquement des fichiers synthétiques générés sous %TEMP% ; aucune substitution de service/mock.
