@@ -100,7 +100,7 @@ internal static class Next05LegacyMediaHarness
                         result.Bitmap.PixelSize.Width <= 192 &&
                         result.Bitmap.PixelSize.Height <= 256,
                         "LM03_PNG_NATIVE_DECODE_REQUIRED");
-                    result.Bitmap.Dispose();
+                    result.Bitmap?.Dispose();
                 }
                 using (var source = File.OpenRead(jpg))
                 {
@@ -109,7 +109,7 @@ internal static class Next05LegacyMediaHarness
                         LegacyImageSlot.Gallery, CancellationToken.None, () => entries++);
                     Demand(result.Bitmap is not null && entries == 1 &&
                         result.Reason == "DECODE_OK", "LM03_JPEG_NATIVE_DECODE_REQUIRED");
-                    result.Bitmap.Dispose();
+                    result.Bitmap?.Dispose();
                 }
                 Console.WriteLine("LM03_PNG_JPEG_GUARDED_DECODE_PASS native_actual_bitmap=true");
 
