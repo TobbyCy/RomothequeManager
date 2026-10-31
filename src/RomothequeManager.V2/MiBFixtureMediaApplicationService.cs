@@ -55,8 +55,8 @@ internal static class MiBMediaProjection
     {
         if (value is null || value.Length > 96 || !value.StartsWith(prefix, StringComparison.Ordinal) ||
             value.Length == prefix.Length ||
-            value.AsSpan(prefix.Length).IndexOfAnyExcept(
-                "0123456789abcdefABCDEF".AsSpan()) >= 0)
+            value.Skip(prefix.Length).Any(c =>
+                !char.IsAsciiLetterOrDigit(c) && c is not ('-' or '_')))
             return prefix + "unknown";
         return value;
     }
@@ -197,7 +197,8 @@ internal sealed class MiBFixtureMediaApplicationService : IMiBFixtureMediaApplic
 
     public bool ConfirmMediaIndexConsent(long selectionVersion, bool explicitUserAction)
     {
-        MiBProjectionState? rejected = null;
+        MiBProjectionState? changed = null;
+        bool success = false;
         lock (_gate)
         {
             if (_disposed || _running || !_selected ||
@@ -210,20 +211,23 @@ internal sealed class MiBFixtureMediaApplicationService : IMiBFixtureMediaApplic
                 // Native root identity only; does not enumerate or index media.
                 _pendingGrant = _session.AuthorizeFixture(
                     true, DateTimeOffset.UtcNow.AddMinutes(2));
-                return true;
+                changed = _state = _state with {
+                    Phase = MiBPhase.Ready, SafeNoticeCode = null
+                };
+                success = true;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
                 or ArgumentException or PlatformNotSupportedException
                 or System.ComponentModel.Win32Exception)
             {
-                rejected = _state = _state with {
+                changed = _state = _state with {
                     Phase = MiBPhase.Rejected,
                     SafeNoticeCode = "MI_B_CONSENT_ROOT_UNAVAILABLE"
                 };
             }
         }
-        if (rejected is not null) Publish(rejected);
-        return false;
+        if (changed is not null) Publish(changed);
+        return success;
     }
 
     public Task<MiBProjectionState> StartConfirmedAsync(
