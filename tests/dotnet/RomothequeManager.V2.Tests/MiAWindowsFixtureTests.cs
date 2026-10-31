@@ -198,8 +198,10 @@ public sealed class MiAWindowsFixtureTests
         Assert.AreNotEqual(InventoryScanStatus.Complete, final.ScanStatus);
         Assert.IsFalse(final.Observations.Any(x => x.RelativePath.Contains("secret.png")));
         Assert.AreSame(good, s.Current);
+        Assert.AreEqual(0L, s.LastHeaderBytesRead,
+            "A substituted final file must be refused before any header read.");
         Console.WriteLine("MI_A02_FINAL_SWAP_ATTEMPTED switched=" + finalSwitched +
-            " status=" + final.ScanStatus + " OUTSIDE_READS=0");
+            " status=" + final.ScanStatus + " HEADER_BYTES_READ=0");
 
         Assert.ThrowsExactly<UnauthorizedAccessException>(() =>
             MiAAnchoredMediaReader.ValidateComponent("GAME~1.PNG"));
