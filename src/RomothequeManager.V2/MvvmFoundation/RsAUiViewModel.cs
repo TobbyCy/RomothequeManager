@@ -10,7 +10,7 @@ namespace RomothequeManager.V2.MvvmFoundation;
 /// <remarks>Only the CI fixture composition can create this internal ViewModel. The
 /// actual rights, root identity, traversal, limits and cancellation stay in RS-A.
 /// No filesystem access, persistence or permissions are implemented by Avalonia.</remarks>
-internal sealed class RsAUiViewModel : INotifyPropertyChanged, IDisposable
+public sealed class RsAUiViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly RsAFixtureRomSession _scanner;
     private readonly Action<Action> _postToUi;
@@ -274,7 +274,7 @@ internal sealed class RsAUiViewModel : INotifyPropertyChanged, IDisposable
     }
 }
 
-internal enum RsAUiPhase
+public enum RsAUiPhase
 {
     Idle, AwaitingConsent, Running, Cancelling, Complete, Partial,
     Refused, Failed, Offline
