@@ -303,6 +303,123 @@ public sealed class MiAWindowsFixtureTests
     }
 
     [TestMethod]
+    public void MIA_10_P1_RootABSelectionIsolationAndSameRootHistory()
+    {
+        Put("gb/from-a.png");
+        var s = Session();
+        var grantA = Grant(s);
+        var completeA = s.Scan(grantA);
+        Assert.AreEqual(InventoryScanStatus.Complete, completeA.ScanStatus);
+        Assert.AreSame(completeA, s.Current);
+        Assert.AreEqual(1, completeA.ObservedFileCount);
+        var versionA = s.SelectionVersion;
+        var refA = completeA.MediaRootRef;
+
+        var fixtureB = Path.Combine(Path.GetTempPath(),
+            "rm-mia-fixture-" + Guid.NewGuid().ToString("N"));
+        var rootB = Path.Combine(fixtureB, "MEDIAS");
+        Directory.CreateDirectory(rootB);
+        try
+        {
+            // Selection is permission-free; no results from A are exposed under B.
+            s.SelectFixture(rootB, Guid.NewGuid().ToString("D"));
+            Assert.IsTrue(s.SelectionVersion > versionA);
+            Assert.IsNull(s.Current, "Current(A) must not be assigned to root B.");
+            Assert.IsNull(s.LastAttempt, "LastAttempt(A) must not be assigned to B.");
+            Assert.AreEqual(0L, s.LastHeaderBytesRead);
+            Assert.IsFalse(grantA.Valid(_rootId, versionA, grantA.Generation));
+
+            var deniedB = s.Scan(grantA);
+            Assert.AreEqual(InventoryScanStatus.Failed, deniedB.ScanStatus);
+            Assert.AreEqual(InventoryAvailability.Unknown, deniedB.Availability);
+            Assert.IsTrue(deniedB.Diagnostics.Any(x => x.Code == "MI_A_DENIED"));
+            Assert.AreNotEqual(refA, deniedB.MediaRootRef);
+            Assert.IsNull(s.Current);
+            Assert.AreSame(deniedB, s.LastAttempt);
+            Assert.IsFalse(deniedB.Observations.Any(x =>
+                x.RelativePath.Contains("from-a.png", StringComparison.Ordinal)));
+
+            var grantB = Grant(s);
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            var cancelledB = s.Scan(grantB, cancellation.Token);
+            Assert.AreEqual(InventoryScanStatus.Partial, cancelledB.ScanStatus);
+            Assert.IsNull(cancelledB.TotalFileCount);
+            Assert.IsTrue(cancelledB.Diagnostics.Any(x => x.Code == "MI_A_CANCELLED"));
+            Assert.AreEqual(deniedB.MediaRootRef, cancelledB.MediaRootRef);
+            Assert.IsNull(s.Current, "Cancel in B cannot restore Current(A).");
+            Assert.AreSame(cancelledB, s.LastAttempt);
+
+            // Empty B is truly empty only once a fresh, consented Complete is observed.
+            var completeB = s.Scan(grantB);
+            Assert.AreEqual(InventoryScanStatus.Complete, completeB.ScanStatus);
+            Assert.AreEqual(0, completeB.ObservedFileCount);
+            Assert.AreEqual(0, completeB.TotalFileCount);
+            Assert.AreNotEqual(refA, completeB.MediaRootRef);
+            Assert.AreSame(completeB, s.Current);
+            var cancelledAgainB = s.Scan(grantB, cancellation.Token);
+            Assert.AreEqual(InventoryScanStatus.Partial, cancelledAgainB.ScanStatus);
+            Assert.AreSame(completeB, s.Current,
+                "Cancel preserves CurrentComplete only within the same selected root.");
+            Assert.AreSame(cancelledAgainB, s.LastAttempt);
+
+            // A can be reselected only with a NEW version, media-root ref and grant.
+            s.SelectFixture(_root, _rootId);
+            Assert.IsNull(s.Current);
+            Assert.IsNull(s.LastAttempt);
+            var afterReconsentA = s.Scan(Grant(s));
+            Assert.AreEqual(InventoryScanStatus.Complete, afterReconsentA.ScanStatus);
+            Assert.AreEqual(1, afterReconsentA.ObservedFileCount);
+            Assert.AreNotEqual(refA, afterReconsentA.MediaRootRef);
+            Assert.AreNotEqual(completeB.MediaRootRef, afterReconsentA.MediaRootRef);
+            Console.WriteLine("MI_A10_PASS A_COMPLETE_B_SELECT_NO_A_CURRENT B_DENIED_PARTIAL_EMPTY " +
+                "SAME_ROOT_CURRENT_PRESERVED A_RESELECT_REAUTH_REQUIRED");
+        }
+        finally
+        {
+            if (Directory.Exists(fixtureB)) Directory.Delete(fixtureB, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void MIA_11_P1_InFlightOldRootResultCannotPublishIntoNewSelection()
+    {
+        Put("gb/old-root.png");
+        var s = Session();
+        var oldGrant = Grant(s);
+        var oldComplete = s.Scan(oldGrant);
+        Assert.AreEqual(InventoryScanStatus.Complete, oldComplete.ScanStatus);
+        var fixtureB = Path.Combine(Path.GetTempPath(),
+            "rm-mia-fixture-" + Guid.NewGuid().ToString("N"));
+        var rootB = Path.Combine(fixtureB, "MEDIAS");
+        Directory.CreateDirectory(rootB);
+        try
+        {
+            bool switched = false;
+            var oldAttempt = s.Scan(oldGrant, beforeChildOpenForTest: _ =>
+            {
+                if (switched) return;
+                switched = true;
+                s.SelectFixture(rootB, Guid.NewGuid().ToString("D"));
+            });
+            Assert.IsTrue(switched, "A native enumeration must reach the mutation seam.");
+            Assert.AreNotEqual(InventoryScanStatus.Complete, oldAttempt.ScanStatus);
+            Assert.IsNull(s.Current, "Old-root completion must never publish into B.");
+            Assert.IsNull(s.LastAttempt, "Old-root failure must never pollute B's attempts.");
+            var newGrant = Grant(s);
+            var newRun = s.Scan(newGrant);
+            Assert.AreEqual(InventoryScanStatus.Complete, newRun.ScanStatus);
+            Assert.AreNotEqual(oldComplete.MediaRootRef, newRun.MediaRootRef);
+            Assert.AreSame(newRun, s.Current);
+            Console.WriteLine("MI_A11_PASS IN_FLIGHT_A_SELECT_B_STALE_RESULT_DISCARDED");
+        }
+        finally
+        {
+            if (Directory.Exists(fixtureB)) Directory.Delete(fixtureB, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public void MIA_08_StandardPublicGateCannotUseFixtureCapability()
     {
         var result = new MediaIndexApplicationService().ScanConfirmed(
