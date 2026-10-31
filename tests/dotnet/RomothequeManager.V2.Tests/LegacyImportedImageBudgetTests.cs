@@ -31,6 +31,42 @@ public sealed class LegacyImportedImageBudgetTests
     }
 
     [TestMethod]
+    public void LM_02_AxisOnly2049x512RealPngMustBeRefusedBeforeDecode()
+    {
+        // 2049 * 512 = 1,049,088 pixels: area and compressed size stay in budget.
+        // Width alone violates the independent 2048-pixel-per-axis limit.
+        const int width = 2049, height = 512;
+        var image = FakePng(width, height);
+        Assert.IsTrue(image.Length < LegacyImportedImageBudget.MaxCompressedBytes,
+            "LM02_AXIS_ONLY_COMPRESSED_BYTES_WITHIN_BUDGET");
+        Assert.IsTrue((long)width * height < LegacyImportedImageBudget.MaxSourcePixels,
+            "LM02_AXIS_ONLY_SURFACE_WITHIN_BUDGET");
+
+        // Separate reference decode proves this is a genuine decodable PNG,
+        // not a header-only fixture. This is NOT the guarded Decode call.
+        using (var reference = new MemoryStream(image, writable: false))
+        using (var control = new Avalonia.Media.Imaging.Bitmap(reference))
+        {
+            Assert.AreEqual(width, control.PixelSize.Width, "LM02_REFERENCE_WIDTH");
+            Assert.AreEqual(height, control.PixelSize.Height, "LM02_REFERENCE_HEIGHT");
+        }
+
+        var decoderEntered = 0;
+        using var stream = new MemoryStream(image, writable: false);
+        var result = LegacyImportedImageBudget.Decode(stream, LegacyImageSlot.Card,
+            CancellationToken.None, () => Interlocked.Increment(ref decoderEntered));
+        try
+        {
+            Assert.AreEqual("MEDIA_DIMENSIONS_EXCEEDED", result.Reason,
+                "LM02_AXIS_ONLY_MUST_REJECT_WITH_EXACT_REASON");
+            Assert.AreEqual(0, decoderEntered,
+                "LM02_AXIS_ONLY_NATIVE_DECODER_MUST_NOT_BE_ENTERED");
+            Assert.IsNull(result.Bitmap, "LM02_AXIS_ONLY_NO_BITMAP_ADOPTED");
+        }
+        finally { result.Bitmap?.Dispose(); }
+    }
+
+    [TestMethod]
     public void LM_02_Square2048WithinAxisButExceedingAreaMustBeRejected()
     {
         var image = FakePng(2048, 2048);
