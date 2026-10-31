@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-05 / UI MI-B #137 — Preuve native Windows (31.10.2026)
+
+- ViewModel MEDIAS et fenêtre Avalonia internes reliés au service MI-B #136 ; sélection/consentement/Start/Cancel séparés, Current/LastAttempt, isolation A/B, Offline/Stale et diagnostics neutres. Aucun Skia, aucun scan personnel, aucun grant public.
+- [Windows #41209234420](https://github.com/TobbyCy/RomothequeManager/actions/runs/41209234420) : 265 tests PASS, **32 captures PNG** 1120×720 / 760×480 (dont archive Offline/Stale uniquement **visuelle synthétique**), ZIP candidat de 22 fichiers extrait et SHA-256 `3bf5e79fe56d72b60ceb1d6c7541e75344cb95cfd3721fccc9a53fbf90b4ba11`. Source de preuve `2bf05bf2`, workflow éphémère supprimé après SUCCESS. Revue humaine DEV 2 et CI finale sur HEAD sans workflow en attente ; aucune Release.
+
+
 ## NEXT-05 / UI MI-B — DEV 3 / PR #137 (WIP fixtures, 31.10.2026)
 
 - Raccordement MVVM au service interne `IMiBFixtureMediaApplicationService` validé par DEV 2 dans #135 et fusionné via #136 sur `main=e4796b58`. Vue Avalonia MEDIAS séparée du scanner MI-A, de ROMS, de PREVIEW et du catalogue.
