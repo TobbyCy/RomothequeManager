@@ -1,5 +1,18 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / MI-A #127 — P1-MI-A-ROOT-01, séparation racines A/B
+
+Après fusion contrôlée UI-RSA #116, le code MI-A de la PR #127 est synchronisé sur `main=ebc5ebe2`. Chaque sélection MEDIAS possède son `MediaRootRef` opaque et sa génération, les résultats `CurrentComplete`/`LastAttempt` d'A sont invalidés lors du choix B (aucun réemploi comme résultat B) ; une tentative Failed/Partial/Cancel **sans changement de sélection** conserve `CurrentComplete` de cette racine. La publication d'un scan A lancé avant `SelectFixture(B)` est bloquée si version/génération/rootRef ont changé, même après son dernier contrôle d'I/O. Nouvelle sélection ou resélection d'A = nouveau consentement.
+
+Les tests MI-A10/11 couvrent A Complete → B sélectionnée sans permission ni résultat A, B refusée/annulée, B Complete puis Cancel, resélection A et scan A rattrapé par B. **Preuves Windows/CI/ZIP du HEAD corrigé en cours de validation**, MI-A07 ACL/non-admin et MI-A09 USB physique non exécutés. Tous HOLD de production restent fermés.
+
+
+## NEXT-05 / MI-A — Index MEDIAS sécurisé en préparation, FIXTURES ONLY (PR #127)
+
+Contrat [Produit #115](https://github.com/TobbyCy/RomothequeManager/issues/115), implémentation sur une seule branche DEV 1 disjointe de la PR UI-RSA #116. Le nouveau lecteur `MiAFixtureMediaSession` n'est pas câblé dans l'entrée publique `MediaIndexApplicationService` : le `REAL_MEDIA_SCAN_HOLD` reste absolu. Répertoires parcourus par `RsAAnchoredReader` sans changement de ce code ; fichiers ouverts via `NtCreateFile` relatif à un handle de parent puis attributs, nombre de hardlinks, identité du volume et lecture en-têtes depuis **le même handle**. Les fichiers avec plusieurs liens NTFS, noms 8.3 suspects et chemins reparse/traversal sont refusés. PNG/JPEG/WebP : uniquement signatures/dimensions éventuelles, **aucun Skia**. Les plafonds métier sont imposés par MI-A indépendamment des limites plus larges du lecteur historique ; annulation, erreurs et dépassements ne remplacent jamais `Current` complet.
+
+**Preuves non acquises avant résultat CI de la PR #127** : tests Windows MI-A01..06/08, gate Adaptive, ZIP/hash. **MI-A07 ACL/non-admin/FS et MI-A09 déconnexion USB physique restent NOT_EXECUTED**. Aucune certitude de confinement de SSD réel ni permission de lecture personnelle, aucun média modifié, aucune fusion autonome ni Release. Voir `docs/architecture/next05-mia-windows-fixtures.md`.
+
 ## NEXT-05 / DEV 3 — raccordement UI-RSA, fixtures Windows (PR #116)
 
 Le scanner RS-A backend #114 est **fusionné** sur `main=30958b11410a454ce442906b007f6fb2f71414b9` avec [CI push-main #41180639449](https://github.com/TobbyCy/RomothequeManager/actions/runs/41180639449) SUCCESS. Une unique PR Draft DEV 3 #116 présente l'interface *fixture-scoped* RS-A dans la fenêtre Avalonia observée : sélection ROMS sans auto-scan, consentement non persistant et limité à une tentative, commandes Start/Cancel, compteur d'entrées inspectées sans pourcentage fictif, refus et annulation, conservation du `CurrentComplete` lors des tentatives incomplètes et OFFLINE / STALE sans revalidation du support.

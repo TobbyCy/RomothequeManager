@@ -1,5 +1,18 @@
 # Journal des changements
 
+## NEXT-05 / MI-A #127 — correctif P1-MI-A-ROOT-01 après fusion #116
+
+- Synchronisation non destructive depuis `main=ebc5ebe2` (UI-RSA #116 fusionnée) ; permissions RS-A et vue UI préservées.
+- Isolation des observations et des références de portée entre sélections MEDIAS A/B ; `Current` et `LastAttempt` d'une ancienne sélection ne peuvent être réattribués à une nouvelle. Une tentative incomplète sur une **même** sélection conserve son dernier `Current` complet. Publications asynchrones de l'ancien scope rejetées.
+- Canaris MI-A10 et MI-A11 ajoutés : A→B, annulation/refus, conservation sur B et changement de sélection pendant un scan. **Preuves du nouveau HEAD à valider**, aucun accès personnel, grant public ou Release.
+
+
+## NEXT-05 / MI-A — Scanner MEDIAS Windows par handles (PR #127, DRAFT / FIXTURES ONLY)
+
+- Nouvelle session de tests `MediaIndex` interne, grant MEDIAS indépendant de ROMS/PREVIEW, sélection explicite, identité native du handle, version/révocation et refus de tout grant en production.
+- Ouverture des répertoires/fichiers par handles Windows relatifs et refus conservateur reparse/alias/ADS/hardlinks ; lecture d'en-têtes PNG/JPEG/WebP seulement, plafonds MI-A fixes et conservation du dernier Current complet sur tentative dégradée.
+- Tests Windows MI-A01…06/08 ajoutés ; **CI, canaris natifs et ZIP en attente de vérification**. MI-A07 (ACL/non-admin/FS) et MI-A09 (USB physique) **NOT_EXECUTED**. Aucun code RS-A/UI-RSA #116 modifié, ni média personnel, Skia, fusion autonome ou Release.
+
 ## NEXT-05 / UI-RSA Avalonia — DEV 3 / PR #116 (31.10.2026, fixtures uniquement)
 
 - Après fusion du scanner RS-A #114 dans `main=30958b11410a` et [CI push-main #41180639449](https://github.com/TobbyCy/RomothequeManager/actions/runs/41180639449) verte, ajout d'un panneau Avalonia dédié aux **seules fixtures ROMS** : sélection explicite, consentement temporaire non conservé, Start/Cancel, progression sans total inventé, refus, tentative Partial/Failed et état Offline/Stale. View, ViewModel et scanner interne restent séparés ; l'interface n'ouvre aucun fichier source elle-même.
