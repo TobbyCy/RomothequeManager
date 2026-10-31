@@ -186,7 +186,41 @@ public sealed class MiBFixtureMediaApplicationTests
             Assert.AreEqual(0, completeB.LastAttempt.ObservedMediaCount);
             Assert.AreNotEqual(refA, completeB.CurrentComplete!.MediaRootRef);
             Assert.IsFalse(service.RequestCancellation());
-            Console.WriteLine("MI_B02_PASS CANCEL_PRESERVES_CURRENT A_TO_B_LATE_RESULT_DISCARDED");
+
+            // Dispose during a real header-read callback: wait for worker drain,
+            // then forbid any notification or permission restoration.
+            var disposing = new MiBFixtureMediaApplicationService();
+            var closePick = disposing.SelectFixtureRoot(_root);
+            Assert.IsTrue(disposing.ConfirmMediaIndexConsent(closePick.SelectionVersion, true));
+            using var enteredRead = new ManualResetEventSlim(false);
+            using var releaseRead = new ManualResetEventSlim(false);
+            var notifications = 0;
+            disposing.StateChanged += (_, _) => Interlocked.Increment(ref notifications);
+            disposing.AfterHeaderReadForTest = _ =>
+            {
+                enteredRead.Set();
+                releaseRead.Wait(TimeSpan.FromSeconds(10));
+            };
+            var active = disposing.StartConfirmedAsync(closePick.SelectionVersion);
+            try
+            {
+                Assert.IsTrue(enteredRead.Wait(TimeSpan.FromSeconds(10)),
+                    "The fixture worker must enter a native header read before Dispose.");
+                var closing = disposing.DisposeAsync().AsTask();
+                releaseRead.Set();
+                await closing;
+                var afterDispose = Volatile.Read(ref notifications);
+                await active;
+                Assert.AreEqual(afterDispose, Volatile.Read(ref notifications),
+                    "No late StateChanged event is allowed after disposal.");
+                Assert.IsFalse(disposing.ConfirmMediaIndexConsent(closePick.SelectionVersion, true));
+            }
+            finally
+            {
+                releaseRead.Set();
+                await disposing.DisposeAsync();
+            }
+            Console.WriteLine("MI_B02_PASS CANCEL_CURRENT A_TO_B_STALE_DISCARDED DISPOSE_DRAIN_NO_LATE_EVENT");
         }
         finally
         {
