@@ -104,7 +104,8 @@ internal static class Next05MiBGuiHarness
             rectangles.Add(string.Join(",", name,
                 (int)Math.Round(point.X), (int)Math.Round(point.Y),
                 (int)Math.Floor(button.Bounds.Width), (int)Math.Floor(button.Bounds.Height),
-                button.IsEnabled ? "true" : "false", button.IsFocused ? "true" : "false"));
+                button.IsEnabled && button.Command?.CanExecute(button.CommandParameter) == true
+                    ? "true" : "false", button.IsFocused ? "true" : "false"));
         }
         using var bitmap = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
         bitmap.Render(surface);
