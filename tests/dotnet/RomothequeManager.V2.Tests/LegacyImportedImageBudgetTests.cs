@@ -39,6 +39,23 @@ public sealed class LegacyImportedImageBudgetTests
     }
 
     [TestMethod]
+    public void LM_02_2048x1024BoundaryIsValidUnderBothAxisAndAreaCaps()
+    {
+        var image = FakePng(2048, 1024);
+        Assert.IsTrue(LegacyImportedImageBudget.Preflight(image, out _),
+            "LM02_EXACT_TWO_MIP_BOUNDARY_MUST_BE_ACCEPTED");
+    }
+
+    [TestMethod]
+    public void LM_02_CorruptedPngHeaderCrcMustBeRejectedBeforeNativeDecode()
+    {
+        var image = FakePng(128, 128);
+        image[29] ^= 0x80; // mutate IHDR CRC, preserve all dimensions/pixels.
+        Assert.IsFalse(LegacyImportedImageBudget.Preflight(image, out _),
+            "LM02_MALFORMED_IHDR_MUST_NOT_REACH_BITMAP");
+    }
+
+    [TestMethod]
     public void LM_03_SmallValidStaticPngRemainsAccepted()
     {
         var image = FakePng(96, 64);
