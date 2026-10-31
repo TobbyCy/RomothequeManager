@@ -1,5 +1,10 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / DEV 3 — UI MI-B Avalonia, PR #137 (WIP fixtures)
+
+Après fusion backend #136 et CI push-main #41207730129 SUCCESS au HEAD `e4796b58653d721a4e062b80972bc59878607313`, une seule PR UI #137 implémente le ViewModel `MiBUiViewModel` et la fenêtre `MiBFixtureWindow`, raccordés au service interne approuvé par DEV 2 dans #135. La vue ne dispose d'aucun chemin de média public, de grant, de scanner MI-A, de preview ou de Skia. Choix MEDIAS, consentement one-shot, Start/Cancel, progression sans total inventé, CurrentComplete/LastAttempt et isolation A/B sont dans le périmètre. Les 5 tests VM UI-MI-B01..05 sont ajoutés mais **PAS encore validés par CI**. Recette GUI Windows 1120×720 et 760×480, captures natives (24 prévues), ZIP vérifié et revue DEV 2 **NOT_EXECUTED** à ce stade. Les HOLD réels et Release restent absolus ; aucun accès personnel.
+
+
 ## NEXT-05 / MI-B — projection MEDIAS backend interne pour fixtures (#135)
 
 Lot DEV 1, nouvelle branche depuis `main=315ec3a9cff74da4cba25ee48fbfb49d82158bdc` après la fusion #127 (P1-MI-A-ROOT-01 clos). Contrat MI-B [#135](https://github.com/TobbyCy/RomothequeManager/issues/135) approuvé par DEV 2 `MI_B_DTO_APPROVABLE`.
