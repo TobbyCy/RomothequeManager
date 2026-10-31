@@ -94,14 +94,15 @@ internal static class Next05MiBGuiHarness
         {
             var button = window.FindControl<Button>(name) ??
                 throw new InvalidDataException("UI_MIB_CONTROL_MISSING_" + name);
-            var point = button.TranslatePoint(new Point(0, 0), surface);
-            Demand(button.IsVisible && point.HasValue && button.Bounds.Width >= 50 &&
-                button.Bounds.Height >= 35 && point.Value.X >= 0 && point.Value.Y >= 0 &&
-                point.Value.X + button.Bounds.Width < width &&
-                point.Value.Y + button.Bounds.Height < height - 2,
+            var point = button.TranslatePoint(new Point(0, 0), surface) ??
+                throw new InvalidDataException("UI_MIB_BUTTON_POSITION_MISSING_" + name);
+            Demand(button.IsVisible && button.Bounds.Width >= 50 &&
+                button.Bounds.Height >= 35 && point.X >= 0 && point.Y >= 0 &&
+                point.X + button.Bounds.Width < width &&
+                point.Y + button.Bounds.Height < height - 2,
                 "UI_MIB_BUTTON_OUTSIDE_CAPTURE_" + name + "_" + state);
             rectangles.Add(string.Join(",", name,
-                (int)Math.Round(point.Value.X), (int)Math.Round(point.Value.Y),
+                (int)Math.Round(point.X), (int)Math.Round(point.Y),
                 (int)Math.Floor(button.Bounds.Width), (int)Math.Floor(button.Bounds.Height),
                 button.IsEnabled ? "true" : "false", button.IsFocused ? "true" : "false"));
         }
