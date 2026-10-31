@@ -49,6 +49,11 @@
             <Setter Property="Foreground" Value="#C5D0C7"/>
             <Setter Property="Background" Value="#304037"/>
             <Setter Property="BorderBrush" Value="#718B78"/>
+            <Setter Property="Opacity" Value="1"/>
+          </Style>
+          <Style Selector="Button:disabled /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="#E4F0E5"/>
+            <Setter Property="Opacity" Value="1"/>
           </Style>
           <Style Selector="Button:focus">
             <Setter Property="BorderBrush" Value="#C6FFDC"/>
@@ -64,7 +69,13 @@
             <Setter Property="Foreground" Value="#FFFFFF"/>
           </Style>
           <Style Selector="CheckBox:disabled">
-            <Setter Property="Foreground" Value="#C5D0C7"/>
+            <Setter Property="Foreground" Value="#E4F0E5"/>
+            <Setter Property="BorderBrush" Value="#9AC6A3"/>
+            <Setter Property="Opacity" Value="1"/>
+          </Style>
+          <Style Selector="CheckBox:disabled /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="#E4F0E5"/>
+            <Setter Property="Opacity" Value="1"/>
           </Style>
         </Border.Styles>
         <StackPanel Spacing="9">
