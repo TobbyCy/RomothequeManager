@@ -2,9 +2,9 @@
 
 ## NEXT-05 / MI-B — DTO et adaptateur backend MEDIAS (PR DEV 1, fixtures uniquement)
 
-- DTO **internes** \`MiBMediaRow\`, \`MiBRunView\`, \`MiBProjectionState\` : en-têtes PNG/JPEG/WebP non décodés, observations en lecture seule, comptes de médias observés distincts des totaux connus, champs inconnus/Partial explicites, codes diagnostics allowlist et labels sans chemin source.
-- Service \`IMiBFixtureMediaApplicationService\` : sélection MEDIAS fictive sans I/O de fichier, consentement distinct / volatile et à usage unique via \`MiAReadGrant(MediaIndex)\`, Start hors thread UI, annulation/Dispose, notifications versionnées et prévention de publications tardives A/B ; réutilisation **exclusive** du scanner MI-A déjà fusionné #127.
-- \`CurrentComplete\` distinct de \`LastAttempt\` sur une même racine ; changement de sélection purge A, Offline/Stale historiques en projection **mémoire fixture uniquement**, sans SQLite MEDIAS, aucun auto-scan/regrant.
+- DTO **internes** `MiBMediaRow`, `MiBRunView`, `MiBProjectionState` : en-têtes PNG/JPEG/WebP non décodés, observations en lecture seule, comptes de médias observés distincts des totaux connus, champs inconnus/Partial explicites, codes diagnostics allowlist et labels sans chemin source.
+- Service `IMiBFixtureMediaApplicationService` : sélection MEDIAS fictive sans I/O de fichier, consentement distinct / volatile et à usage unique via `MiAReadGrant(MediaIndex)`, Start hors thread UI, annulation/Dispose, notifications versionnées et prévention de publications tardives A/B ; réutilisation **exclusive** du scanner MI-A déjà fusionné #127.
+- `CurrentComplete` distinct de `LastAttempt` sur une même racine ; changement de sélection purge A, Offline/Stale historiques en projection **mémoire fixture uniquement**, sans SQLite MEDIAS, aucun auto-scan/regrant.
 - Tests MI-B01–04 ajoutés (fixtures Windows synthétiques, budgets, diagnostics, refus public, mutation de collections). **Preuves Windows, CI et ZIP du HEAD à constater avant revue DEV 2**, aucun Skia/permission réelle/fusion autonome/Release.
 
 
