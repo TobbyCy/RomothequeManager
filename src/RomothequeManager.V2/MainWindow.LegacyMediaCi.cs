@@ -15,13 +15,15 @@ public sealed partial class MainWindow
         return _importedUi.TotalCount == expectedGames;
     }
 
-    internal bool CiLegacyOpenFirst()
+    internal bool CiLegacyOpenFirst() => CiLegacyOpenIndex(0);
+
+    internal bool CiLegacyOpenIndex(int index)
     {
-        var first = _importedUi.PageGames.FirstOrDefault();
-        if (first is null) return false;
-        OpenImportedGame(first.GameId);
+        var selected = _importedUi.PageGames.Skip(index).FirstOrDefault();
+        if (selected is null) return false;
+        OpenImportedGame(selected.GameId);
         return _importedUi.CurrentView == POCView.GameDetail &&
-            _importedUi.SelectedGameId == first.GameId;
+            _importedUi.SelectedGameId == selected.GameId;
     }
 
     internal bool CiLegacyShowCollection()
