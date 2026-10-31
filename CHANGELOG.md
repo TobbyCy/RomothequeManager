@@ -2,8 +2,8 @@
 
 ## NEXT-05 / UI MI-B #137 — Preuve native Windows (31.10.2026)
 
-- ViewModel MEDIAS et fenêtre Avalonia internes reliés au service MI-B #136 ; sélection/consentement/Start/Cancel séparés, Current/LastAttempt, isolation A/B, Offline/Stale et diagnostics neutres. Aucun Skia, aucun scan personnel, aucun grant public.
-- [Windows #41209234420](https://github.com/TobbyCy/RomothequeManager/actions/runs/41209234420) : 265 tests PASS, **32 captures PNG** 1120×720 / 760×480 (dont archive Offline/Stale uniquement **visuelle synthétique**), ZIP candidat de 22 fichiers extrait et SHA-256 `3bf5e79fe56d72b60ceb1d6c7541e75344cb95cfd3721fccc9a53fbf90b4ba11`. Source de preuve `2bf05bf2`, workflow éphémère supprimé après SUCCESS. Revue humaine DEV 2 et CI finale sur HEAD sans workflow en attente ; aucune Release.
+- ViewModel MEDIAS et fenêtre Avalonia internes reliés au service MI-B #136 ; sélection/consentement/Start/Cancel séparés, Current/LastAttempt, isolation A/B, Offline/Stale et diagnostics neutres ; « Annulée » seulement avec `MI_A_CANCELLED`, Partial/Failed sans faux succès. Aucun Skia, aucun scan personnel, aucun grant public.
+- [Windows #41209890799](https://github.com/TobbyCy/RomothequeManager/actions/runs/41209890799) : 265 tests PASS, **32 captures PNG** 1120×720 / 760×480 (dont archive Offline/Stale uniquement **visuelle synthétique**), ZIP candidat de 22 fichiers extrait et SHA-256 `5c28704fd694567114e4b701967ac91c79089a0ad85947f0e8aa3f80b0453fc5`. Source de preuve `041110da`, workflow éphémère supprimé après SUCCESS. Revue humaine DEV 2 et CI finale sur HEAD sans workflow en attente ; aucune Release.
 
 
 ## NEXT-05 / UI MI-B — DEV 3 / PR #137 (WIP fixtures, 31.10.2026)
