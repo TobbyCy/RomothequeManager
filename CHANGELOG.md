@@ -1,5 +1,18 @@
 # Journal des changements
 
+## NEXT-05 / UI MI-B #137 — Preuve native Windows (31.10.2026)
+
+- ViewModel MEDIAS et fenêtre Avalonia internes reliés au service MI-B #136 ; sélection/consentement/Start/Cancel séparés, Current/LastAttempt, isolation A/B, Offline/Stale et diagnostics neutres ; « Annulée » seulement avec `MI_A_CANCELLED`, Partial/Failed sans faux succès. Aucun Skia, aucun scan personnel, aucun grant public.
+- [Windows #41209890799](https://github.com/TobbyCy/RomothequeManager/actions/runs/41209890799) : 265 tests PASS, **32 captures PNG** 1120×720 / 760×480 (dont archive Offline/Stale uniquement **visuelle synthétique**), ZIP candidat de 22 fichiers extrait et SHA-256 `5c28704fd694567114e4b701967ac91c79089a0ad85947f0e8aa3f80b0453fc5`. Source de preuve `041110da`, workflow éphémère supprimé après SUCCESS. Revue humaine DEV 2 et CI finale sur HEAD sans workflow en attente ; aucune Release.
+
+
+## NEXT-05 / UI MI-B — DEV 3 / PR #137 (WIP fixtures, 31.10.2026)
+
+- Raccordement MVVM au service interne `IMiBFixtureMediaApplicationService` validé par DEV 2 dans #135 et fusionné via #136 sur `main=e4796b58`. Vue Avalonia MEDIAS séparée du scanner MI-A, de ROMS, de PREVIEW et du catalogue.
+- Sélection MEDIAS explicite, consentement volatil distinct, Start one-shot, Cancel, progression indéterminée, CurrentComplete et LastAttempt distincts, filtrage des notifications tardives par version et génération, labels sûrs et Offline/Stale sans regrant. En-têtes uniquement, sans Skia.
+- Tests UI-MI-B01..05 ajoutés ; **CI et captures natives Windows non encore prouvées**, fenêtre CI-only et 24 captures restent à intégrer et à vérifier avant APPROVABLE. PR Draft, aucune fusion autonome, permission publique, accès personnel ni Release.
+
+
 ## NEXT-05 / MI-B — DTO et adaptateur backend MEDIAS (PR DEV 1, fixtures uniquement)
 
 - DTO **internes** `MiBMediaRow`, `MiBRunView`, `MiBProjectionState` : en-têtes PNG/JPEG/WebP non décodés, observations en lecture seule, comptes de médias observés distincts des totaux connus, champs inconnus/Partial explicites, codes diagnostics allowlist et labels sans chemin source.

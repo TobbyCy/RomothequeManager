@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ x:Class="RomothequeManager.V2.MvvmFoundation.MiBFixtureWindow"
+ x:CompileBindings="False" Title="NEXT-05 · MEDIAS fictifs" Width="1120" Height="720"
+ MinWidth="760" MinHeight="480" Background="#16181D" Foreground="#E8E6E3">
+ <ScrollViewer x:Name="RootScroll">
+  <StackPanel Margin="20" Spacing="12">
+   <TextBlock FontSize="23" FontWeight="Bold" Text="MI-B · MEDIAS · FIXTURES UNIQUEMENT" TextWrapping="Wrap"/>
+   <TextBlock Text="MEDIAS est indépendant de ROMS et PREVIEW. Aucun accès personnel, aperçu ou jaquette automatique." TextWrapping="Wrap"/>
+   <WrapPanel>
+    <Button x:Name="MiBSelect" Content="1 · Sélectionner MEDIAS fictif" Command="{Binding SelectCommand}" MinHeight="40" Margin="0,0,8,4"/>
+    <Button x:Name="MiBConsent" Content="2 · Consentement ponctuel" Command="{Binding ConfirmCommand}" MinHeight="40" Margin="0,0,8,4"/>
+    <Button x:Name="MiBStart" Content="3 · Start" Command="{Binding StartCommand}" MinHeight="40" Margin="0,0,8,4"/>
+    <Button x:Name="MiBCancel" Content="Cancel" Command="{Binding CancelCommand}" MinHeight="40"/>
+   </WrapPanel>
+   <TextBlock Text="{Binding SelectionLabel}" TextWrapping="Wrap"/>
+   <TextBlock x:Name="MiBConsentLabel" Text="{Binding ConsentLabel}" TextWrapping="Wrap"/>
+   <ProgressBar Height="8" IsVisible="{Binding IsBusy}" IsIndeterminate="{Binding ProgressIndeterminate}"/>
+   <TextBlock x:Name="MiBPhase" Text="{Binding PhaseLabel}" FontWeight="Bold" TextWrapping="Wrap"/>
+   <TextBlock Text="{Binding ProgressLabel}" TextWrapping="Wrap"/>
+   <TextBlock Text="{Binding AvailabilityLabel}" TextWrapping="Wrap"/>
+   <TextBlock Text="{Binding DiagnosticLabel}" TextWrapping="Wrap"/>
+   <WrapPanel>
+    <Button Content="CurrentComplete" Command="{Binding ShowCurrentCommand}" MinHeight="40" Margin="0,0,8,4"/>
+    <Button Content="LastAttempt" Command="{Binding ShowAttemptCommand}" MinHeight="40"/>
+   </WrapPanel>
+   <TextBlock Text="{Binding DisplayModeLabel}" TextWrapping="Wrap"/>
+   <TextBlock Text="Les compteurs inconnus ne prouvent aucune absence. Offline/Stale n'autorise jamais un nouveau scan." TextWrapping="Wrap"/>
+   <ItemsControl ItemsSource="{Binding Rows}">
+    <ItemsControl.ItemTemplate>
+     <DataTemplate>
+      <Border Background="#252B33" CornerRadius="5" Padding="8" Margin="0,3">
+       <StackPanel Spacing="3">
+        <TextBlock Text="{Binding DisplayLabel}" TextWrapping="Wrap" FontWeight="Bold"/>
+        <WrapPanel>
+         <TextBlock Text="{Binding PlatformKey}" Margin="0,0,12,0"/>
+         <TextBlock Text="{Binding Format}" Margin="0,0,12,0"/>
+         <TextBlock Text="{Binding HeaderValidated}"/>
+        </WrapPanel>
+       </StackPanel>
+      </Border>
+     </DataTemplate>
+    </ItemsControl.ItemTemplate>
+   </ItemsControl>
+  </StackPanel>
+ </ScrollViewer>
+</Window>

@@ -1,5 +1,18 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / DEV 3 — UI MI-B #137 : preuve Windows native (31.10.2026)
+
+- Contrat #135, service backend #136 fusionné et validé ; base `main=e4796b58653d721a4e062b80972bc59878607313`. UI fixture-only : `MiBUiViewModel` → `IMiBFixtureMediaApplicationService`, fenêtre MEDIAS distincte, sélection, consentement one-shot, Start/Cancel, progression indéterminée, CurrentComplete/LastAttempt, isolation A/B et affichage Offline/Stale sans regrant. Le libellé « Annulée » exige explicitement `MI_A_CANCELLED` ; les tentatives Partial/Failed ne sont jamais présentées comme des scans réussis.
+- [Preuve Windows native #41209890799](https://github.com/TobbyCy/RomothequeManager/actions/runs/41209890799), source `041110da43d80e62df14c94fb1b150cab07fd1ab` : **265/265 tests PASS** dont UI-MI-B01..05, **32 PNG réels** à 1120×720 et 760×480 (Idle, sélection/consentement A/B, Running, Complete, Current/LastAttempt, annulation et Offline/Stale *visuel sur DTO synthétique*, sans regrant). Capture Offline/Stale = **test visuel d'archive simulée**, non preuve d'un backend SQLite MEDIAS ou de reprise d'accès réel.
+- Artefact temporaire [NEXT05-UI-MIB-Windows-Fixtures](https://github.com/TobbyCy/RomothequeManager/actions/runs/41209890799/artifacts/13046320711) : ZIP candidat en quarantaine, 22 fichiers, extraction et SHA-256 vérifiés `5c28704fd694567114e4b701967ac91c79089a0ad85947f0e8aa3f80b0453fc5`. EXE normal reconstruit sans `NEXT05_CI`. Workflow de preuve temporaire supprimé de la branche après SUCCESS, sans modification des sources testées ; **CI Adaptive du HEAD final et inspection humaine indépendante des PNG par DEV 2 restent requises**.
+- Aucun scan personnel, aucun Skia/preview, aucun droit public, aucune fusion autonome ou Release. HOLD : `REAL_LIBRARY_SCAN_HOLD`, `REAL_MEDIA_SCAN_HOLD`, `REAL_MEDIA_PREVIEW_HOLD`, `REAL_CATALOG_STORAGE_HOLD`, `NEXT05_RELEASE_HOLD`.
+
+
+## NEXT-05 / DEV 3 — UI MI-B Avalonia, PR #137 (WIP fixtures)
+
+Après fusion backend #136 et CI push-main #41207730129 SUCCESS au HEAD `e4796b58653d721a4e062b80972bc59878607313`, une seule PR UI #137 implémente le ViewModel `MiBUiViewModel` et la fenêtre `MiBFixtureWindow`, raccordés au service interne approuvé par DEV 2 dans #135. La vue ne dispose d'aucun chemin de média public, de grant, de scanner MI-A, de preview ou de Skia. Choix MEDIAS, consentement one-shot, Start/Cancel, progression sans total inventé, CurrentComplete/LastAttempt et isolation A/B sont dans le périmètre. Les 5 tests VM UI-MI-B01..05 sont ajoutés mais **PAS encore validés par CI**. Recette GUI Windows 1120×720 et 760×480, captures natives (24 prévues), ZIP vérifié et revue DEV 2 **NOT_EXECUTED** à ce stade. Les HOLD réels et Release restent absolus ; aucun accès personnel.
+
+
 ## NEXT-05 / MI-B — projection MEDIAS backend interne pour fixtures (#135)
 
 Lot DEV 1, nouvelle branche depuis `main=315ec3a9cff74da4cba25ee48fbfb49d82158bdc` après la fusion #127 (P1-MI-A-ROOT-01 clos). Contrat MI-B [#135](https://github.com/TobbyCy/RomothequeManager/issues/135) approuvé par DEV 2 `MI_B_DTO_APPROVABLE`.
