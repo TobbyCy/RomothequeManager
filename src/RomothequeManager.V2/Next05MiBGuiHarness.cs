@@ -208,7 +208,8 @@ internal static class Next05MiBGuiHarness
                 Pair(window, output, "CancellingB");
                 await secondB;
                 await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
-                Demand(vm.CurrentComplete?.RunRef is { } currentB &&
+                var currentB = vm.CurrentComplete?.RunRef;
+                Demand(currentB is not null &&
                     currentB != currentA.RunRef, "UI_MIB02_CURRENT_B_LOST");
                 Demand(vm.DiagnosticLabel == "MI_A_CANCELLED" &&
                     vm.PhaseLabel.Contains("Annulée", StringComparison.Ordinal) &&
