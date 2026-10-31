@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / DEV 1 — G1 permissions ROMS/MEDIAS/PREVIEW : PR #143 (31.10.2026)
+
+- Après #139 MERGED et CI post-fusion main #41228537170 SUCCESS, première PR G1 **tests seuls** : `PERM-F01` (types et instances de grants ROMS/MEDIAS, témoins positifs), `PERM-F02` (PREVIEW non hérité, portes publiques), `PERM-F03` (null/consentement/expiry/revoke/reselect/one-shot), `PERM-F04` (SQLite reopen Offline/Stale, UI réelle sans consentement, commandes CLI non autorisées en smoke produit). Utilise les vraies classes du produit et uniquement des fichiers synthétiques générés sous %TEMP% ; aucune substitution de service/mock.
+- **Statut : en validation CI et revue DEV 2**, pas de PASS annoncé sans résultats effectifs. Ce lot n'active aucun accès personnel et ne valide pas non-admin/ACL NTFS, exFAT, SSD USB physique ou PREVIEW réel ; `REAL_LIBRARY_SCAN_HOLD / REAL_MEDIA_SCAN_HOLD / REAL_MEDIA_PREVIEW_HOLD / REAL_CATALOG_STORAGE_HOLD / NEXT05_RELEASE_HOLD` préservés.
+
+
 ## NEXT-05 / DEV 3 — #139 : preuve clavier Tab / Shift+Tab native Windows (31.10.2026)
 
 - **Dernier gate DEV 2** sur les deux correctifs P1 UI MI-B : `KEYBOARD_EVIDENCE_NOT_EXECUTED` au HEAD antérieur `5ccfcff8`, sans P0/P1 fonctionnel nouveau ; GO Contrôleur ciblé pour preuve *réellement exécutée* dans la **même PR #139**. Les deux P1 d'origine (six commandes invisibles et annulation prise pour OFFLINE/STALE) restent inchangés et conservés.
