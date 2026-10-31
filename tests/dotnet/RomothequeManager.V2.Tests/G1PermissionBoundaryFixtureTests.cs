@@ -387,4 +387,79 @@ public sealed class G1PermissionBoundaryFixtureTests
         StringAssert.Contains(stdout, "POC_WINDOW_OPENED_PASS");
         Console.WriteLine("PERM_F04_PASS SQLITE_REOPEN_OFFLINE_STALE_UI_NO_CONSENT_PRODUCT_CLI_FLAGS_IGNORED");
     }
+
+    // Gate G1 P1-ONE-SHOT: an explicit negative oracle, intentionally FAILS if
+    // a live RS-A grant can be replayed without revoke/reselect/reconsent.
+    // The expected failure is a security finding, never a green canary.
+    [TestMethod]
+    public void PERM_G1_REPLAY_RSA_SecondDirectScanWithSameLiveGrantMustBeDenied()
+    {
+        var session = Roms();
+        var grant = RomGrant(session, expiresSeconds: 120);
+
+        var first = session.Scan(grant);
+        Assert.AreEqual(InventoryScanStatus.Complete, first.ScanStatus,
+            "G1_PRECONDITION_RSA_FIRST_SCAN_NOT_COMPLETE");
+        Assert.AreEqual(1, first.ObservedFileCount,
+            "G1_PRECONDITION_RSA_FIXTURE_NOT_OBSERVED");
+        Assert.IsTrue(grant.Valid(_romId, session.SelectionVersion),
+            "G1_PRECONDITION_RSA_GRANT_NOT_LIVE_BEFORE_REPLAY");
+
+        // EXACT SAME object, SAME session, SAME root, SAME selection,
+        // no Revoke/AuthorizeFixture/SelectFixture between calls.
+        var replay = session.Scan(grant);
+        var replayAccepted = replay.ScanStatus == InventoryScanStatus.Complete;
+        Console.WriteLine("G1_RSA_DIRECT_GRANT_REPLAY " +
+            "first=" + first.ScanStatus + " second=" + replay.ScanStatus +
+            " secondObservations=" + replay.ObservedFileCount +
+            " sameGrant=true sameSession=true revokedBetween=false");
+        if (replayAccepted)
+            Assert.Fail("P1_G1_RSA_ONE_SHOT_BYPASS: replayed same live grant performed " +
+                replay.ObservedFileCount + " synthetic metadata observation(s) " +
+                "without renewed consent/revocation. STOP: owner GO required for permission fix.");
+
+        RomDenied(replay);
+        Assert.AreSame(first, session.Current,
+            "Denied replay must preserve the previous CurrentComplete.");
+        Console.WriteLine("G1_RSA_DIRECT_GRANT_REPLAY_REFUSED");
+    }
+
+    // Gate G1 P1-ONE-SHOT: actual MI-A header bytes read by the SAME token
+    // are the causal oracle. A second Complete is a red security regression.
+    [TestMethod]
+    public void PERM_G1_REPLAY_MIA_SecondDirectScanWithSameLiveGrantMustBeDenied()
+    {
+        var session = Medias();
+        var grant = MediaGrant(session, expiresSeconds: 120);
+
+        var first = session.Scan(grant);
+        Assert.AreEqual(InventoryScanStatus.Complete, first.ScanStatus,
+            "G1_PRECONDITION_MIA_FIRST_SCAN_NOT_COMPLETE");
+        Assert.AreEqual(1, first.ObservedFileCount,
+            "G1_PRECONDITION_MIA_FIXTURE_NOT_OBSERVED");
+        var firstBytes = session.LastHeaderBytesRead;
+        Assert.IsTrue(firstBytes > 0, "G1_PRECONDITION_MIA_NO_HEADER_BYTES");
+        Assert.IsTrue(grant.Valid(_mediaId, session.SelectionVersion, grant.Generation),
+            "G1_PRECONDITION_MIA_GRANT_NOT_LIVE_BEFORE_REPLAY");
+
+        var replay = session.Scan(grant);
+        var replayBytes = session.LastHeaderBytesRead;
+        var replayAccepted = replay.ScanStatus == InventoryScanStatus.Complete;
+        Console.WriteLine("G1_MIA_DIRECT_GRANT_REPLAY " +
+            "first=" + first.ScanStatus + " second=" + replay.ScanStatus +
+            " firstHeaderBytes=" + firstBytes +
+            " secondHeaderBytes=" + replayBytes +
+            " secondObservations=" + replay.ObservedFileCount +
+            " sameGrant=true sameSession=true revokedBetween=false");
+        if (replayAccepted)
+            Assert.Fail("P1_G1_MIA_ONE_SHOT_BYPASS: replayed same live grant read " +
+                replayBytes + " synthetic header bytes without renewed consent/revocation. " +
+                "STOP: owner GO required for permission fix.");
+
+        MediaDenied(replay);
+        Assert.AreEqual(0L, replayBytes, "G1_MIA_READ_AFTER_DENIED_REPLAY");
+        Assert.AreSame(first, session.Current,
+            "Denied replay must preserve the previous CurrentComplete.");
+        Console.WriteLine("G1_MIA_DIRECT_GRANT_REPLAY_REFUSED");
+    }
 }
