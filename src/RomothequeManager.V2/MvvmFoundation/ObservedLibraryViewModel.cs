@@ -57,7 +57,8 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     public bool HasRestoredSession => _restored is not null;
     public bool HasLiveMediaPanel => _restored is null && _rsa is null;
     private InventorySnapshot? DisplayedSnapshot => _restored is not null
-        ? _restored.DisplayedInventory : _rsa?.DisplayedSnapshot ?? _inventory.DisplayedSnapshot;
+        ? _restored.DisplayedInventory : _rsa is not null
+        ? _rsa.DisplayedSnapshot : _inventory.DisplayedSnapshot;
     private IReadOnlyList<FileObservation> DisplayedObservations =>
         DisplayedSnapshot?.Observations ?? Array.Empty<FileObservation>();
     public MediaPanelViewModel Media { get; }
@@ -155,6 +156,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     }
     public string SelectedName => _selected?.ProvisionalLabel ?? "Aucun fichier sélectionné";
     public string SnapshotStatus => _restored is not null ? _restored.StatusLabel :
+        _rsa is { IsOffline: true } ? _rsa.SnapshotLabel :
         DisplayedSnapshot is { } s
         ? "Inventaire " + s.ScanStatus + " · disponibilité " + s.Availability +
           " · fraîcheur " + s.Freshness + " · capturé " + s.CapturedAtUtc.ToString("u")
@@ -168,8 +170,8 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     public string PlatformSummary => Summarize(x => x.PlatformKey);
     public string ExtensionSummary => Summarize(x => x.Extension);
     public string TypeSummary => Summarize(x => x.Kind.ToString());
-    public string GenerationLabel => _restored is null
-        ? _inventory.DisplayedGenerationText : _restored.StatusLabel;
+    public string GenerationLabel => _restored is not null ? _restored.StatusLabel
+        : _rsa is not null ? _rsa.SnapshotLabel : _inventory.DisplayedGenerationText;
     public IReadOnlyList<InventoryDiagnostic> Diagnostics =>
         DisplayedSnapshot?.Diagnostics ?? Array.Empty<InventoryDiagnostic>();
     public IReadOnlyList<InventoryCoverage> Coverage =>
