@@ -111,6 +111,9 @@ internal static class Program
 #if NEXT05_CI
         if (args.Contains("--ci-next05-mib-gui", StringComparer.Ordinal))
             Next05MiBGuiHarness.Configure(window);
+        // #141: temporary native evidence entrypoint; absent from normal EXE.
+        if (args.Contains("--ci-next05-legacy-media", StringComparer.Ordinal))
+            Next05LegacyMediaHarness.Configure(window);
         // Native RS-A fixture UI recipe. The production build has no such entrypoint.
         if (args.Contains("--ci-next05-rsa-gui", StringComparer.Ordinal))
             Next05RsAGuiHarness.Configure(window);
