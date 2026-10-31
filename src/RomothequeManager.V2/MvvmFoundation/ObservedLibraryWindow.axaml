@@ -15,10 +15,27 @@
           <TextBlock FontSize="20" FontWeight="Bold" Text="NEXT-05 · INVENTAIRE AUTONOME DES FICHIERS" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding ModeNotice}" TextWrapping="Wrap"/>
           <TextBlock Text="Fichier observé ≠ jeu identifié ≠ association candidate. Aucun XML ES-DE nécessaire." TextWrapping="Wrap"/>
-          <TextBlock Text="Sans persistance : la session et les résultats disparaissent à la fermeture. Aucun fichier source modifié." TextWrapping="Wrap"/>
+          <TextBlock Text="Sans persistance active : la session en cours disparaît à la fermeture. Aucun fichier source modifié." TextWrapping="Wrap" IsVisible="{Binding HasLiveMediaPanel}"/>
         </StackPanel>
       </Border>
-      <Border Background="#23262B" CornerRadius="8" Padding="15">
+      <Border x:Name="RestoredStatusPanel" Background="#24333E" BorderBrush="#667A8B"
+              BorderThickness="1" CornerRadius="8" Padding="14" IsVisible="{Binding HasRestoredSession}">
+        <StackPanel Spacing="8">
+          <TextBlock FontSize="18" FontWeight="Bold" Text="Collection SQLite sauvegardée · consultation hors ligne"/>
+          <TextBlock x:Name="RestoredStatusBanner" Text="{Binding RestoredSession.StatusLabel}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding RestoredSession.AttemptLabel}" TextWrapping="Wrap"/>
+          <WrapPanel>
+            <Button Content="Dernier complet sauvegardé" Command="{Binding RestoredSession.ShowCompleteCommand}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Dernière tentative sauvegardée" Command="{Binding RestoredSession.ShowAttemptCommand}"
+                    MinHeight="40"/>
+          </WrapPanel>
+          <TextBlock Text="OFFLINE / STALE : aucune présence actuelle, aucun scan ni aperçu automatique."
+                     TextWrapping="Wrap" Foreground="#C2CED9"/>
+        </StackPanel>
+      </Border>
+      <Border x:Name="LiveInventoryPanel" Background="#23262B" CornerRadius="8"
+              Padding="15" IsVisible="{Binding HasLiveMediaPanel}">
         <StackPanel Spacing="9">
           <TextBlock Text="1 · Choisir → confirmer → inventorier en lecture seule" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
           <WrapPanel>
@@ -126,7 +143,7 @@
           <WrapPanel>
             <TextBlock Text="Type : " FontWeight="Bold"/>
             <TextBlock Text="{Binding SelectedRow.Observation.Kind}" Margin="0,0,12,0"/>
-            <TextBlock Text="Disponibilité : " FontWeight="Bold"/>
+            <TextBlock Text="Disponibilité à la capture : " FontWeight="Bold"/>
             <TextBlock Text="{Binding SelectedRow.Observation.Availability}"/>
           </WrapPanel>
           <TextBlock Text="{Binding SelectedRow.Observation.SizeBytes, StringFormat='Taille observée : {0} octets'}" TextWrapping="Wrap"/>
@@ -139,7 +156,40 @@
           <TextBlock Text="Jeu identifié : non établi · aucune identité commerciale certifiée." TextWrapping="Wrap"/>
           <TextBlock Text="Association candidate : non établie · aucun rapprochement automatique." TextWrapping="Wrap"/>
           <TextBlock Text="{Binding MediaNotice}" TextWrapping="Wrap"/>
-          <Border x:Name="MediaPanel" Background="#1B1F25" BorderBrush="#424A54" BorderThickness="1" CornerRadius="8" Padding="12">
+          <Border x:Name="RestoredCoverPanel" IsVisible="{Binding HasRestoredSession}"
+                  Background="#1B1F25" BorderBrush="#667A8B" BorderThickness="1"
+                  CornerRadius="8" Padding="12">
+            <StackPanel Spacing="8">
+              <TextBlock FontSize="18" FontWeight="Bold" Text="Jaquette · association manuelle SQLite"/>
+              <TextBlock x:Name="RestoredCoverStatus" Text="{Binding RestoredSession.CurrentChoiceLabel}"
+                         FontWeight="Bold" TextWrapping="Wrap"/>
+              <TextBlock Text="Candidates historiques d'une racine MEDIAS fictive. Aucune image chargée ni présence actuelle certifiée."
+                         TextWrapping="Wrap"/>
+              <ListBox x:Name="SavedCoverChoices" ItemsSource="{Binding RestoredSession.Candidates}"
+                       SelectedItem="{Binding RestoredSession.SelectedCandidate, Mode=TwoWay}"
+                       MinHeight="65" MaxHeight="175">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SavedCoverCandidate">
+                    <TextBlock Text="{Binding Caption}" Margin="5" TextWrapping="Wrap"/>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <CheckBox Content="Je confirme explicitement cette décision sur la fixture fictive"
+                        Foreground="#E8EEF5"
+                        IsChecked="{Binding RestoredSession.Confirmation, Mode=TwoWay}"/>
+              <WrapPanel>
+                <Button Content="Enregistrer l'association" Command="{Binding RestoredSession.SaveCommand}"
+                        MinHeight="40" Margin="0,0,8,4"/>
+                <Button Content="Révoquer le choix actuel" Command="{Binding RestoredSession.RevokeCommand}"
+                        MinHeight="40"/>
+              </WrapPanel>
+              <TextBlock x:Name="RestoredSaveStatus" Text="{Binding RestoredSession.SaveStatus}"
+                         TextWrapping="Wrap"/>
+              <TextBlock Text="Choix historiques uniquement : pas de preview, modification ROM/MEDIAS ni rapprochement automatique."
+                         Foreground="#AAB2BF" TextWrapping="Wrap"/>
+            </StackPanel>
+          </Border>
+          <Border x:Name="MediaPanel" IsVisible="{Binding HasLiveMediaPanel}" Background="#1B1F25" BorderBrush="#424A54" BorderThickness="1" CornerRadius="8" Padding="12">
             <StackPanel Spacing="8">
               <TextBlock Text="Médias locaux · preuves et aperçus" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
               <TextBlock Text="Aucune jaquette associée automatiquement. Un aperçu ne constitue pas une approbation." Foreground="#AAB2BF" TextWrapping="Wrap"/>

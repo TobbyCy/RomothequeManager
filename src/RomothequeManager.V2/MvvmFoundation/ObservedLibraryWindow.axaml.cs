@@ -81,6 +81,14 @@ public partial class ObservedLibraryWindow : Window
 
     internal ObservedLibraryViewModel ModelForCi => _vm;
 
+    internal void AttachRestoredForCi(RestoredCatalogSession session)
+    {
+        _vm.AttachRestoredForCi(session);
+        this.FindControl<Button>("ChooseFixtureButton")!.IsVisible = false;
+        this.FindControl<ComboBox>("FixtureChoices")!.IsVisible = false;
+        this.FindControl<Button>("ChooseFolderButton")!.IsVisible = false;
+    }
+
     internal InventorySelectionResult SelectFixtureForCi(string key,
         Action<int>? chunkObserved = null,
         IReadOnlyDictionary<string, string>? platformAliases = null)
@@ -145,7 +153,7 @@ public partial class ObservedLibraryWindow : Window
     private void ChooseFixture_OnClick(object? sender, RoutedEventArgs e)
     {
 #if NEXT05_CI
-        if (!_inventoryVm.CanChangeFolder) return;
+        if (!_inventoryVm.CanChangeFolder || _vm.HasRestoredSession) return;
         var selected = this.FindControl<ComboBox>("FixtureChoices")?.SelectedIndex ?? -1;
         var name = selected switch
         {

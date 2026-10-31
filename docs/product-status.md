@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / DEV 3 — Avalonia SQLite IDEAL (PR #112, DRAFT, non reçue)
+
+GO Contrôleur pour une **seule PR** de raccordement UI sur fixtures IDEAL depuis `main=24be5715` après fusion de #110/#111 et CI verte. La session historique `RestoredCatalogSession` lit `ICatalogStore.LoadLastKnown` sans ROMS/MEDIAS ; les vues Dashboard/Collection/Fiche réutilisent `ObservedLibraryViewModel` et `InventoryObservationProjection`, en indiquant **OFFLINE / STALE** et dernier `CurrentComplete` distinct de `LastAttempt`. La fiche propose les jaquettes d'un index fictif persisté, confirmation puis `SaveManualDecision(..., true)`, choix remplacés/révoqués historisés et nouvelle ouverture SQLite. Les identités durables de choix sont des hashes SHA-256 déterministes de root/plateforme/chemin exact, jamais un `ObservationId` ou une identité commerciale. Aucun média n'est lu pendant la restauration, et l'accès SQLite en écriture reste strictement interne à la fixture de test ; le constructeur public de `SqliteCatalogStore` refuse toujours.
+
+Les tests MSTest et le workflow Windows de branche doivent prouver collection IDEAL sauvegardée, 9 captures historiques + 11 médias conservées et 3 captures SQLite, retour en **nouveau processus**, ZIP autonome sans permission CI et empreintes vérifiées. **CI, captures, ZIP et revue DEV 2 non déclarés PASS avant publication des preuves sur HEAD exact.** Les barrières `REAL_LIBRARY_SCAN_HOLD`, `REAL_MEDIA_SCAN_HOLD`, `REAL_MEDIA_PREVIEW_HOLD`, `REAL_CATALOG_STORAGE_HOLD` restent fermées ; aucun SSD/ROMothèque personnelle, fusion autonome ni Release.
+
 PERSIST-01 #111 — correctifs P1 validés sur l'ancien HEAD (nouvelle CI après synchronisation à vérifier) : restore validé sur staging (schéma/FK/version/colonnes) avant remplacement, rollback après swap ; claims append-only par sujet et révision, provenance historique préservée, migration v2→v3 et tests adversariaux. ZIP Windows / nouveau HEAD et DEV 2 re-revue requis, aucun accès réel.
 
 ## NEXT-05 / PERSIST-01 — backend SQLite synthétique
