@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / MI-A — Scanner MEDIAS Windows par handles (PR #127, DRAFT / FIXTURES ONLY)
+
+- Nouvelle session de tests `MediaIndex` interne, grant MEDIAS indépendant de ROMS/PREVIEW, sélection explicite, identité native du handle, version/révocation et refus de tout grant en production.
+- Ouverture des répertoires/fichiers par handles Windows relatifs et refus conservateur reparse/alias/ADS/hardlinks ; lecture d'en-têtes PNG/JPEG/WebP seulement, plafonds MI-A fixes et conservation du dernier Current complet sur tentative dégradée.
+- Tests Windows MI-A01…06/08 ajoutés ; **CI, canaris natifs et ZIP en attente de vérification**. MI-A07 (ACL/non-admin/FS) et MI-A09 (USB physique) **NOT_EXECUTED**. Aucun code RS-A/UI-RSA #116 modifié, ni média personnel, Skia, fusion autonome ou Release.
+
+
 ## NEXT-05 / RS-A — ROMS Windows handles confinés (PR #114, fixtures uniquement)
 
 - Scanner de métadonnées ROMS interne aux fixtures Windows, sélection explicite, ReadGrant volatile/versionné, refus de tous les accès via l'API publique REAL_LIBRARY_SCAN_HOLD.
