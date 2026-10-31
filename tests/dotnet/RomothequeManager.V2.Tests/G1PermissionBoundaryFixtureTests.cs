@@ -354,7 +354,23 @@ public sealed class G1PermissionBoundaryFixtureTests
             RedirectStandardError = true,
             CreateNoWindow = true
         };
-        start.ArgumentList.Add(typeof(RomothequeManager.V2.Program).Assembly.Location);
+        // Run the app from ITS OWN build output. MSTest's copied assembly
+        // directory carries a different native SkiaSharp dependency and cannot
+        // be treated as a product runtime (CI #41229115352 demonstrated this).
+        string? productDll = null;
+        foreach (var startDirectory in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() })
+        {
+            for (var directory = new DirectoryInfo(startDirectory); directory is not null;
+                 directory = directory.Parent)
+            {
+                var candidate = Path.Combine(directory.FullName, "src", "RomothequeManager.V2",
+                    "bin", "Release", "net10.0", "win-x64", "RomothequeManager.V2.dll");
+                if (File.Exists(candidate)) { productDll = candidate; break; }
+            }
+            if (productDll is not null) break;
+        }
+        Assert.IsNotNull(productDll, "G1_PRODUCT_BUILD_OUTPUT_NOT_FOUND");
+        start.ArgumentList.Add(productDll);
         foreach (var arg in new[] { "--smoke-window", "--real-library-scan",
             "--real-media-scan", "--real-media-preview", "--restore-grants" })
             start.ArgumentList.Add(arg);
