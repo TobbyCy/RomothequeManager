@@ -112,7 +112,7 @@ internal static class Next05RsAGuiHarness
             new Vector(96, 96));
         bitmap.Render(surface);
         var file = Path.Combine(captures, name + "-" + width + "x" + height + ".png");
-        bitmap.Save(file);
+        bitmap.Save(file, PngBitmapEncoderOptions.Default);
         Demand(new FileInfo(file).Length > 4000, "UI_RSA_CAPTURE_EMPTY");
         Console.WriteLine("UI_RSA_CAPTURE_PASS " + Path.GetFileName(file));
     }
