@@ -1,0 +1,118 @@
+name: "DOCFX-88 Windows XML YAML HTML - TEMPORARY PROOF"
+on:
+  push:
+    branches:
+      - dev2/docfx88-native-proof-20261031
+permissions:
+  contents: read
+jobs:
+  docfx88-windows-proof:
+    if: github.repository == 'TobbyCy/RomothequeManager'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact approved main source without credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: 'f38d97ce76486b3543f6a0857de403f17d176277'
+          persist-credentials: false
+      - name: Setup pinned .NET SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: '10.0.401'
+      - name: Native CSharp XML then DocFX YAML then HTML (fail closed)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $proof = Join-Path $env:GITHUB_WORKSPACE 'docfx88-proof'
+          New-Item -ItemType Directory -Path $proof -Force | Out-Null
+          $sourceSha = (git rev-parse HEAD).Trim()
+          if ($sourceSha -cne 'f38d97ce76486b3543f6a0857de403f17d176277') { throw 'DOCFX88_SOURCE_SHA_MISMATCH' }
+          $sdk = (dotnet --version).Trim()
+          if ($sdk -cne '10.0.401') { throw 'DOCFX88_SDK_MISMATCH' }
+          $project = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          Write-Host ('DOCFX88_SOURCE_SHA=' + $sourceSha)
+          Write-Host ('DOCFX88_SDK=' + $sdk)
+          dotnet restore $project --locked-mode *> (Join-Path $proof 'restore.log')
+          $restoreExit = $LASTEXITCODE
+          Write-Host ('DOCFX88_RESTORE_EXIT=' + $restoreExit)
+          if ($restoreExit -ne 0) { throw 'DOCFX88_RESTORE_FAILED' }
+          dotnet build $project -c Release --no-restore -p:GenerateDocumentationFile=true *> (Join-Path $proof 'xml-build.log')
+          $xmlExit = $LASTEXITCODE
+          Write-Host ('DOCFX88_XML_BUILD_EXIT=' + $xmlExit)
+          if ($xmlExit -ne 0) { throw 'DOCFX88_XML_BUILD_FAILED' }
+          $dll = @(Get-ChildItem 'src/RomothequeManager.V2/bin/Release' -Recurse -File -Filter 'RomothequeManager.V2.dll' | Select-Object -First 1)
+          if ($dll.Count -ne 1) { throw 'DOCFX88_DLL_NOT_FOUND' }
+          $xmlPath = [IO.Path]::ChangeExtension($dll[0].FullName,'.xml')
+          if (-not (Test-Path -LiteralPath $xmlPath -PathType Leaf)) { throw 'DOCFX88_XML_NOT_FOUND' }
+          [xml]$xmlDoc = Get-Content -LiteralPath $xmlPath -Raw
+          $members = @($xmlDoc.doc.members.member).Count
+          if ($members -lt 1) { throw 'DOCFX88_XML_EMPTY' }
+          $cs1591 = @(Select-String -LiteralPath (Join-Path $proof 'xml-build.log') -Pattern 'CS1591').Count
+          Copy-Item -LiteralPath $xmlPath -Destination (Join-Path $proof 'RomothequeManager.V2.xml')
+          Write-Host ('DOCFX88_XML_MEMBERS=' + $members + ' CS1591_LINES=' + $cs1591)
+          $toolDir = Join-Path $proof 'tools'
+          New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
+          dotnet tool install docfx --version 2.81.0 --tool-path $toolDir *> (Join-Path $proof 'docfx-install.log')
+          if ($LASTEXITCODE -ne 0) { throw 'DOCFX88_DOCFX_INSTALL_FAILED' }
+          $docfx = Join-Path $toolDir 'docfx.exe'
+          $version = (& $docfx --version | Out-String).Trim()
+          if ($version -notmatch '2\.81\.0') { throw ('DOCFX88_DOCFX_VERSION_MISMATCH:' + $version) }
+          Write-Host ('DOCFX88_DOCFX_VERSION=' + $version)
+          $bin = Split-Path $dll[0].FullName
+          $config = @{
+            metadata = @(@{src=@(@{files=@('RomothequeManager.V2.dll');src=$bin});dest='api';disableGitFeatures=$true})
+            build = @{content=@(@{files=@('api/*.yml','api/toc.yml')});template=@('default');output='_site'}
+          }
+          $cfgPath = Join-Path $proof 'docfx.json'
+          $config | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $cfgPath -Encoding utf8
+          & $docfx metadata $cfgPath --log (Join-Path $proof 'metadata-log.json') *> (Join-Path $proof 'metadata-console.log')
+          $metadataExit = $LASTEXITCODE
+          Write-Host ('DOCFX88_METADATA_EXIT=' + $metadataExit)
+          if ($metadataExit -ne 0) { throw 'DOCFX88_METADATA_FAILED' }
+          $yaml = @(Get-ChildItem (Join-Path $proof 'api') -Recurse -File -Filter '*.yml')
+          Write-Host ('DOCFX88_YAML_COUNT=' + $yaml.Count)
+          if ($yaml.Count -lt 2) { throw 'DOCFX88_YAML_MISSING' }
+          & $docfx build $cfgPath --log (Join-Path $proof 'build-log.json') *> (Join-Path $proof 'build-console.log')
+          $htmlExit = $LASTEXITCODE
+          Write-Host ('DOCFX88_HTML_BUILD_EXIT=' + $htmlExit)
+          if ($htmlExit -ne 0) { throw 'DOCFX88_HTML_BUILD_FAILED' }
+          $html = @(Get-ChildItem (Join-Path $proof '_site') -Recurse -File -Filter '*.html')
+          Write-Host ('DOCFX88_HTML_COUNT=' + $html.Count)
+          if ($html.Count -lt 2) { throw 'DOCFX88_HTML_MISSING' }
+          $required = @('InventorySnapshot','IInventoryApplicationService','MediaIndexApplicationService','MediaLinkProjection','ObservedLibraryViewModel','MediaPresentationService','MediaPreviewService')
+          $missing = @()
+          foreach ($name in $required) {
+            $found = Select-String -Path $yaml.FullName -Pattern ('uid:\s+\S*[.]' + $name + '(\s|$)') -Quiet
+            Write-Host ('DOCFX88_API_UID ' + $name + ' found=' + [bool]$found)
+            if (-not $found) { $missing += $name }
+          }
+          $broken = @(Select-String -LiteralPath (Join-Path $proof 'build-console.log') -Pattern 'unresolved xref|broken link|invalid link|cannot resolve' ).Count
+          Write-Host ('DOCFX88_BROKEN_LINK_LOG_MATCHES=' + $broken)
+          $summary = [ordered]@{
+            sourceSha=$sourceSha; runner='windows-2022'; sdk=$sdk; docfx=$version;
+            xmlBuildExit=$xmlExit; xmlMemberCount=$members; cs1591Lines=$cs1591;
+            metadataExit=$metadataExit; yamlCount=$yaml.Count;
+            htmlBuildExit=$htmlExit; htmlCount=$html.Count;
+            expectedApiUids=$required; missingApiUids=$missing; brokenLinkLogMatches=$broken;
+            status=($(if ($missing.Count -eq 0 -and $broken -eq 0) {'DOCFX_NATIVE_VERIFIED'} else {'DOCFX_NATIVE_COVERAGE_INCOMPLETE'}))
+          }
+          $summary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $proof 'summary.json') -Encoding utf8
+          Get-FileHash -LiteralPath (Join-Path $proof 'RomothequeManager.V2.xml') -Algorithm SHA256 | ForEach-Object { Write-Host ('DOCFX88_XML_SHA256=' + $_.Hash.ToLowerInvariant()) }
+          if ($missing.Count -gt 0 -or $broken -gt 0) { throw 'DOCFX88_UID_OR_LINK_VALIDATION_FAILED' }
+          Write-Host ('DOCFX88_NATIVE_VERIFIED SOURCE=' + $sourceSha + ' XML_MEMBERS=' + $members + ' YAML=' + $yaml.Count + ' HTML=' + $html.Count)
+      - name: Upload transient logs and generated files (including failures)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DOCFX88-Windows-XML-YAML-HTML-Evidence
+          path: |
+            docfx88-proof/summary.json
+            docfx88-proof/*.log
+            docfx88-proof/*.json
+            docfx88-proof/*.xml
+            docfx88-proof/api/**
+            docfx88-proof/_site/**
+          if-no-files-found: warn
+          retention-days: 3
+          compression-level: 6
