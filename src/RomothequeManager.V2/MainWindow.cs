@@ -172,7 +172,11 @@ public sealed partial class MainWindow : Window
             throw new InvalidDataException("Official application branding is missing.");
         Icon = new WindowIcon(iconPath);
         var logoBitmap = new Bitmap(logoPath);
-        Closed += (_, _) => logoBitmap.Dispose();
+        Closed += (_, _) =>
+        {
+            StopLegacyMediaOnClose(); // detach and Dispose thumbnails before close
+            logoBitmap.Dispose();
+        };
 
         var root = new Grid
         {
