@@ -47,3 +47,5 @@ jobs:
           print('MI_B_NATIVE_TRX_4_PASS REAL_WINDOWS_FIXTURES')
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'MI_B_TRX_PROOF_FAILED' }
+
+# RETEST after MI-B03 invalid magic uses format Unknown as required by MI-A
