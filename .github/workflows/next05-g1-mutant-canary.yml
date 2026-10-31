@@ -63,6 +63,9 @@ jobs:
             Assert-RedMutant 'src/RomothequeManager.V2/RsAWindowsRomScanner.cs' 'PERM_G1_REPLAY_RSA_SecondDirectScanWithSameLiveGrantMustBeDenied' 'P1_G1_RSA_ONE_SHOT_BYPASS'
             Assert-RedMutant 'src/RomothequeManager.V2/MiAWindowsMediaScanner.cs' 'PERM_G1_REPLAY_MIA_SecondDirectScanWithSameLiveGrantMustBeDenied' 'P1_G1_MIA_ONE_SHOT_BYPASS'
             Write-Host ('G1_CAUSAL_MUTATIONS_BOTH_KILLED_PASS source=' + $env:GITHUB_SHA + ' disposable=1')
+            # Deliberately failed mutation tests were asserted above; normalize the
+            # PowerShell exit status so only an UNDETECTED/UNEXPECTED mutation fails CI.
+            $global:LASTEXITCODE = 0
           }
           finally {
             Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
