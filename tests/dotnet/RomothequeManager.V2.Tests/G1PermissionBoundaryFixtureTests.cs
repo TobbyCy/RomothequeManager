@@ -462,4 +462,83 @@ public sealed class G1PermissionBoundaryFixtureTests
             "Denied replay must preserve the previous CurrentComplete.");
         Console.WriteLine("G1_MIA_DIRECT_GRANT_REPLAY_REFUSED");
     }
+
+    // One task has claimed the token and is deliberately stopped immediately
+    // before the native child open. Another concurrent Scan must fail BEFORE
+    // its own native enumeration/callback. Both calls use EXACTLY the same grant.
+    [TestMethod]
+    public async Task PERM_G1_CONCURRENT_RSA_ClaimIsAtomicAndSecondHasNoOpens()
+    {
+        var session = Roms();
+        var grant = RomGrant(session);
+        using var entered = new ManualResetEventSlim();
+        using var resume = new ManualResetEventSlim();
+        var rejectedOpens = 0;
+        var firstTask = Task.Run(() => session.Scan(grant, beforeChildOpenForTest: relative =>
+        {
+            if (relative != "gba/fixture.gba") return;
+            entered.Set();
+            if (!resume.Wait(TimeSpan.FromSeconds(15)))
+                throw new TimeoutException("G1_RSA_FIRST_SCANNER_WAIT_EXPIRED");
+        }));
+        try
+        {
+            Assert.IsTrue(entered.Wait(TimeSpan.FromSeconds(10)),
+                "G1_RSA_FIRST_SCAN_DID_NOT_REACH_NATIVE_OPEN_SEAM");
+            var replay = session.Scan(grant, beforeChildOpenForTest: _ =>
+                Interlocked.Increment(ref rejectedOpens));
+            RomDenied(replay);
+            Assert.AreEqual(0, Volatile.Read(ref rejectedOpens),
+                "G1_RSA_DENIED_CONCURRENT_SCAN_ENTERED_NATIVE_CHILD_OPEN");
+            Assert.AreEqual(0, replay.ObservedFileCount);
+            Console.WriteLine("G1_RSA_CONCURRENT_REPLAY_REFUSED before_child_open_calls=0 observations=0");
+        }
+        finally { resume.Set(); }
+        var first = await firstTask;
+        Assert.AreEqual(InventoryScanStatus.Complete, first.ScanStatus);
+        Assert.AreEqual(1, first.ObservedFileCount);
+        Assert.AreSame(first, session.Current);
+        Console.WriteLine("G1_RSA_ATOMIC_CLAIM_FIRST_SCAN_COMPLETED");
+    }
+
+    [TestMethod]
+    public async Task PERM_G1_CONCURRENT_MIA_ClaimIsAtomicAndSecondReadsZeroHeaders()
+    {
+        var session = Medias();
+        var grant = MediaGrant(session);
+        using var entered = new ManualResetEventSlim();
+        using var resume = new ManualResetEventSlim();
+        var rejectedOpens = 0;
+        var rejectedHeaderBytes = 0;
+        var firstTask = Task.Run(() => session.Scan(grant, beforeChildOpenForTest: relative =>
+        {
+            if (relative != "gba/fixture.png") return;
+            entered.Set();
+            if (!resume.Wait(TimeSpan.FromSeconds(15)))
+                throw new TimeoutException("G1_MIA_FIRST_SCANNER_WAIT_EXPIRED");
+        }));
+        try
+        {
+            Assert.IsTrue(entered.Wait(TimeSpan.FromSeconds(10)),
+                "G1_MIA_FIRST_SCAN_DID_NOT_REACH_NATIVE_OPEN_SEAM");
+            var replay = session.Scan(grant,
+                beforeChildOpenForTest: _ => Interlocked.Increment(ref rejectedOpens),
+                afterHeaderReadForTest: bytes => Interlocked.Add(ref rejectedHeaderBytes, bytes));
+            MediaDenied(replay);
+            Assert.AreEqual(0, Volatile.Read(ref rejectedOpens),
+                "G1_MIA_DENIED_CONCURRENT_SCAN_ENTERED_NATIVE_CHILD_OPEN");
+            Assert.AreEqual(0, Volatile.Read(ref rejectedHeaderBytes),
+                "G1_MIA_DENIED_CONCURRENT_SCAN_READ_HEADER");
+            Assert.AreEqual(0L, session.LastHeaderBytesRead,
+                "G1_MIA_DENIED_CONCURRENT_SCAN_USED_READ_BUDGET");
+            Console.WriteLine("G1_MIA_CONCURRENT_REPLAY_REFUSED child_opens=0 header_bytes=0");
+        }
+        finally { resume.Set(); }
+        var first = await firstTask;
+        Assert.AreEqual(InventoryScanStatus.Complete, first.ScanStatus);
+        Assert.AreEqual(1, first.ObservedFileCount);
+        Assert.IsTrue(session.LastHeaderBytesRead > 0);
+        Assert.AreSame(first, session.Current);
+        Console.WriteLine("G1_MIA_ATOMIC_CLAIM_FIRST_SCAN_COMPLETED");
+    }
 }
