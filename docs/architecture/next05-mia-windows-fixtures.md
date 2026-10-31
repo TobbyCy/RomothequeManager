@@ -28,3 +28,12 @@
 **Critère de revue** : CI Adaptive `ci-policy-gate`, véritables tests sur runner Windows, TRX/logs détaillés, description des races **tentées / réalisées**, diff disjoint de #116, ZIP Windows candidat extrait et SHA-256 calculé sur le HEAD de PR (merge virtuel précisé). Aucun PASS revendiqué avant exécution réelle. Les résultats doivent être notés `PASS/FAIL/NOT_EXECUTED` sans déduire de GO production. Revue DEV 2 non-auteur avant toute décision Contrôleur.
 
 **HOLD** : `REAL_LIBRARY_SCAN_HOLD`, `REAL_MEDIA_SCAN_HOLD`, `REAL_MEDIA_PREVIEW_HOLD`, `REAL_CATALOG_STORAGE_HOLD`, `NEXT05_RELEASE_HOLD`. Ni support personnel, ni édition de sources, ni Release.
+
+### P1-MI-A-ROOT-01 — provenance et invalidation inter-racines (post-#116)
+
+Une instance MI-A n'est pas une identité de support durable. Chaque `SelectFixture` invalide atomiquement le `MiAReadGrant` précédent, attribue un **nouveau** `MediaRootRef` opaque et une nouvelle version/génération, puis vide `Current`, `LastAttempt` et les compteurs pour empêcher l'attribution de données de A à B. Aucun scan, accès de fichier ou autorisation n'est déclenché par cette sélection. La réouverture éventuelle de A exige un **nouveau consentement** ; un ancien `Current(A)` n'est pas automatiquement réutilisé sous la nouvelle sélection.
+
+Les opérations en cours capturent `root/rootId/MediaRootRef/SelectionVersion/generation`. Les vérifications intermédiaires et la publication finale contrôlent à nouveau cet ensemble sous verrou : une opération d'A ayant perdu la course avec `SelectFixture(B)` peut retourner un constat local, mais ne **publie jamais** ce résultat dans le `Current` ou `LastAttempt` de B, même si la substitution survient après sa dernière lecture. Dans une **même sélection** inchangée, une tentative Partial/Failed/Cancel conserve bien `CurrentComplete`. `MediaRootRef` n'est ni chemin ni authentification d'un disque externe ; le contrôle d'identité native du grant demeure inchangé.
+
+**Canaris supplémentaires MI-A10/11** : A Complete → Select(B) → B Ready sans résultats/droits A → refus/annulation B sans pollution ; B Complete ensuite B Cancel conserve uniquement B ; resélection A exige reconsentement ; changement A→B pendant un scan A interdit toute publication tardive. CI/canaris Windows/ZIP du nouveau HEAD obligatoires, `MI_A07` et `MI_A09` restent NOT_EXECUTED.
+
