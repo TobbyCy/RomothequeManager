@@ -31,6 +31,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     private InventoryObservationRow? _selected;
     private ObservedView _view = ObservedView.Dashboard;
     private bool _disposed;
+    private RestoredCatalogSession? _restored;
 
     public ObservedLibraryViewModel(InventoryViewModel inventory, bool fixtureMode)
     {
@@ -49,13 +50,24 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public InventoryViewModel Inventory => _inventory;
+    public RestoredCatalogSession? RestoredSession => _restored;
+    public bool HasRestoredSession => _restored is not null;
+    public bool HasLiveMediaPanel => _restored is null;
+    private InventorySnapshot? DisplayedSnapshot => _restored is null ?
+        _inventory.DisplayedSnapshot : _restored.DisplayedInventory;
+    private IReadOnlyList<FileObservation> DisplayedObservations =>
+        DisplayedSnapshot?.Observations ?? Array.Empty<FileObservation>();
     public MediaPanelViewModel Media { get; }
     public bool FixtureMode => _fixtureMode;
-    public bool CanInventoryFixture => _fixtureMode && _inventory.CanStart;
-    public string ModeNotice => _fixtureMode
+    public bool CanInventoryFixture => _fixtureMode && _restored is null && _inventory.CanStart;
+    public string ModeNotice => _restored is not null
+        ? "Collection SQLite fictive restaurée : consultation OFFLINE / STALE ; aucun accès disque."
+        : _fixtureMode
         ? "PREUVE WINDOWS · vrais fichiers fictifs, autorisation limitée à ces fixtures uniquement."
         : "Inventaire personnel désactivé dans cette version. Le service de production refuse tout scan.";
-    public string ScopeText => "ROMS/ uniquement · profondeur 8 · 100 000 fichiers max · 10 000 dossiers max · playlists M3U 32 Kio / 256 lignes. Lecture seule, sans hash ROM, XML ni sauvegarde.";
+    public string ScopeText => _restored is not null
+        ? "Historique SQLite uniquement : aucun scan, aucune lecture média ou revalidation du SSD."
+        : "ROMS/ uniquement · profondeur 8 · 100 000 fichiers max · 10 000 dossiers max · playlists M3U 32 Kio / 256 lignes. Lecture seule, sans hash ROM, XML ni sauvegarde.";
     public ICommand ShowDashboardCommand => _dashboard;
     public ICommand ShowCollectionCommand => _collection;
     public ICommand OpenFileCommand => _openFile;
@@ -79,7 +91,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     public bool IsDashboard => View == ObservedView.Dashboard;
     public bool IsCollection => View == ObservedView.Collection;
     public bool IsFileDetail => View == ObservedView.FileDetail;
-    public bool HasSnapshot => _inventory.DisplayedSnapshot is not null;
+    public bool HasSnapshot => DisplayedSnapshot is not null;
     public string SearchText
     {
         get => _search;
@@ -101,11 +113,11 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         set { var next = value ?? "Tous"; if (_kind == next) return; _kind = next; FiltersChanged(); }
     }
     public IReadOnlyList<string> PlatformOptions => new[] { "Toutes" }
-        .Concat(_inventory.Observations.Select(x => string.IsNullOrWhiteSpace(x.PlatformKey)
+        .Concat(DisplayedObservations.Select(x => string.IsNullOrWhiteSpace(x.PlatformKey)
             ? "UNKNOWN" : x.PlatformKey).Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)).ToArray();
     public IReadOnlyList<string> ExtensionOptions => new[] { "Toutes" }
-        .Concat(_inventory.Observations.Select(x => string.IsNullOrWhiteSpace(x.Extension)
+        .Concat(DisplayedObservations.Select(x => string.IsNullOrWhiteSpace(x.Extension)
             ? "(aucune)" : x.Extension).Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)).ToArray();
     public IReadOnlyList<string> KindOptions => new[] { "Tous" }
@@ -128,17 +140,19 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
             if (value is not null && !Rows.Any(r =>
                 r.Observation.ObservationId == value.Observation.ObservationId)) return;
             _selected = value;
-            Media.SelectRom(value?.Observation.ObservationId);
+            Media.SelectRom(_restored is null ? value?.Observation.ObservationId : null);
+            _restored?.SelectRom(value?.Observation);
             Notify();
             _openFile.NotifyCanExecuteChanged();
         }
     }
     public string SelectedName => _selected?.ProvisionalLabel ?? "Aucun fichier sélectionné";
-    public string SnapshotStatus => _inventory.DisplayedSnapshot is { } s
+    public string SnapshotStatus => _restored is not null ? _restored.StatusLabel :
+        DisplayedSnapshot is { } s
         ? "Inventaire " + s.ScanStatus + " · disponibilité " + s.Availability +
           " · fraîcheur " + s.Freshness + " · capturé " + s.CapturedAtUtc.ToString("u")
         : "Aucun inventaire consultable.";
-    public string Summary => _inventory.DisplayedSnapshot is { } s
+    public string Summary => DisplayedSnapshot is { } s
         ? "Fichiers observés : " + s.ObservedFileCount +
           " · total " + (s.ScanStatus == InventoryScanStatus.Complete &&
               s.TotalFileCount.HasValue ? s.TotalFileCount.Value.ToString() : "inconnu") +
@@ -147,19 +161,24 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     public string PlatformSummary => Summarize(x => x.PlatformKey);
     public string ExtensionSummary => Summarize(x => x.Extension);
     public string TypeSummary => Summarize(x => x.Kind.ToString());
-    public string GenerationLabel => _inventory.DisplayedGenerationText;
-    public IReadOnlyList<InventoryDiagnostic> Diagnostics => _inventory.Diagnostics;
-    public IReadOnlyList<InventoryCoverage> Coverage => _inventory.Coverage;
+    public string GenerationLabel => _restored is null
+        ? _inventory.DisplayedGenerationText : _restored.StatusLabel;
+    public IReadOnlyList<InventoryDiagnostic> Diagnostics =>
+        DisplayedSnapshot?.Diagnostics ?? Array.Empty<InventoryDiagnostic>();
+    public IReadOnlyList<InventoryCoverage> Coverage =>
+        DisplayedSnapshot?.CoverageProof ?? Array.Empty<InventoryCoverage>();
     public string DiagnosticSummary => Diagnostics.Count + " diagnostic(s) de la génération affichée.";
     public string EmptyText => _page is null ? "Aucune preuve : sélectionner et confirmer un inventaire fictif." :
         MatchingFileCount == 0
         ? "Aucun fichier observé ne correspond aux filtres. Ceci n'est pas une preuve d'absence de jeux."
         : "";
-    public string MediaNotice => "Jaquette locale : non associée. Une proposition de média ou un aperçu ne valide jamais une association avec ce fichier.";
+    public string MediaNotice => _restored is null
+        ? "Jaquette locale : non associée. Une proposition de média ou un aperçu ne valide jamais une association avec ce fichier."
+        : "Choix manuel depuis un index historique fictif : aucun aperçu ni lien physique vérifié.";
 
     private string Summarize(Func<FileObservation, string> selector)
     {
-        var obs = _inventory.Observations;
+        var obs = DisplayedObservations;
         if (obs.Count == 0) return "Aucune donnée de répartition disponible.";
         return string.Join(" · ", obs.GroupBy(selector, StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(x => x.Count()).ThenBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
@@ -172,6 +191,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         _pageIndex = 0;
         _selected = null;
         Media.SelectRom(null);
+        _restored?.SelectRom(null);
         RefreshPage();
         Notify(nameof(SearchText));
         Notify(nameof(PlatformFilter));
@@ -181,7 +201,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
 
     private void OnInventoryChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (_disposed) return;
+        if (_disposed || _restored is not null) return;
         // The inventory VM emits a property batch for one state transition.
         // Rebuild the expensive page and ComboBox options only for a new snapshot,
         // otherwise TwoWay SelectedItem can re-enter the filters indefinitely.
@@ -205,9 +225,47 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         Notify(nameof(KindOptions));
     }
 
+    /// <summary>Inject one fixture-owned restored session. Normal product startup does not call this.</summary>
+    internal void AttachRestoredForCi(RestoredCatalogSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (!_fixtureMode || _disposed || _restored is not null)
+            throw new InvalidOperationException("UI05_FIXTURE_SESSION_REQUIRED");
+        _restored = session;
+        _restored.PropertyChanged += OnRestoredChanged;
+        _inventory.PropertyChanged -= OnInventoryChanged;
+        _selected = null;
+        _pageIndex = 0;
+        _search = "";
+        _platform = "Toutes";
+        _extension = "Toutes";
+        _kind = "Tous";
+        Media.SelectRom(null);
+        Notify(nameof(RestoredSession));
+        Notify(nameof(HasRestoredSession));
+        Notify(nameof(HasLiveMediaPanel));
+        Notify(nameof(ModeNotice));
+        Notify(nameof(ScopeText));
+        Notify(nameof(MediaNotice));
+        RefreshPage();
+        Notify(nameof(PlatformOptions));
+        Notify(nameof(ExtensionOptions));
+        Notify(nameof(KindOptions));
+    }
+
+    private void OnRestoredChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_disposed || e.PropertyName != nameof(RestoredCatalogSession.DisplayedInventory))
+            return;
+        _selected = null;
+        _pageIndex = 0;
+        _restored?.SelectRom(null);
+        RefreshPage();
+    }
+
     private void RefreshPage()
     {
-        var snapshot = _inventory.DisplayedSnapshot;
+        var snapshot = DisplayedSnapshot;
         if (snapshot is null)
             _page = null;
         else
@@ -257,6 +315,11 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         if (_disposed) return;
         _disposed = true;
         _inventory.PropertyChanged -= OnInventoryChanged;
+        if (_restored is not null)
+        {
+            _restored.PropertyChanged -= OnRestoredChanged;
+            _restored.Dispose();
+        }
         Media.Dispose();
     }
 }

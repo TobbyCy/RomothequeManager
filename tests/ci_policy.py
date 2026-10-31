@@ -556,6 +556,23 @@ def documents(root, plan):
     for unsafe in ("pull_request_target:", "workflow_run:", "repository_dispatch:",
                    "contents: write", "gh release", "secrets.", "continue-on-error:"):
         require(unsafe not in media_ui, "NEXT05_MEDIA_UI_WORKFLOW_UNSAFE:" + unsafe)
+    sqlite_ui = (root / ".github/workflows/next05-sqlite-ui-proof.yml").read_text(encoding="utf-8")
+    require("branches: [dev3/next05-sqlite-media-ui]" in sqlite_ui and
+            "github.ref == 'refs/heads/dev3/next05-sqlite-media-ui'" in sqlite_ui and
+            "github.actor == 'TobbyCy'" in sqlite_ui and
+            "permissions:" + chr(10) + "  contents: read" in sqlite_ui and
+            "persist-credentials: false" in sqlite_ui and
+            "-p:DefineConstants=NEXT05_CI" in sqlite_ui and
+            "SQLITE_UI_WINDOWS_CAPTURE_PASS" in sqlite_ui and
+            "UI05_SQLITE_PROVIDER_NATIVE_PASS" in sqlite_ui and
+            "N05_PORTABLE_ZIP_VERIFIED_PASS" in sqlite_ui and
+            "if-no-files-found: error" in sqlite_ui and
+            "retention-days: 3" in sqlite_ui and
+            sqlite_ui.count("actions/upload-artifact@") == 1,
+            "NEXT05_SQLITE_UI_WORKFLOW_GUARDS")
+    for unsafe in ("pull_request_target:", "workflow_run:", "repository_dispatch:",
+                   "contents: write", "gh release", "secrets.", "continue-on-error:"):
+        require(unsafe not in sqlite_ui, "NEXT05_SQLITE_UI_WORKFLOW_UNSAFE:" + unsafe)
     visual_workflow = (root / ".github/workflows/visual-proof.yml").read_text(encoding="utf-8")
     require("branches: [dev3/visual-poc-01]" in visual_workflow and
             "github.actor == 'TobbyCy'" in visual_workflow and
