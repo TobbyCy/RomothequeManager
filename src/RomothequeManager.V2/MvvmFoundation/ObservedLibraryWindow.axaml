@@ -34,6 +34,89 @@
                      TextWrapping="Wrap" Foreground="#C2CED9"/>
         </StackPanel>
       </Border>
+      <Border x:Name="RsAUiPanel" Background="#243029" BorderBrush="#638B74"
+              BorderThickness="1" CornerRadius="8" Padding="14"
+              IsVisible="{Binding HasRsA}">
+        <Border.Styles>
+          <!-- Scoped RS-A controls: explicit legible colors in all interaction states. -->
+          <Style Selector="Button">
+            <Setter Property="Foreground" Value="#F2F8F2"/>
+            <Setter Property="Background" Value="#385242"/>
+            <Setter Property="BorderBrush" Value="#9AC6A3"/>
+            <Setter Property="BorderThickness" Value="1"/>
+          </Style>
+          <Style Selector="Button:disabled">
+            <Setter Property="Foreground" Value="#C5D0C7"/>
+            <Setter Property="Background" Value="#304037"/>
+            <Setter Property="BorderBrush" Value="#718B78"/>
+            <Setter Property="Opacity" Value="1"/>
+          </Style>
+          <Style Selector="Button:disabled /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="#E4F0E5"/>
+            <Setter Property="Opacity" Value="1"/>
+          </Style>
+          <Style Selector="Button:focus">
+            <Setter Property="BorderBrush" Value="#C6FFDC"/>
+            <Setter Property="BorderThickness" Value="2"/>
+          </Style>
+          <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="#F2F8F2"/>
+          </Style>
+          <Style Selector="CheckBox:checked">
+            <Setter Property="Foreground" Value="#F2F8F2"/>
+          </Style>
+          <Style Selector="CheckBox:focus">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+          </Style>
+          <Style Selector="CheckBox:disabled">
+            <Setter Property="Foreground" Value="#E4F0E5"/>
+            <Setter Property="BorderBrush" Value="#9AC6A3"/>
+            <Setter Property="Opacity" Value="1"/>
+          </Style>
+          <Style Selector="CheckBox:disabled /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="#E4F0E5"/>
+            <Setter Property="Opacity" Value="1"/>
+          </Style>
+        </Border.Styles>
+        <StackPanel Spacing="9">
+          <TextBlock FontSize="19" FontWeight="Bold" Text="RS-A · ROMS WINDOWS · FIXTURES UNIQUEMENT"
+                     TextWrapping="Wrap"/>
+          <TextBlock Text="Le choix ne donne aucun accès. Consentement éphémère et lecture de métadonnées confinée par le backend RS-A ; ROMothèque personnelle interdite."
+                     TextWrapping="Wrap"/>
+          <WrapPanel>
+            <Button x:Name="RsASelectButton" Content="1 · Choisir ROMS fictif"
+                    Click="RsASelect_OnClick" IsEnabled="{Binding RsA.CanSelect}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+            <TextBlock x:Name="RsASelectionLabel" Text="{Binding RsA.SelectedRootLabel}"
+                       VerticalAlignment="Center" TextWrapping="Wrap"/>
+          </WrapPanel>
+          <CheckBox x:Name="RsAConsentCheckbox"
+                    Content="2 · Je consens à un scan ponctuel de cette fixture ROMS, sans accès personnel"
+                    IsChecked="{Binding RsA.ConsentConfirmed, Mode=TwoWay}"
+                    IsEnabled="{Binding RsA.HasSelection}" MinHeight="35"/>
+          <WrapPanel>
+            <Button x:Name="RsAStartButton" Content="3 · Start (une seule tentative)"
+                    Command="{Binding RsA.StartCommand}" IsEnabled="{Binding RsA.CanStart}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+            <Button x:Name="RsACancelButton" Content="Cancel / Révoquer"
+                    Command="{Binding RsA.CancelCommand}" IsEnabled="{Binding RsA.CanCancel}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Dernier complet" Command="{Binding RsA.ShowCompleteCommand}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Dernière tentative" Command="{Binding RsA.ShowAttemptCommand}"
+                    MinHeight="40"/>
+          </WrapPanel>
+          <ProgressBar Height="7" IsVisible="{Binding RsA.IsBusy}" IsIndeterminate="{Binding RsA.IsBusy}"/>
+          <TextBlock x:Name="RsAPhaseLabel" FontWeight="Bold" Text="{Binding RsA.PhaseLabel}"
+                     TextWrapping="Wrap"/>
+          <TextBlock x:Name="RsAProgressLabel" Text="{Binding RsA.ProgressLabel}"
+                     TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding RsA.SnapshotLabel}" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding RsA.SafeDiagnostic}" Foreground="#B8CBC0" TextWrapping="Wrap"/>
+          <TextBlock Text="OFFLINE / STALE n'autorise jamais la reprise automatique. SQLite et les choix de jaquettes restent indépendants."
+                     Foreground="#B8CBC0" TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
       <Border x:Name="LiveInventoryPanel" Background="#23262B" CornerRadius="8"
               Padding="15" IsVisible="{Binding HasLiveMediaPanel}">
         <StackPanel Spacing="9">

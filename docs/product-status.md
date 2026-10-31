@@ -6,6 +6,15 @@ Contrat [Produit #115](https://github.com/TobbyCy/RomothequeManager/issues/115),
 
 **Preuves non acquises avant résultat CI de la PR #127** : tests Windows MI-A01..06/08, gate Adaptive, ZIP/hash. **MI-A07 ACL/non-admin/FS et MI-A09 déconnexion USB physique restent NOT_EXECUTED**. Aucune certitude de confinement de SSD réel ni permission de lecture personnelle, aucun média modifié, aucune fusion autonome ni Release. Voir `docs/architecture/next05-mia-windows-fixtures.md`.
 
+## NEXT-05 / DEV 3 — raccordement UI-RSA, fixtures Windows (PR #116)
+
+Le scanner RS-A backend #114 est **fusionné** sur `main=30958b11410a454ce442906b007f6fb2f71414b9` avec [CI push-main #41180639449](https://github.com/TobbyCy/RomothequeManager/actions/runs/41180639449) SUCCESS. Une unique PR Draft DEV 3 #116 présente l'interface *fixture-scoped* RS-A dans la fenêtre Avalonia observée : sélection ROMS sans auto-scan, consentement non persistant et limité à une tentative, commandes Start/Cancel, compteur d'entrées inspectées sans pourcentage fictif, refus et annulation, conservation du `CurrentComplete` lors des tentatives incomplètes et OFFLINE / STALE sans revalidation du support.
+
+Le ViewModel appelle seulement la session RS-A interne (confinement Windows, budgets, grant volatile, rejet reparse et garde réelle inchangés), la View n'ouvre aucun fichier source. Les projections de données RS-A ne se mélangent ni à `InventoryViewModel` ni à la restauration SQLite ; les associations manuelles de jaquettes et la séparation média restent inchangées.
+
+[Windows #41181274995](https://github.com/TobbyCy/RomothequeManager/actions/runs/41181274995), SHA de preuve `65060daa` : **247 tests PASS**, **5 captures RS-A + 23 captures historiques** réellement générées et vérifiées en dimensions, Windows standard sans droit fixture, ZIP autonome en quarantaine **23 fichiers** SHA-256 `deda6422c46bbbbc14313dee62d7cbc976e8fdfa80300fdc5f42cea87b4cdeaa`. Le workflow temporaire de preuve est supprimé avant la fusion ; la CI Adaptive et la revue indépendante doivent être reçues sur le HEAD final. Aucun contrôle humain indépendant des PNG, SSD USB physique, non-admin/ACL ou démonstration exhaustive TOCTOU n'est déclaré PASS.
+
+Les protections `REAL_LIBRARY_SCAN_HOLD`, `REAL_MEDIA_SCAN_HOLD`, `REAL_MEDIA_PREVIEW_HOLD`, `REAL_CATALOG_STORAGE_HOLD` restent obligatoires. Aucun accès personnel, permission publique supplémentaire, MEDIAS/Skia, opération physique, fusion DEV 3 ou Release.
 
 ## NEXT-05 / RS-A — scan ROMS handle-confined en revue, FIXTURES ONLY
 
