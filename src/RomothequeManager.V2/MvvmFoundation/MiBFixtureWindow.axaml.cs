@@ -8,6 +8,8 @@ namespace RomothequeManager.V2.MvvmFoundation;
 internal partial class MiBFixtureWindow : Window
 {
     private readonly MiBUiViewModel _model;
+    // Avalonia XAML compiler requires a public default constructor; it is always fail-closed.
+    public MiBFixtureWindow() => throw new InvalidOperationException("MI_B_FIXTURE_SERVICE_REQUIRED");
     internal MiBFixtureWindow(IMiBFixtureMediaApplicationService service, string fixtureRoot)
     {
         InitializeComponent();
