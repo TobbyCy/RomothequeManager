@@ -49,8 +49,30 @@ internal sealed class MiBUiViewModel : INotifyPropertyChanged, IAsyncDisposable
     public string SelectionLabel => "Sélection MEDIAS · version " + _state.SelectionVersion + " · aucun chemin affiché";
     public string DisplayModeLabel => _showLast ? "Affichage : LastAttempt" : "Affichage : CurrentComplete";
     public string ConsentLabel => _consent ? "Consentement temporaire confirmé pour cette sélection." : "Aucun consentement actif ; sélectionner ne donne aucun droit.";
-    public string PhaseLabel => _state.Phase.ToString() + (_state.CurrentIsHistorical ? " · historique" : "");
-    public string DiagnosticLabel => _state.SafeNoticeCode ?? LastAttempt?.SafeDiagnosticCodes.FirstOrDefault() ?? "Aucun diagnostic";
+    private bool LastAttemptCancelled => LastAttempt?.SafeDiagnosticCodes.Contains("MI_A_CANCELLED") == true;
+    private bool LastAttemptDenied => LastAttempt?.SafeDiagnosticCodes.Contains("MI_A_DENIED") == true;
+    public string PhaseLabel => _state.CurrentIsHistorical
+        ? "Historique OFFLINE / STALE · aucune revalidation"
+        : _state.Phase switch
+        {
+            MiBPhase.NoSelection => "Aucune sélection MEDIAS",
+            MiBPhase.Ready => "Prêt · consentement explicite requis",
+            MiBPhase.Running => "Analyse des en-têtes en cours",
+            MiBPhase.CancellationRequested => "Annulation demandée · révocation en cours",
+            MiBPhase.Rejected => "Accès refusé · aucun scan implicite",
+            MiBPhase.Faulted => "Échec technique · aucune absence déduite",
+            MiBPhase.Completed when LastAttemptCancelled => "Annulée (MI_A_CANCELLED) · dernier complet conservé",
+            MiBPhase.Completed when LastAttemptDenied => "Refusée (MI_A_DENIED)",
+            MiBPhase.Completed when LastAttempt?.ScanStatus == RomothequeManager.V2.Inventory.InventoryScanStatus.Partial =>
+                "Tentative partielle · couverture incomplète",
+            MiBPhase.Completed when LastAttempt?.ScanStatus == RomothequeManager.V2.Inventory.InventoryScanStatus.Failed =>
+                "Tentative échouée · couverture inconnue",
+            MiBPhase.Completed => "Analyse terminée · résultat observé",
+            _ => "Statut non vérifié"
+        };
+    public string DiagnosticLabel => LastAttemptCancelled ? "MI_A_CANCELLED" :
+        LastAttemptDenied ? "MI_A_DENIED" :
+        _state.SafeNoticeCode ?? LastAttempt?.SafeDiagnosticCodes.FirstOrDefault() ?? "Aucun diagnostic";
     public string ProgressLabel => IsBusy ? "Lecture des en-têtes · progression indéterminée · total inconnu" :
         "Observations : " + (Displayed?.ObservedMediaCount.ToString() ?? "inconnu") +
         " · total connu : " + (Displayed?.KnownObservedMediaTotal?.ToString() ?? "inconnu");
