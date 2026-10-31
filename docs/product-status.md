@@ -1,5 +1,13 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / DEV 1 — G1 #143 : derniers oracles avant revue (31.10.2026)
+
+- **Uniquement tests** ajoutés au correctif one-shot déjà validé : replay RS-A et MI-A après les premiers résultats `Partial`, `Failed` et `Cancel` (Cancel RS-A se traduit en statut Failed + diagnostic `RS_A_CANCELLED`; MI-A en Partial + `MI_A_CANCELLED`). Contrôler véritable `Current` antérieur, `LastAttempt` du refus, zéro observation de retry et zéro callback open/header-read sur les refus.
+- **PERM-F01** : deuxième refus cross-session instrumenté aux seams d'open/read accessibles, à distinguer du rejet mauvais type par CLR. **PERM-F02** : refus par `MediaPreviewService()` public lorsque le média de fixture est verrouillé exclusivement ; zéro `Image` et zéro buffer annoncé. Ces oracles **ne démontrent pas zéro syscall/stat/read natif universel**, qui reste `NOT_EXECUTED`.
+- **PERM-F04** : sauvegarde SQLite `BackupVerified`, décision temporaire après backup, `RestoreVerified`, relecture effective par **processus distinct** (`dotnet vstest`), marqueur de preuve écrit par l'enfant, Offline/Stale, scans `null` refusés sans sélection/permission ; aucune restauration de grant produit prouvée pour ce chemin, **aucun essai d'accès réel**.
+- **Limites** : exécution Windows CI encore à valider ; ne pas relancer les preuves antérieures CAS/mutation sans modification. `REAL_LIBRARY_SCAN_HOLD / REAL_MEDIA_SCAN_HOLD / REAL_MEDIA_PREVIEW_HOLD / REAL_CATALOG_STORAGE_HOLD / NEXT05_RELEASE_HOLD` actifs ; aucune correction SQLite A01/A02/A05.
+
+
 ## NEXT-05 / DEV 1 — #143 : P1-G1 one-shot corrigé, preuves natives Windows (31.10.2026)
 
 - **Branche unique** `dev1/next05-g1-perm-fixtures`, PR #143 (OPEN, non fusionnée). Après GO propriétaire, RS-A / MI-A ont reçu un claim CAS atomique, **une prise par grant**, avant toute ouverture native. L'opération gagnante reste valide jusqu'à révocation/expiry/CancellationToken et continue de respecter identité/budgets/confinement. Les deux tests rouges directs restent intacts ; doubles scans successifs et concurrents, 0 callback d'ouverture en refus, 0 octet d'en-tête MI-A après refus, `Current` préservé, historique A/B et MIA_04/10 conservés.
