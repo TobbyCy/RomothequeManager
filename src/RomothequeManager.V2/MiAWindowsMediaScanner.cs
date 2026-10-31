@@ -536,8 +536,14 @@ internal static class MiAHeaderClassifier
                 b[26] != 0 || b[27] != 0 || b[28] > 1 ||
                 Crc(b.Slice(12, 17)) != BinaryPrimitives.ReadUInt32BigEndian(b.Slice(29, 4)))
                 return new(format, false, null, null, "MI_A_INVALID_PNG_HEADER");
-            width = checked((int)BinaryPrimitives.ReadUInt32BigEndian(b.Slice(16, 4)));
-            height = checked((int)BinaryPrimitives.ReadUInt32BigEndian(b.Slice(20, 4)));
+            var rawWidth = BinaryPrimitives.ReadUInt32BigEndian(b.Slice(16, 4));
+            var rawHeight = BinaryPrimitives.ReadUInt32BigEndian(b.Slice(20, 4));
+            if (rawWidth == 0 || rawHeight == 0 ||
+                rawWidth > cap.MaxWidth || rawHeight > cap.MaxHeight ||
+                (ulong)rawWidth * rawHeight > (ulong)cap.MaxPixels)
+                return new(format, false, null, null, "MI_A_DIMENSION_LIMIT");
+            width = (int)rawWidth;
+            height = (int)rawHeight;
         }
         else if (!JpegDimensions(b, out width, out height))
             return new(format, false, null, null, "MI_A_INVALID_JPEG_HEADER");
