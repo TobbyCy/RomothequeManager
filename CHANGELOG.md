@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-05 / DEV 1 — G1 PERM-F01–04 : adversarial tests sur fixtures (31.10.2026)
+
+- PR #143 : quatre tests Windows sur les véritables scanners RS-A et MI-A, adaptateur MI-B, portes publiques PREVIEW/ROMS/MEDIAS, UI et SQLite ; aucun mock de permissions ni modification de code produit. Confinement strict dans des fixtures sous %TEMP%, avec témoins positifs d'en-têtes/fichiers générés et contrôles négatifs des mauvais grants, expirations, révocations, changement de sélection, restauration et CLI.
+- **Preuves à confirmer en CI** : aucun PASS anticipé, aucune permission réelle ni SSD, aucun changement de politique. Les contrôles Windows non-admin/ACL, exFAT et retrait USB restent NOT_EXECUTED ; revue indépendante DEV 2 nécessaire au HEAD exact.
+
+
 ## NEXT-05 / DEV 3 — #139 : preuve clavier Tab / Shift+Tab native Windows (31.10.2026)
 
 - **Dernier gate DEV 2** sur les deux correctifs P1 UI MI-B : `KEYBOARD_EVIDENCE_NOT_EXECUTED` au HEAD antérieur `5ccfcff8`, sans P0/P1 fonctionnel nouveau ; GO Contrôleur ciblé pour preuve *réellement exécutée* dans la **même PR #139**. Les deux P1 d'origine (six commandes invisibles et annulation prise pour OFFLINE/STALE) restent inchangés et conservés.
