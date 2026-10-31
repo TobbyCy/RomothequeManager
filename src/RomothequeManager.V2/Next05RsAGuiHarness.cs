@@ -59,7 +59,7 @@ internal static class Next05RsAGuiHarness
             try
             {
                 await ExerciseAsync(observed, rsA, captures);
-                Console.WriteLine("UI_RSA_WINDOWS_GUI_PASS captures=5 fixture_only=true " +
+                Console.WriteLine("UI_RSA_WINDOWS_GUI_PASS captures=10 fixture_only=true " +
                     "public_scan_hold=true sqlite_unchanged=true");
             }
             catch (Exception ex)
@@ -126,6 +126,7 @@ internal static class Next05RsAGuiHarness
             window.FindControl<Border>("LiveInventoryPanel") is { IsVisible: false },
             "UI_RSA01_NO_AUTOMATIC_SCAN");
         Capture(window, captures, "RSA-Idle", 1120, 720);
+        Capture(window, captures, "RSA-Idle", 760, 480);
 
         Demand(window.SelectRsAFixtureForCi("RSA", Guid.NewGuid().ToString("D")) &&
             rsA.HasSelection && !rsA.CanStart && !rsA.ConsentConfirmed &&
@@ -133,6 +134,7 @@ internal static class Next05RsAGuiHarness
         rsA.ConsentConfirmed = true;
         Demand(rsA.CanStart, "UI_RSA03_EXPLICIT_CONFIRMATION_REQUIRED");
         Capture(window, captures, "RSA-Consent", 760, 480);
+        Capture(window, captures, "RSA-Consent", 1120, 720);
 
         await rsA.StartConfirmedAsync();
         // Dispatcher may receive completion on a subsequent UI tick.
@@ -147,6 +149,7 @@ internal static class Next05RsAGuiHarness
             "UI_RSA03_NATIVE_HANDLE_SCAN_NOT_DISPLAYED");
         vm.ShowCollectionCommand.Execute(null);
         Capture(window, captures, "RSA-Complete", 1120, 720);
+        Capture(window, captures, "RSA-Complete", 760, 480);
 
         rsA.ConsentConfirmed = true;
         var scan = rsA.StartConfirmedAsync();
@@ -155,9 +158,15 @@ internal static class Next05RsAGuiHarness
         await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
         Demand(ReferenceEquals(complete, rsA.CurrentComplete) &&
             !rsA.CanStart && !rsA.ConsentConfirmed &&
-            rsA.Phase is RsAUiPhase.Failed or RsAUiPhase.Partial or RsAUiPhase.Complete,
-            "UI_RSA04_CURRENT_CHANGED_OR_GRANT_REUSED");
+            rsA.Phase == RsAUiPhase.Cancelled &&
+            rsA.SafeDiagnostic == "RS_A_CANCELLED" &&
+            rsA.LastAttempt is { } cancelled &&
+            cancelled.Diagnostics.Any(d => d.Code == "RS_A_CANCELLED") &&
+            rsA.PhaseLabel.Contains("Annulée", StringComparison.Ordinal) &&
+            rsA.ProgressLabel.Contains("Annulée", StringComparison.Ordinal),
+            "UI_RSA04_CANCELLED_STATUS_OR_CURRENT_NOT_PRESERVED");
         Capture(window, captures, "RSA-Cancelled", 760, 480);
+        Capture(window, captures, "RSA-Cancelled", 1120, 720);
 
         rsA.MarkOfflineForCi();
         Demand(rsA.IsOffline && !rsA.CanStart && !rsA.ConsentConfirmed &&
@@ -165,6 +174,7 @@ internal static class Next05RsAGuiHarness
             rsA.SnapshotLabel.Contains("OFFLINE / STALE", StringComparison.Ordinal),
             "UI_RSA06_OFFLINE_STALE_NOT_PRESERVED");
         Capture(window, captures, "RSA-Offline", 1120, 720);
+        Capture(window, captures, "RSA-Offline", 760, 480);
 
         try
         {

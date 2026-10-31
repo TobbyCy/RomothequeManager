@@ -77,6 +77,7 @@ public sealed class RsAUiViewModel : INotifyPropertyChanged, IDisposable
         RsAUiPhase.AwaitingConsent => "Racine fictive choisie. Autorisation temporaire à confirmer.",
         RsAUiPhase.Running => "RS-A · inventaire de métadonnées en cours.",
         RsAUiPhase.Cancelling => "Annulation demandée ; attente de l'arrêt sécurisé.",
+        RsAUiPhase.Cancelled => "Annulée par l'utilisateur ; dernier inventaire complet conservé.",
         RsAUiPhase.Complete => "Inventaire complet de la fixture uniquement.",
         RsAUiPhase.Partial => "Tentative partielle ; dernier inventaire complet conservé.",
         RsAUiPhase.Refused => "Accès refusé par RS-A ; aucun droit déduit du choix UI.",
@@ -87,15 +88,25 @@ public sealed class RsAUiViewModel : INotifyPropertyChanged, IDisposable
     public string ProgressLabel => IsBusy
         ? "Entrées examinées : " + Volatile.Read(ref _observedEntries) +
           " · total inconnu (progression indéterminée)."
-        : "Dernière tentative : " + (_attempt?.ScanStatus.ToString() ?? "aucune") +
+        : "Dernière tentative : " + AttemptStatusLabel(_attempt) +
           " · entrées examinées : " + Volatile.Read(ref _observedEntries) + ".";
     public string SafeDiagnostic => _safeDiagnostic;
     public string SnapshotLabel => DisplayedSnapshot is { } snapshot
-        ? "Source RS-A synthétique : " + snapshot.ScanStatus +
+        ? "Source RS-A synthétique : " + AttemptStatusLabel(snapshot) +
           " · capturé " + snapshot.CapturedAtUtc.ToString("u") +
           (_offline ? " · OFFLINE / STALE" : "") +
           " · jeux identifiés : inconnu"
         : "Aucune génération RS-A consultable.";
+
+    // Backend cancellation may be Failed (no entries) or Partial (some entries).
+    // Only an explicit RS_A_CANCELLED diagnostic permits the UX cancellation label.
+    private static bool IsCancelled(InventorySnapshot? snapshot) =>
+        snapshot is { ScanStatus: InventoryScanStatus.Failed or InventoryScanStatus.Partial } &&
+        snapshot.Diagnostics.Any(d => d.Code == "RS_A_CANCELLED");
+
+    private static string AttemptStatusLabel(InventorySnapshot? snapshot) =>
+        snapshot is null ? "aucune" : IsCancelled(snapshot)
+            ? "Annulée (RS_A_CANCELLED)" : snapshot.ScanStatus.ToString();
 
     /// <summary>Called by the internal CI harness only after creating its own disposable
     /// rm-rsa-fixture-{GUID}/ROMS. Selection performs no enumeration and grants no access.</summary>
@@ -187,6 +198,7 @@ public sealed class RsAUiViewModel : INotifyPropertyChanged, IDisposable
                     _current = result;
                 _phase = result.ScanStatus switch
                 {
+                    _ when IsCancelled(result) => RsAUiPhase.Cancelled,
                     InventoryScanStatus.Complete => RsAUiPhase.Complete,
                     InventoryScanStatus.Partial => RsAUiPhase.Partial,
                     _ when result.Diagnostics.Any(d => d.Code == "RS_A_DENIED") =>
@@ -276,6 +288,6 @@ public sealed class RsAUiViewModel : INotifyPropertyChanged, IDisposable
 
 public enum RsAUiPhase
 {
-    Idle, AwaitingConsent, Running, Cancelling, Complete, Partial,
+    Idle, AwaitingConsent, Running, Cancelling, Cancelled, Complete, Partial,
     Refused, Failed, Offline
 }

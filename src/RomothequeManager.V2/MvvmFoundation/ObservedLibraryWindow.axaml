@@ -37,6 +37,36 @@
       <Border x:Name="RsAUiPanel" Background="#243029" BorderBrush="#638B74"
               BorderThickness="1" CornerRadius="8" Padding="14"
               IsVisible="{Binding HasRsA}">
+        <Border.Styles>
+          <!-- Scoped RS-A controls: explicit legible colors in all interaction states. -->
+          <Style Selector="Button">
+            <Setter Property="Foreground" Value="#F2F8F2"/>
+            <Setter Property="Background" Value="#385242"/>
+            <Setter Property="BorderBrush" Value="#9AC6A3"/>
+            <Setter Property="BorderThickness" Value="1"/>
+          </Style>
+          <Style Selector="Button:disabled">
+            <Setter Property="Foreground" Value="#C5D0C7"/>
+            <Setter Property="Background" Value="#304037"/>
+            <Setter Property="BorderBrush" Value="#718B78"/>
+          </Style>
+          <Style Selector="Button:focus">
+            <Setter Property="BorderBrush" Value="#C6FFDC"/>
+            <Setter Property="BorderThickness" Value="2"/>
+          </Style>
+          <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="#F2F8F2"/>
+          </Style>
+          <Style Selector="CheckBox:checked">
+            <Setter Property="Foreground" Value="#F2F8F2"/>
+          </Style>
+          <Style Selector="CheckBox:focus">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+          </Style>
+          <Style Selector="CheckBox:disabled">
+            <Setter Property="Foreground" Value="#C5D0C7"/>
+          </Style>
+        </Border.Styles>
         <StackPanel Spacing="9">
           <TextBlock FontSize="19" FontWeight="Bold" Text="RS-A · ROMS WINDOWS · FIXTURES UNIQUEMENT"
                      TextWrapping="Wrap"/>

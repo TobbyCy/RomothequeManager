@@ -112,7 +112,13 @@ public sealed class Next05RsAUiTests
         await running;
         Assert.AreSame(known, vm.CurrentComplete);
         Assert.IsTrue(vm.LastAttempt?.ScanStatus is InventoryScanStatus.Failed or
-            InventoryScanStatus.Partial or InventoryScanStatus.Complete);
+            InventoryScanStatus.Partial);
+        Assert.IsTrue(vm.LastAttempt!.Diagnostics.Any(d => d.Code == "RS_A_CANCELLED"),
+            "Cancellation must be confirmed by the backend diagnostic.");
+        Assert.AreEqual("RS_A_CANCELLED", vm.SafeDiagnostic);
+        Assert.AreEqual(RsAUiPhase.Cancelled, vm.Phase);
+        StringAssert.Contains(vm.PhaseLabel, "Annulée");
+        StringAssert.Contains(vm.ProgressLabel, "Annulée");
         Assert.IsFalse(vm.ConsentConfirmed);
         Assert.IsFalse(vm.CanCancel);
         Assert.IsFalse(vm.CanStart);
@@ -166,6 +172,8 @@ public sealed class Next05RsAUiTests
         await vm.StartConfirmedAsync();
         Assert.AreEqual(RsAUiPhase.Partial, vm.Phase);
         Assert.AreEqual(InventoryScanStatus.Partial, vm.LastAttempt?.ScanStatus);
+        Assert.IsFalse(vm.LastAttempt!.Diagnostics.Any(d => d.Code == "RS_A_CANCELLED"));
+        Assert.IsFalse(vm.ProgressLabel.Contains("Annulée", StringComparison.Ordinal));
         Assert.AreSame(complete, vm.CurrentComplete);
         Assert.IsFalse(Directory.Exists(Path.Combine(_base, "MEDIAS")));
         Assert.IsFalse(Directory.Exists(Path.Combine(_base, "ROMOTHEQUE_MANAGER")));
