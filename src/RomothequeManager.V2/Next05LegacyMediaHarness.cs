@@ -34,6 +34,8 @@ internal static class Next05LegacyMediaHarness
         var gallery = Path.Combine(runner, "LM141-Windows-PNG");
         Directory.CreateDirectory(gallery);
         var fixture = BuildFixture(root, jpg);
+        var memory = new MemorySample();
+        using var sampler = new System.Threading.Timer(_ => memory.Tick(), null, 0, 20);
         window.Opened += (_, _) => Dispatcher.UIThread.Post(async () =>
         {
             try
@@ -138,7 +140,9 @@ internal static class Next05LegacyMediaHarness
                     " privateBefore=" + before + " privateAfter=" + after +
                     " gcBytes=" + GC.GetTotalMemory(false) +
                     " nativeDecoderEntered=" + totals.NativeDecoderEntered +
-                    " PRIVATE_PROCESS_MAX_NOT_CLAIMED");
+                    " privateSampledPeak=" + memory.PeakPrivateBytes +
+                    " managedSampledPeak=" + memory.PeakManagedBytes +
+                    " sampledIntervalMs=20 PRIVATE_PROCESS_MAX_NOT_CLAIMED");
                 Capture(window, gallery, "LM04-50Cards-1120x720", 1120, 720);
                 Capture(window, gallery, "LM04-50Cards-760x480", 760, 480);
 
@@ -148,6 +152,32 @@ internal static class Next05LegacyMediaHarness
                     StringComparison.Ordinal), "LM03_DETAIL_METADATA_MISSING");
                 Capture(window, gallery, "LM03-Detail-1120x720", 1120, 720);
                 Capture(window, gallery, "LM03-Detail-760x480", 760, 480);
+
+                // Prove the actual CoverFor + ImportedMediaPreview controls:
+                // a corrupt primary cover must fall back to an independently
+                // bounded thumbnail; both images are actually decoded/adopted.
+                Demand(window.CiLegacyShowCollection() && window.CiLegacyOpenIndex(2),
+                    "LM03_FALLBACK_DETAIL_NOT_ACCESSIBLE");
+                var priorDecodes = window.LegacyMediaCounters().NativeDecoderEntered;
+                await WaitForQueueAsync(window, 30000);
+                Demand(window.CiLegacyLiveBitmapCount >= 2 &&
+                    window.LegacyMediaCounters().NativeDecoderEntered > priorDecodes &&
+                    window.LegacyMediaCounters().RetainedBytes <=
+                        LegacyImportedImageBudget.MaxViewBytes,
+                    "LM03_PRIMARY_CORRUPT_FALLBACK_AND_GALLERY_NOT_DECODED");
+                Capture(window, gallery, "LM03-ThumbnailFallback-1120x720", 1120, 720);
+                Capture(window, gallery, "LM03-ThumbnailFallback-760x480", 760, 480);
+
+                Demand(window.CiLegacyShowCollection() && window.CiLegacyOpenIndex(3),
+                    "LM03_JPEG_DETAIL_NOT_ACCESSIBLE");
+                priorDecodes = window.LegacyMediaCounters().NativeDecoderEntered;
+                await WaitForQueueAsync(window, 30000);
+                Demand(window.CiLegacyLiveBitmapCount >= 2 &&
+                    window.LegacyMediaCounters().NativeDecoderEntered >= priorDecodes + 2,
+                    "LM03_JPEG_COVER_AND_GALLERY_NOT_DECODED");
+                Capture(window, gallery, "LM03-JpegDetail-1120x720", 1120, 720);
+                Capture(window, gallery, "LM03-JpegDetail-760x480", 760, 480);
+                Console.WriteLine("LM03_ACTUAL_COVERFOR_AND_GALLERY_PASS fallback=true jpeg=true bitmap_adopted=true");
 
                 var navBefore = Process.GetCurrentProcess().PrivateMemorySize64;
                 for (var i = 0; i < 20; i++)
@@ -184,7 +214,10 @@ internal static class Next05LegacyMediaHarness
                 Demand(window.LegacyMediaCounters().RetainedBytes == 0 &&
                     window.CiLegacyLiveBitmapCount == 0,
                     "LM05_BITMAPS_NOT_DISPOSED_AFTER_WINDOW_CLOSE");
-                Console.WriteLine("LM05_DISPOSE_PASS retainedBytes=0 attached=0");
+                Console.WriteLine("LM05_DISPOSE_PASS retainedBytes=0 attached=0" +
+                    " sampledPrivatePeak=" + memory.PeakPrivateBytes +
+                    " sampledManagedPeak=" + memory.PeakManagedBytes +
+                    " SAMPLE_NOT_NATIVE_HARD_CAP");
                 Console.WriteLine("LM_01_02_03_04_05_06_07_WINDOWS_FIXTURES_PASS source=CI_ONLY");
             }
             catch (Exception ex)
@@ -195,6 +228,32 @@ internal static class Next05LegacyMediaHarness
                 window.Close();
             }
         }, DispatcherPriority.Background);
+    }
+
+    // 20ms polling produces an OBSERVED sampled peak, never a proven OS hard
+    // maximum. GC and Skia can retain native allocations across navigation.
+    private sealed class MemorySample
+    {
+        private long _peakPrivate;
+        private long _peakManaged;
+        internal long PeakPrivateBytes => Volatile.Read(ref _peakPrivate);
+        internal long PeakManagedBytes => Volatile.Read(ref _peakManaged);
+        internal void Tick()
+        {
+            using var process = Process.GetCurrentProcess();
+            process.Refresh();
+            RecordMaximum(ref _peakPrivate, process.PrivateMemorySize64);
+            RecordMaximum(ref _peakManaged, GC.GetTotalMemory(false));
+        }
+        private static void RecordMaximum(ref long destination, long value)
+        {
+            long previous;
+            do
+            {
+                previous = Volatile.Read(ref destination);
+                if (value <= previous) return;
+            } while (Interlocked.CompareExchange(ref destination, value, previous) != previous);
+        }
     }
 
     private static async Task WaitForQueueAsync(MainWindow window, int timeoutMs)
