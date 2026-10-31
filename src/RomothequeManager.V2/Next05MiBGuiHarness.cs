@@ -2,6 +2,7 @@
 using System.Buffers.Binary;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using RomothequeManager.V2.Inventory;
@@ -52,32 +53,66 @@ internal static class Next05MiBGuiHarness
             File.WriteAllBytes(Path.Combine(folder, "Synthetic-" + n.ToString("D4") + ".png"), png);
         return media;
     }
+    private static readonly string[] CommandNames =
+        ["MiBSelect", "MiBConsent", "MiBStart", "MiBCancel", "MiBCurrent", "MiBAttempt"];
+
+    // Only an actual rendered control in the capture viewport counts as visual proof.
+    // Rectangle sidecars are verified against PNG pixels by the Windows-only workflow.
     private static void Capture(MiBFixtureWindow window, string output, string state, int width, int height)
     {
         window.Width = width; window.Height = height;
         var scroll = window.FindControl<ScrollViewer>("RootScroll")!;
-        var target = window.FindControl<TextBlock>("MiBPhase")!;
-        scroll.Offset = Vector.Zero;
-        window.UpdateLayout();
-        var content = scroll.Content as Control ??
-            throw new InvalidDataException("UI_MIB_CAPTURE_CONTENT_MISSING");
-        var point = target.TranslatePoint(new Point(0, 0), content) ??
-            throw new InvalidDataException("UI_MIB_CAPTURE_TARGET_MISSING");
-        scroll.Offset = new Vector(0, Math.Clamp(point.Y - 165, 0,
-            Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)));
+        scroll.Offset = Vector.Zero; // Keep both command groups visible; never auto-scroll past them.
         window.UpdateLayout();
         var surface = window.Content as Control ??
             throw new InvalidDataException("UI_MIB_CAPTURE_VISUAL_MISSING");
-        var at = target.TranslatePoint(new Point(0, 0), surface);
-        Demand(at.HasValue && at.Value.Y >= 35 && at.Value.Y < height - 35 &&
-            !string.IsNullOrWhiteSpace(target.Text), "UI_MIB_CAPTURE_LABEL_NOT_VISIBLE");
         surface.Measure(new Size(width - 2, height - 2));
         surface.Arrange(new Rect(0, 0, width - 2, height - 2));
+        scroll.Offset = Vector.Zero;
+        window.UpdateLayout();
+
+        string? expectedFocus = state switch
+        {
+            "ConsentA" or "ConsentB" => "MiBStart",
+            "CurrentA" or "CurrentB" => "MiBCurrent",
+            _ => null
+        };
+        if (expectedFocus is not null)
+        {
+            var focused = window.FindControl<Button>(expectedFocus)!;
+            Demand(focused.IsEnabled && focused.Focus(NavigationMethod.Tab) && focused.IsFocused,
+                "UI_MIB_KEYBOARD_STYLE_FOCUS_UNAVAILABLE_" + expectedFocus);
+            window.UpdateLayout();
+        }
+
+        var target = window.FindControl<TextBlock>("MiBPhase")!;
+        var at = target.TranslatePoint(new Point(0, 0), surface);
+        Demand(at.HasValue && at.Value.Y >= 0 && at.Value.Y + target.Bounds.Height < height - 2 &&
+            !string.IsNullOrWhiteSpace(target.Text), "UI_MIB_CAPTURE_LABEL_NOT_VISIBLE");
+        var rectangles = new List<string> { "Name,X,Y,Width,Height,Enabled,Focused" };
+        foreach (var name in CommandNames)
+        {
+            var button = window.FindControl<Button>(name) ??
+                throw new InvalidDataException("UI_MIB_CONTROL_MISSING_" + name);
+            var point = button.TranslatePoint(new Point(0, 0), surface);
+            Demand(button.IsVisible && point.HasValue && button.Bounds.Width >= 50 &&
+                button.Bounds.Height >= 35 && point.Value.X >= 0 && point.Value.Y >= 0 &&
+                point.Value.X + button.Bounds.Width < width &&
+                point.Value.Y + button.Bounds.Height < height - 2,
+                "UI_MIB_BUTTON_OUTSIDE_CAPTURE_" + name + "_" + state);
+            rectangles.Add(string.Join(",", name,
+                (int)Math.Round(point.Value.X), (int)Math.Round(point.Value.Y),
+                (int)Math.Floor(button.Bounds.Width), (int)Math.Floor(button.Bounds.Height),
+                button.IsEnabled ? "true" : "false", button.IsFocused ? "true" : "false"));
+        }
         using var bitmap = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
         bitmap.Render(surface);
         var file = Path.Combine(output, "MIB-" + state + "-" + width + "x" + height + ".png");
         bitmap.Save(file, PngBitmapEncoderOptions.Default);
+        File.WriteAllLines(file + ".rects.csv", rectangles);
         Demand(new FileInfo(file).Length > 4000, "UI_MIB_CAPTURE_EMPTY");
+        Console.WriteLine("UI_MIB_BUTTON_GEOMETRY_PASS state=" + state +
+            " size=" + width + "x" + height + " buttons=6 focus=" + (expectedFocus ?? "none"));
         Console.WriteLine("UI_MIB_CAPTURE_PASS " + Path.GetFileName(file));
     }
     private static void Pair(MiBFixtureWindow window, string output, string state)
@@ -169,15 +204,19 @@ internal static class Next05MiBGuiHarness
 
                 Demand(vm.Confirm(), "UI_MIB02_RECONSENT_REQUIRED");
                 var secondB = vm.StartAsync();
-                if (vm.Cancel())
-                    Pair(window, output, "CancellingB");
+                Demand(vm.Cancel(), "UI_MIB03_CANCEL_NOT_ACCEPTED_IN_GUI");
+                Pair(window, output, "CancellingB");
                 await secondB;
                 await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
                 Demand(vm.CurrentComplete?.RunRef is { } currentB &&
                     currentB != currentA.RunRef, "UI_MIB02_CURRENT_B_LOST");
-                if (vm.DiagnosticLabel.Contains("CANCELLED", StringComparison.Ordinal))
-                    Pair(window, output, "CancelledB");
-                else Console.WriteLine("UI_MIB_CANCEL_CAPTURE_NOT_EXECUTED no_proven_cancelled_result");
+                Demand(vm.DiagnosticLabel == "MI_A_CANCELLED" &&
+                    vm.PhaseLabel.Contains("Annulée", StringComparison.Ordinal) &&
+                    !vm.PhaseLabel.Contains("OFFLINE / STALE", StringComparison.Ordinal) &&
+                    vm.LastAttempt?.SafeDiagnosticCodes.Contains("MI_A_CANCELLED") == true &&
+                    vm.CurrentComplete?.RunRef == currentB,
+                    "UI_MIB03_CANCELLED_SHOWN_AS_OFFLINE_OR_CURRENT_LOST");
+                Pair(window, output, "CancelledB");
                 var archive = vm.CurrentComplete;
                 window.Close();
 
@@ -186,8 +225,9 @@ internal static class Next05MiBGuiHarness
                 archiveWindow.Show(main);
                 await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
                 Demand(!archiveWindow.ModelForCi.CanStart &&
-                    archiveWindow.ModelForCi.AvailabilityLabel.Contains("Offline", StringComparison.Ordinal),
-                    "UI_MIB05_ARCHIVE_AUTO_GRANTED");
+                    archiveWindow.ModelForCi.AvailabilityLabel.Contains("Offline", StringComparison.Ordinal) &&
+                    archiveWindow.ModelForCi.PhaseLabel.Contains("Historique OFFLINE / STALE", StringComparison.Ordinal),
+                    "UI_MIB05_ARCHIVE_BANNER_OR_GRANT");
                 Pair(archiveWindow, output, "OfflineStaleVisualFixture");
                 archiveWindow.Close();
                 Console.WriteLine("UI_MIB_WINDOWS_GUI_PASS real_service=true archive_visual_only=true");
