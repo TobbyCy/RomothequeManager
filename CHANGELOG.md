@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / UI-RSA Avalonia — DEV 3 / PR #116 (31.10.2026, fixtures uniquement)
+
+- Après fusion du scanner RS-A #114 dans `main=30958b11410a` et [CI push-main #41180639449](https://github.com/TobbyCy/RomothequeManager/actions/runs/41180639449) verte, ajout d'un panneau Avalonia dédié aux **seules fixtures ROMS** : sélection explicite, consentement temporaire non conservé, Start/Cancel, progression sans total inventé, refus, tentative Partial/Failed et état Offline/Stale. View, ViewModel et scanner interne restent séparés ; l'interface n'ouvre aucun fichier source elle-même.
+- Le dernier `CurrentComplete` n'est pas remplacé par une tentative incomplète. Les générations RS-A, le catalogue SQLite historique et les associations manuelles de jaquettes demeurent distincts ; aucun accès MEDIAS, Skia ou permission utilisateur ajoutés.
+- [Preuve Windows native #41181274995](https://github.com/TobbyCy/RomothequeManager/actions/runs/41181274995) sur source `65060daa` : **247 tests PASS**, cinq nouvelles captures RS-A à 1120×720 et 760×480, et 23 captures de régression Avalonia/Media/SQLite, EXE normal sans `NEXT05_CI`, ZIP de 23 fichiers contrôlé (SHA-256 `deda6422c46bbbbc14313dee62d7cbc976e8fdfa80300fdc5f42cea87b4cdeaa`). Workflow probatoire supprimé du HEAD final, code inchangé ; revue DEV 2 et CI du dernier HEAD à constater séparément.
+- `REAL_LIBRARY_SCAN_HOLD`, `REAL_MEDIA_SCAN_HOLD`, `REAL_MEDIA_PREVIEW_HOLD`, `REAL_CATALOG_STORAGE_HOLD` restent actifs. Aucun SSD/ROMothèque personnelle, USB physique, non-admin/ACL, Release ou fusion autonome autorisé.
+
 ## NEXT-05 / RS-A — ROMS Windows handles confinés (PR #114, fixtures uniquement)
 
 - Scanner de métadonnées ROMS interne aux fixtures Windows, sélection explicite, ReadGrant volatile/versionné, refus de tous les accès via l'API publique REAL_LIBRARY_SCAN_HOLD.
