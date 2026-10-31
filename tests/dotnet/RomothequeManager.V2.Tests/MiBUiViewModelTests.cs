@@ -104,12 +104,18 @@ public sealed class MiBUiViewModelTests
         var second = vm.StartAsync();
         Assert.IsTrue(vm.Cancel());
         Assert.AreEqual(1, service.CancelCount);
-        var failed = Run("mia-cancelled");
+        var failed = Run("mia-cancelled") with {
+            ScanStatus = RomothequeManager.V2.Inventory.InventoryScanStatus.Partial,
+            KnownObservedMediaTotal = null,
+            SafeDiagnosticCodes = new[] { "MI_A_CANCELLED" }
+        };
         service.Finish(service.State with { Phase = MiBPhase.Completed, CurrentComplete = current,
             LastAttempt = failed, SafeNoticeCode = "MI_B_CANCELLED", ProgressIsIndeterminate = false });
         await second;
         Assert.AreEqual("mia-current", vm.CurrentComplete!.RunRef);
         Assert.AreEqual("mia-cancelled", vm.LastAttempt!.RunRef);
+        Assert.AreEqual("MI_A_CANCELLED", vm.DiagnosticLabel);
+        StringAssert.Contains(vm.PhaseLabel, "Annulée");
         vm.ShowAttemptCommand.Execute(null);
         Assert.AreEqual("mia-cancelled", vm.Displayed!.RunRef);
     }
