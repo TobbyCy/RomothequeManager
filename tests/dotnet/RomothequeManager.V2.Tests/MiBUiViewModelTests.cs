@@ -42,6 +42,7 @@ public sealed class MiBUiViewModelTests
         public bool ClearSelection() { SelectFixtureRoot("B"); return true; }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public void Finish(MiBProjectionState result) { Set(result); Pending?.TrySetResult(result); }
+        public void FinishLate(MiBProjectionState result) { Pending?.TrySetResult(result); }
     }
 
     private static MiBRunView Run(string id) =>
@@ -120,7 +121,7 @@ public sealed class MiBUiViewModelTests
         var versionA = service.State.SelectionVersion;
         // Backend allows selection during in-flight operations; VM must never display A as B.
         service.SelectFixtureRoot("B");
-        service.Finish(new(versionA, MiBPhase.Completed, false, Run("mia-A"), Run("mia-A"), false, null));
+        service.FinishLate(new(versionA, MiBPhase.Completed, false, Run("mia-A"), Run("mia-A"), false, null));
         await running;
         Assert.IsNull(vm.CurrentComplete);
         Assert.IsNull(vm.LastAttempt);
