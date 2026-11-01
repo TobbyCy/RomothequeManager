@@ -2,7 +2,10 @@
 
 ## NEXT-05 / #145 — MVVM : premier lot shell/import historique ES-DE (PR #147, 01.11.2026)
 
-- **En cours, non publié :** PR [#147](https://github.com/TobbyCy/RomothequeManager/pull/147) depuis `main=1aac0912930bd0a040e06800a1e8316fbe077dc2`. VM observable avec commandes Import/Refresh/Cancel, état Busy et adoption de `Current` après contrôle d'annulation ; service injectable qui reprend exclusivement l'import ES-DE read-only historique.
+- **Correction P1 sur PR #147, en attente de re-revue indépendante, non publiée :** depuis `main=1aac0912930bd0a040e06800a1e8316fbe077dc2`, préparation de refresh ES-DE non mutatrice via `EsDeImportSession.PrepareRefresh` et adoption gardée par `TryCommitPreparedRefresh`; VM contrôle Cancel/génération/Dispose/session/Current, puis commit et adoption UI sans await/notification. Le parseur, l'identité V2 et la politique média ne sont pas doublés.
+- **Causal Windows RED→GREEN réel sur fixtures** : [rouge #41328573756](https://github.com/TobbyCy/RomothequeManager/actions/runs/41328573756) **318 PASS / 1 FAIL attendu**, `UI=A, Session=B, OpenA=false, OpenB=true` après Cancel ; [vert #41329083836](https://github.com/TobbyCy/RomothequeManager/actions/runs/41329083836) HEAD `af7b611ac80277fc03761dcd605651d297c4e1aa`, **323 PASS**, Policy/Docs/gate SUCCESS. CI du HEAD documentaire final à confirmer ; la recette humaine #95 n'est pas exécutée.
+- **Doc XML** : frontières VM/services, état importé, navigation, consentement et méthodes de diagnostic documentés sur #147, sans modifier PR DocFX #148. REVUE DEV 2 nécessaire, aucune fusion/Release.
+
 - **Préservation :** choix et confirmation manuels, filtre/plateforme, 50 éléments/page, navigation/scroll, erreurs redigées, annulation/Dispose. Les ouvertures médias, budgets de décodage, G1/#140/#141/#142/DocFX et gates de permissions ne sont pas changés. La synchronisation de tests/CI au HEAD de PR est **en attente**, aucune preuve humaine #95.
 - **Tests et documentation :** `ImportedCatalogueMvvmBoundaryTests` (fixtures fictives uniquement), [frontière architecturale](docs/architecture/next05-mvvm145-esde-import.md). Revue DEV 2 indépendante obligatoire avant fusion Contrôleur ; aucune Release ni nouvelle autorisation réelle.
 
