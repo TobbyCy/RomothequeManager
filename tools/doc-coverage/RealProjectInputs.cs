@@ -1,4 +1,6 @@
 using System.Text;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -98,38 +100,94 @@ internal sealed class RealProjectInputs
 
     internal void VerifyActualAssembly(CSharpCompilation source, IEnumerable<string> eligibleIds)
     {
-        var asmRef = MetadataReference.CreateFromFile(TargetPath);
-        var meta = CSharpCompilation.Create("DocCoverageReferenceAudit",
-            references: References.Select(x => MetadataReference.CreateFromFile(x)).Append(asmRef),
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        // Directly traverse the actual compiled assembly's metadata. Lookup of an
-        // internal symbol through an external compilation wrongly reports it absent
-        // (accessibility), even though the method/field is present in the DLL.
-        var compiledAssembly = meta.GetAssemblyOrModuleSymbol(asmRef) as IAssemblySymbol
-            ?? throw new InvalidDataException("REAL_ASSEMBLY_METADATA_NOT_LOADABLE");
+        // Raw ECMA-335 metadata includes internal members hidden by a reference
+        // compilation's accessibility policy; never exclude them from the audit.
+        using var file = File.OpenRead(TargetPath);
+        using var pe = new PEReader(file);
+        var reader = pe.GetMetadataReader();
         var emitted = new HashSet<string>(StringComparer.Ordinal);
-        void Visit(ISymbol symbol)
+        var typeNames = new Dictionary<TypeDefinitionHandle, string>();
+        string TypeName(TypeDefinitionHandle handle)
         {
-            var id = symbol.GetDocumentationCommentId();
-            if (!string.IsNullOrWhiteSpace(id)) emitted.Add(id);
-            switch (symbol)
+            if (typeNames.TryGetValue(handle, out var cached)) return cached;
+            var def = reader.GetTypeDefinition(handle);
+            var simple = reader.GetString(def.Name);
+            var parent = def.GetDeclaringType();
+            var ns = reader.GetString(def.Namespace);
+            var full = parent.IsNil ? (ns.Length == 0 ? simple : ns + "." + simple)
+                : TypeName(parent) + "." + simple;
+            typeNames[handle] = full;
+            return full;
+        }
+        foreach (var handle in reader.TypeDefinitions)
+        {
+            var def = reader.GetTypeDefinition(handle);
+            var full = TypeName(handle);
+            emitted.Add("T:" + full);
+            foreach (var mhandle in def.GetMethods())
             {
-                case INamespaceSymbol ns:
-                    foreach (var member in ns.GetMembers()) Visit(member);
-                    break;
-                case INamedTypeSymbol type:
-                    foreach (var member in type.GetMembers()) Visit(member);
-                    break;
+                var method = reader.GetMethodDefinition(mhandle);
+                var name = reader.GetString(method.Name);
+                var count = method.GetParameters().Count(h =>
+                    reader.GetParameter(h).SequenceNumber > 0);
+                emitted.Add("M:" + full + "." + name + "|" + count);
+            }
+            foreach (var fieldHandle in def.GetFields())
+            {
+                var field = reader.GetFieldDefinition(fieldHandle);
+                emitted.Add("F:" + full + "." + reader.GetString(field.Name));
+            }
+            foreach (var propHandle in def.GetProperties())
+            {
+                var prop = reader.GetPropertyDefinition(propHandle);
+                emitted.Add("P:" + full + "." + reader.GetString(prop.Name));
+            }
+            foreach (var eventHandle in def.GetEvents())
+            {
+                var ev = reader.GetEventDefinition(eventHandle);
+                emitted.Add("E:" + full + "." + reader.GetString(ev.Name));
             }
         }
-        Visit(compiledAssembly.GlobalNamespace);
-        var all = eligibleIds.Distinct(StringComparer.Ordinal).ToArray();
-        var missing = all.Where(id => !emitted.Contains(id)).ToList();
-        if (missing.Count != 0)
+        static int CountParameters(string parameters)
+        {
+            if (parameters.Length == 0) return 0;
+            int depth = 0, n = 1;
+            foreach (var c in parameters)
+            {
+                if (c is '{' or '[' or '<') depth++;
+                else if (c is '}' or ']' or '>') depth--;
+                else if (c == ',' && depth == 0) n++;
+            }
+            if (depth != 0) throw new InvalidDataException("DOC_ID_PARAMETERS_INVALID");
+            return n;
+        }
+        static string Key(string id)
+        {
+            if (id.Length < 3 || id[1] != ':')
+                throw new InvalidDataException("DOC_ID_FORMAT_INVALID");
+            if (id[0] is 'T' or 'F' or 'E') return id;
+            var sig = id.IndexOf('(');
+            var stem = sig < 0 ? id : id[..sig];
+            if (id[0] == 'P') return stem;
+            if (id[0] != 'M') throw new InvalidDataException("DOC_ID_KIND_UNKNOWN");
+            var last = stem.LastIndexOf('.');
+            if (last < 2) throw new InvalidDataException("DOC_ID_METHOD_INVALID");
+            var method = stem[(last + 1)..].Replace("#ctor", ".ctor", StringComparison.Ordinal)
+                .Replace("#cctor", ".cctor", StringComparison.Ordinal);
+            var genericIndex = method.IndexOf(new string((char)96, 2), StringComparison.Ordinal);
+            if (genericIndex >= 0) method = method[..genericIndex];
+            var count = sig < 0 ? 0 : CountParameters(id[(sig + 1)..id.IndexOf(')', sig)]);
+            return stem[..last] + "." + method + "|" + count;
+        }
+        var ids = eligibleIds.Distinct(StringComparer.Ordinal).ToArray();
+        var missing = ids.Where(id => !emitted.Contains(Key(id))).ToArray();
+        if (missing.Length != 0)
             throw new InvalidDataException("REAL_ASSEMBLY_DECLARED_API_MISSING:" +
-                missing.Count + ":" + string.Join(",", missing.Take(12)));
+                missing.Length + ":" + string.Join(",", missing.Take(12)));
         Console.WriteLine("DOC_COVERAGE_REAL_ASSEMBLY_CROSSCHECK_PASS " +
-            "symbols=" + all.Length + " referenceAssemblies=" + References.Length +
-            " compiledSources=" + Sources.Length + " defines=" + string.Join(",", Defines));
+            "symbols=" + ids.Length + " metadataMembers=" + emitted.Count +
+            " referenceAssemblies=" + References.Length +
+            " compiledSources=" + Sources.Length +
+            " defines=" + string.Join(",", Defines));
     }
 }
