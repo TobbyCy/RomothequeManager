@@ -120,6 +120,7 @@ internal sealed class MiAFixtureMediaSession
     internal MediaIndexSnapshot? LastAttempt { get { lock (_selectionGate) return _lastAttempt; } }
 /// <summary>Actual header-byte count from the last attempt; refused scans leave this counter at zero.</summary>
     internal long LastHeaderBytesRead { get; private set; }
+    /// <summary>Monotonically increasing fixture selection version; a change invalidates the previous MEDIAS grant and snapshots.</summary>
     internal long SelectionVersion { get { lock (_selectionGate) return _version; } }
 
 /// <summary>Construct an isolated fixture MEDIAS session with validated read and decode-protection ceilings.</summary>
