@@ -184,6 +184,41 @@ internal sealed class RealProjectInputs
         if (missing.Length != 0)
             throw new InvalidDataException("REAL_ASSEMBLY_DECLARED_API_MISSING:" +
                 missing.Length + ":" + string.Join(",", missing.Take(12)));
+        // Unlike name+parameter-count, exact documentation IDs preserve the
+        // parameter TYPE signature (including overloads) and generic arity.
+        // Roslyn's default metadata import hides internal members, therefore
+        // this independent audit explicitly imports non-public metadata.
+        var exactAudit = CSharpCompilation.Create("DocCoverageExactSignatureAudit",
+            references: References.Select(x => MetadataReference.CreateFromFile(x)).Append(
+                MetadataReference.CreateFromFile(TargetPath)),
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+                metadataImportOptions: MetadataImportOptions.All));
+        var assemblyRef = exactAudit.References.Last();
+        var exactAssembly = exactAudit.GetAssemblyOrModuleSymbol(assemblyRef) as IAssemblySymbol
+            ?? throw new InvalidDataException("DOC_EXACT_SIGNATURE_ASSEMBLY_UNAVAILABLE");
+        var exactIds = new HashSet<string>(StringComparer.Ordinal);
+        void VisitExact(ISymbol symbol)
+        {
+            var id = symbol.GetDocumentationCommentId();
+            if (!string.IsNullOrWhiteSpace(id)) exactIds.Add(id);
+            if (symbol is INamespaceSymbol ns)
+            {
+                foreach (var member in ns.GetMembers()) VisitExact(member);
+            }
+            else if (symbol is INamedTypeSymbol type)
+            {
+                foreach (var member in type.GetMembers()) VisitExact(member);
+            }
+        }
+        VisitExact(exactAssembly.GlobalNamespace);
+        var missingExact = ids.Where(id => !exactIds.Contains(id)).ToArray();
+        if (missingExact.Length != 0)
+            throw new InvalidDataException("REAL_ASSEMBLY_EXACT_DECLARATION_SIGNATURE_MISSING:" +
+                missingExact.Length + ":" + string.Join(",", missingExact.Take(12)));
+        Console.WriteLine("DOC_COVERAGE_EXACT_SIGNATURES_PASS " +
+            "sourceEligible=" + ids.Length + " metadataDeclarations=" + exactIds.Count +
+            " strictOverloadTypeIds=true internalImport=all");
+
         Console.WriteLine("DOC_COVERAGE_REAL_ASSEMBLY_CROSSCHECK_PASS " +
             "symbols=" + ids.Length + " metadataMembers=" + emitted.Count +
             " referenceAssemblies=" + References.Length +
