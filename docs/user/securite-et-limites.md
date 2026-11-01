@@ -1,5 +1,8 @@
 # Sécurité, limitations et bonnes pratiques
 
+> **Portée :** les indications sur la mémoire et l'absence de persistance ci-dessous concernent la Release alpha historique citée, non tout le code `main`. Une persistance SQLite minimale a été intégrée sur fixtures en NEXT-05 ; elle n'autorise ni migration ni utilisation de bibliothèque personnelle. Recette humaine **NOT_EXECUTED**, `REAL_*_HOLD` et `NEXT05_RELEASE_HOLD` actifs. Pour identifier la version effectivement distribuée, consulter les [Releases](https://github.com/TobbyCy/RomothequeManager/releases).
+
+
 **Référence au 29 octobre 2026 : [v0.3.0-alpha.1 / NEXT-03](https://github.com/TobbyCy/RomothequeManager/releases/tag/v0.3.0-alpha.1).** Une application Windows portable est disponible. Elle reste une Alpha de développement et de démonstration, sans usage en production ni opération physique sur les ROMs.
 
 ## Ce qui est disponible et ce qui reste limité
@@ -25,7 +28,7 @@ Une session déjà ouverte peut conserver un snapshot en mémoire lorsqu'un supp
 
 ## Télécharger et démarrer
 
-Suivre les [instructions du README](../../README.md#télécharger-et-démarrer) pour télécharger le ZIP Windows x64 et son SHA-256 depuis la Pre-release officielle. Extraire l'archive entièrement, conserver DLL, données et licences ensemble, puis lancer `RomothequeManager.V2.exe` sans droits administrateur. Le runtime .NET est inclus.
+Suivre les [instructions du README](../../README.md#télécharger-et-essayer) pour télécharger le ZIP Windows x64 et son SHA-256 depuis la Pre-release officielle. Extraire l'archive entièrement, conserver DLL, données et licences ensemble, puis lancer `RomothequeManager.V2.exe` sans droits administrateur. Le runtime .NET est inclus.
 
 Le binaire n'est pas signé ; SmartScreen peut avertir. Ne pas désactiver les protections globalement. Aucun installateur ni système de mise à jour automatique n'est livré. Le ZIP autonome ne garantit pas encore que les paramètres et catalogues soient stockés sur le même SSD que l'application.
 
