@@ -146,9 +146,16 @@ public sealed partial class MainWindow : Window
         _importVm = new ImportedCatalogueViewModel(_importedUi);
         _importVm.PropertyChanged += (_, change) =>
         {
-            // A running import changes visual progress/commands; presentation only.
+            // Track UI scroll before an asynchronous refresh, without owning its job.
             if (change.PropertyName == nameof(ImportedCatalogueViewModel.IsBusy))
+            {
+                var collection = _importedUi.IsImported && ActiveView == POCView.Collection;
+                if (_importVm.IsBusy && collection)
+                    _importedCollectionOffset = _contentScroll?.Offset ?? default;
                 Render();
+                if (!_importVm.IsBusy && collection)
+                    RestoreCollectionOffset(true);
+            }
         };
         _demoProjection = new Lazy<LibraryProjection>(() => LibraryProjection.LoadSynthetic(_state.Catalogue));
         _demoLibraries = new Lazy<LibraryViewState>(() => new LibraryViewState(_libraryProjection));
@@ -221,7 +228,8 @@ public sealed partial class MainWindow : Window
         menu.Children.Add(SidebarButton("Inventaire de fichiers · sans ES-DE", () =>
             new ObservedLibraryWindow().Show(this)));
         menu.Children.Add(SidebarButton("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
-        _refreshImportButton = SidebarButton("Actualiser l'import", () => _ = RefreshImportAsync());
+        _refreshImportButton = SidebarButton("Actualiser l'import", null);
+        _refreshImportButton.Command = _importVm.RefreshCommand;
         menu.Children.Add(_refreshImportButton);
         _refreshImportHint = Text("Disponible après import d'une bibliothèque ES-DE.", 11);
         menu.Children.Add(_refreshImportHint);
@@ -284,7 +292,7 @@ public sealed partial class MainWindow : Window
 
     // Native button remains focusable/keyboard accessible. Label and surface colors
     // are under our control for inactive, active and pointer-hover states.
-    private Button SidebarButton(string title, Action action, POCView? view = null)
+    private Button SidebarButton(string title, Action? action, POCView? view = null)
     {
         var label = new TextBlock
         {
@@ -309,7 +317,7 @@ public sealed partial class MainWindow : Window
         state.Control = button;
         button.PointerEntered += (_, _) => { state.Hovered = true; UpdateSidebarStyles(); };
         button.PointerExited += (_, _) => { state.Hovered = false; UpdateSidebarStyles(); };
-        button.Click += (_, _) => action();
+        if (action is not null) button.Click += (_, _) => action();
         return button;
     }
 
