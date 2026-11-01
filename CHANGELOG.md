@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / ESDE-FP-V2 #142 — non-ambiguous canonical fingerprint (fixtures only)
+
+- PR #144 is a dedicated follow-up to the merged #143, starting from `main=2e4f03978d7f8bdee4cead889a05d8b60da220f2`. DEV 2 normative contract is documented in Product Issue #142 (comment 6553992309). No real source, migration, scan, automated relocation, merge or Release.
+- Initial commit reproduces the delimiter collision in V1 and its unsafe acceptance by `RelocateVerified`; this intentional RED CI baseline is not completion evidence. The final V2 must use the exact binary MAGIC `ROMOTHEQUE:ESDE-FP:V2\\0`, UTF-8 strict, typed field IDs, big-endian lengths, deterministic collections, full SHA-256 output, independent golden vectors and V1 fail-closed behavior without changing shared `Digest` or the session/game/variant identities.
+- Completion requires Windows green tests, independently reviewed byte/digest vectors and DEV 2 review on the exact PR HEAD. `REAL_*_HOLD` and `NEXT05_RELEASE_HOLD` remain active.
+
+
 ## NEXT-05 / #141 — LEGACY-MEDIA : garde ES-DE historique, preuves Windows (31.10.2026)
 
 - **Périmètre** : [PR #143](https://github.com/TobbyCy/RomothequeManager/pull/143), même branche `dev1/next05-g1-perm-fixtures`. Les deux voies historiques `CoverFor` et `ImportedMediaPreview` (`TryOpenMedia → Bitmap`) utilisent le même garde local de décodage et un worker séquentiel par fenêtre, sans service Preview parallèle ni permission réelle. Conserver titres, métadonnées, import ES-DE, sélection de couverture, galerie, filtre/recherche, navigation, placeholders et lecture seule.
