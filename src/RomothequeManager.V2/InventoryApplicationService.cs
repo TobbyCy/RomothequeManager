@@ -4,11 +4,26 @@ namespace RomothequeManager.V2.Inventory.Application;
 
 // NEXT-03: application orchestration in existing V2 assembly only. InventorySession remains the sole filesystem scanner.
 // No Avalonia, ViewModel, XML importer, persistent library identity or progress percentage.
+/// <summary>Observable lifecycle of one explicit inventory selection and scan, independent of GUI rendering.</summary>
 public enum InventoryRunPhase
 {
-    NoSelection, Ready, Running, CancellationRequested, Completed, Rejected, Faulted
+    /// <summary>No local scope has been explicitly chosen; scanning cannot be started.</summary>
+    NoSelection,
+    /// <summary>A syntactically valid local scope was selected, but no scan permission has yet been granted.</summary>
+    Ready,
+    /// <summary>The single active bounded observation attempt is executing.</summary>
+    Running,
+    /// <summary>Cancellation has been requested and the active attempt must settle without discarding previous Current.</summary>
+    CancellationRequested,
+    /// <summary>An attempt finished; inspect its ScanStatus before treating coverage as complete.</summary>
+    Completed,
+    /// <summary>An attempted transition was denied without invoking the filesystem scanner.</summary>
+    Rejected,
+    /// <summary>An unexpected failure occurred; the safe diagnostic code replaces raw exception details.</summary>
+    Faulted,
 }
 
+/// <summary>Immutable, thread-neutral projection of selection, progress, Current and LastAttempt; no exposure of a real scan permission.</summary>
 public sealed record InventoryApplicationState(
     long SelectionVersion,
     InventoryRunPhase Phase,
@@ -19,42 +34,60 @@ public sealed record InventoryApplicationState(
     bool ProgressIsIndeterminate)
 {
     // Source-backed dimensions. Never infer coverage, availability or freshness from another field.
+    /// <summary>Status from the most recent attempt; null until an attempt exists and not inferred from Current.</summary>
     public InventoryScanStatus? LastScanStatus => LastAttempt?.ScanStatus;
+    /// <summary>Reachability reported by LastAttempt, or Unknown when no attempt has observed the root.</summary>
     public InventoryAvailability LastAvailability =>
         LastAttempt?.Availability ?? InventoryAvailability.Unknown;
+    /// <summary>Freshness reported by LastAttempt; a missing snapshot is explicitly Unknown.</summary>
     public InventoryFreshness LastFreshness =>
         LastAttempt?.Freshness ?? InventoryFreshness.Unknown;
+    /// <summary>Metadata-only observations from LastAttempt; empty does not prove that the selected scope contains no files.</summary>
     public IReadOnlyList<FileObservation> Observations =>
         LastAttempt?.Observations ?? Array.Empty<FileObservation>();
+    /// <summary>Safe per-attempt diagnostics without exposing exception paths or treating refusal as complete enumeration.</summary>
     public IReadOnlyList<InventoryDiagnostic> Diagnostics =>
         LastAttempt?.Diagnostics ?? Array.Empty<InventoryDiagnostic>();
+    /// <summary>Partition coverage evidence for the last attempt, never synthesized from an observation count.</summary>
     public IReadOnlyList<InventoryCoverage> CoverageProof =>
         LastAttempt?.CoverageProof ?? Array.Empty<InventoryCoverage>();
+    /// <summary>Total files only when the underlying attempt established that count; null means not known.</summary>
     public int? TotalFileCount => LastAttempt?.TotalFileCount;
+    /// <summary>Known confirmed-game total from the attempted snapshot; null is not interpreted as zero games.</summary>
     public int? ConfirmedGameCount => LastAttempt?.ConfirmedGameCount;
 }
 
+/// <summary>Result of a folder selection preflight, including a safe denial code and version for future consent checks.</summary>
 public sealed record InventorySelectionResult(
     bool Accepted, string? SafeDiagnosticCode, long SelectionVersion);
 
+/// <summary>Binds one explicit consent to the currently selected scope version; consent alone is never a real-library permission.</summary>
 public sealed record InventoryRunRequest(long SelectionVersion, bool ExplicitUserConsent);
 
+/// <summary>Application boundary for selecting and observing a synthetic library without exposing scanner access to a ViewModel.</summary>
 public interface IInventoryApplicationService : IAsyncDisposable
 {
+    /// <summary>Current immutable application state; UI consumers must observe transitions rather than infer filesystem success.</summary>
     InventoryApplicationState State { get; }
 
     // Fired on the calling or worker thread. Avalonia ViewModels must dispatch to the UI thread.
+    /// <summary>Event emitted on the invoking or worker thread; UI observers must marshal notifications to the UI dispatcher.</summary>
     event EventHandler<InventoryApplicationState>? StateChanged;
 
     // A restricted metadata-only preflight AFTER an explicit folder-picker selection.
     // Never enumerates ROMS or parses game XML; cancellation of a picker does not call this.
+    /// <summary>Metadata-only scope preflight after an explicit picker selection; does not enumerate ROMS or grant scan consent.</summary>
     InventorySelectionResult PrepareSelection(InventoryScope selectedScope);
+    /// <summary>Attempt one scan only when selected version, one-shot consent and synthetic scope permission all match.</summary>
     Task<InventoryApplicationState> StartConfirmedScanAsync(
         InventoryRunRequest request, CancellationToken cancellationToken = default);
+    /// <summary>Request cancellation of the active attempt without replacing the previous complete Current snapshot.</summary>
     bool RequestCancellation();
+    /// <summary>Clear an idle selected scope and invalidate the prior selection version; active operations remain protected.</summary>
     bool ClearSelection();
 }
 
+/// <summary>Single-flight inventory coordinator with versioned consent and a fail-closed public constructor.</summary>
 public sealed class InventoryApplicationService : IInventoryApplicationService
 {
     private readonly object _gate = new();
@@ -73,21 +106,25 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
 
     // Fail-closed in a distributed app: user consent alone is NOT authorization to scan real ROMs.
     // This constructor never executes Scan(), even when the user confirms.
+    /// <summary>Construct the distributed service with all real-library scanning disabled, regardless of user consent.</summary>
     public InventoryApplicationService() : this(static _ => false) { }
 
     // Only the friend synthetic test assembly can grant per-scope permission.
     // There is deliberately no public runtime switch, env var or manifest-based bypass.
+    /// <summary>Test-only injection seam for explicitly allowed fixture scopes; no public runtime bypass exists.</summary>
     internal InventoryApplicationService(Func<InventoryScope, bool> syntheticPermission) =>
         _syntheticPermission = syntheticPermission ??
             throw new ArgumentNullException(nameof(syntheticPermission));
 
     public event EventHandler<InventoryApplicationState>? StateChanged;
 
+    /// <summary>Thread-safe immutable snapshot of the current application state including any last attempt.</summary>
     public InventoryApplicationState State
     {
         get { lock (_gate) return _state; }
     }
 
+    /// <summary>Validate local root and ROMS metadata, reject reparse ancestors, freeze aliases and issue a new selection version.</summary>
     public InventorySelectionResult PrepareSelection(InventoryScope selectedScope)
     {
         ArgumentNullException.ThrowIfNull(selectedScope);
@@ -162,6 +199,7 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
         lock (_gate) return new(false, diagnostic, _version);
     }
 
+    /// <summary>Reject absent or stale consent and real-library access; only fixture-authorized requests can execute a single bounded scan.</summary>
     public Task<InventoryApplicationState> StartConfirmedScanAsync(
         InventoryRunRequest request, CancellationToken cancellationToken = default)
     {
@@ -268,6 +306,7 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
         return finishedState;
     }
 
+    /// <summary>Signal cancellation to the active operation while retaining its prior complete snapshot for later inspection.</summary>
     public bool RequestCancellation()
     {
         InventoryApplicationState pending;
@@ -287,6 +326,7 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
         return true;
     }
 
+    /// <summary>Drop the selected scope only when allowed by the current lifecycle, invalidating any earlier consent token.</summary>
     public bool ClearSelection()
     {
         InventoryApplicationState cleared;
@@ -303,6 +343,7 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
         return true;
     }
 
+    /// <summary>Cancel an active attempt and await safe shutdown so no late event can resurrect disposed state.</summary>
     public async ValueTask DisposeAsync()
     {
         Task wait = Task.CompletedTask;
