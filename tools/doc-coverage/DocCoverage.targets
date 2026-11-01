@@ -1,0 +1,25 @@
+<Project>
+  <!-- External, opt-in instrumentation of the *real* C# application build.
+       Never imports automatically, never changes compiler options or granted paths.
+       CustomAfterMicrosoftCommonTargets is supplied on the Windows runner only. -->
+  <Target Name="DocCoverageWriteInputs"
+          BeforeTargets="CoreCompile"
+          Condition="'$(DocCoverageManifest)' != '' and '$(MSBuildProjectName)' == 'RomothequeManager.V2'">
+    <ItemGroup>
+      <_DocCoverageManifestLines Include="PROPERTY|AssemblyName|$(AssemblyName)" />
+      <_DocCoverageManifestLines Include="PROPERTY|TargetPath|$(TargetPath)" />
+      <_DocCoverageManifestLines Include="PROPERTY|TargetFramework|$(TargetFramework)" />
+      <_DocCoverageManifestLines Include="PROPERTY|Configuration|$(Configuration)" />
+      <_DocCoverageManifestLines Include="PROPERTY|LangVersion|$(LangVersion)" />
+      <_DocCoverageManifestLines Include="PROPERTY|Nullable|$(Nullable)" />
+      <_DocCoverageManifestLines Include="PROPERTY|DefineConstants|$([System.String]::Copy('$(DefineConstants)').Replace(';', ','))" />
+      <_DocCoverageManifestLines Include="SOURCE|@(Compile->'%(FullPath)', '%3BSOURCE|')" />
+      <_DocCoverageManifestLines Include="REFERENCE|@(ReferencePathWithRefAssemblies->'%(FullPath)', '%3BREFERENCE|')" />
+    </ItemGroup>
+    <Error Condition="'@(Compile)' == '' or '@(ReferencePathWithRefAssemblies)' == ''"
+           Text="DOC_COVERAGE_MSBUILD_COMPILE_OR_REFERENCES_EMPTY" />
+    <WriteLinesToFile File="$(DocCoverageManifest)" Lines="@(_DocCoverageManifestLines)"
+                      Overwrite="true" Encoding="UTF-8" />
+    <Message Importance="high" Text="DOC_COVERAGE_REAL_MSBUILD_MANIFEST $(DocCoverageManifest) sources=@(Compile->Count()) refs=@(ReferencePathWithRefAssemblies->Count())" />
+  </Target>
+</Project>
