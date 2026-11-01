@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
@@ -16,8 +17,13 @@ internal static class Program
     // does not depend on the spelling of a file or a type such as 'Service'.
     private record Api(string Id, string Kind, string File, int Line,
         bool Documented, string Reason, bool InternalContract);
+    private record GeneratedExclusion(string SymbolId, string Rule,
+        string GeneratorIdentity, string GeneratorVersion, string GeneratorHash,
+        string GeneratedSource, string SourceHash, string CompilationSHA,
+        int DeclarationsCount, string XamlSource, string XamlInputHash);
     private record Measurement(string Sha, int Eligible, int Documented,
-        List<Api> Symbols, List<Api> Exclusions)
+        List<Api> Symbols, List<Api> Exclusions,
+        List<GeneratedExclusion>? GeneratedExclusions = null)
     {
         public double Percent => Eligible == 0 ? 0 : 100.0 * Documented / Eligible;
     }
@@ -43,13 +49,26 @@ internal static class Program
             var baseInputs = RealProjectInputs.Read(args[9]);
             var headCompilation = headInputs.Compile();
             var baseCompilation = baseInputs.Compile();
-            var head = Measure(headSha, headCompilation, root);
-            var baseline = Measure(baseSha, baseCompilation, root);
+            // No changed generator/version/source list may disappear behind an exclusion.
+            VerifyGeneratedInputsStable(baseInputs.GeneratedProvenance, headInputs.GeneratedProvenance);
+            var head = Measure(headSha, headCompilation, root, headInputs.GeneratedProvenance);
+            var baseline = Measure(baseSha, baseCompilation, root, baseInputs.GeneratedProvenance);
             headInputs.VerifyActualAssembly(headCompilation, head.Symbols.Select(x => x.Id));
             baseInputs.VerifyActualAssembly(baseCompilation, baseline.Symbols.Select(x => x.Id));
             Directory.CreateDirectory(dir);
             Save(dir, "head.json", head);
             Save(dir, "base.json", baseline);
+            Save(dir, "generated-exclusions-head.json", head.GeneratedExclusions ?? []);
+            Save(dir, "generated-exclusions-base.json", baseline.GeneratedExclusions ?? []);
+            // Reconcile every non-private eligible declaration before/after generated exclusions.
+            Console.WriteLine("DOC_GENERATED_RECONCILIATION HEAD all=" +
+                (head.Eligible + (head.GeneratedExclusions?.Count ?? 0)) +
+                " manual=" + head.Eligible + " excluded=" +
+                (head.GeneratedExclusions?.Count ?? 0));
+            Console.WriteLine("DOC_GENERATED_RECONCILIATION BASE all=" +
+                (baseline.Eligible + (baseline.GeneratedExclusions?.Count ?? 0)) +
+                " manual=" + baseline.Eligible + " excluded=" +
+                (baseline.GeneratedExclusions?.Count ?? 0));
             var (pass, added, removed, lostDocs) = EvaluateGate(baseline, head);
             Save(dir, "gate.json", new
             {
@@ -58,6 +77,10 @@ internal static class Program
                 baseEligible = baseline.Eligible, baseDocumented = baseline.Documented,
                 basePercent = baseline.Percent, addedEligible = added,
                 missingNew = added.Where(x => !x.Documented), lostDocs, removedEligible = removed,
+                headEligibleAll = head.Eligible + (head.GeneratedExclusions?.Count ?? 0),
+                baseEligibleAll = baseline.Eligible + (baseline.GeneratedExclusions?.Count ?? 0),
+                generatedExcludedHead = head.GeneratedExclusions ?? [],
+                generatedExcludedBase = baseline.GeneratedExclusions ?? [],
                 pass, rule = "90% exact ratio, 100% newly eligible, no regression or silent removal"
             });
             var md = new StringBuilder();
@@ -74,6 +97,13 @@ internal static class Program
             foreach (var f in head.Symbols.GroupBy(x => x.File).OrderBy(x => x.Key, StringComparer.Ordinal))
                 md.AppendLine("| " + f.Key + " | " + f.Count(x => x.Documented) + " | "
                     + f.Count() + " | " + (100.0 * f.Count(x => x.Documented) / f.Count()).ToString("F2") + "% |");
+            md.AppendLine().AppendLine("## GENERATED_AVALONIA_ONLY: verified excluded IDs");
+            foreach (var g in head.GeneratedExclusions ?? [])
+                md.AppendLine("- " + g.SymbolId + " | " + g.Rule +
+                    " | " + g.GeneratorIdentity + "@" + g.GeneratorVersion +
+                    " | " + g.GeneratedSource + " | sourceHash=" + g.SourceHash +
+                    " | SHA=" + g.CompilationSHA + " | declarations=" + g.DeclarationsCount +
+                    " | XAML=" + g.XamlSource);
             md.AppendLine().AppendLine("## Missing API documentation");
             foreach (var s in head.Symbols.Where(x => !x.Documented))
                 md.AppendLine("- " + s.Id + " at " + s.File + ":" + s.Line + ": " + s.Reason);
@@ -112,7 +142,27 @@ internal static class Program
         return (pass, added, removed, lostDocs);
     }
 
-    private static Measurement Measure(string sha, CSharpCompilation compilation, string root)
+    private static void VerifyGeneratedInputsStable(
+        IReadOnlyDictionary<string, GeneratedSourceProvenance> baseline,
+        IReadOnlyDictionary<string, GeneratedSourceProvenance> head)
+    {
+        // CI worktrees use different absolute temp roots; compare compiler-relative
+        // generator outputs, identities and real analyzer hashes instead.
+        static string[] Manifest(IReadOnlyDictionary<string, GeneratedSourceProvenance> value) =>
+            value.Values.Select(x => x.RelativePath.Replace('\\', '/') + "|" +
+                x.GeneratorIdentity + "|" + x.GeneratorVersion + "|" + x.GeneratorHash +
+                "|" + x.SourceHash + "|" + x.XamlInputHash + "|" + x.Attested)
+                .Order(StringComparer.Ordinal).ToArray();
+        var before = Manifest(baseline);
+        var after = Manifest(head);
+        if (before.Length == 0 || after.Length == 0 || !before.SequenceEqual(after, StringComparer.Ordinal))
+            throw new InvalidDataException("DOC_GENERATED_COMPILER_OUTPUT_OR_VERSION_CHANGED_REVIEW_REQUIRED:" +
+                "base=" + before.Length + " head=" + after.Length);
+        Console.WriteLine("DOC_GENERATED_BASE_HEAD_PROVENANCE_STABLE sources=" + after.Length);
+    }
+
+    private static Measurement Measure(string sha, CSharpCompilation compilation, string root,
+        IReadOnlyDictionary<string, GeneratedSourceProvenance>? provenance = null)
     {
         var errors = compilation.GetDiagnostics()
             .Where(x => x.Severity == DiagnosticSeverity.Error).Take(12).ToArray();
@@ -121,6 +171,7 @@ internal static class Program
                 string.Join("|", errors.Select(x => x.ToString())));
         var eligible = new Dictionary<string, Api>(StringComparer.Ordinal);
         var excluded = new Dictionary<string, Api>(StringComparer.Ordinal);
+        var generatedExcluded = new Dictionary<string, GeneratedExclusion>(StringComparer.Ordinal);
         foreach (var tree in compilation.SyntaxTrees)
         {
             var model = compilation.GetSemanticModel(tree, ignoreAccessibility: true);
@@ -150,6 +201,37 @@ internal static class Program
                 // any other declared internal contract from the compiled project.
                 bool critical = !publicApi && ContractMember(symbol);
                 bool included = publicApi || critical;
+                var declarations = symbol.DeclaringSyntaxReferences;
+                // A partial type with even one manual declaration is NEVER generated-only.
+                // No filename suffix, guessed namespace, or missing-XML condition can grant exclusion.
+                var matches = declarations.Select(x =>
+                {
+                    var generatedPath = x.SyntaxTree.FilePath;
+                    if (provenance is null || !provenance.TryGetValue(generatedPath, out var ev))
+                        return (Evidence: (GeneratedSourceProvenance?)null, Valid: false);
+                    var sourceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+                        x.SyntaxTree.GetText().ToString()))).ToLowerInvariant();
+                    bool valid = ev.Attested &&
+                        ev.GeneratorIdentity == "Avalonia.Generators" &&
+                        !string.IsNullOrWhiteSpace(ev.GeneratorVersion) &&
+                        !string.IsNullOrWhiteSpace(ev.GeneratorHash) &&
+                        !ev.XamlSource.StartsWith("UNMAPPED_", StringComparison.Ordinal) &&
+                        string.Equals(ev.SourceHash, sourceHash, StringComparison.Ordinal);
+                    return (Evidence: (GeneratedSourceProvenance?)ev, Valid: valid);
+                }).ToArray();
+                bool generatedOnly = included && declarations.Length > 0 &&
+                    matches.Length == declarations.Length &&
+                    matches.All(x => x.Valid && x.Evidence is not null);
+                if (generatedOnly)
+                {
+                    var evidence = matches[0].Evidence!;
+                    // Each distinct symbol is counted once even for multiple source declarations.
+                    generatedExcluded.TryAdd(id, new GeneratedExclusion(id, "GENERATED_AVALONIA_ONLY",
+                        evidence.GeneratorIdentity, evidence.GeneratorVersion, evidence.GeneratorHash,
+                        evidence.RelativePath, evidence.SourceHash, sha,
+                        declarations.Length, evidence.XamlSource, evidence.XamlInputHash));
+                    continue;
+                }
                 var reason = included
                     ? XmlStatus(symbol, compilation, new HashSet<string>(StringComparer.Ordinal))
                     : "EXCLUDED_NONCONTRACT_PRIVATE_OR_FILE_LOCAL";
@@ -160,8 +242,11 @@ internal static class Program
             }
         }
         var list = eligible.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToList();
+        if (generatedExcluded.Keys.Any(eligible.ContainsKey))
+            throw new InvalidDataException("DOC_GENERATED_MANUAL_ID_COLLISION");
         return new Measurement(sha, list.Count, list.Count(x => x.Documented), list,
-            excluded.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToList());
+            excluded.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToList(),
+            generatedExcluded.Values.OrderBy(x => x.SymbolId, StringComparer.Ordinal).ToList());
     }
 
     private static bool Exposed(ISymbol symbol)
