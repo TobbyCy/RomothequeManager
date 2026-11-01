@@ -8,6 +8,7 @@ namespace RomothequeManager.V2.Inventory.RsA;
 /// This file ships no real ROM access permission, not even with explicitConsent=true.</summary>
 public static class RealRomInventoryGate
 {
+/// <summary>Unconditionally reject production ROM inventory: explicit UI consent does not clear REAL_LIBRARY_SCAN_HOLD.</summary>
     public static InventorySnapshot Scan() =>
         throw new UnauthorizedAccessException("REAL_LIBRARY_SCAN_HOLD");
 }
@@ -16,8 +17,10 @@ public static class RealRomInventoryGate
 /// This is NOT a production filesystem permission or a substitute for an OS sandbox.</summary>
 internal enum RsAOperation { RomsInventory }
 
+/// <summary>Short-lived, one-use fixture-specific ROM read capability bound to selected scope, version and native root identity.</summary>
 internal sealed class RsAReadGrant
 {
+/// <summary>Bind the temporary grant to a durable scope reference, selection generation, expiry and opened native handle identity.</summary>
     internal RsAReadGrant(string rootId, long selectionVersion, DateTimeOffset expiresUtc,
         RsAHandleIdentity rootIdentity)
     {
@@ -27,30 +30,41 @@ internal sealed class RsAReadGrant
         RootIdentity = rootIdentity;
     }
 
+/// <summary>Read-only operation type; cannot be exchanged for indexing MEDIAS or previewing images.</summary>
     internal RsAOperation Operation => RsAOperation.RomsInventory;
+/// <summary>Durable identifier of the selected fixture root, independent of drive-letter changes.</summary>
     internal string StorageRootId { get; }
+/// <summary>Selection generation that invalidates consent after changing the selected fixture.</summary>
     internal long SelectionVersion { get; }
+/// <summary>Absolute expiration after which child reads are denied, even during a started scan.</summary>
     internal DateTimeOffset ExpiresUtc { get; }
+/// <summary>Native volume/file identity captured at consent time to prevent replacement of the approved root.</summary>
     internal RsAHandleIdentity RootIdentity { get; }
     private int _revoked;
     private int _claimed;
+/// <summary>Whether the consent was revoked before or during the active metadata-only operation.</summary>
     internal bool Revoked => Volatile.Read(ref _revoked) != 0;
     // A grant admits exactly ONE Scan invocation. Claim is never reset;
     // Valid intentionally remains true for the active run's repeated checks.
+/// <summary>Claim the grant atomically once before opening root handles; concurrent or replayed invocations are refused.</summary>
     internal bool TryClaim(string rootId, long version) =>
         Valid(rootId, version) &&
         Interlocked.CompareExchange(ref _claimed, 1, 0) == 0 &&
         Valid(rootId, version);
+/// <summary>Revoke the volatile fixture capability immediately, including future in-run permission checks.</summary>
     internal void Revoke() => Interlocked.Exchange(ref _revoked, 1);
+/// <summary>Check exact scope, version, expiration and revocation without resetting the one-shot claim.</summary>
     internal bool Valid(string rootId, long version) =>
         !Revoked && DateTimeOffset.UtcNow < ExpiresUtc &&
         SelectionVersion == version && StorageRootId == rootId;
 }
 
+/// <summary>Hard limits on fixture ROM metadata enumeration, including zero file-header bytes.</summary>
 internal sealed record RsABudget(
     int MaxDepth = 8, int MaxFiles = 5000, int MaxDirectories = 10000,
     TimeSpan? TimeLimit = null, int MaxHeaderBytes = 0)
 {
+/// <summary>Reject unbounded or unsafe scan limits; ROM contents and header reads are always prohibited.</summary>
     internal void Validate()
     {
         if (MaxDepth is < 1 or > 16 || MaxFiles is < 1 or > 100000 ||
@@ -71,16 +85,21 @@ internal sealed class RsAFixtureRomSession
     private long _version;
     private RsAReadGrant? _grant;
     private readonly RsABudget _budget;
+/// <summary>Last fully completed fixture ROM inventory; interrupted attempts cannot overwrite it.</summary>
     internal InventorySnapshot? Current { get; private set; }
+/// <summary>Most recent attempt retained with diagnostic evidence even when incomplete or cancelled.</summary>
     internal InventorySnapshot? LastAttempt { get; private set; }
+/// <summary>Current generation of the selected fixture, used to reject stale consent grants.</summary>
     internal long SelectionVersion => _version;
 
+/// <summary>Create a fixture-only session with validated metadata limits and no implicit scan permission.</summary>
     internal RsAFixtureRomSession(RsABudget? budget = null)
     {
         _budget = budget ?? new();
         _budget.Validate();
     }
 
+/// <summary>Replace the selected fixture, revoking prior consent and changing the generation without opening files.</summary>
     internal void SelectFixture(string selectedRoot, string storageRootId)
     {
         _grant?.Revoke();
@@ -96,6 +115,7 @@ internal sealed class RsAFixtureRomSession
         // No enumeration/opening occurs at selection.
     }
 
+/// <summary>Issue a short-lived one-shot grant only after explicit consent and native root-identity verification.</summary>
     internal RsAReadGrant AuthorizeFixture(bool explicitUserAction,
         DateTimeOffset expiresUtc)
     {
@@ -111,8 +131,10 @@ internal sealed class RsAFixtureRomSession
         return _grant = new RsAReadGrant(_storageRootId, _version, expiresUtc, identity);
     }
 
+/// <summary>Invalidate the current fixture grant without modifying previously recorded observations.</summary>
     internal void Revoke() { _grant?.Revoke(); }
 
+/// <summary>Traverse metadata through anchored handles only after a fresh one-shot claim; preserve Current on denial or partial coverage.</summary>
     internal InventorySnapshot Scan(RsAReadGrant? supplied, CancellationToken token = default,
         Action<string>? beforeChildOpenForTest = null)
     {
@@ -247,13 +269,16 @@ internal sealed class RsAFixtureRomSession
             "RS_A_FIXTURE", at);
 }
 
+/// <summary>Internal sentinel for bounded enumeration termination; represented as safe diagnostics, not a leak of private paths.</summary>
 internal sealed class RsAStopException(string message) : Exception(message);
 
+/// <summary>Native volume serial and file identifier used to detect swapped or redirected roots.</summary>
 internal readonly record struct RsAHandleIdentity(ulong VolumeSerial, string FileIdHex);
 
 /// <summary>Win32 directory enumeration and NtCreateFile relative to a pinned parent handle.
 /// No Directory.EnumerateFiles(path) or FileStream(path) may be used inside this reader.
 /// Reject every reparse point; deny DELETE sharing so a held directory cannot be moved.</summary>
+/// <summary>Windows handle-confined helper for fixture-only metadata enumeration; excludes reparse traversal.</summary>
 internal static class RsAAnchoredReader
 {
     private const uint ReadAttributes = 0x80;
@@ -279,8 +304,10 @@ internal static class RsAAnchoredReader
     private const int BothDirInfo = 10;
     private const int BothDirRestart = 11;
 
+/// <summary>One directory entry name and directory flag returned from a validated native handle.</summary>
     internal readonly record struct Entry(string Name, bool Directory);
 
+/// <summary>Refuse unsupported device, network or nonfixture roots before any metadata enumeration.</summary>
     internal static string ValidateFixturePath(string path)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("RS_A_WINDOWS_ONLY");
@@ -305,6 +332,7 @@ internal static class RsAAnchoredReader
         return full;
     }
 
+/// <summary>Reject names requiring special treatment, including reparse-sensitive or unsafe components.</summary>
     internal static bool Excluded(string name) =>
         name.Equals("ROMOTHEQUE_MANAGER", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("temp", StringComparison.OrdinalIgnoreCase) ||
@@ -321,6 +349,7 @@ internal static class RsAAnchoredReader
          name.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
          name.EndsWith(".sqlite", StringComparison.OrdinalIgnoreCase));
 
+/// <summary>Open a selected local directory as a native handle with the required confinement and sharing flags.</summary>
     internal static SafeFileHandle OpenRoot(string root)
     {
         root = ValidateFixturePath(root);
@@ -346,6 +375,7 @@ internal static class RsAAnchoredReader
         catch { current.Dispose(); throw; }
     }
 
+/// <summary>Resolve a child only relative to an already opened trusted parent handle, never by a rebuilt absolute path.</summary>
     internal static SafeFileHandle OpenChild(SafeFileHandle parent, string name, bool isDirectory)
     {
         if (string.IsNullOrWhiteSpace(name) || name is "." or ".." ||
@@ -405,6 +435,7 @@ internal static class RsAAnchoredReader
         finally { Marshal.FreeHGlobal(memory); }
     }
 
+/// <summary>Read native identity from the opened handle to match the consent-bound root identity.</summary>
     internal static RsAHandleIdentity Identity(SafeFileHandle root)
     {
         // FILE_ID_INFO: ULONGLONG VolumeSerialNumber + FILE_ID_128 Identifier.
@@ -424,6 +455,7 @@ internal static class RsAAnchoredReader
         finally { Marshal.FreeHGlobal(memory); }
     }
 
+/// <summary>Inspect file size metadata without opening or hashing ROM contents.</summary>
     internal static long Size(SafeFileHandle file)
     {
         var memory = Marshal.AllocHGlobal(24);
@@ -436,6 +468,7 @@ internal static class RsAAnchoredReader
         finally { Marshal.FreeHGlobal(memory); }
     }
 
+/// <summary>Enumerate bounded child metadata from the passed directory handle; callers enforce budgets and consent.</summary>
     internal static IEnumerable<Entry> Enumerate(SafeFileHandle directory)
     {
         const int capacity = 65536;
