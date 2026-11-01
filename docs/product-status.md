@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #138 — Rattrapage documentation XML UI/VM, PR #150 DRAFT (01.11.2026)
+
+- **État live :** [#147](https://github.com/TobbyCy/RomothequeManager/pull/147) est **MERGED**, `main=8739cd0419c0b17bf3babe1bd09d8aa644966a3a` ; le lot A reste validé sur fixtures (326 tests Windows PASS post-fusion) et **non testé humainement**. La section #147 ci-dessous décrit un instantané historique antérieur à son intégration.
+- **PR #150 : documentation uniquement** de six fichiers UI/VM (172 résumés XML) sur consentement, Current/LastAttempt, Offline/Stale, annulation, Dispose, permissions et médias. Diff non documentaire nul ; aucun changement de comportement ou accès réel. Revues et CI au SHA final **PENDING** ; cette PR DRAFT ne certifie aucune couverture API globale.
+- **DocFX #148 :** chantier DRAFT distinct, seuil ≥90 % et 100 % des nouvelles API éligibles conservés. La métrique `eligible/documented/missing` post-#147 est **NOT_VERIFIED** tant que le nouvel outillage Roslyn n'est pas exécuté sur une base commune. `BLOCKED_BRANCH_RULE`, tests humains #95 et tous les `REAL_*_HOLD / NEXT05_RELEASE_HOLD` restent actifs. Lot B média #145 : contrat prêt, **GO B distinct absent** ; lot C SQLite HOLD.
+
 ## NEXT-05 / #145 — première consolidation MVVM shell/import ES-DE (PR #147, 01.11.2026)
 
 - **Statut : PR #147 OUVERTE, P1 corrigé sur fixtures et RE-REVUE DEV 2 EXIGÉE, AUCUNE RELEASE.** Base `main=1aac0912930bd0a040e06800a1e8316fbe077dc2`, [contrat DEV 2 #145](https://github.com/TobbyCy/RomothequeManager/issues/145#issuecomment-6556459173) ; [GO backend distinct](https://github.com/TobbyCy/RomothequeManager/pull/147#issuecomment-6558416188). La recette utilisateur EXE standard #95 reste **NOT_EXECUTED** ; aucun PASS humain n'est revendiqué.
