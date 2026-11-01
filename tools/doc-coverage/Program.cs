@@ -472,6 +472,98 @@ internal static class Program
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
             return Measure("canary", compilation, ".");
         }
+        // Synthetic provenance exercises the classifier; the separate Windows
+        // build tests its real MSBuild/analyzer/XAML source-of-truth.
+        Measurement WithGenerated(string generated, string[] manual, bool attested = true,
+            bool corruptHash = false, bool fakeGenerator = false)
+        {
+            const string generatedPath =
+                "generated-head/Avalonia.Generators/Avalonia.Generators.NameGenerator/Actual.g.cs";
+            var parse = CSharpParseOptions.Default.WithDocumentationMode(DocumentationMode.Diagnose);
+            var trees = new List<SyntaxTree> { CSharpSyntaxTree.ParseText(generated, parse, generatedPath) };
+            trees.AddRange(manual.Select((code, index) => CSharpSyntaxTree.ParseText(
+                code, parse, "src/RomothequeManager.V2/UserWritten" + index + ".g.cs")));
+            var compilation = CSharpCompilation.Create("GeneratedCanary", trees, refs,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            var source = new GeneratedSourceProvenance(generatedPath,
+                "Avalonia.Generators/Avalonia.Generators.NameGenerator/Actual.g.cs",
+                fakeGenerator ? "Untrusted.Generator" : "Avalonia.Generators", "1.0.0.0",
+                "VERIFIED_ANALYZER_SHA256", corruptHash ? "TAMPERED" :
+                    RealProjectInputs.Sha256Text(generated),
+                "MainWindow.axaml", "VERIFIED_XAML_SET_SHA256", attested);
+            var evidence = new Dictionary<string, GeneratedSourceProvenance>(
+                StringComparer.OrdinalIgnoreCase) { [generatedPath] = source };
+            return Measure("canary", compilation, ".", evidence);
+        }
+        void CheckGeneratedCanaries()
+        {
+            const string generated = """
+                namespace CanaryGen {
+                public partial class SyntheticGenerated {
+                    public int GeneratedMember() => 1;
+                }}
+                """;
+            const string manualPartial = """
+                namespace CanaryGen {
+                public partial class SyntheticGenerated {
+                    public int ManualMember() => 2;
+                }}
+                """;
+            var pure = WithGenerated(generated, []);
+            if (pure.Eligible != 0 || pure.GeneratedExclusions?.Count != 2 ||
+                pure.GeneratedExclusions.Any(x => x.Rule != "GENERATED_AVALONIA_ONLY" ||
+                    x.DeclarationsCount != 1 || x.SourceHash.Length != 64))
+                throw new InvalidOperationException("DOC_GENERATED_TRUE_PROVENANCE_NOT_EXCLUDED");
+            Console.WriteLine("DOC_GENERATED_TRUE_AVALONIA_ONLY_EXCLUDED_PASS");
+
+            // A hand-authored partial declaration keeps the shared type eligible.
+            // The wholly generated member may remain excluded independently.
+            var mixed = WithGenerated(generated, [manualPartial]);
+            if (!mixed.Symbols.Any(x => x.Id == "T:CanaryGen.SyntheticGenerated") ||
+                !mixed.Symbols.Any(x => x.Id == "M:CanaryGen.SyntheticGenerated.ManualMember") ||
+                mixed.GeneratedExclusions?.Count != 1)
+                throw new InvalidOperationException("DOC_GENERATED_PARTIAL_MANUAL_WAS_EXCLUDED");
+            Console.WriteLine("DOC_GENERATED_MIXED_PARTIAL_REMAINS_ELIGIBLE_PASS");
+
+            foreach (var invalid in new[] {
+                WithGenerated(generated, [], attested:false),
+                WithGenerated(generated, [], corruptHash:true),
+                WithGenerated(generated, [], fakeGenerator:true),
+                M([generated]) // manual source even though a class name resembles generated output
+            })
+                if (invalid.Eligible != 2 || invalid.GeneratedExclusions?.Count != 0)
+                    throw new InvalidOperationException("DOC_GENERATED_SPOOFED_SOURCE_EXCLUDED");
+            Console.WriteLine("DOC_GENERATED_UNTRUSTED_OR_TAMPERED_REMAINS_ELIGIBLE_PASS");
+
+            // An eligible manual API is never hidden by an unrelated authentic
+            // generated exclusion, including above the 90% ratio threshold.
+            var before = WithGenerated(generated, [documentedStableSuite]);
+            var missing = WithGenerated(generated, [documentedStableSuite, atypicalMissing]);
+            var fixedDocs = WithGenerated(generated, [documentedStableSuite, atypicalDocumented]);
+            if (before.Documented != 21 || before.Eligible != 21 ||
+                missing.Documented != 21 || missing.Eligible != 23 ||
+                10L * missing.Documented < 9L * missing.Eligible ||
+                EvaluateGate(before, missing).Pass || !EvaluateGate(before, fixedDocs).Pass)
+                throw new InvalidOperationException("DOC_GENERATED_MANUAL_90_PLUS_GATE_BYPASS");
+            Console.WriteLine("DOC_GENERATED_MANUAL_NEW_API_90_PLUS_RED_GREEN_PASS");
+
+            var stable = new Dictionary<string, GeneratedSourceProvenance>(
+                StringComparer.OrdinalIgnoreCase) {
+                ["one"] = new GeneratedSourceProvenance("one", "Avalonia.Generators/One.g.cs",
+                    "Avalonia.Generators", "1.0.0.0", "ANALYZER_HASH", "SOURCE_HASH",
+                    "MainWindow.axaml", "XAML_HASH", true)
+            };
+            var changed = new Dictionary<string, GeneratedSourceProvenance>(stable,
+                StringComparer.OrdinalIgnoreCase) {
+                ["one"] = stable["one"] with { GeneratorVersion = "2.0.0.0" }
+            };
+            bool driftRejected = false;
+            try { VerifyGeneratedInputsStable(stable, changed); }
+            catch (InvalidDataException) { driftRejected = true; }
+            if (!driftRejected) throw new InvalidOperationException("DOC_GENERATED_DRIFT_NOT_BLOCKED");
+            Console.WriteLine("DOC_GENERATED_BASE_HEAD_VERSION_DRIFT_RED_PASS");
+        }
+
         void AssertRed(string name, Measurement before, Measurement after)
         {
             if (EvaluateGate(before, after).Pass)
@@ -564,6 +656,7 @@ internal static class Program
         if (conditionalEnabled.Eligible != 2 || conditionalDisabled.Eligible != 1)
             throw new InvalidOperationException("DOC_CANARY_MSBUILD_DEFINES_NOT_EFFECTIVE");
         Console.WriteLine("DOC_GATE_E2E_DEFINES_DIFFERENT_SYMBOL_SETS_PASS");
+        CheckGeneratedCanaries();
         return 0;
     }
 }
