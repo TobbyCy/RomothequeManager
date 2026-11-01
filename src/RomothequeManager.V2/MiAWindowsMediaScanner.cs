@@ -40,9 +40,7 @@ internal sealed class MiAReadGrant
     internal MiAOperation Operation => MiAOperation.MediaIndex;
 /// <summary>Selected fixture MEDIAS root reference that must match the active scan request.</summary>
     internal string RootId { get; }
-/// <summary>Generation invalidating old consent after selecting a different fixture root.</summary>
-/// <summary>Current root-selection generation used to reject stale or cross-root grants.</summary>
-    /// <summary>Monotonically increasing fixture selection generation; invalidates grants and results from prior roots.</summary>
+    /// <summary>Selection version bound to this one-use MEDIAS grant; switching roots makes earlier grants invalid.</summary>
     internal long SelectionVersion { get; }
 /// <summary>One-use consent issuance generation; prevents replay after authorizing a newer attempt.</summary>
     internal long Generation { get; }
@@ -52,9 +50,8 @@ internal sealed class MiAReadGrant
     internal RsAHandleIdentity RootIdentity { get; }
 /// <summary>Hard limits bound to this grant; callers cannot substitute larger operational budgets.</summary>
     internal MiABudget Budget { get; }
-/// <summary>Invalidate future reads under this temporary MEDIAS grant immediately.</summary>
-/// <summary>Revoke a session grant; an active scan must revalidate its permission before each further read.</summary>
-    /// <summary>Revokes the one-shot MEDIAS fixture grant so it cannot be reused for another scan or root.</summary>
+    /// <summary>Revokes this one-use MEDIAS grant, preventing subsequent read operations and replay.</summary>
+    /// <remarks>An active scan revalidates grant validity before further handle-based reads.</remarks>
     internal void Revoke() => Interlocked.Exchange(ref _revoked, 1);
     // Exclusive per-grant claim; Valid intentionally ignores _claimed so an
     // already-running native read remains subject to revoke/expiry checks.
@@ -173,6 +170,7 @@ internal sealed class MiAFixtureMediaSession
         }
     }
 
+    /// <summary>Revokes this session's current fixture MEDIAS grant without advancing any accepted snapshot.</summary>
     internal void Revoke()
     {
         lock (_selectionGate) _grant?.Revoke();
@@ -384,9 +382,8 @@ internal sealed class MiAFixtureMediaSession
 /// <summary>Internal bounded-stop marker mapped to safe diagnostics rather than untrusted filesystem paths.</summary>
 internal sealed class MiAStopException(string code) : Exception(code);
 
-/// <summary>Native file opens are relative to a pinned parent handle. Reads and file facts
-/// come from that same handle; never re-open a checked file by path.</summary>
-/// <summary>Native fixture-only media reader that keeps all file opens anchored to approved parent handles.</summary>
+/// <summary>Opens fixture MEDIAS entries relative to a pinned native parent handle without reopening verified paths.</summary>
+/// <remarks>Prevents reparse traversal and requires file facts and bounded headers to originate from the same opened handle.</remarks>
 internal static class MiAAnchoredMediaReader
 {
     private const uint ReadData = 1;
