@@ -1,5 +1,10 @@
 # Journal des changements
 
+## NEXT-05 / #138 — Complément XML UI/VM (PR #150, 01.11.2026 — DRAFT)
+
+- **Documentation seule, non publiée :** après fusion de [PR #147](https://github.com/TobbyCy/RomothequeManager/pull/147) sur `main=8739cd0419c0b17bf3babe1bd09d8aa644966a3a`, 172 résumés XML métier ajoutés dans six fichiers `MvvmFoundation` (inventaire, navigation, RS-A, restauration historique, média et simulation). Le diff des sources après retrait des seules lignes de documentation XML est identique à la base ; aucune API, logique, autorisation ou visibilité modifiée.
+- **Validation :** PR [#150](https://github.com/TobbyCy/RomothequeManager/pull/150) en revue ; compilation/CI Windows et mesure Roslyn au périmètre #148 post-#147 à vérifier au HEAD final. Les anciens dénominateurs ne sont pas réutilisables. Le lot B #145, le lot C et les restrictions d'accès réels restent HOLD ; aucune recette humaine ni Release.
+
 ## NEXT-05 / #145 — MVVM : premier lot shell/import historique ES-DE (PR #147, 01.11.2026)
 
 - **Correction P1 sur PR #147, en attente de re-revue indépendante, non publiée :** depuis `main=1aac0912930bd0a040e06800a1e8316fbe077dc2`, préparation de refresh ES-DE non mutatrice via `EsDeImportSession.PrepareRefresh` et adoption gardée par `TryCommitPreparedRefresh`; VM contrôle Cancel/génération/Dispose/session/Current, puis commit et adoption UI sans await/notification. Le parseur, l'identité V2 et la politique média ne sont pas doublés.
