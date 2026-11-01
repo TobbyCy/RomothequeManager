@@ -133,6 +133,101 @@ public sealed class EsDeRefreshAtomicityCausalTests
         staleA?.Dispose();
     }
 
+    /// <summary>Dispose rejects a prepared B even if parsing has completed.</summary>
+    [TestMethod]
+    public async Task ESDE_REFRESH_DISPOSE_RealComponents_RejectsBWithoutLateNotifications()
+    {
+        var service = new BarrierAfterActualRefreshService();
+        var state = new ImportedCatalogueUiState(service);
+        var vm = new ImportedCatalogueViewModel(state, service);
+        Assert.IsTrue(await vm.ImportConfirmedAsync(_root, explicitlyConfirmed: true));
+        var acceptedA = state.Snapshot!;
+        var session = state.Session!;
+        var coverA = acceptedA.Games[0].Media.Single(x => x.Kind == "image");
+        WriteGamelist("B.png");
+
+        var notifications = 0;
+        vm.PropertyChanged += (_, _) => notifications++;
+        var job = vm.RefreshAsync();
+        try
+        {
+            await service.AfterBackendRefresh.Task.WaitAsync(TimeSpan.FromSeconds(45));
+            var snapshotB = service.LastRefreshedSnapshot!;
+            Assert.AreEqual(acceptedA.LibraryId, snapshotB.LibraryId);
+            vm.Dispose();
+            var notificationsAfterDispose = notifications;
+            service.Release();
+            Assert.IsFalse(await job);
+            Assert.AreEqual(notificationsAfterDispose, notifications,
+                "No ViewModel callback after Dispose");
+            Assert.AreSame(acceptedA, state.Snapshot);
+            Assert.AreSame(acceptedA, session.Current);
+            Assert.IsTrue(state.TryOpenMedia(coverA, out var a));
+            using (a) Assert.IsFalse(a!.CanWrite);
+            var coverB = snapshotB.Games[0].Media.Single(x => x.Kind == "image");
+            Assert.IsFalse(state.TryOpenMedia(coverB, out var b));
+            b?.Dispose();
+        }
+        finally
+        {
+            service.Release();
+            vm.Dispose();
+        }
+    }
+
+    /// <summary>A failed real XML refresh cannot change the accepted media authority.</summary>
+    [TestMethod]
+    public async Task ESDE_REFRESH_ERROR_RealParser_PreservesAAndRedactsFailure()
+    {
+        var state = new ImportedCatalogueUiState();
+        using var vm = new ImportedCatalogueViewModel(state);
+        Assert.IsTrue(await vm.ImportConfirmedAsync(_root, explicitlyConfirmed: true));
+        var acceptedA = state.Snapshot!;
+        var session = state.Session!;
+        var coverA = acceptedA.Games[0].Media.Single(x => x.Kind == "image");
+        var xmlFile = Path.Combine(_root, "MEDIAS", "gba", "metadata", "es-de-gamelist.xml");
+        File.WriteAllText(xmlFile, "<gameList><game><path>broken", new UTF8Encoding(false));
+
+        Assert.IsFalse(await vm.RefreshAsync());
+        Assert.AreEqual("Failed", vm.ImportStatus);
+        Assert.AreSame(acceptedA, state.Snapshot);
+        Assert.AreSame(acceptedA, session.Current);
+        Assert.IsFalse(state.ErrorMessage!.Contains(_root, StringComparison.OrdinalIgnoreCase));
+        Assert.IsTrue(state.TryOpenMedia(coverA, out var stream));
+        using (stream) Assert.IsFalse(stream!.CanWrite);
+        WriteGamelist("B.png");
+        Assert.IsTrue(await vm.RefreshAsync(), "A valid subsequent B may be committed");
+        Assert.AreSame(state.Snapshot, session.Current);
+        Assert.AreEqual(acceptedA.LibraryId, state.Snapshot!.LibraryId);
+    }
+
+    /// <summary>Backend proposals are bound to their owner and single accepted revision.</summary>
+    [TestMethod]
+    public void ESDE_REFRESH_GUARDS_RejectForeignStaleAndDoubleCommit()
+    {
+        var first = new EsDeImportSession(_root);
+        var initialA = first.Import();
+        var other = new EsDeImportSession(_root);
+        var otherA = other.Import();
+
+        WriteGamelist("B.png");
+        var proposalB = first.PrepareRefresh();
+        Assert.AreSame(initialA, first.Current, "Preparation must not mutate Current");
+        Assert.AreEqual(initialA.LibraryId, proposalB.Snapshot.LibraryId);
+        Assert.IsFalse(other.TryCommitPreparedRefresh(proposalB), "Foreign owner rejected");
+        Assert.AreSame(otherA, other.Current);
+
+        var adoptedByExplicitImport = first.Import();
+        Assert.IsFalse(first.TryCommitPreparedRefresh(proposalB), "Stale base rejected");
+        Assert.AreSame(adoptedByExplicitImport, first.Current);
+
+        var valid = first.PrepareRefresh();
+        Assert.IsTrue(first.TryCommitPreparedRefresh(valid));
+        Assert.AreSame(valid.Snapshot, first.Current);
+        Assert.IsFalse(first.TryCommitPreparedRefresh(valid), "Replay rejected");
+        Assert.AreSame(valid.Snapshot, first.Current);
+    }
+
     private sealed class BarrierAfterActualRefreshService : IEsDeImportApplicationService
     {
         private readonly EsDeImportApplicationService _real = new();
