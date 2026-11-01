@@ -5,10 +5,36 @@ using System.Security;
 namespace RomothequeManager.V2.Inventory.Media;
 
 /// <summary>Media role proven by an explicitly configured folder convention, not by a filename.</summary>
-public enum MediaKind { Unknown, Cover, Thumbnail, Logo, Background, Screenshot, Other }
+public enum MediaKind
+{
+    /// <summary>Source folder cannot be classified under an approved media role.</summary>
+    Unknown,
+    /// <summary>Potential front cover from an explicitly selected media folder; not a user-approved assignment.</summary>
+    Cover,
+    /// <summary>Small preview image reported by the selected source convention.</summary>
+    Thumbnail,
+    /// <summary>Platform or game logo file observed locally, without identity verification.</summary>
+    Logo,
+    /// <summary>Background artwork observed in a configured local media folder.</summary>
+    Background,
+    /// <summary>Screenshot evidence, not proof that a ROM executes successfully.</summary>
+    Screenshot,
+    /// <summary>Supported source-folder role not further classified as cover, logo or screenshot.</summary>
+    Other
+}
 
 /// <summary>Header classification only; no full image decode or renderability guarantee.</summary>
-public enum MediaImageFormat { Unknown, Png, Jpeg, Webp }
+public enum MediaImageFormat
+{
+    /// <summary>Header did not establish a supported image format; decoding remains prohibited.</summary>
+    Unknown,
+    /// <summary>PNG file signature and bounded header classification, not a full image validation.</summary>
+    Png,
+    /// <summary>JPEG header classification without decoding all image data.</summary>
+    Jpeg,
+    /// <summary>WebP header classification without rendering or granting preview permission.</summary>
+    Webp
+}
 
 /// <summary>Limits of an explicitly selected local MEDIAS root, never a ROMS or XML scan.</summary>
 /// <remarks>Header and dimension checks do not establish safe rendering. The public
@@ -132,6 +158,12 @@ internal static class MediaIndexReader
     private static readonly HashSet<string> Excluded = new(StringComparer.OrdinalIgnoreCase)
         { "ROMOTHEQUE_MANAGER", "data", "backups", "logs", ".git" };
 
+    /// <summary>Enumerates a preauthorized synthetic MEDIAS scope with depth, time, size and header budgets.</summary>
+    /// <remarks>Called only behind a fixture grant; partial or inaccessible observations never prove deletion or authorize an automatic link.</remarks>
+    /// <param name="scope">Explicit selected scope constrained by the caller's fixture permission.</param>
+    /// <param name="mediaRootRef">Opaque session reference for root isolation, not a reusable path grant.</param>
+    /// <param name="token">Cancellation request; incomplete scans retain Partial rather than claiming completeness.</param>
+    /// <returns>Run-scoped media observations and diagnostics without image decoding.</returns>
     internal static MediaIndexSnapshot Scan(MediaRootScope scope, string mediaRootRef,
         CancellationToken token)
     {

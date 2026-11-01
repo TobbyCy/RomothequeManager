@@ -5,10 +5,15 @@ namespace RomothequeManager.V2.Inventory.Media;
 /// <summary>Limited evidence status for a ROM observation to local media, never a game ID.</summary>
 public enum MediaLinkStatus
 {
+    /// <summary>Sourced relative media reference matches one observed cover under the verified mapping; not an approved choice.</summary>
     EXACT_REFERENCE,
+    /// <summary>Single source-folder naming candidate with no identity or user-approval guarantee.</summary>
     UNIQUE_CONVENTION_CANDIDATE,
+    /// <summary>Possible matches collide or contradict sourced claims and require manual resolution.</summary>
     AMBIGUOUS,
+    /// <summary>Comparable complete scope has no matching observed media candidate within that scope.</summary>
     UNMATCHED,
+    /// <summary>Scan roots, freshness or coverage cannot establish the conditions for an A/B match.</summary>
     NOT_COMPARABLE
 }
 

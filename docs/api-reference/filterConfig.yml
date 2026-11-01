@@ -1,0 +1,6 @@
+# Ne retire que les classes de harnais/capture CI, jamais une surface métier.
+apiRules:
+  - exclude:
+      uidRegex: '.*(?:Next03RealGuiHarness|Next04ImportEngineHarness|Next05GuiHarness|Next05LegacyMediaHarness|Next05MiBGuiHarness|Next05RsAGuiHarness|Next04Capture|VisualCapture|LibraryUxCapture).*'
+  - include:
+      uidRegex: '.*'

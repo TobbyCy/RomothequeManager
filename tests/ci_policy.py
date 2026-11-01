@@ -17,7 +17,7 @@ import xml.etree.ElementTree as ET
 
 PS_JOBS = ("ci0-static", "ci1-runtime", "ci2-pester", "ci3-e1-integration",
            "ci4-preflight-synthetic")
-NEEDS = {"policy", "ci-docs", "ci-dotnet", *PS_JOBS}
+NEEDS = {"policy", "ci-docs", "ci-docfx", "ci-dotnet", *PS_JOBS}
 REQUIRED_DOCS = {"README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md",
                  "docs/product-status.md", "docs/roadmap.md", "docs/developer/workflow.md"}
 DOC = r"(?:README|STATUS|CHANGELOG|CONTRIBUTING|BRANDING|LEGAL)\.md|(?:docs|Docs)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.md|Export/README\.md|assets/branding/README\.md|packaging/(?:THIRD-PARTY-NOTICES\.txt|licenses/[A-Za-z0-9_.-]+\.txt)"
@@ -190,7 +190,7 @@ def job_plan(category, has_dotnet, net_changed=False):
             "CLASS_UNKNOWN")
     ps = category == "PS_ONLY" or full
     net = category == "DOTNET_ONLY" or (full and (has_dotnet or net_changed))
-    required = ["policy", "ci-docs"] + (list(PS_JOBS) if ps else []) + (["ci-dotnet"] if net else [])
+    required = ["policy", "ci-docs", "ci-docfx"] + (list(PS_JOBS) if ps else []) + (["ci-dotnet"] if net else [])
     return {"ps": ps, "dotnet": net, "required": sorted(required),
             "not_required": {j: ("NOT_APPLICABLE_NO_DOTNET_PROJECT" if j == "ci-dotnet" and full
                                   else "NOT_REQUIRED_BY_CLASSIFIER") for j in sorted(NEEDS - set(required))}}
@@ -279,11 +279,19 @@ def verify_public_ci_guard(root):
             "PUBLIC_CI_UNSUPPORTED_ACTION_SHAPE")
     # A self-contained ZIP contains third-party native components. Until the
     # notices are audited, CI must not expose a downloadable artifact.
-    require("actions/upload-artifact@" not in workflow
+    # One strictly scoped DocFX reference/coverage artifact is permitted; never a
+    # packaged executable, ROM, runtime, or unreviewed general upload.
+    require(workflow.count("actions/upload-artifact@") == 1
+            and "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in workflow
+            and "name: docfx-internal-reference" in workflow
+            and "retention-days: 3" in workflow
+            and "if-no-files-found: error" in workflow
             and "v2-01a-win-x64-candidate" not in workflow,
             "PUBLIC_CI_UNREVIEWED_ARTIFACT_UPLOAD")
     setup_sha = "67a3573c9a986a3f9c594539f4ab511d57bb3ce9"  # actions/setup-dotnet v4.3.1
     setup_position = -1
+    setup_docfx_position = -1
+    upload_position = -1
     checkout_position = workflow.index("      - name: Checkout exact sources without credentials",
                                        workflow.index("  ci-dotnet:"))
     actual_tests_position = workflow.index("      - name: Require actual projects, locked restore, build and executed tests",
@@ -294,6 +302,13 @@ def verify_public_ci_guard(root):
         boundary = re.search(r"(?m)^      - name: |^  [a-z0-9-]+:\n", following)
         step = following[:boundary.start()] if boundary else following
         if value == "actions/setup-dotnet@" + setup_sha:
+            if workflow.index("  ci-docfx:") < action.start() < workflow.index("  ci-policy-gate:"):
+                require(setup_docfx_position == -1, "PUBLIC_CI_DUPLICATE_DOCFX_SDK")
+                setup_docfx_position = action.start()
+                require(re.findall(r"(?m)^          dotnet-version: (.+)$", step) ==
+                        ["'10.0.401'"] and "source-url:" not in step,
+                        "PUBLIC_CI_DOCFX_SDK_PIN_INVALID")
+                continue
             require(setup_position == -1, "PUBLIC_CI_DUPLICATE_DOTNET_PROVISION")
             setup_position = action.start()
             require(workflow.index("  ci-dotnet:") < setup_position < workflow.index("  ci-policy-gate:")
@@ -302,19 +317,35 @@ def verify_public_ci_guard(root):
             require(re.findall(r"(?m)^          dotnet-version: (.+)$", step) ==
                     ["'10.0.401'"] and "source-url:" not in step and "dotnet-quality:" not in step,
                     "PUBLIC_CI_DOTNET_SETUP_NOT_EXACT")
+        elif value == "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02":
+            require(upload_position == -1 and workflow.index("  ci-docfx:") < action.start()
+                    < workflow.index("  ci-policy-gate:"), "PUBLIC_CI_DOCFX_UPLOAD_WRONG_JOB")
+            upload_position = action.start()
+            require("name: docfx-internal-reference" in step
+                    and "docs/api-reference/api/" in step
+                    and "docs/api-reference/_site/" in step
+                    and "if-no-files-found: error" in step
+                    and "retention-days: 3" in step
+                    and "        if: ${{ always() }}" in workflow[workflow.rfind("      - name:", 0, action.start()):action.start()],
+                    "PUBLIC_CI_DOCFX_ARTIFACT_UNSCOPED")
         else:
             require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
                     "PUBLIC_CI_UNAPPROVED_ACTION:" + value)
             require(re.search(r"(?m)^          persist-credentials: false\s*$", step)
                     is not None, "PUBLIC_CI_CHECKOUT_CREDENTIALS")
-    require(setup_position >= 0, "PUBLIC_CI_DOTNET_SETUP_REQUIRED")
+    require(setup_position >= 0 and setup_docfx_position >= 0 and upload_position >= 0, "PUBLIC_CI_SDK_ARTIFACT_MISSING")
     expected = {"* @TobbyCy", "/.github/ @TobbyCy",
                 "/tests/ci_policy.py @TobbyCy",
                 "/tests/Invoke-CiStatic.ps1 @TobbyCy"}
     actual = {line.strip() for line in owners.splitlines()
               if line.strip() and not line.lstrip().startswith("#")}
     require(expected <= actual, "PUBLIC_CI_CODEOWNERS_MISSING")
-    require("ci-policy-gate:" in workflow and
+    docfx_job = workflow.split("  ci-docfx:\n", 1)[1].split("\n  ci-policy-gate:", 1)[0]
+    require("    if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' }}" in docfx_job,
+            "PUBLIC_CI_DOCFX_CANNOT_BE_OPTIONAL")
+    require("  ci-docfx:" in workflow and
+            "ci-docfx]" in workflow and
+            "ci-policy-gate:" in workflow and
             re.search(r"(?m)^  ci-policy-gate:\n    name: ci-policy-gate\n"
                       r"    if: \$\{\{ always\(\) \}\}", workflow) is not None and
             "CI_NEEDS_JSON: ${{ toJSON(needs) }}" in workflow,

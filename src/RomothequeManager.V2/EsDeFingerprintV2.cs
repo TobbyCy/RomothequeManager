@@ -11,18 +11,21 @@ namespace RomothequeManager.V2;
 /// </summary>
 internal static class EsDeFingerprintV2
 {
+    /// <summary>Versioned identifier written before the complete lowercase 64-digit SHA-256 digest; never used for GameId or VariantId.</summary>
     internal const string Prefix = "esde-fp-v2:sha256:";
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
     // EXACT contract magic including the trailing NUL; no BOM or culture formatting.
     private static ReadOnlySpan<byte> Magic => "ROMOTHEQUE:ESDE-FP:V2\0"u8;
 
+    /// <summary>Hash the full canonical ES-DE projection without I/O, migration or changes to historical identity digests.</summary>
     internal static string Compute(IReadOnlyList<EsDeGame> games, string sourceKind = "ES_DE_READ_ONLY")
     {
         var bytes = CanonicalBytes(games, sourceKind);
         return Prefix + Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 
+    /// <summary>Accept only an exact V2 prefix and full lowercase hexadecimal SHA-256; legacy V1 and unknown versions fail closed.</summary>
     internal static bool IsSupportedV2Fingerprint(string? fingerprint)
     {
         if (fingerprint is null || fingerprint.Length != Prefix.Length + 64 ||
@@ -37,6 +40,7 @@ internal static class EsDeFingerprintV2
 
     // Exposed internally only so independent golden vectors can pin exact bytes,
     // not merely duplicate the product's SHA256 output.
+    /// <summary>Serialize typed TLV fields with strict UTF-8, stable game/media ordering and ordered disc paths for independent byte-vector verification.</summary>
     internal static byte[] CanonicalBytes(IReadOnlyList<EsDeGame> games, string sourceKind = "ES_DE_READ_ONLY")
     {
         if (games is null) throw new InvalidDataException("ESDE_FPV2_GAMES_NULL");

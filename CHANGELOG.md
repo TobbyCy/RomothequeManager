@@ -472,3 +472,8 @@ Après chaque changement intégré, préciser le comportement, la compatibilité
 ## DEMO-LIBRARY-01 — DEV 1 / PR #73 (DRAFT)
 
 - Générateur Node sans téléchargement ni dépendances supplémentaires, produisant des ROMs fictives en texte et de vrais PNG originaux sous destination explicitement choisie et inexistante. Source canonique stricte : PR DEV 2 #72, HEAD `968d1f61420a5d0b70eb5160e9d57d505560f2b7`, 30 titres et 13 plateformes (Xbox, PS2, PS3, PS4, PC compris). Oracles : IDEAL 32/30/180, CHAOS 33/30/166, MYSTERY 32/0/0. Tests synthétiques de génération, import ES-DE, inventaire, médias, sécurité et intégrité. Aucun merge ni Release.
+
+
+### NEXT-05 / DocFX permanent (#88/#138) — PR en cours, non fusionnée
+
+- Chaîne XML C# → DocFX YAML → HTML, contrôle des UID et liens, métriques Roslyn par symbole, canaris et gate CI obligatoire en cours de validation. Aucune conclusion PASS avant exécution Windows au SHA exact ni couverture ≥90 % effectivement mesurée. Aucun site ni Release publiés.

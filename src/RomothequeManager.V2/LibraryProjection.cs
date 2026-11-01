@@ -4,126 +4,213 @@ using System.Text.Json;
 namespace RomothequeManager.V2;
 
 // Experimental read-only presentation DTO. This is not a new engine or persisted schema.
+/// <summary>Envelope of the synthetic read-only registry and its comparison evidence; it is not a persistent catalogue contract.</summary>
 public sealed class UiProjectionEnvelope
 {
+    /// <summary>Read-only registry of declared libraries, their partitions and observed generations.</summary>
     public UiRegistry Registry { get; init; } = new();
+    /// <summary>Available A/B comparisons whose evidence is checked against the same registry.</summary>
     public List<UiComparison> Comparisons { get; init; } = [];
 }
 
+/// <summary>Registry of declared demo libraries used to validate coverage and availability without touching user media.</summary>
 public sealed class UiRegistry
 {
+    /// <summary>Version of the in-memory synthetic projection contract; unsupported versions are rejected.</summary>
     public string SchemaVersion { get; init; } = "";
+    /// <summary>Explicit declaration that this synthetic projection may not authorize any write operation.</summary>
     public bool ReadOnly { get; init; }
+    /// <summary>Declared library entries whose identifiers must be unique and match the demo catalogue.</summary>
     public List<UiLibrary> Libraries { get; init; } = [];
 }
 
+/// <summary>Declares a stable source and root partition together with the observation domains it may cover.</summary>
 public sealed class UiSource
 {
+    /// <summary>Stable source partition key; kept distinct from the root and observation domain.</summary>
     public string SourceKey { get; init; } = "";
+    /// <summary>Root partition key attached to a declared source, not an authorization to access a real path.</summary>
     public string RootKey { get; init; } = "";
+    /// <summary>Permitted observation domains for this source: ROMS or MEDIAS; duplicates are invalid.</summary>
     public List<string> Domains { get; init; } = [];
 }
 
+/// <summary>Per-platform completeness claim derived from partition-level observations rather than inferred from filenames.</summary>
 public sealed class UiCoverage
 {
+    /// <summary>Platform scope to which this coverage, comparison or entry refers.</summary>
     public string Console { get; init; } = "";
+    /// <summary>Evidence-derived coverage or comparability status; unknown coverage is not treated as complete.</summary>
     public string Status { get; init; } = "";
+    /// <summary>Human-readable explanation of the observation, limitation or classification without changing its evidence.</summary>
     public string Reason { get; init; } = "";
 }
 
+/// <summary>Evidence for the coverage of one console, source, root and domain partition in a captured generation.</summary>
 public sealed class UiCoverageProof
 {
+    /// <summary>Platform scope to which this coverage, comparison or entry refers.</summary>
     public string Console { get; init; } = "";
+    /// <summary>Stable source partition key; kept distinct from the root and observation domain.</summary>
     public string SourceKey { get; init; } = "";
+    /// <summary>Root partition key attached to a declared source, not an authorization to access a real path.</summary>
     public string RootKey { get; init; } = "";
+    /// <summary>Observation domain of the partition whose completeness is being asserted.</summary>
     public string Domain { get; init; } = "";
+    /// <summary>Evidence-derived coverage or comparability status; unknown coverage is not treated as complete.</summary>
     public string Status { get; init; } = "";
 }
 
+/// <summary>Captured library generation with scan status, partition proofs and explicit count-known semantics.</summary>
 public sealed class UiGeneration
 {
+    /// <summary>Stable identity of the captured snapshot used as a reference in validated A/B comparisons.</summary>
     public string SnapshotId { get; init; } = "";
+    /// <summary>Identity of the generation, distinct from snapshot and scan identifiers.</summary>
     public string GenerationId { get; init; } = "";
+    /// <summary>Identity of the scan attempt from which the generation's evidence was captured.</summary>
     public string ScanId { get; init; } = "";
+    /// <summary>Timestamp of the observation in UTC; validation rejects non-UTC or malformed values.</summary>
     public string CapturedAtUtc { get; init; } = "";
+    /// <summary>Version of the in-memory synthetic projection contract; unsupported versions are rejected.</summary>
     public string SchemaVersion { get; init; } = "";
+    /// <summary>Observed scan outcome: complete, partial or failed; it does not alone prove exhaustive coverage.</summary>
     public string ScanStatus { get; init; } = "";
+    /// <summary>Whether the selected scope was exhaustively observed; a complete comparison requires this evidence.</summary>
     public bool? ScopeIsExhaustive { get; init; }
+    /// <summary>Platform-level coverage obtained from partition proofs, never inferred from item counts.</summary>
     public List<UiCoverage> Coverage { get; init; } = [];
+    /// <summary>Complete partition-level observation proofs, including explicitly unobserved partitions.</summary>
     public List<UiCoverageProof> CoverageProof { get; init; } = [];
+    /// <summary>Whether a verified count may be shown; false requires the observed count to remain null.</summary>
     public bool CountKnown { get; init; }
+    /// <summary>Count of observed units only when the index is accessible and a count is known; not a game-identity guarantee.</summary>
     public int? ObservedUnitCount { get; init; }
+    /// <summary>Source description explaining the origin of an observation or explicit scoped mapping.</summary>
     public string Provenance { get; init; } = "";
 }
 
+/// <summary>Synthetic library identity and its observed generations, availability and asserted partition scope.</summary>
 public sealed class UiLibrary
 {
+    /// <summary>Stable identity joining a synthetic library to catalogue and comparison evidence.</summary>
     public string LibraryId { get; init; } = "";
+    /// <summary>User-visible library label paired with its stable identity for consistency checks.</summary>
     public string Name { get; init; } = "";
+    /// <summary>Declared set of platforms; omitted or duplicated platform scope invalidates the projection.</summary>
     public List<string> Platforms { get; init; } = [];
+    /// <summary>Declared observation roots and domains used to construct the required coverage partitions.</summary>
     public List<UiSource> Sources { get; init; } = [];
+    /// <summary>Latest observed availability of the library, independently of the age of stored snapshots.</summary>
     public string CurrentAvailability { get; init; } = "";
+    /// <summary>UTC time at which availability was observed; unknown availability has no such timestamp.</summary>
     public string? AvailabilityObservedAtUtc { get; init; }
+    /// <summary>Freshness of recorded evidence, separate from current availability or successful scan status.</summary>
     public string Freshness { get; init; } = "";
+    /// <summary>Whether an index can support reliable counts; this must agree with CountKnown on each generation.</summary>
     public bool IndexAccessible { get; init; }
+    /// <summary>Reference to a proven exhaustive complete snapshot; never replaced by a partial attempt.</summary>
     public string? LastVerifiedCompleteRef { get; init; }
+    /// <summary>Most recent observation timestamp, if available; not proof of present access to the source.</summary>
     public string? LastObservedAtUtc { get; init; }
+    /// <summary>Captured history of distinct scan attempts; IDs and coverage proofs are validated for coherence.</summary>
     public List<UiGeneration> Generations { get; init; } = [];
 }
 
+/// <summary>Immutable library metadata embedded in a comparison and checked against its registry entry.</summary>
 public sealed class UiComparisonLibrary
 {
+    /// <summary>Stable identity joining a synthetic library to catalogue and comparison evidence.</summary>
     public string LibraryId { get; init; } = "";
+    /// <summary>User-visible library label paired with its stable identity for consistency checks.</summary>
     public string Name { get; init; } = "";
+    /// <summary>Declared set of platforms; omitted or duplicated platform scope invalidates the projection.</summary>
     public List<string> Platforms { get; init; } = [];
+    /// <summary>Latest observed availability of the library, independently of the age of stored snapshots.</summary>
     public string CurrentAvailability { get; init; } = "";
+    /// <summary>Freshness of recorded evidence, separate from current availability or successful scan status.</summary>
     public string Freshness { get; init; } = "";
+    /// <summary>Whether an index can support reliable counts; this must agree with CountKnown on each generation.</summary>
     public bool IndexAccessible { get; init; }
+    /// <summary>Reference to a proven exhaustive complete snapshot; never replaced by a partial attempt.</summary>
     public string? LastVerifiedCompleteRef { get; init; }
 }
 
+/// <summary>Comparable or excluded platform scope, including the original reasons on both sides of an A/B comparison.</summary>
 public sealed class UiScope
 {
+    /// <summary>Platform scope to which this coverage, comparison or entry refers.</summary>
     public string Console { get; init; } = "";
+    /// <summary>Evidence-derived coverage or comparability status; unknown coverage is not treated as complete.</summary>
     public string Status { get; init; } = "";
+    /// <summary>Human-readable explanation of the observation, limitation or classification without changing its evidence.</summary>
     public string Reason { get; init; } = "";
+    /// <summary>Coverage status of this platform in the earlier generation of an A/B comparison.</summary>
     public string BeforeStatus { get; init; } = "";
+    /// <summary>Coverage status of this platform in the later generation of an A/B comparison.</summary>
     public string AfterStatus { get; init; } = "";
+    /// <summary>Evidence-based limitation or coverage explanation attached to the earlier generation.</summary>
     public string BeforeReason { get; init; } = "";
+    /// <summary>Evidence-based limitation or coverage explanation attached to the later generation.</summary>
     public string AfterReason { get; init; } = "";
 }
 
+/// <summary>One source-grounded comparison classification; unknown coverage must never become an asserted difference.</summary>
 public sealed class UiComparisonEntry
 {
+    /// <summary>Stable observed ROM unit identity within this synthetic comparison, not a verified commercial game.</summary>
     public string RomUnitId { get; init; } = "";
+    /// <summary>Source catalogue game identity used to correlate an observed unit without guessing from file names.</summary>
     public string GameId { get; init; } = "";
+    /// <summary>Variant identity distinguishing source entries under the same game identity.</summary>
     public string VariantId { get; init; } = "";
+    /// <summary>Platform scope to which this coverage, comparison or entry refers.</summary>
     public string Console { get; init; } = "";
+    /// <summary>Optional earlier content digest; null does not mean the item was deleted.</summary>
     public string? BeforeDigest { get; init; }
+    /// <summary>Optional later content digest; null is not proof of absence outside the covered scope.</summary>
     public string? AfterDigest { get; init; }
+    /// <summary>Human-readable explanation of the observation, limitation or classification without changing its evidence.</summary>
     public string Reason { get; init; } = "";
+    /// <summary>Classification derived from the paired evidence, subject to completeness and coverage checks.</summary>
     public string Classification { get; init; } = "";
 }
 
+/// <summary>Read-only A/B result with an explicit denominator, coverage exclusions and traceable limitations.</summary>
 public sealed class UiComparison
 {
+    /// <summary>Version of the in-memory synthetic projection contract; unsupported versions are rejected.</summary>
     public string SchemaVersion { get; init; } = "";
+    /// <summary>Explicit declaration that this synthetic projection may not authorize any write operation.</summary>
     public bool ReadOnly { get; init; }
+    /// <summary>Library metadata cross-checked against the registry before accepting this comparison.</summary>
     public UiComparisonLibrary Library { get; init; } = new();
+    /// <summary>Earlier captured generation; must precede the later snapshot and match the registry exactly.</summary>
     public UiGeneration Before { get; init; } = new();
+    /// <summary>Later captured generation; must match the registry exactly and maintain chronological order.</summary>
     public UiGeneration After { get; init; } = new();
+    /// <summary>Platforms with proof of complete observation at both sides of the comparison.</summary>
     public List<UiScope> ScopeCompared { get; init; } = [];
+    /// <summary>Platforms excluded from comparison because one or both generations lack complete coverage.</summary>
     public List<UiScope> ScopeNotComparable { get; init; } = [];
+    /// <summary>Overall comparison completeness derived from its explicitly covered and excluded platforms.</summary>
     public string CoverageStatus { get; init; } = "";
+    /// <summary>Per-classification tally whose sum must equal the explicit comparison denominator.</summary>
     public Dictionary<string, int> Counts { get; init; } = new();
+    /// <summary>Classified observation entries checked individually against their platform and source evidence.</summary>
     public List<UiComparisonEntry> Entries { get; init; } = [];
+    /// <summary>Total number of classified units, checked against entry count and every category total.</summary>
     public int CountDenominator { get; init; }
+    /// <summary>Explanations of incomplete comparisons; mandatory whenever coverage cannot be established.</summary>
     public List<string> Limitations { get; init; } = [];
 }
 
+/// <summary>Validates and exposes the synthetic library registry and comparison evidence for read-only UI demonstration.</summary>
 public sealed class LibraryProjection
 {
+    /// <summary>Only supported synthetic registry version; not a persisted user-library schema.</summary>
     public const string SyntheticSchema = "0.1.0-synthetic";
+    /// <summary>Permitted A/B classifications, including UNKNOWN and NOT_COMPARABLE for insufficient evidence.</summary>
     public static readonly IReadOnlyList<string> Classifications =
     [
         "ADDED", "CHANGED", "UNCHANGED", "NOT_OBSERVED_IN_B_COVERED_SCOPE",
@@ -131,11 +218,14 @@ public sealed class LibraryProjection
     ];
 
     private readonly UiProjectionEnvelope _data;
+    /// <summary>Declared library entries whose identifiers must be unique and match the demo catalogue.</summary>
     public IReadOnlyList<UiLibrary> Libraries => _data.Registry.Libraries;
+    /// <summary>Available A/B comparisons whose evidence is checked against the same registry.</summary>
     public IReadOnlyList<UiComparison> Comparisons => _data.Comparisons;
 
     private LibraryProjection(UiProjectionEnvelope data) => _data = data;
 
+    /// <summary>Loads the embedded fictional library fixture and refuses a projection inconsistent with the supplied synthetic catalogue.</summary>
     public static LibraryProjection LoadSynthetic(ReadOnlyCatalogue catalogue)
     {
         var assembly = typeof(LibraryProjection).Assembly;
@@ -150,6 +240,8 @@ public sealed class LibraryProjection
         return projection;
     }
 
+    /// <summary>Parses and validates a synthetic projection, rejecting writable payloads, contradictory coverage and malformed comparison evidence.</summary>
+    /// <exception cref="ArgumentException">The projection is malformed or contradicts its declared read-only evidence.</exception>
     public static LibraryProjection FromJson(string json)
     {
         UiProjectionEnvelope data;
@@ -167,15 +259,18 @@ public sealed class LibraryProjection
         return new LibraryProjection(data);
     }
 
+    /// <summary>Looks up a declared library by exact stable identity; a missing or unknown ID returns null.</summary>
     public UiLibrary? FindLibrary(string? libraryId) => Libraries.FirstOrDefault(
         item => string.Equals(item.LibraryId, libraryId, StringComparison.Ordinal));
 
+    /// <summary>Selects an A/B comparison by exact library and snapshot IDs; returns null when no pair matches.</summary>
     public UiComparison? FindComparison(string libraryId, string beforeId, string afterId) =>
         Comparisons.FirstOrDefault(item =>
             string.Equals(item.Library.LibraryId, libraryId, StringComparison.Ordinal) &&
             string.Equals(item.Before.SnapshotId, beforeId, StringComparison.Ordinal) &&
             string.Equals(item.After.SnapshotId, afterId, StringComparison.Ordinal));
 
+    /// <summary>Rejects a catalogue whose library identities or display names disagree with the validated synthetic projection.</summary>
     public void AssertCatalogueCoherence(ReadOnlyCatalogue catalogue)
     {
         var games = catalogue.Games;

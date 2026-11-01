@@ -10,13 +10,16 @@ public sealed record VisualDashboardNumbers(
     int ReferencedGames, int KnownPlatforms, int KnownLibraries, int Diagnostics,
     int RomUnavailable, bool Synthetic, string Provenance);
 
+/// <summary>Converts demo or imported source facts to dashboard counts without inferring real inventory presence.</summary>
 public static class VisualDashboardData
 {
+    /// <summary>Returns explicit fictional counts from the demo catalogue and registry only.</summary>
     public static VisualDashboardNumbers Demo(ReadOnlyCatalogue catalogue, LibraryProjection libraries) =>
         new(catalogue.Games.Count,
             catalogue.Games.Select(x => x.Platform).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
             libraries.Libraries.Count, 0, 0, true, "Simulation 100 % fictive");
 
+    /// <summary>Counts only source-referenced ES-DE items and diagnostics; never claims a physical scan.</summary>
     public static VisualDashboardNumbers Imported(EsDeCatalogueSnapshot snapshot) =>
         new(snapshot.Games.Count,
             snapshot.Games.Select(x => x.Platform).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
@@ -27,8 +30,10 @@ public static class VisualDashboardData
 /// <summary>Distinct menu states; every text/background pair has >=4.5:1 contrast.</summary>
 public readonly record struct SidebarNavigationColors(string Background, string Foreground, string Accent);
 
+/// <summary>Provides accessible navigation colors for active, hovered and disabled visual-only states.</summary>
 public static class SidebarNavigationPalette
 {
+    /// <summary>Chooses a legible foreground/background/accent set without affecting navigation commands.</summary>
     public static SidebarNavigationColors Resolve(bool active, bool hovered, bool enabled)
     {
         if (!enabled) return new("#292C32", "#BEC4CC", "#41454B");
@@ -40,12 +45,13 @@ public static class SidebarNavigationPalette
 
 /// <summary>
 /// Dashboard visual-only: no scan, export, storage, job or network requests.
-/// All imagery is either a locally opened ES-DE medium or an original text placeholder.
+/// All imagery comes from explicitly opened ES-DE media or a locally drawn fallback graphic.
 /// </summary>
 public static class VisualDashboard
 {
     // Window-width threshold is deliberately based on logical pixels, not
     // screenshot pixel scaling. Compact content stacks at 760 px.
+    /// <summary>Uses logical window width to select the stacked layout independently of screenshot scaling.</summary>
     public static bool IsCompact(double windowWidth) => windowWidth < 1000;
 
     private static readonly IBrush Card = Solid("#23262B");
@@ -111,6 +117,7 @@ public static class VisualDashboard
         return titleRow;
     }
 
+    /// <summary>Composes dashboard controls for fictional data and locally rendered placeholders, with no import or scan.</summary>
     public static Control[] BuildDemo(ReadOnlyCatalogue catalogue,
         LibraryProjection projection, Action openCollection, Action openLibraries, bool compact)
     {
@@ -128,6 +135,7 @@ public static class VisualDashboard
             openCollection, compact);
     }
 
+    /// <summary>Composes a read-only dashboard from staged ES-DE references while clearly labeling unobserved availability.</summary>
     public static Control[] BuildImported(EsDeCatalogueSnapshot snapshot, Func<EsDeGame, Control> cover,
         Action openCollection, Action openLibraries, bool compact)
     {
