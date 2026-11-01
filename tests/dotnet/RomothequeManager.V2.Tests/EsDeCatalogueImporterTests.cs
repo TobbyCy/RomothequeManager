@@ -524,4 +524,108 @@ public sealed class EsDeCatalogueImporterTests
     {
         Assert.ThrowsExactly<InvalidDataException>(() => EsDeCatalogueImporter.Read(_root));
     }
+
+    // #147 backend seam: true ES-DE parser and invented A/B files. This does
+    // not replace DEV 3's required causal UI Cancel/Dispose RED -> GREEN test.
+    [TestMethod]
+    public void ESDE_REFRESH_BACKEND_01_PreparationDoesNotMutateCurrentOrMediaAuthority()
+    {
+        Put("ROMS/gba/A.gba");
+        Put("ROMS/gba/B.gba");
+        Put("MEDIAS/gba/covers/A.png", "fixture PNG A");
+        Put("MEDIAS/gba/covers/B.png", "fixture PNG B");
+        Gamelist("<game><path>./A.gba</path><name>Invented A</name>" +
+            "<image>../covers/A.png</image></game>");
+        var session = new EsDeImportSession(_root);
+        var accepted = session.Import();
+        var coverA = accepted.Games.Single().Media.Single();
+        Assert.IsTrue(session.TryOpenMedia(coverA, out var aStream));
+        using (aStream) Assert.IsFalse(aStream!.CanWrite);
+
+        Gamelist("<game><path>./B.gba</path><name>Invented B</name>" +
+            "<image>../covers/B.png</image></game>");
+        var candidate = session.PrepareRefresh();
+        var coverB = candidate.Snapshot.Games.Single().Media.Single();
+        Assert.AreSame(accepted, session.Current, "PREPARE_NEVER_MUTATES_CURRENT");
+        Assert.AreEqual(accepted.LibraryId, candidate.Snapshot.LibraryId, "LIBRARY_ID_UNCHANGED");
+        Assert.AreNotEqual(accepted.ContentFingerprint, candidate.Snapshot.ContentFingerprint,
+            "FINGERPRINT_V2_REFLECTS_SOURCE_CHANGE");
+        Assert.IsTrue(session.TryOpenMedia(coverA, out var stillA));
+        using (stillA) Assert.IsFalse(stillA!.CanWrite);
+        Assert.IsFalse(session.TryOpenMedia(coverB, out var rejectedB));
+        Assert.IsNull(rejectedB);
+        // Cancel / Dispose path: caller simply discards candidate. No changes.
+        Assert.AreSame(accepted, session.Current, "CANCEL_DISCARD_KEEPS_A");
+        Assert.IsTrue(session.TryCommitPreparedRefresh(candidate), "EXPLICIT_COMMIT_ADOPTS_B");
+        Assert.AreSame(candidate.Snapshot, session.Current);
+        Assert.AreEqual(accepted.LibraryId, session.Current!.LibraryId);
+        Assert.IsFalse(session.TryOpenMedia(coverA, out var noLongerA));
+        Assert.IsNull(noLongerA);
+        Assert.IsTrue(session.TryOpenMedia(coverB, out var bStream));
+        using (bStream) Assert.IsFalse(bStream!.CanWrite);
+        Assert.IsFalse(session.TryCommitPreparedRefresh(candidate), "NO_REPLAY");
+    }
+
+    [TestMethod]
+    public void ESDE_REFRESH_BACKEND_02_ForeignAndStaleCandidatesFailClosed()
+    {
+        Put("ROMS/gba/A.gba");
+        Put("ROMS/gba/B.gba");
+        Gamelist("<game><path>./A.gba</path><name>Fixture A</name></game>");
+        var owner = new EsDeImportSession(_root);
+        var before = owner.Import();
+        var other = new EsDeImportSession(_root);
+        other.Import();
+
+        Gamelist("<game><path>./B.gba</path><name>Fixture B</name></game>");
+        var ownCandidate = owner.PrepareRefresh();
+        var foreignCandidate = other.PrepareRefresh();
+        Assert.IsFalse(owner.TryCommitPreparedRefresh(null), "NULL_CANDIDATE_DENIED");
+        Assert.IsFalse(owner.TryCommitPreparedRefresh(foreignCandidate), "FOREIGN_SESSION_DENIED");
+        Assert.AreSame(before, owner.Current);
+        var newer = owner.Import(); // Legacy explicit import invalidates proposal.
+        Assert.IsFalse(owner.TryCommitPreparedRefresh(ownCandidate), "STALE_IMPORT_REVISION_DENIED");
+        Assert.AreSame(newer, owner.Current);
+
+        var one = owner.PrepareRefresh();
+        var two = owner.PrepareRefresh();
+        Assert.IsTrue(owner.TryCommitPreparedRefresh(two));
+        Assert.IsFalse(owner.TryCommitPreparedRefresh(one), "SECOND_PROPOSAL_AFTER_COMMIT_DENIED");
+        Assert.IsFalse(owner.TryCommitPreparedRefresh(two), "DOUBLE_COMMIT_DENIED");
+    }
+
+    [TestMethod]
+    public void ESDE_REFRESH_BACKEND_03_ReadFailureKeepsAcceptedCurrentAndMedia()
+    {
+        Put("ROMS/gba/A.gba");
+        Put("MEDIAS/gba/covers/A.png", "fixture media");
+        Gamelist("<game><path>./A.gba</path><image>../covers/A.png</image></game>");
+        var session = new EsDeImportSession(_root);
+        var before = session.Import();
+        var media = before.Games.Single().Media.Single();
+        Gamelist("<game><path>broken");
+        Assert.ThrowsExactly<EsDeXmlReadException>(() => session.PrepareRefresh());
+        Assert.AreSame(before, session.Current, "FAILED_PREPARE_KEEPS_A");
+        Assert.IsTrue(session.TryOpenMedia(media, out var stream));
+        using (stream) Assert.IsFalse(stream!.CanWrite);
+    }
+
+    [TestMethod]
+    public void ESDE_REFRESH_BACKEND_04_ConcurrentProposalCannotOverwriteCommittedVersion()
+    {
+        Put("ROMS/gba/A.gba");
+        Gamelist("<game><path>./A.gba</path><name>Fixture A</name></game>");
+        var session = new EsDeImportSession(_root);
+        var initial = session.Import();
+        Gamelist("<game><path>./A.gba</path><name>Fixture B</name></game>");
+        var previousProposal = session.PrepareRefresh();
+        var acceptedProposal = session.PrepareRefresh();
+        Assert.AreSame(initial, session.Current);
+        Assert.IsTrue(session.TryCommitPreparedRefresh(acceptedProposal));
+        Assert.IsFalse(session.TryCommitPreparedRefresh(previousProposal));
+        Assert.AreSame(acceptedProposal.Snapshot, session.Current);
+        Assert.AreEqual(initial.LibraryId, session.Current!.LibraryId);
+        Assert.AreEqual(initial.Games.Single().GameId, session.Current.Games.Single().GameId,
+            "GAME_ID_MUST_REMAIN_BASED_ON_THE_SAME_ROM");
+    }
 }
