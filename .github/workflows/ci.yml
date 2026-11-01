@@ -499,23 +499,7 @@ jobs:
           dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --canaries
           if ($LASTEXITCODE -ne 0) { throw 'DOC_CANARY_FAILED' }
           $base = (git rev-parse 'HEAD^1').Trim()
-          if ($LASTEXITCODE -ne 0 -or $base -notmatch '^[a-f0-9]{40}
-    name: ci-policy-gate
-    if: ${{ always() }}
-    needs: [policy, ci-docs, ci0-static, ci1-runtime, ci2-pester, ci3-e1-integration, ci4-preflight-synthetic, ci-dotnet, ci-docfx]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 8
-    steps:
-      - name: Checkout for independent policy recomputation
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Reject omitted, cancelled, skipped or failed required checks
-        env:
-          CI_NEEDS_JSON: ${{ toJSON(needs) }}
-        run: python3 -B tests/ci_policy.py gate
-) { throw 'DOC_BASE_SHA_MISSING' }
+          if ($LASTEXITCODE -ne 0 -or $base -notmatch '^[a-f0-9]{40}$') { throw 'DOC_BASE_SHA_MISSING' }
           dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --root . --base $base --out (Join-Path $env:RUNNER_TEMP 'docfx-internal-reference')
           if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_BELOW_CONTRACT' }
       - name: Store only temporary internal DocFX site and coverage evidence
@@ -533,7 +517,7 @@ jobs:
   ci-policy-gate:
     name: ci-policy-gate
     if: ${{ always() }}
-    needs: [policy, ci-docs, ci0-static, ci1-runtime, ci2-pester, ci3-e1-integration, ci4-preflight-synthetic, ci-dotnet]
+    needs: [policy, ci-docs, ci0-static, ci1-runtime, ci2-pester, ci3-e1-integration, ci4-preflight-synthetic, ci-dotnet, ci-docfx]
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
