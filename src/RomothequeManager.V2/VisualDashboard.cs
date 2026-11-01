@@ -45,7 +45,7 @@ public static class SidebarNavigationPalette
 
 /// <summary>
 /// Dashboard visual-only: no scan, export, storage, job or network requests.
-/// All imagery is either a locally opened ES-DE medium or an original text placeholder.
+/// All imagery comes from explicitly opened ES-DE media or a locally drawn fallback graphic.
 /// </summary>
 public static class VisualDashboard
 {
