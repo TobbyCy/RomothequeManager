@@ -64,9 +64,15 @@ public sealed class EsDeImportSession
     public EsDeCatalogueSnapshot RelocateVerified(string explicitlySelectedNewRoot)
     {
         if (Current is null) throw new InvalidOperationException("Import before relocation.");
+        // V1 (legacy 24-hex), unknown versions and malformed V2 are never relocation proofs.
+        // Reject BEFORE reading a candidate root; an explicit Import() is the only
+        // re-baseline route from the already selected root, never a silent migration.
+        if (!EsDeFingerprintV2.IsSupportedV2Fingerprint(Current.ContentFingerprint))
+            throw new InvalidDataException("Relocation not verified: unsupported fingerprint version.");
         var newRoot = Path.GetFullPath(explicitlySelectedNewRoot);
         var staged = EsDeCatalogueImporter.Read(newRoot, _libraryId);
-        if (!string.Equals(staged.ContentFingerprint, Current.ContentFingerprint, StringComparison.Ordinal))
+        if (!EsDeFingerprintV2.IsSupportedV2Fingerprint(staged.ContentFingerprint) ||
+            !string.Equals(staged.ContentFingerprint, Current.ContentFingerprint, StringComparison.Ordinal))
             throw new InvalidDataException("Relocation not verified: catalogue fingerprint differs.");
         _root = newRoot;
         Current = staged;
@@ -297,18 +303,12 @@ public static class EsDeCatalogueImporter
 
         if (!xmlFound) throw new InvalidDataException("No supported ES-DE gamelist in the selected root.");
         var sorted = games.OrderBy(x => x.Platform, StringComparer.Ordinal)
-            .ThenBy(x => x.RomRelativePath, StringComparer.Ordinal).ToArray();
-        var evidence = string.Join("\n", sorted.Select(g =>
-            g.GameId + "|" + g.Title + "|" + g.Description + "|" + g.RomExists + "|" +
-            string.Join(",", g.Media.Select(m => m.Kind + ":" + m.RelativePath + ":" + m.Exists)) + "|" +
-            string.Join(",", g.DiscPaths) +
-            // Do not change the legacy fingerprint when no new metadata exists.
-            // Metadata-only edits must nonetheless change the projection fingerprint.
-            (g.Genre is null && g.Developer is null && g.ReleaseDate is null ? "" :
-                "|NEXT04|" + FingerprintField(g.Genre) + FingerprintField(g.Developer) +
-                FingerprintField(g.ReleaseDate))));
+            .ThenBy(x => x.RomRelativePath, StringComparer.Ordinal)
+            .ThenBy(x => x.GameId, StringComparer.Ordinal).ToArray();
+        // ESDE-FP-V2 is a separate, typed, length-prefixed binary serialization.
+        // Do NOT reuse Digest(string): that shared function defines GameId/VariantId.
         return new(libraryId, "ES_DE_READ_ONLY",
-            Digest(evidence), sorted, diagnostics.ToArray());
+            EsDeFingerprintV2.Compute(sorted), sorted, diagnostics.ToArray());
     }
 
     internal static string ResolveSnapshotMedia(string selectedRoot, string relativePath)
