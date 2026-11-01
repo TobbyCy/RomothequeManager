@@ -8,7 +8,9 @@ namespace RomothequeManager.V2;
 
 // NEXT-01-A: staging-only ES-DE reader. The application must opt in to a user-selected root.
 // No writes, recursive ROM scan, network access, or synthetic snapshot provenance.
+/// <summary>One bounded ES-DE import diagnostic with source platform and entry context; it is evidence, not an automatic repair decision.</summary>
 public sealed record EsDeDiagnostic(string Code, string Platform, string Entry, string Message);
+/// <summary>Relative ES-DE media reference observed in the imported XML; the Exists flag is not an enduring permission or current availability proof.</summary>
 public sealed record EsDeMedia(string Kind, string RelativePath, bool Exists);
 // Keep the historical nine-parameter constructor and Deconstruct contract.
 // Optional ES-DE metadata is added only as nullable init-only properties.
@@ -20,10 +22,14 @@ public sealed record EsDeGame(
     bool RomExists, string? Description, IReadOnlyList<EsDeMedia> Media,
     IReadOnlyList<string> DiscPaths)
 {
+    /// <summary>Optional genre as declared in the ES-DE XML; null when the source omitted it.</summary>
     public string? Genre { get; init; }
+    /// <summary>Optional developer attribution from the XML, without external verification or scraping.</summary>
     public string? Developer { get; init; }
+    /// <summary>Optional source release-date text, preserved without inventing a normalized date.</summary>
     public string? ReleaseDate { get; init; }
 }
+/// <summary>Immutable snapshot of explicitly imported ES-DE references, diagnostics and a versioned content fingerprint.</summary>
 public sealed record EsDeCatalogueSnapshot(
     string LibraryId, string SourceKind, string ContentFingerprint,
     IReadOnlyList<EsDeGame> Games, IReadOnlyList<EsDeDiagnostic> Diagnostics);
@@ -37,8 +43,12 @@ public sealed class EsDeImportSession
     // Session-scoped identity: persists through reimports and verified relocation.
     // A new process/session needs explicit future persistence or re-association.
     private readonly string _libraryId = "library-" + Guid.NewGuid().ToString("N");
+    /// <summary>Last successfully accepted import, retained unchanged when reimport or relocation verification fails.</summary>
     public EsDeCatalogueSnapshot? Current { get; private set; }
 
+    /// <summary>Creates an opt-in read-only ES-DE session scoped to a caller-selected library root.</summary>
+    /// <param name="explicitlySelectedLibraryRoot">Library path explicitly chosen by the caller; no discovery is performed.</param>
+    /// <exception cref="ArgumentException">The selected root is empty or invalid.</exception>
     public EsDeImportSession(string explicitlySelectedLibraryRoot)
     {
         if (string.IsNullOrWhiteSpace(explicitlySelectedLibraryRoot))
@@ -109,8 +119,13 @@ public sealed class EsDeImportSession
 // XML reader failures are distinct from an otherwise well-formed XML whose
 // layout, paths or duplicated required fields are unsupported. Never expose
 // the source XML, exception details or absolute filesystem path in the UI.
+/// <summary>Sanitized XML parsing failure with fixed source convention and line coordinates; never includes the original XML or absolute path.</summary>
 internal sealed class EsDeXmlReadException : IOException
 {
+    /// <summary>Wraps a bounded XML reader failure without revealing XML content in the public diagnostic.</summary>
+    /// <param name="platform">Source platform used for safe diagnostics.</param>
+    /// <param name="sourceConvention">A fixed convention identifier, not an absolute path.</param>
+    /// <param name="cause">Underlying XML exception supplying only positional details.</param>
     internal EsDeXmlReadException(string platform, string sourceConvention, XmlException cause)
         : base("ES-DE XML reader rejected the gamelist for one platform.", cause)
     {
@@ -120,10 +135,14 @@ internal sealed class EsDeXmlReadException : IOException
         LinePosition = cause.LinePosition;
     }
 
+    /// <summary>Platform label associated with the rejected gamelist, not a filesystem path.</summary>
     public string Platform { get; }
     // Fixed identifier only; never include an absolute path or XML text in public diagnostics.
+    /// <summary>Fixed supported XML location convention identifier, with no XML payload or absolute directory.</summary>
     public string SourceConvention { get; }
+    /// <summary>One-based XML reader line coordinate of the failure when available.</summary>
     public int LineNumber { get; }
+    /// <summary>Character coordinate of the failed XML read within its source line.</summary>
     public int LinePosition { get; }
 }
 
@@ -143,6 +162,11 @@ public static class EsDeCatalogueImporter
     public static EsDeCatalogueSnapshot Read(string explicitlySelectedLibraryRoot) =>
         Read(explicitlySelectedLibraryRoot, "library-" + Guid.NewGuid().ToString("N"));
 
+    /// <summary>Builds a catalogue for an already established session identity without mutating existing snapshots.</summary>
+    /// <remarks>Validates explicitly selected ROMS, ES-DE and optional media paths; rejects reparse points, ambiguous identities and unsafe XML.</remarks>
+    /// <param name="explicitlySelectedLibraryRoot">Explicit root enclosing the supported ROMS layout.</param>
+    /// <param name="libraryId">Existing session-scoped library identity to preserve across reimports.</param>
+    /// <returns>A fully staged snapshot with source-grounded entries and fingerprint.</returns>
     internal static EsDeCatalogueSnapshot Read(string explicitlySelectedLibraryRoot, string libraryId)
     {
         if (string.IsNullOrWhiteSpace(explicitlySelectedLibraryRoot))
@@ -311,6 +335,8 @@ public static class EsDeCatalogueImporter
             EsDeFingerprintV2.Compute(sorted), sorted, diagnostics.ToArray());
     }
 
+    /// <summary>Resolves only a source-relative media claim under the selected root after path confinement checks.</summary>
+    /// <remarks>The caller must revalidate Current membership and open read-only; no preview permission is inferred by this resolver.</remarks>
     internal static string ResolveSnapshotMedia(string selectedRoot, string relativePath)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
