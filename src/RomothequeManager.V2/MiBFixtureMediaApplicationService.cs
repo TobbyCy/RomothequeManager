@@ -3,17 +3,33 @@ using RomothequeManager.V2.Inventory.Media.MiA;
 namespace RomothequeManager.V2.Inventory.Media.MiB;
 
 // NEXT-05 MI-B: internal fixture-only presentation; never a public media permission.
+/// <summary>Fixture-only MEDIA selection and run phases; none grants real-media access.</summary>
 internal enum MiBPhase
 {
-    NoSelection, Ready, Running, CancellationRequested, Completed, Rejected, Faulted
+    /// <summary>No fixture MEDIA root has been selected; no consent or I/O is possible.</summary>
+    NoSelection,
+    /// <summary>An explicit fixture MEDIA root was selected and awaits a fresh confirmed grant.</summary>
+    Ready,
+    /// <summary>The selected scoped media index is active under the temporary one-shot grant.</summary>
+    Running,
+    /// <summary>The active read was asked to stop without erasing the last complete projection.</summary>
+    CancellationRequested,
+    /// <summary>The operation ended; inspect scan coverage before inferring that any media is absent.</summary>
+    Completed,
+    /// <summary>Selection, consent or run request was refused without creating a valid scan permission.</summary>
+    Rejected,
+    /// <summary>An unexpected failure was reported as a safe diagnostic, not as a private filesystem exception.</summary>
+    Faulted,
 }
 
+/// <summary>Safe, path-free presentation of one indexed media observation; does not assert a linked game or approved cover.</summary>
 internal sealed record MiBMediaRow(
     string ObservationRef, string DisplayLabel, string PlatformKey, MediaKind Kind,
     MediaImageFormat Format, bool HeaderValidated,
     long? SizeBytes, int? Width, int? Height,
     IReadOnlyList<string> SafeDiagnosticCodes);
 
+/// <summary>Immutable scoped media run showing status, coverage, provenance, cautious totals and safe diagnostics.</summary>
 internal sealed record MiBRunView(
     string RunRef, string MediaRootRef, DateTimeOffset CapturedAtUtc,
     InventoryScanStatus ScanStatus, InventoryAvailability Availability,
@@ -22,11 +38,13 @@ internal sealed record MiBRunView(
     IReadOnlyList<MiBMediaRow> Rows, IReadOnlyList<string> SafeDiagnosticCodes,
     bool IsHistoricalFixture);
 
+/// <summary>Current and last-attempt views with selection version, separate historical marker and safe user notice.</summary>
 internal sealed record MiBProjectionState(
     long SelectionVersion, MiBPhase Phase, bool ProgressIsIndeterminate,
     MiBRunView? CurrentComplete, MiBRunView? LastAttempt,
     bool CurrentIsHistorical, string? SafeNoticeCode);
 
+/// <summary>Versioned outcome of selecting a fixture MEDIA root without enumerating its children.</summary>
 internal sealed record MiBSelectionResult(
     bool Accepted, long SelectionVersion, string? SafeDiagnosticCode);
 
@@ -45,6 +63,7 @@ internal static class MiBMediaProjection
         "MI_A_SIGNATURE_OR_EXTENSION_MISMATCH", "UNSUPPORTED_FORMAT"
     };
 
+/// <summary>Allow only known diagnostic codes to reach the presentation layer; map all other values to a neutral code.</summary>
     internal static string SafeCode(string? code) =>
         code is not null && Codes.Contains(code) ? code : "MI_B_UNCLASSIFIED_DIAGNOSTIC";
 
@@ -80,6 +99,7 @@ internal static class MiBMediaProjection
         return platform;
     }
 
+/// <summary>Copy a bounded MEDIA snapshot to path-free presentation evidence and expose unknown totals as null.</summary>
     internal static MiBRunView Project(MediaIndexSnapshot source, bool historicalFixture = false)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -123,15 +143,23 @@ internal static class MiBMediaProjection
     }
 }
 
+/// <summary>Fixture-only service boundary separating selection, explicit consent and bounded MEDIA indexing from Avalonia.</summary>
 internal interface IMiBFixtureMediaApplicationService : IAsyncDisposable
 {
+/// <summary>Published immutable projection for the currently selected fixture; historical snapshots are clearly distinguished.</summary>
     MiBProjectionState State { get; }
+/// <summary>Notify callers of versioned state changes, which UI consumers must marshal onto their own dispatcher.</summary>
     event EventHandler<MiBProjectionState>? StateChanged;
+/// <summary>Validate a fixture root selection without issuing permission or enumerating its content.</summary>
     MiBSelectionResult SelectFixtureRoot(string fixtureRoot);
+/// <summary>Accept one explicit consent for a matching selection version and open the fixture root to bind native identity.</summary>
     bool ConfirmMediaIndexConsent(long selectionVersion, bool explicitUserAction);
+/// <summary>Start a single fixture index only when the selected generation has a valid, unconsumed MEDIAS grant.</summary>
     Task<MiBProjectionState> StartConfirmedAsync(
         long selectionVersion, CancellationToken cancellationToken = default);
+/// <summary>Request cancellation while retaining the previous complete projection and recording the resulting attempt.</summary>
     bool RequestCancellation();
+/// <summary>Revoke outstanding consent and invalidate the selection when no conflicting operation is active.</summary>
     bool ClearSelection();
 }
 
@@ -157,14 +185,19 @@ internal sealed class MiBFixtureMediaApplicationService : IMiBFixtureMediaApplic
         new(0, MiBPhase.NoSelection, false, null, null, false, null);
 
     // Test-only injection, deliberately absent from the interface/DTO/ViewModel.
+/// <summary>Test-only callback used to inject cancellation or failures after a bounded image-header read.</summary>
     internal Action<int>? AfterHeaderReadForTest { get; set; }
 
+/// <summary>Create a fixture-only adapter delegating native reads to MI-A with validated hard budgets.</summary>
     internal MiBFixtureMediaApplicationService(MiABudget? budget = null) =>
         _session = new MiAFixtureMediaSession(budget);
 
+/// <summary>Report versioned state transitions; no event payload includes an absolute media path or live grant.</summary>
     public event EventHandler<MiBProjectionState>? StateChanged;
+/// <summary>Thread-safe current UI projection, independent of the underlying native file handles.</summary>
     public MiBProjectionState State { get { lock (_gate) return _state; } }
 
+/// <summary>Reset prior selection and consent, accepting only a supported local fixture root syntax.</summary>
     public MiBSelectionResult SelectFixtureRoot(string fixtureRoot)
     {
         string validated;
@@ -195,6 +228,7 @@ internal sealed class MiBFixtureMediaApplicationService : IMiBFixtureMediaApplic
         return new(true, selected.SelectionVersion, null);
     }
 
+/// <summary>Issue an MI-A one-shot grant after explicit user action for the current selection version.</summary>
     public bool ConfirmMediaIndexConsent(long selectionVersion, bool explicitUserAction)
     {
         MiBProjectionState? changed = null;
@@ -230,6 +264,7 @@ internal sealed class MiBFixtureMediaApplicationService : IMiBFixtureMediaApplic
         return success;
     }
 
+/// <summary>Run MEDIA indexing once for a matching authorized fixture generation, preserving previous Current on interruption.</summary>
     public Task<MiBProjectionState> StartConfirmedAsync(
         long selectionVersion, CancellationToken cancellationToken = default)
     {
@@ -364,6 +399,7 @@ internal sealed class MiBFixtureMediaApplicationService : IMiBFixtureMediaApplic
         return answer;
     }
 
+/// <summary>Signal the active bounded scan and prevent late generations from changing the accepted current projection.</summary>
     public bool RequestCancellation()
     {
         MiBProjectionState changed;
@@ -382,6 +418,7 @@ internal sealed class MiBFixtureMediaApplicationService : IMiBFixtureMediaApplic
         return true;
     }
 
+/// <summary>Invalidate all outstanding fixture consent and clear the selection without implying deletion of stored media.</summary>
     public bool ClearSelection()
     {
         MiBProjectionState cleared;
@@ -403,6 +440,7 @@ internal sealed class MiBFixtureMediaApplicationService : IMiBFixtureMediaApplic
         return true;
     }
 
+/// <summary>Cancel and drain outstanding fixture indexing, then suppress late notifications after disposal.</summary>
     public async ValueTask DisposeAsync()
     {
         Task wait;
