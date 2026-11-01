@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / #145 — MVVM : premier lot shell/import historique ES-DE (PR #147, 01.11.2026)
+
+- **En cours, non publié :** PR [#147](https://github.com/TobbyCy/RomothequeManager/pull/147) depuis `main=1aac0912930bd0a040e06800a1e8316fbe077dc2`. VM observable avec commandes Import/Refresh/Cancel, état Busy et adoption de `Current` après contrôle d'annulation ; service injectable qui reprend exclusivement l'import ES-DE read-only historique.
+- **Préservation :** choix et confirmation manuels, filtre/plateforme, 50 éléments/page, navigation/scroll, erreurs redigées, annulation/Dispose. Les ouvertures médias, budgets de décodage, G1/#140/#141/#142/DocFX et gates de permissions ne sont pas changés. La synchronisation de tests/CI au HEAD de PR est **en attente**, aucune preuve humaine #95.
+- **Tests et documentation :** `ImportedCatalogueMvvmBoundaryTests` (fixtures fictives uniquement), [frontière architecturale](docs/architecture/next05-mvvm145-esde-import.md). Revue DEV 2 indépendante obligatoire avant fusion Contrôleur ; aucune Release ni nouvelle autorisation réelle.
+
+
 ## NEXT-05 / #142 — ESDE-FP-V2 canonical fingerprint (fixtures Windows, 01.11.2026)
 
 - **Base / scope**: [PR #144](https://github.com/TobbyCy/RomothequeManager/pull/144) depuis `main=2e4f03978d7f8bdee4cead889a05d8b60da220f2` après fusion de #143 et sa CI Windows 294 PASS. Contrat normatif `CONTRACT_APPROVABLE` [DEV 2 / Issue #142](https://github.com/TobbyCy/RomothequeManager/issues/142#issuecomment-6553992309). Une seule branche, aucun changement du schéma SQLite, de grants, des médias, de la fonction `Digest(string)` commune ou des calculs GameId/VariantId.
