@@ -518,9 +518,6 @@ public static class EsDeCatalogueImporter
         return null;
     }
 
-    private static string FingerprintField(string? value) =>
-        (value?.Length.ToString(CultureInfo.InvariantCulture) ?? "-1") + ":" + value + "|";
-
     private static string ResolveRelative(string baseDirectory, string raw, string permittedRoot)
     {
         var value = raw.Trim().Replace('\\', '/');
