@@ -11,16 +11,9 @@ namespace RomothequeManager.DocCoverage;
 internal static class Program
 {
     private static readonly JsonSerializerOptions JsonStyle = new() { WriteIndented = true };
-    // Named internal contractual backend files are additive to the exported API.
-    private static readonly HashSet<string> Critical = new(StringComparer.Ordinal)
-    {
-        "CatalogStore.cs", "EsDeFingerprintV2.cs", "InventoryReader.cs",
-        "InventoryApplicationService.cs", "EsDeCatalogueImporter.cs",
-        "MediaIndex.cs", "MediaLinkProjection.cs", "MediaPreviewService.cs",
-        "MediaPresentationService.cs", "MiAWindowsMediaScanner.cs",
-        "MiBFixtureMediaApplicationService.cs", "RsAWindowsRomScanner.cs",
-        "LegacyImportedImageBudget.cs"
-    };
+    // Fail-closed eligibility: all explicitly declared non-private production
+    // API members (public/protected and internal) are counted. The classification
+    // does not depend on the spelling of a file or a type such as 'Service'.
     private record Api(string Id, string Kind, string File, int Line,
         bool Documented, string Reason, bool InternalContract);
     private record Measurement(string Sha, int Eligible, int Documented,
@@ -152,13 +145,14 @@ internal static class Program
                 var file = marker >= 0 ? raw[marker..] : raw;
                 int line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                 bool publicApi = Exposed(symbol);
-                bool critical = !publicApi && ContractMember(symbol) &&
-                    (Critical.Contains(Path.GetFileName(file)) || CriticalBySemanticType(symbol));
-                bool testHarness = IsHarness(file) && !publicApi && !critical;
-                bool included = (publicApi || critical) && !testHarness;
-                var reason = included ? XmlStatus(symbol, compilation, new HashSet<string>(StringComparer.Ordinal)) :
-                    testHarness ? "EXCLUDED_COMPILED_TEST_HARNESS_SYMBOL_NOT_CONTRACT" :
-                    "EXCLUDED_NONCONTRACT_INTERNAL_OR_PRIVATE";
+                // No filename/type-name heuristics or implicit harness exemptions:
+                // a new internal ReadAccessPolicy.AllowsRead is eligible just as
+                // any other declared internal contract from the compiled project.
+                bool critical = !publicApi && ContractMember(symbol);
+                bool included = publicApi || critical;
+                var reason = included
+                    ? XmlStatus(symbol, compilation, new HashSet<string>(StringComparer.Ordinal))
+                    : "EXCLUDED_NONCONTRACT_PRIVATE_OR_FILE_LOCAL";
                 var value = new Api(id, symbol.Kind.ToString(), file, line,
                     included && reason == "DOCUMENTED", reason, critical);
                 if (included) eligible.TryAdd(id, value);
@@ -168,31 +162,6 @@ internal static class Program
         var list = eligible.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToList();
         return new Measurement(sha, list.Count, list.Count(x => x.Documented), list,
             excluded.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToList());
-    }
-
-    // Existing critical contracts stay in the denominator, but NEW internal
-    // business services are discovered by their declared symbol/role, not path.
-    private static bool CriticalBySemanticType(ISymbol symbol)
-    {
-        for (ISymbol? cursor = symbol; cursor is not null &&
-            cursor is not INamespaceSymbol; cursor = cursor.ContainingSymbol)
-        {
-            if (cursor is not INamedTypeSymbol type || type.DeclaredAccessibility ==
-                Accessibility.Private) continue;
-            var name = type.Name;
-            if (new[] { "Service", "Session", "Scanner", "Reader", "Store",
-                "Importer", "Projection", "Permission", "Grant", "Budget",
-                "Validator", "Authority", "Coordinator", "Serializer",
-                "Fingerprint", "Gateway", "Repository" }
-                .Any(term => name.Contains(term, StringComparison.OrdinalIgnoreCase)))
-                return true;
-            var ns = type.ContainingNamespace?.ToDisplayString() ?? "";
-            if (ns.Contains(".Inventory.", StringComparison.Ordinal) &&
-                new[] { "Scope", "Snapshot", "Mapping", "Capability", "Decision",
-                    "Policy", "Result" }.Any(term => name.Contains(term, StringComparison.OrdinalIgnoreCase)))
-                return true;
-        }
-        return false;
     }
 
     private static bool Exposed(ISymbol symbol)
@@ -207,7 +176,7 @@ internal static class Program
     private static bool ContractMember(ISymbol symbol)
     {
         for (ISymbol? x = symbol; x is not null && x is not INamespaceSymbol; x = x.ContainingSymbol)
-            if (x.DeclaredAccessibility == Accessibility.Private) return false;
+            if (x.DeclaredAccessibility is Accessibility.Private or Accessibility.File) return false;
         return true;
     }
 
@@ -279,17 +248,6 @@ internal static class Program
             return "DOCUMENTED";
         }
         catch (System.Xml.XmlException) { return "INVALID_XML"; }
-    }
-
-    // Only dedicated, compiled test harness types are eligible for a per-symbol
-    // exclusion; a role-qualified internal service remains mandatory even if
-    // introduced in a file whose name contains the word Harness.
-    private static bool IsHarness(string path)
-    {
-        var name = Path.GetFileName(path);
-        return name.Contains("Harness", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("Capture", StringComparison.OrdinalIgnoreCase)
-            || name.EndsWith("LegacyMediaCi.cs", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string Git(string root, params string[] args)
