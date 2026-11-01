@@ -11,6 +11,7 @@ namespace RomothequeManager.V2.Inventory.Media.MiA;
 /// It is never transferable to RomsInventory or MediaPreview.</summary>
 internal enum MiAOperation { MediaIndex }
 
+/// <summary>One-shot fixture MEDIAS indexing capability, separate from ROM inventory and image PREVIEW permissions.</summary>
 internal sealed class MiAReadGrant
 {
     private int _revoked;
@@ -26,24 +27,37 @@ internal sealed class MiAReadGrant
         Budget = budget;
     }
 
+/// <summary>Issue a scope/version/generation-bound MEDIAS-only fixture token with a pinned native root identity.</summary>
     internal static MiAReadGrant Issue(string rootId, long version, long generation,
         DateTimeOffset expiresUtc, RsAHandleIdentity identity, MiABudget budget) =>
         new(rootId, version, generation, expiresUtc, identity, budget);
 
+/// <summary>Constant MEDIAS indexing operation type; cannot authorize ROMS scanning or image decoding.</summary>
     internal MiAOperation Operation => MiAOperation.MediaIndex;
+/// <summary>Selected fixture MEDIAS root reference that must match the active scan request.</summary>
     internal string RootId { get; }
+/// <summary>Generation invalidating old consent after selecting a different fixture root.</summary>
+/// <summary>Current root-selection generation used to reject stale or cross-root grants.</summary>
     internal long SelectionVersion { get; }
+/// <summary>One-use consent issuance generation; prevents replay after authorizing a newer attempt.</summary>
     internal long Generation { get; }
+/// <summary>Consent expiration checked during each active enumeration and header read.</summary>
     internal DateTimeOffset ExpiresUtc { get; }
+/// <summary>Native identity of the root opened at authorization, used to reject root replacement.</summary>
     internal RsAHandleIdentity RootIdentity { get; }
+/// <summary>Hard limits bound to this grant; callers cannot substitute larger operational budgets.</summary>
     internal MiABudget Budget { get; }
+/// <summary>Invalidate future reads under this temporary MEDIAS grant immediately.</summary>
+/// <summary>Revoke a session grant; an active scan must revalidate its permission before each further read.</summary>
     internal void Revoke() => Interlocked.Exchange(ref _revoked, 1);
     // Exclusive per-grant claim; Valid intentionally ignores _claimed so an
     // already-running native read remains subject to revoke/expiry checks.
+/// <summary>Atomically admit at most one scan with matching selection and generation; replay is denied.</summary>
     internal bool TryClaim(string rootId, long version, long generation) =>
         Valid(rootId, version, generation) &&
         Interlocked.CompareExchange(ref _claimed, 1, 0) == 0 &&
         Valid(rootId, version, generation);
+/// <summary>Verify root, generation, expiry and revocation for an already admitted scan.</summary>
     internal bool Valid(string rootId, long version, long generation) =>
         Volatile.Read(ref _revoked) == 0 &&
         DateTimeOffset.UtcNow < ExpiresUtc &&
@@ -58,8 +72,10 @@ internal sealed record MiABudget(
     long MaxTotalHeaderBytes = 8388608, long MaxImageBytes = 67108864,
     int MaxWidth = 8192, int MaxHeight = 8192, long MaxPixels = 32000000)
 {
+/// <summary>Effective cooperative deadline, defaulting to 30 seconds when no smaller explicit limit is set.</summary>
     internal TimeSpan EffectiveTimeLimit => TimeLimit ?? TimeSpan.FromSeconds(30);
 
+/// <summary>Enforce bounded depth, enumeration, header bytes, dimensions and pixel counts before opening media data.</summary>
     internal void Validate()
     {
         if (MaxDepth is < 1 or > 8 || MaxFiles is < 1 or > 5000 ||
@@ -92,17 +108,22 @@ internal sealed class MiAFixtureMediaSession
     private MiAReadGrant? _grant;
     private MediaIndexSnapshot? _current;
     private MediaIndexSnapshot? _lastAttempt;
+/// <summary>Latest complete fixture MEDIA index for this selection only; never reuse evidence from another root.</summary>
     internal MediaIndexSnapshot? Current { get { lock (_selectionGate) return _current; } }
+/// <summary>Most recent MEDIA attempt, including partial or cancelled reads, scoped to the current selection.</summary>
     internal MediaIndexSnapshot? LastAttempt { get { lock (_selectionGate) return _lastAttempt; } }
+/// <summary>Actual header-byte count from the last attempt; refused scans leave this counter at zero.</summary>
     internal long LastHeaderBytesRead { get; private set; }
     internal long SelectionVersion { get { lock (_selectionGate) return _version; } }
 
+/// <summary>Construct an isolated fixture MEDIAS session with validated read and decode-protection ceilings.</summary>
     internal MiAFixtureMediaSession(MiABudget? budget = null)
     {
         _budget = budget ?? new();
         _budget.Validate();
     }
 
+/// <summary>Revoke older grants, rotate selection identity and clear A's snapshots before accepting root B.</summary>
     internal void SelectFixture(string root, string storageRootId)
     {
         lock (_selectionGate)
@@ -128,6 +149,7 @@ internal sealed class MiAFixtureMediaSession
         }
     }
 
+/// <summary>Grant one explicitly approved fixture MEDIAS attempt after opening and identifying the selected root.</summary>
     internal MiAReadGrant AuthorizeFixture(bool explicitUserAction, DateTimeOffset expiresUtc)
     {
         lock (_selectionGate)
@@ -149,6 +171,7 @@ internal sealed class MiAFixtureMediaSession
         lock (_selectionGate) _grant?.Revoke();
     }
 
+/// <summary>Index only limited media metadata/headers under an anchored handle with a one-shot grant and A/B isolation.</summary>
     internal MediaIndexSnapshot Scan(MiAReadGrant? supplied,
         CancellationToken cancellationToken = default,
         Action<string>? beforeChildOpenForTest = null,
@@ -351,10 +374,12 @@ internal sealed class MiAFixtureMediaSession
         new(code, InventorySeverity.Warning, "MEDIAS", code, "MI_A_FIXTURE", at);
 }
 
+/// <summary>Internal bounded-stop marker mapped to safe diagnostics rather than untrusted filesystem paths.</summary>
 internal sealed class MiAStopException(string code) : Exception(code);
 
 /// <summary>Native file opens are relative to a pinned parent handle. Reads and file facts
 /// come from that same handle; never re-open a checked file by path.</summary>
+/// <summary>Native fixture-only media reader that keeps all file opens anchored to approved parent handles.</summary>
 internal static class MiAAnchoredMediaReader
 {
     private const uint ReadData = 1;
@@ -373,6 +398,7 @@ internal static class MiAAnchoredMediaReader
     private const uint ObjCaseInsensitive = 0x40;
     private const uint FileOpen = 1;
 
+/// <summary>Validate selected local fixture path syntax without granting access or traversing files.</summary>
     internal static string ValidateFixturePath(string path)
     {
         if (!OperatingSystem.IsWindows())
@@ -399,6 +425,7 @@ internal static class MiAAnchoredMediaReader
         return full;
     }
 
+/// <summary>Reject unsafe or unwanted filesystem components before opening a child media file.</summary>
     internal static bool Excluded(string name) =>
         RsAAnchoredReader.Excluded(name) ||
         name.Equals("ROMS", StringComparison.OrdinalIgnoreCase) ||
@@ -408,6 +435,7 @@ internal static class MiAAnchoredMediaReader
         name.Equals("bin", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("obj", StringComparison.OrdinalIgnoreCase);
 
+/// <summary>Reject a malformed child component so callers never concatenate untrusted absolute paths.</summary>
     internal static void ValidateComponent(string name)
     {
         if (string.IsNullOrWhiteSpace(name) || name is "." or ".." ||
@@ -424,6 +452,7 @@ internal static class MiAAnchoredMediaReader
             throw new UnauthorizedAccessException("MI_A_DEVICE_ALIAS_DENIED");
     }
 
+/// <summary>Open the explicit fixture root with native metadata-only safety checks.</summary>
     internal static SafeFileHandle OpenFixtureRoot(string path)
     {
         var full = ValidateFixturePath(path);
@@ -451,6 +480,7 @@ internal static class MiAAnchoredMediaReader
         catch { handle.Dispose(); throw; }
     }
 
+/// <summary>Open media strictly below a trusted handle while preserving confinement and read budgets.</summary>
     internal static SafeFileHandle OpenMediaFile(SafeFileHandle parent, string name,
         ulong expectedVolume)
     {
@@ -524,6 +554,7 @@ internal static class MiAAnchoredMediaReader
         }
     }
 
+/// <summary>Read timestamp metadata from an open handle without traversing unrelated scopes.</summary>
     internal static DateTimeOffset? ModifiedUtc(SafeFileHandle file)
     {
         var buffer = Marshal.AllocHGlobal(40);
@@ -575,11 +606,14 @@ internal static class MiAAnchoredMediaReader
         int infoClass, IntPtr buffer, int bufferLength);
 }
 
+/// <summary>Bounded format classifier based on image header bytes, not a full image decoder or PREVIEW permission.</summary>
 internal static class MiAHeaderClassifier
 {
+/// <summary>Format decision and dimensions derived from a capped header without rendering media pixels.</summary>
     internal readonly record struct HeaderResult(MediaImageFormat Format,
         bool Valid, int? Width, int? Height, string? Diagnostic);
 
+/// <summary>Validate PNG/JPEG-like header structure and budgets before any future image preview is considered.</summary>
     internal static HeaderResult Classify(ReadOnlySpan<byte> b, string extension, MiABudget cap)
     {
         bool png = b.Length >= 8 && b[..8].SequenceEqual(
