@@ -1,10 +1,20 @@
 using System.Text;
+using System.Reflection;
+using System.Security.Cryptography;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace RomothequeManager.DocCoverage;
+
+// An exclusion is valid only when its source and generator were captured by the
+// instrumented native compilation. Output folder names alone grant nothing.
+internal sealed record GeneratedSourceProvenance(
+    string FullPath, string RelativePath, string GeneratorIdentity,
+    string GeneratorVersion, string GeneratorHash, string SourceHash,
+    string XamlSource, string XamlInputHash, bool Attested);
+
 
 /// <summary>
 /// Exact source/reference/define inputs captured from the application MSBuild CoreCompile
@@ -21,6 +31,13 @@ internal sealed class RealProjectInputs
     internal required string[] Defines { get; init; }
     internal required string[] Sources { get; init; }
     internal required string[] References { get; init; }
+    internal required IReadOnlyDictionary<string, GeneratedSourceProvenance> GeneratedProvenance { get; init; }
+
+    internal static string Sha256(string path) =>
+        Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
+
+    internal static string GeneratedKey(GeneratedSourceProvenance source) =>
+        source.GeneratorIdentity + "/" + source.RelativePath.Replace('\\', '/');
 
     internal static RealProjectInputs Read(string path)
     {
@@ -28,6 +45,8 @@ internal sealed class RealProjectInputs
         var props = new Dictionary<string, string>(StringComparer.Ordinal);
         var sources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var refs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var analyzers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var xamls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var raw in File.ReadLines(path, Encoding.UTF8))
         {
             var line = raw.Trim().TrimStart('\uFEFF');
@@ -41,6 +60,10 @@ internal sealed class RealProjectInputs
                 sources.Add(Path.GetFullPath(line["SOURCE|".Length..]));
             else if (line.StartsWith("REFERENCE|", StringComparison.Ordinal))
                 refs.Add(Path.GetFullPath(line["REFERENCE|".Length..]));
+            else if (line.StartsWith("ANALYZER|", StringComparison.Ordinal))
+                analyzers.Add(Path.GetFullPath(line["ANALYZER|".Length..]));
+            else if (line.StartsWith("XAML_SOURCE|", StringComparison.Ordinal))
+                xamls.Add(Path.GetFullPath(line["XAML_SOURCE|".Length..]));
             else if (line.Length != 0)
                 throw new InvalidDataException("REAL_MSBUILD_UNKNOWN_MANIFEST_ENTRY:" + line[..Math.Min(30,line.Length)]);
         }
@@ -61,7 +84,65 @@ internal sealed class RealProjectInputs
             .Select(Path.GetFullPath).ToArray();
         if (generated.Length < 3)
             throw new InvalidDataException("REAL_MSBUILD_AVALONIA_GENERATED_SOURCES_MISSING");
-        Console.WriteLine("DOC_COVERAGE_NATIVE_GENERATED_SOURCES count=" + generated.Length);
+        // Bind generator identity to actual compiler-selected analyzer assemblies,
+        // and XAML provenance to actual project inputs. Unmapped or mixed symbols
+        // remain eligible; never classify generated status by ".g.cs" suffix.
+        var projectDirectory = Path.GetFullPath(Get("MSBuildProjectDirectory"));
+        if (!Directory.Exists(projectDirectory) ||
+            analyzers.Count == 0 || analyzers.Any(x => !File.Exists(x)))
+            throw new InvalidDataException("DOC_GENERATED_REAL_ANALYZERS_MISSING");
+        var xamlInputs = xamls.Where(File.Exists).Order(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (xamls.Count != xamlInputs.Length)
+            throw new InvalidDataException("DOC_GENERATED_XAML_INPUT_MISSING");
+        if (xamlInputs.Length == 0)
+            xamlInputs = Directory.EnumerateFiles(projectDirectory, "*.axaml", SearchOption.AllDirectories)
+                .Where(x => !x.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase) &&
+                    !x.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase))
+                .Order(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (xamlInputs.Length == 0)
+            throw new InvalidDataException("DOC_GENERATED_XAML_INPUT_SET_EMPTY");
+        var xamlFingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+            string.Join("\n", xamlInputs.Select(x =>
+                Path.GetRelativePath(projectDirectory, x).Replace('\\', '/') + "|" + Sha256(x)))))).ToLowerInvariant();
+        var avaloniaAnalyzers = analyzers.Where(x =>
+            Path.GetFileName(x).Equals("Avalonia.Generators.dll", StringComparison.OrdinalIgnoreCase))
+            .Select(x => new { Path = x, Assembly = AssemblyName.GetAssemblyName(x) })
+            .Where(x => x.Assembly.Name == "Avalonia.Generators").ToArray();
+        if (avaloniaAnalyzers.Length != 1)
+            throw new InvalidDataException("DOC_GENERATED_AVALONIA_ANALYZER_AMBIGUOUS_OR_MISSING:" +
+                avaloniaAnalyzers.Length);
+        var analyzer = avaloniaAnalyzers[0];
+        var analyzerHash = Sha256(analyzer.Path);
+        var analyzerVersion = analyzer.Assembly.Version?.ToString() ?? "UNVERSIONED";
+        var evidence = new Dictionary<string, GeneratedSourceProvenance>(StringComparer.OrdinalIgnoreCase);
+        foreach (var source in generated)
+        {
+            var relative = Path.GetRelativePath(generatorRoot, source).Replace('\\', '/');
+            var fragments = relative.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var declaredGenerator = fragments.FirstOrDefault() ?? "";
+            var authenticFolder = fragments.Length >= 3 &&
+                string.Equals(declaredGenerator, analyzer.Assembly.Name, StringComparison.Ordinal);
+            var contents = File.ReadAllText(source, Encoding.UTF8);
+            var matchingXaml = xamlInputs.Where(x =>
+                contents.Contains(Path.GetFileName(x), StringComparison.OrdinalIgnoreCase) ||
+                relative.Contains(Path.GetFileNameWithoutExtension(x), StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            var xamlSource = matchingXaml.Length == 1
+                ? Path.GetRelativePath(projectDirectory, matchingXaml[0]).Replace('\\', '/')
+                : "UNMAPPED_XAML_INPUT_SET_SHA256:" + xamlFingerprint;
+            var attested = authenticFolder && matchingXaml.Length == 1;
+            evidence.Add(source, new GeneratedSourceProvenance(source, relative,
+                declaredGenerator, analyzerVersion, analyzerHash, Sha256(source),
+                xamlSource, xamlFingerprint, attested));
+            Console.WriteLine("DOC_GENERATED_PROVENANCE " + relative +
+                " generator=" + declaredGenerator + " version=" + analyzerVersion +
+                " sourceHash=" + Sha256(source) + " xaml=" + xamlSource +
+                " attested=" + attested);
+        }
+        Console.WriteLine("DOC_COVERAGE_NATIVE_GENERATED_SOURCES count=" + generated.Length +
+            " provenanceAttested=" + evidence.Values.Count(x => x.Attested));
         return new RealProjectInputs
         {
             AssemblyName = Get("AssemblyName"),
@@ -73,7 +154,8 @@ internal sealed class RealProjectInputs
             Defines = Get("DefineConstants").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
             Sources = sources.Concat(generated).Distinct(StringComparer.OrdinalIgnoreCase)
                 .Order(StringComparer.OrdinalIgnoreCase).ToArray(),
-            References = refs.Order(StringComparer.OrdinalIgnoreCase).ToArray()
+            References = refs.Order(StringComparer.OrdinalIgnoreCase).ToArray(),
+            GeneratedProvenance = evidence
         };
     }
 
