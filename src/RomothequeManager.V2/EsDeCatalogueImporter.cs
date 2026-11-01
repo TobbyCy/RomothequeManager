@@ -55,6 +55,8 @@ public sealed class EsDeImportSession
     /// </summary>
     public sealed class PreparedEsDeRefresh
     {
+        /// <summary>Captures an importer-owned proposal and its exact base-state identity without granting file access.</summary>
+        /// <remarks>The originating session supplies an unexposed authority token; external callers cannot construct a valid proposal.</remarks>
         internal PreparedEsDeRefresh(EsDeImportSession owner, object authority,
             string root, long revision, EsDeCatalogueSnapshot? expectedCurrent,
             EsDeCatalogueSnapshot snapshot)
@@ -67,10 +69,15 @@ public sealed class EsDeImportSession
             Snapshot = snapshot;
         }
 
+        /// <summary>Original selected session; a foreign session must refuse this candidate.</summary>
         internal EsDeImportSession Owner { get; }
+        /// <summary>Unforgeable, session-private identity token validated at commit time.</summary>
         internal object Authority { get; }
+        /// <summary>Original normalized selected root captured before parsing; never used to authorize another root.</summary>
         internal string Root { get; }
+        /// <summary>Accepted-session revision captured before parsing; any intervening import or relocation invalidates this proposal.</summary>
         internal long Revision { get; }
+        /// <summary>Exact accepted snapshot reference at preparation time; prevents overwriting another commit.</summary>
         internal EsDeCatalogueSnapshot? ExpectedCurrent { get; }
 
         /// <summary>Fully parsed candidate; not adopted by the session until commit succeeds.</summary>
