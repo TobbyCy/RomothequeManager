@@ -111,7 +111,7 @@ internal sealed class RealProjectInputs
                 Path.GetRelativePath(projectDirectory, x).Replace('\\', '/') + "|" + Sha256(x)))))).ToLowerInvariant();
         var avaloniaAnalyzers = analyzers.Where(x =>
             Path.GetFileName(x).Equals("Avalonia.Generators.dll", StringComparison.OrdinalIgnoreCase))
-            .Select(x => new { Path = x, Assembly = AssemblyName.GetAssemblyName(x) })
+            .Select(x => new { Path = x, Assembly = System.Reflection.AssemblyName.GetAssemblyName(x) })
             .Where(x => x.Assembly.Name == "Avalonia.Generators").ToArray();
         if (avaloniaAnalyzers.Length != 1)
             throw new InvalidDataException("DOC_GENERATED_AVALONIA_ANALYZER_AMBIGUOUS_OR_MISSING:" +
