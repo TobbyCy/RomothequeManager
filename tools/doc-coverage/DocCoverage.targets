@@ -13,8 +13,8 @@
       <_DocCoverageManifestLines Include="PROPERTY|LangVersion|$(LangVersion)" />
       <_DocCoverageManifestLines Include="PROPERTY|Nullable|$(Nullable)" />
       <_DocCoverageManifestLines Include="PROPERTY|DefineConstants|$([System.String]::Copy('$(DefineConstants)').Replace(';', ','))" />
-      <_DocCoverageManifestLines Include="SOURCE|@(Compile->'%(FullPath)', '%3BSOURCE|')" />
-      <_DocCoverageManifestLines Include="REFERENCE|@(ReferencePathWithRefAssemblies->'%(FullPath)', '%3BREFERENCE|')" />
+      <_DocCoverageManifestLines Include="@(Compile->'SOURCE|%(FullPath)')" />
+      <_DocCoverageManifestLines Include="@(ReferencePathWithRefAssemblies->'REFERENCE|%(FullPath)')" />
     </ItemGroup>
     <Error Condition="'@(Compile)' == '' or '@(ReferencePathWithRefAssemblies)' == ''"
            Text="DOC_COVERAGE_MSBUILD_COMPILE_OR_REFERENCES_EMPTY" />
