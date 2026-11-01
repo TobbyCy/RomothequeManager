@@ -143,6 +143,13 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
+        _importVm = new ImportedCatalogueViewModel(_importedUi);
+        _importVm.PropertyChanged += (_, change) =>
+        {
+            // A running import changes visual progress/commands; presentation only.
+            if (change.PropertyName == nameof(ImportedCatalogueViewModel.IsBusy))
+                Render();
+        };
         _demoProjection = new Lazy<LibraryProjection>(() => LibraryProjection.LoadSynthetic(_state.Catalogue));
         _demoLibraries = new Lazy<LibraryViewState>(() => new LibraryViewState(_libraryProjection));
         SizeChanged += (_, _) =>
@@ -174,6 +181,7 @@ public sealed partial class MainWindow : Window
         var logoBitmap = new Bitmap(logoPath);
         Closed += (_, _) =>
         {
+            _importVm.Dispose(); // cancel outstanding ES-DE import and suppress late callbacks
             StopLegacyMediaOnClose(); // detach and Dispose thumbnails before close
             logoBitmap.Dispose();
         };
@@ -383,8 +391,8 @@ public sealed partial class MainWindow : Window
 
     private void Render()
     {
-        if (_refreshImportButton is not null) _refreshImportButton.IsEnabled = _importedUi.IsImported && !_importBusy;
-        if (_viewImportButton is not null) _viewImportButton.IsEnabled = _importedUi.HasImportedCatalogue && !_importBusy;
+        if (_refreshImportButton is not null) _refreshImportButton.IsEnabled = _importVm.CanRefresh;
+        if (_viewImportButton is not null) _viewImportButton.IsEnabled = _importedUi.HasImportedCatalogue && !_importVm.IsBusy;
         if (_refreshImportHint is not null) _refreshImportHint.IsVisible = _refreshImportButton?.IsEnabled != true;
         if (_viewImportHint is not null) _viewImportHint.IsVisible = _viewImportButton?.IsEnabled != true;
         UpdateSidebarStyles();
@@ -400,11 +408,17 @@ public sealed partial class MainWindow : Window
             " — Démonstration" : "");
         if (_importedUi.ErrorMessage is not null)
             _page.Children.Add(Notice("Import non effectué", _importedUi.ErrorMessage, warning: true));
-        if (_importBusy)
+        if (_importVm.IsBusy)
         {
             _page.Children.Add(Notice("Import ES-DE en cours",
                 "Lecture des métadonnées sélectionnées ; pas de scan global ni d'écriture."));
             _page.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 5 });
+            _page.Children.Add(new Button
+            {
+                Content = "Annuler l'import ES-DE",
+                Command = _importVm.CancelCommand,
+                MinHeight = 40
+            });
         }
         if (_importedUi.IsImported)
         {
