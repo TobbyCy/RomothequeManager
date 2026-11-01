@@ -100,85 +100,190 @@ internal static class Program
         }
     }
 
-    private static Measurement Measure(string sha, IEnumerable<(string Name, string Source)> sources)
+    // Same predicate is used by native Windows CI and every red/green canary.
+    private static (bool Pass, Api[] Added, Api[] Removed, Api[] LostDocs)
+        EvaluateGate(Measurement baseline, Measurement head)
     {
-        var options = new CSharpParseOptions(LanguageVersion.Preview, DocumentationMode.Diagnose);
-        var trees = sources.OrderBy(x => x.Name, StringComparer.Ordinal)
-            .Select(x => CSharpSyntaxTree.ParseText(x.Source, options, x.Name)).ToArray();
-        if (trees.Length == 0) throw new InvalidOperationException("ELIGIBLE_SOURCE_SET_EMPTY");
-        // Production application is built natively before this analysis. Analyzing
-        // declarations with Roslyn, rather than counting /// or CS1591 diagnostics.
-        var refs = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? "")
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Where(File.Exists).Select(p => MetadataReference.CreateFromFile(p));
-        var compilation = CSharpCompilation.Create("RomothequeManager.V2",
-            trees, refs, new CSharpCompilationOptions(OutputKind.WindowsApplication,
-                nullableContextOptions: NullableContextOptions.Enable));
+        var b = baseline.Symbols.ToDictionary(x => x.Id, StringComparer.Ordinal);
+        var h = head.Symbols.ToDictionary(x => x.Id, StringComparer.Ordinal);
+        var added = head.Symbols.Where(x => !b.ContainsKey(x.Id)).ToArray();
+        var removed = baseline.Symbols.Where(x => !h.ContainsKey(x.Id)).ToArray();
+        var lostDocs = head.Symbols.Where(x => b.TryGetValue(x.Id, out var old)
+            && old.Documented && !x.Documented).ToArray();
+        bool pass = baseline.Eligible > 0 && head.Eligible > 0 &&
+            10L * head.Documented >= 9L * head.Eligible &&
+            added.All(x => x.Documented) &&
+            (long)head.Documented * baseline.Eligible >=
+                (long)baseline.Documented * head.Eligible &&
+            removed.Length == 0 && lostDocs.Length == 0;
+        return (pass, added, removed, lostDocs);
+    }
+
+    private static Measurement Measure(string sha, CSharpCompilation compilation, string root)
+    {
+        var errors = compilation.GetDiagnostics()
+            .Where(x => x.Severity == DiagnosticSeverity.Error).Take(12).ToArray();
+        if (errors.Length != 0)
+            throw new InvalidDataException("REAL_COMPILATION_DIAGNOSTICS:" +
+                string.Join("|", errors.Select(x => x.ToString())));
         var eligible = new Dictionary<string, Api>(StringComparer.Ordinal);
         var excluded = new Dictionary<string, Api>(StringComparer.Ordinal);
-        foreach (var tree in trees)
+        foreach (var tree in compilation.SyntaxTrees)
         {
             var model = compilation.GetSemanticModel(tree, ignoreAccessibility: true);
             foreach (var node in tree.GetRoot().DescendantNodesAndSelf())
             {
                 if (node is not (BaseTypeDeclarationSyntax or DelegateDeclarationSyntax
                     or BaseMethodDeclarationSyntax or BasePropertyDeclarationSyntax
-                    or EventDeclarationSyntax or VariableDeclaratorSyntax or EnumMemberDeclarationSyntax)) continue;
+                    or EventDeclarationSyntax or VariableDeclaratorSyntax or EnumMemberDeclarationSyntax))
+                    continue;
                 var symbol = model.GetDeclaredSymbol(node);
                 if (symbol is null || symbol.IsImplicitlyDeclared || symbol is not
-                    (INamedTypeSymbol or IMethodSymbol or IPropertySymbol or IEventSymbol or IFieldSymbol)) continue;
+                    (INamedTypeSymbol or IMethodSymbol or IPropertySymbol or IEventSymbol or IFieldSymbol))
+                    continue;
                 if (symbol is IMethodSymbol m && m.MethodKind is not
-                    (MethodKind.Ordinary or MethodKind.Constructor or MethodKind.UserDefinedOperator or MethodKind.Conversion))
+                    (MethodKind.Ordinary or MethodKind.Constructor or MethodKind.UserDefinedOperator
+                     or MethodKind.Conversion or MethodKind.ExplicitInterfaceImplementation))
                     continue;
                 var id = symbol.GetDocumentationCommentId();
                 if (string.IsNullOrWhiteSpace(id)) continue;
-                var file = tree.FilePath.Replace('\\', '/');
+                var raw = tree.FilePath.Replace('\\', '/');
+                var marker = raw.LastIndexOf("src/RomothequeManager.V2/", StringComparison.OrdinalIgnoreCase);
+                var file = marker >= 0 ? raw[marker..] : raw;
                 int line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                 bool publicApi = Exposed(symbol);
-                bool internalContract = !publicApi && Critical.Contains(Path.GetFileName(file)) && ContractMember(symbol);
-                bool included = publicApi || internalContract;
-                var reason = included ? XmlStatus(symbol) : "EXCLUDED_NONCONTRACT_INTERNAL_OR_PRIVATE";
+                bool critical = !publicApi && ContractMember(symbol) &&
+                    (Critical.Contains(Path.GetFileName(file)) || CriticalBySemanticType(symbol));
+                bool testHarness = IsHarness(file) && !publicApi && !critical;
+                bool included = (publicApi || critical) && !testHarness;
+                var reason = included ? XmlStatus(symbol, compilation, new HashSet<string>(StringComparer.Ordinal)) :
+                    testHarness ? "EXCLUDED_COMPILED_TEST_HARNESS_SYMBOL_NOT_CONTRACT" :
+                    "EXCLUDED_NONCONTRACT_INTERNAL_OR_PRIVATE";
                 var value = new Api(id, symbol.Kind.ToString(), file, line,
-                    included && reason == "DOCUMENTED", reason, internalContract);
+                    included && reason == "DOCUMENTED", reason, critical);
                 if (included) eligible.TryAdd(id, value);
                 else excluded.TryAdd(id, value);
             }
         }
-        var members = eligible.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToList();
-        return new Measurement(sha, members.Count, members.Count(x => x.Documented), members,
+        var list = eligible.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToList();
+        return new Measurement(sha, list.Count, list.Count(x => x.Documented), list,
             excluded.Values.OrderBy(x => x.Id, StringComparer.Ordinal).ToList());
+    }
+
+    // Existing critical contracts stay in the denominator, but NEW internal
+    // business services are discovered by their declared symbol/role, not path.
+    private static bool CriticalBySemanticType(ISymbol symbol)
+    {
+        for (ISymbol? cursor = symbol; cursor is not null &&
+            cursor is not INamespaceSymbol; cursor = cursor.ContainingSymbol)
+        {
+            if (cursor is not INamedTypeSymbol type || type.DeclaredAccessibility ==
+                Accessibility.Private) continue;
+            var name = type.Name;
+            if (new[] { "Service", "Session", "Scanner", "Reader", "Store",
+                "Importer", "Projection", "Permission", "Grant", "Budget",
+                "Validator", "Authority", "Coordinator", "Serializer",
+                "Fingerprint", "Gateway", "Repository" }
+                .Any(term => name.Contains(term, StringComparison.OrdinalIgnoreCase)))
+                return true;
+            var ns = type.ContainingNamespace?.ToDisplayString() ?? "";
+            if (ns.Contains(".Inventory.", StringComparison.Ordinal) &&
+                new[] { "Scope", "Snapshot", "Mapping", "Capability", "Decision",
+                    "Policy", "Result" }.Any(term => name.Contains(term, StringComparison.OrdinalIgnoreCase)))
+                return true;
+        }
+        return false;
     }
 
     private static bool Exposed(ISymbol symbol)
     {
         for (ISymbol? x = symbol; x is not null && x is not INamespaceSymbol; x = x.ContainingSymbol)
-            if (x.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal))
+            if (x.DeclaredAccessibility is not
+                (Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal))
                 return false;
         return true;
     }
+
     private static bool ContractMember(ISymbol symbol)
     {
         for (ISymbol? x = symbol; x is not null && x is not INamespaceSymbol; x = x.ContainingSymbol)
             if (x.DeclaredAccessibility == Accessibility.Private) return false;
         return true;
     }
-    private static string XmlStatus(ISymbol symbol)
+
+    private static ISymbol? FindInheritanceTarget(ISymbol symbol)
     {
+        ISymbol? direct = symbol switch
+        {
+            IMethodSymbol m => (ISymbol?)m.OverriddenMethod ?? m.ExplicitInterfaceImplementations.FirstOrDefault(),
+            IPropertySymbol p => (ISymbol?)p.OverriddenProperty ?? p.ExplicitInterfaceImplementations.FirstOrDefault(),
+            IEventSymbol e => (ISymbol?)e.OverriddenEvent ?? e.ExplicitInterfaceImplementations.FirstOrDefault(),
+            INamedTypeSymbol t => t.BaseType ?? t.Interfaces.FirstOrDefault(),
+            _ => null
+        };
+        if (direct is not null) return direct;
+        var container = symbol.ContainingType;
+        if (container is null) return null;
+        foreach (var face in container.AllInterfaces)
+        foreach (var candidate in face.GetMembers())
+        {
+            var implementation = container.FindImplementationForInterfaceMember(candidate);
+            if (implementation is not null &&
+                SymbolEqualityComparer.Default.Equals(implementation.OriginalDefinition,
+                    symbol.OriginalDefinition))
+                return candidate;
+        }
+        return null;
+    }
+
+    private static string XmlStatus(ISymbol symbol, CSharpCompilation compilation,
+        HashSet<string> visited)
+    {
+        var id = symbol.GetDocumentationCommentId() ?? symbol.ToDisplayString();
+        if (!visited.Add(id)) return "INHERITDOC_CYCLE";
         var xml = symbol.GetDocumentationCommentXml(expandIncludes: false);
         if (string.IsNullOrWhiteSpace(xml)) return "MISSING_XML";
         try
         {
             var doc = XDocument.Parse(xml);
-            // Conservative until an override/interface target is independently resolved.
-            if (doc.Descendants("inheritdoc").Any()) return "UNRESOLVED_INHERITDOC";
-            var summary = string.Join(" ", doc.Descendants("summary").Select(x => x.Value.Trim()));
-            if (summary.Length < 12) return "MISSING_OR_TRIVIAL_SUMMARY";
+            var summaries = doc.Descendants("summary").ToArray();
+            if (summaries.Length > 1) return "DUPLICATE_XML_SUMMARY";
+            var inheritance = doc.Descendants("inheritdoc").ToArray();
+            if (inheritance.Length > 1) return "DUPLICATE_INHERITDOC";
+            if (inheritance.Length == 1)
+            {
+                var cref = inheritance[0].Attribute("cref")?.Value;
+                ISymbol? target = !string.IsNullOrWhiteSpace(cref) ?
+                    DocumentationCommentId.GetFirstSymbolForDeclarationId(cref!, compilation) ??
+                    DocumentationCommentId.GetFirstSymbolForReferenceId(cref!, compilation) :
+                    FindInheritanceTarget(symbol);
+                if (target is null || SymbolEqualityComparer.Default.Equals(target, symbol))
+                    return "UNRESOLVED_INHERITDOC";
+                var status = XmlStatus(target, compilation, visited);
+                if (status != "DOCUMENTED") return "INHERITDOC_TARGET_" + status;
+                if (summaries.Length == 0) return "DOCUMENTED";
+            }
+            if (summaries.Length != 1) return "MISSING_XML_SUMMARY";
+            var summary = System.Text.RegularExpressions.Regex.Replace(summaries[0].Value, @"\s+", " ").Trim();
+            if (summary.Length < 12 ||
+                summary.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Distinct(StringComparer.OrdinalIgnoreCase).Count() < 3)
+                return "MISSING_OR_TRIVIAL_SUMMARY";
             if (System.Text.RegularExpressions.Regex.IsMatch(summary,
-                @"(?i)\b(todo|tbd|placeholder|autogenerated)\b")) return "PLACEHOLDER_SUMMARY";
+                @"(?i)\b(todo|tbd|placeholder|autogenerated|to be documented|lorem ipsum)\b"))
+                return "PLACEHOLDER_SUMMARY";
+            var badParam = doc.Descendants("param").Any(p =>
+                string.IsNullOrWhiteSpace(p.Attribute("name")?.Value) ||
+                string.IsNullOrWhiteSpace(p.Value));
+            if (badParam) return "MALFORMED_PARAM_DOC";
             return "DOCUMENTED";
         }
         catch (System.Xml.XmlException) { return "INVALID_XML"; }
     }
+
+    // Only dedicated, compiled test harness types are eligible for a per-symbol
+    // exclusion; a role-qualified internal service remains mandatory even if
+    // introduced in a file whose name contains the word Harness.
     private static bool IsHarness(string path)
     {
         var name = Path.GetFileName(path);
@@ -186,18 +291,7 @@ internal static class Program
             || name.Contains("Capture", StringComparison.OrdinalIgnoreCase)
             || name.EndsWith("LegacyMediaCi.cs", StringComparison.OrdinalIgnoreCase);
     }
-    private static IEnumerable<(string Name, string Source)> LocalFiles(string root) =>
-        Directory.EnumerateFiles(Path.Combine(root, "src", "RomothequeManager.V2"), "*.cs", SearchOption.AllDirectories)
-            .Where(p => !p.Replace('\\', '/').Split('/').Any(s => s is "obj" or "bin") && !IsHarness(p))
-            .Select(p => (Path.GetRelativePath(root, p).Replace('\\', '/'), File.ReadAllText(p, Encoding.UTF8)));
-    private static IEnumerable<(string Name, string Source)> GitFiles(string root, string sha)
-    {
-        foreach (var path in Git(root, "ls-tree", "-r", "--name-only", sha)
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Where(x => x.StartsWith("src/RomothequeManager.V2/", StringComparison.Ordinal)
-                && x.EndsWith(".cs", StringComparison.Ordinal) && !IsHarness(x)))
-            yield return (path, Git(root, "show", sha + ":" + path));
-    }
+
     private static string Git(string root, params string[] args)
     {
         var info = new ProcessStartInfo("git") { WorkingDirectory = root,
