@@ -54,6 +54,7 @@ internal sealed class MiAReadGrant
     internal MiABudget Budget { get; }
 /// <summary>Invalidate future reads under this temporary MEDIAS grant immediately.</summary>
 /// <summary>Revoke a session grant; an active scan must revalidate its permission before each further read.</summary>
+    /// <summary>Revokes the one-shot MEDIAS fixture grant so it cannot be reused for another scan or root.</summary>
     internal void Revoke() => Interlocked.Exchange(ref _revoked, 1);
     // Exclusive per-grant claim; Valid intentionally ignores _claimed so an
     // already-running native read remains subject to revoke/expiry checks.
