@@ -116,8 +116,9 @@ public sealed class ImportedCatalogueMvvmBoundaryTests
         using var vm = new ImportedCatalogueViewModel(state, fake);
         Assert.IsTrue(await vm.ImportConfirmedAsync(_root, explicitlyConfirmed: true));
         var accepted = vm.Current!;
-        var pendingRefresh = new TaskCompletionSource<EsDeCatalogueSnapshot>(
+        var pendingRefresh = new TaskCompletionSource<EsDeImportSession.PreparedEsDeRefresh>(
             TaskCreationOptions.RunContinuationsAsynchronously);
+        var staged = state.Session!.PrepareRefresh();
         fake.OnRefresh = (_, _) => pendingRefresh.Task;
 
         var pending = vm.RefreshAsync();
@@ -126,7 +127,7 @@ public sealed class ImportedCatalogueMvvmBoundaryTests
         Assert.IsTrue(vm.CancelCommand.CanExecute(null));
         vm.CancelCommand.Execute(null);
         Assert.AreEqual("CancellationRequested", vm.ImportStatus);
-        pendingRefresh.SetResult(accepted with { ContentFingerprint = "late-unadopted" });
+        pendingRefresh.SetResult(staged); // same real session, still uncommitted
         Assert.IsFalse(await pending);
         Assert.AreSame(accepted, vm.Current, "MVVM01_CANCEL_CURRENT_UNCHANGED");
         Assert.AreEqual("Cancelled", vm.ImportStatus);
@@ -170,7 +171,7 @@ public sealed class ImportedCatalogueMvvmBoundaryTests
         vm.Navigate(POCView.Collection);
         vm.NextPage();
         var page = state.PageIndex;
-        fake.OnRefresh = (_, _) => Task.FromException<EsDeCatalogueSnapshot>(
+        fake.OnRefresh = (_, _) => Task.FromException<EsDeImportSession.PreparedEsDeRefresh>(
             new IOException("PRIVATE_MARKER_PATH_CANNOT_LEAK"));
         Assert.IsFalse(await vm.RefreshAsync());
         Assert.AreSame(accepted, vm.Current);
@@ -200,7 +201,7 @@ public sealed class ImportedCatalogueMvvmBoundaryTests
         private readonly EsDeImportApplicationService _real = new();
         public int PrepareCalls { get; private set; }
         public Func<string, CancellationToken, Task<EsDeImportSession>>? OnPrepare { get; set; }
-        public Func<EsDeImportSession, CancellationToken, Task<EsDeCatalogueSnapshot>>? OnRefresh { get; set; }
+        public Func<EsDeImportSession, CancellationToken, Task<EsDeImportSession.PreparedEsDeRefresh>>? OnRefresh { get; set; }
 
         public Task<EsDeImportSession> PrepareAsync(string root, CancellationToken token)
         {
@@ -208,7 +209,8 @@ public sealed class ImportedCatalogueMvvmBoundaryTests
             return OnPrepare is null ? _real.PrepareAsync(root, token) : OnPrepare(root, token);
         }
 
-        public Task<EsDeCatalogueSnapshot> RefreshAsync(EsDeImportSession session, CancellationToken token) =>
+        public Task<EsDeImportSession.PreparedEsDeRefresh> RefreshAsync(
+            EsDeImportSession session, CancellationToken token) =>
             OnRefresh is null ? _real.RefreshAsync(session, token) : OnRefresh(session, token);
     }
 }
