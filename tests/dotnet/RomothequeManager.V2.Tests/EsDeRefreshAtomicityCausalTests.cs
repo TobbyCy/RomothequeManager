@@ -106,7 +106,7 @@ public sealed class EsDeRefreshAtomicityCausalTests
         bAfter?.Dispose();
         Console.WriteLine($"ESDE_CAUSAL_A_B_CANCEL stateA={ReferenceEquals(state.Snapshot, acceptedA)} " +
             $"sessionA={ReferenceEquals(session.Current, acceptedA)} " +
-            $"sessionB={coverB.RelativePath.Contains("B.png", StringComparison.Ordinal)} " +
+            $"sessionContainsB={session.Current!.Games[0].Media.Any(m => m.RelativePath == coverB.RelativePath)} " +
             $"openA={canOpenA} openB={canOpenB} status={vm.ImportStatus}");
 
         Assert.AreSame(acceptedA, state.Snapshot, "Cancelled refresh must preserve UI A");
