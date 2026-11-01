@@ -99,8 +99,7 @@ public sealed class EsDeRefreshAtomicityCausalTests
         }
         Assert.IsFalse(await job, "The cancelled attempt must not be adopted");
 
-        var sessionAfter = session.Current!;
-        var coverB = sessionAfter.Games[0].Media.Single(x => x.Kind == "image");
+        var coverB = service.LastRefreshedSnapshot!.Games[0].Media.Single(x => x.Kind == "image");
         var canOpenA = state.TryOpenMedia(coverA, out var aAfter);
         aAfter?.Dispose();
         var canOpenB = state.TryOpenMedia(coverB, out var bAfter);
@@ -140,6 +139,8 @@ public sealed class EsDeRefreshAtomicityCausalTests
         private readonly TaskCompletionSource<bool> _release =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        public EsDeCatalogueSnapshot? LastRefreshedSnapshot { get; private set; }
+
         public TaskCompletionSource<bool> AfterBackendRefresh { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -151,6 +152,7 @@ public sealed class EsDeRefreshAtomicityCausalTests
         {
             // Real backend, not a fake DTO. Before the fix, this mutates Current.
             var result = await _real.RefreshAsync(session, token);
+            LastRefreshedSnapshot = result;
             AfterBackendRefresh.TrySetResult(true);
             await _release.Task.WaitAsync(TimeSpan.FromSeconds(45));
             return result;
