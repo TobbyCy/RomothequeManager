@@ -176,7 +176,7 @@ internal static class Program
     private static bool ContractMember(ISymbol symbol)
     {
         for (ISymbol? x = symbol; x is not null && x is not INamespaceSymbol; x = x.ContainingSymbol)
-            if (x.DeclaredAccessibility is Accessibility.Private or Accessibility.File) return false;
+            if (x.DeclaredAccessibility == Accessibility.Private) return false;
         return true;
     }
 
