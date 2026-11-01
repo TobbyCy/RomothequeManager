@@ -116,6 +116,7 @@ public sealed class InventoryApplicationService : IInventoryApplicationService
         _syntheticPermission = syntheticPermission ??
             throw new ArgumentNullException(nameof(syntheticPermission));
 
+    /// <summary>Notifies subscribers when the selected fixture or inventory attempt changes; consumers must unsubscribe at Dispose.</summary>
     public event EventHandler<InventoryApplicationState>? StateChanged;
 
     /// <summary>Thread-safe immutable snapshot of the current application state including any last attempt.</summary>
