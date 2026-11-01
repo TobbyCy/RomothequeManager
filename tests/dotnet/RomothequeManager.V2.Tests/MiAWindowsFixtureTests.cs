@@ -138,7 +138,7 @@ public sealed class MiAWindowsFixtureTests
         bool hardlinkCreated = CreateHardLinkW(hardlink, secret, IntPtr.Zero);
         if (hardlinkCreated)
         {
-            var result = s.Scan(g);
+            var result = s.Scan(Grant(s));
             Assert.AreNotEqual(InventoryScanStatus.Complete, result.ScanStatus);
             Assert.AreSame(good, s.Current);
             File.Delete(hardlink);
@@ -152,7 +152,7 @@ public sealed class MiAWindowsFixtureTests
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         if (symlinkMade)
         {
-            var result = s.Scan(g);
+            var result = s.Scan(Grant(s));
             Assert.AreNotEqual(InventoryScanStatus.Complete, result.ScanStatus);
             File.Delete(symlink);
             Console.WriteLine("MI_A02_FILE_REPARSE_CREATED_AND_REFUSED");
@@ -161,7 +161,7 @@ public sealed class MiAWindowsFixtureTests
 
         bool parentAttempted = false, parentSwitched = false;
         var parent = Path.GetDirectoryName(inFile)!;
-        var duringParent = s.Scan(g, beforeChildOpenForTest: rel =>
+        var duringParent = s.Scan(Grant(s), beforeChildOpenForTest: rel =>
         {
             if (rel != "gb/one.png" || parentAttempted) return;
             parentAttempted = true;
@@ -186,7 +186,7 @@ public sealed class MiAWindowsFixtureTests
         }
         if (!File.Exists(inFile)) Put("gb/one.png");
         bool finalAttempted = false, finalSwitched = false;
-        var final = s.Scan(g, beforeChildOpenForTest: rel =>
+        var final = s.Scan(Grant(s), beforeChildOpenForTest: rel =>
         {
             if (rel != "gb/one.png" || finalAttempted) return;
             finalAttempted = true;
@@ -256,7 +256,7 @@ public sealed class MiAWindowsFixtureTests
         Assert.AreEqual(InventoryScanStatus.Complete, last.ScanStatus);
         Put("gb/second.png", new byte[8192]);
         using var cts = new CancellationTokenSource();
-        var result = s.Scan(g, cts.Token, afterHeaderReadForTest: _ => cts.Cancel());
+        var result = s.Scan(Grant(s), cts.Token, afterHeaderReadForTest: _ => cts.Cancel());
         Assert.AreEqual(InventoryScanStatus.Partial, result.ScanStatus);
         Assert.AreSame(last, s.Current);
         Assert.AreSame(result, s.LastAttempt);
@@ -271,14 +271,19 @@ public sealed class MiAWindowsFixtureTests
         var g = Grant(s);
         var original = s.Scan(g);
         Assert.AreEqual(InventoryScanStatus.Complete, original.ScanStatus);
+        // Issue fresh consent against the ORIGINAL root before the replacement.
+        var replacementGrant = Grant(s);
         Directory.Move(_root, _root + "-old");
         Directory.CreateDirectory(_root);
         Put("gb/new.png");
-        var replaced = s.Scan(g);
+        var replaced = s.Scan(replacementGrant);
         Assert.AreNotEqual(InventoryScanStatus.Complete, replaced.ScanStatus);
         Assert.AreSame(original, s.Current);
         Directory.Delete(_root, true);
-        var offline = s.Scan(g);
+        Directory.Move(_root + "-old", _root);
+        var offlineGrant = Grant(s); // attest the genuine original before disconnect
+        Directory.Move(_root, _root + "-offline");
+        var offline = s.Scan(offlineGrant);
         Assert.AreNotEqual(InventoryScanStatus.Complete, offline.ScanStatus);
         Assert.AreSame(original, s.Current);
         Console.WriteLine("MI_A05_PASS root_identity_no_rebind_simulated_offline");
@@ -351,13 +356,13 @@ public sealed class MiAWindowsFixtureTests
             Assert.AreSame(cancelledB, s.LastAttempt);
 
             // Empty B is truly empty only once a fresh, consented Complete is observed.
-            var completeB = s.Scan(grantB);
+            var completeB = s.Scan(Grant(s));
             Assert.AreEqual(InventoryScanStatus.Complete, completeB.ScanStatus);
             Assert.AreEqual(0, completeB.ObservedFileCount);
             Assert.AreEqual(0, completeB.TotalFileCount);
             Assert.AreNotEqual(refA, completeB.MediaRootRef);
             Assert.AreSame(completeB, s.Current);
-            var cancelledAgainB = s.Scan(grantB, cancellation.Token);
+            var cancelledAgainB = s.Scan(Grant(s), cancellation.Token);
             Assert.AreEqual(InventoryScanStatus.Partial, cancelledAgainB.ScanStatus);
             Assert.AreSame(completeB, s.Current,
                 "Cancel preserves CurrentComplete only within the same selected root.");
@@ -389,6 +394,8 @@ public sealed class MiAWindowsFixtureTests
         var oldGrant = Grant(s);
         var oldComplete = s.Scan(oldGrant);
         Assert.AreEqual(InventoryScanStatus.Complete, oldComplete.ScanStatus);
+        // Another explicit consent is required for this second A operation.
+        var inFlightGrant = Grant(s);
         var fixtureB = Path.Combine(Path.GetTempPath(),
             "rm-mia-fixture-" + Guid.NewGuid().ToString("N"));
         var rootB = Path.Combine(fixtureB, "MEDIAS");
@@ -396,7 +403,7 @@ public sealed class MiAWindowsFixtureTests
         try
         {
             bool switched = false;
-            var oldAttempt = s.Scan(oldGrant, beforeChildOpenForTest: _ =>
+            var oldAttempt = s.Scan(inFlightGrant, beforeChildOpenForTest: _ =>
             {
                 if (switched) return;
                 switched = true;

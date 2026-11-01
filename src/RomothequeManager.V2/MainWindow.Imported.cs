@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 
 namespace RomothequeManager.V2;
 
@@ -15,6 +16,16 @@ public sealed partial class MainWindow
 {
     private readonly ImportedCatalogueUiState _importedUi = new();
     private readonly List<Bitmap> _coverImages = new();
+    // #141: one worker and one retained-bitmap budget for BOTH legacy ES-DE paths.
+    private readonly SemaphoreSlim _legacyMediaSlot = new(1, 1);
+    private CancellationTokenSource _legacyMediaCancel = new();
+    private int _legacyMediaGeneration;
+    private int _legacyMediaPending;
+    private long _legacyMediaRetainedBytes;
+    private bool _legacyMediaClosed;
+    private int _legacyNativeDecoderEntered;
+    private int _legacyActiveDecodes;
+    private int _legacyPeakDecodes;
     private StackPanel? _importedList;
     // Ignore callbacks from controls detached during an Avalonia visual-tree rebuild.
     private ComboBox? _liveImportedSystemSelector;
@@ -167,9 +178,142 @@ public sealed partial class MainWindow
 
     private void ReleaseCoverImages()
     {
-        // Called after removing the previous visual tree, not during drawing.
+        // Called AFTER detaching the previous visual tree. All queued results
+        // carry a generation and are discarded, not attached, if they arrive late.
+        _legacyMediaGeneration++;
+        _legacyMediaCancel.Cancel();
+        _legacyMediaCancel.Dispose();
+        _legacyMediaCancel = new CancellationTokenSource();
         foreach (var cover in _coverImages) cover.Dispose();
         _coverImages.Clear();
+        _legacyMediaRetainedBytes = 0;
+        _legacyMediaPending = 0;
+    }
+
+    private void StopLegacyMediaOnClose()
+    {
+        _legacyMediaClosed = true;
+        _page.Children.Clear(); // remove Image.Source before disposing bitmaps
+        ReleaseCoverImages();
+        _legacyMediaCancel.Dispose();
+    }
+
+    // CI-native harness reads these diagnostics only; they do NOT grant access.
+    internal (long RetainedBytes, int Pending, int NativeDecoderEntered, int PeakActive,
+        int Generation) LegacyMediaCounters() => (_legacyMediaRetainedBytes,
+        _legacyMediaPending, Volatile.Read(ref _legacyNativeDecoderEntered),
+        Volatile.Read(ref _legacyPeakDecodes), _legacyMediaGeneration);
+
+    private void ScheduleLegacyImage(IReadOnlyList<EsDeMedia> candidates,
+        Image image, TextBlock message, LegacyImageSlot slot)
+    {
+        if (_legacyMediaClosed || candidates.Count == 0) return;
+        if (_legacyMediaPending >= 50)
+        {
+            message.Text = "Aperçu différé : limite de la page atteinte";
+            return;
+        }
+        _legacyMediaPending++;
+        var generation = _legacyMediaGeneration;
+        var token = _legacyMediaCancel.Token;
+        _ = LoadLegacyImageAsync(candidates, image, message, slot, generation, token);
+    }
+
+    private async Task LoadLegacyImageAsync(IReadOnlyList<EsDeMedia> candidates,
+        Image image, TextBlock message, LegacyImageSlot slot,
+        int generation, CancellationToken token)
+    {
+        var acquired = false;
+        var lastReason = "MEDIA_NOT_AUTHORIZED";
+        try
+        {
+            // The semaphore covers opening, preflight, native decoding and the
+            // adoption/Dispose decision. At most ONE source stream is live.
+            await _legacyMediaSlot.WaitAsync(token);
+            acquired = true;
+            foreach (var candidate in candidates)
+            {
+                token.ThrowIfCancellationRequested();
+                Stream? stream = null;
+                // The already-selected ES-DE snapshot membership check is the
+                // sole historical opener; no path fallback, no Preview grant.
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (!_legacyMediaClosed && generation == _legacyMediaGeneration &&
+                        !token.IsCancellationRequested && candidate.Exists)
+                        _importedUi.TryOpenMedia(candidate, out stream);
+                }, DispatcherPriority.Background);
+                if (stream is null) continue;
+                LegacyDecodeResult result;
+                using (stream)
+                {
+                    result = await Task.Run(() =>
+                    {
+                        var active = Interlocked.Increment(ref _legacyActiveDecodes);
+                        if (active > Volatile.Read(ref _legacyPeakDecodes))
+                            Interlocked.Exchange(ref _legacyPeakDecodes, active);
+                        try
+                        {
+                            return LegacyImportedImageBudget.Decode(stream, slot, token,
+                                () => Interlocked.Increment(ref _legacyNativeDecoderEntered));
+                        }
+                        finally { Interlocked.Decrement(ref _legacyActiveDecodes); }
+                    });
+                }
+                lastReason = result.Reason;
+                if (result.Bitmap is null) continue;
+                bool attached = false;
+                try
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        if (_legacyMediaClosed || token.IsCancellationRequested ||
+                            generation != _legacyMediaGeneration ||
+                            result.RetainedBytes > LegacyImportedImageBudget.MaxViewBytes -
+                                _legacyMediaRetainedBytes)
+                        {
+                            lastReason = "MEDIA_BUDGET_EXHAUSTED_OR_STALE";
+                            return;
+                        }
+                        _legacyMediaRetainedBytes += result.RetainedBytes;
+                        _coverImages.Add(result.Bitmap);
+                        image.Source = result.Bitmap;
+                        image.IsVisible = true;
+                        message.IsVisible = false;
+                        attached = true;
+                    }, DispatcherPriority.Background);
+                }
+                finally
+                {
+                    if (!attached) result.Bitmap.Dispose();
+                }
+                if (attached) return;
+            }
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (generation == _legacyMediaGeneration && !_legacyMediaClosed)
+                    message.Text = "Aperçu non disponible · lecture limitée (" + lastReason + ")";
+            }, DispatcherPriority.Background);
+        }
+        catch (OperationCanceledException) { /* old view deliberately discarded */ }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or
+            ArgumentException or ObjectDisposedException or NotSupportedException)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (generation == _legacyMediaGeneration && !_legacyMediaClosed)
+                    message.Text = "Aperçu indisponible · état à vérifier";
+            }, DispatcherPriority.Background);
+        }
+        finally
+        {
+            if (acquired) _legacyMediaSlot.Release();
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (generation == _legacyMediaGeneration)
+                    _legacyMediaPending = Math.Max(0, _legacyMediaPending - 1);
+            }, DispatcherPriority.Background);
+        }
     }
 
 
@@ -194,11 +338,12 @@ public sealed partial class MainWindow
             g.RomRelativePath.EndsWith("B.fixture", StringComparison.OrdinalIgnoreCase));
         var gameC = original.Games.Single(g =>
             g.RomRelativePath.EndsWith("C.fixture", StringComparison.OrdinalIgnoreCase));
-        if (CoverFor(gameA, 48, 64) is not Image ||
-            CoverFor(gameB, 48, 64) is not Image ||
-            CoverFor(gameC, 48, 64) is not TextBlock intentionallyCorrupt ||
-            !string.Equals(intentionallyCorrupt.Text, "Jaquette illisible / miniature indisponible",
-                StringComparison.Ordinal))
+        // Async guarded covers begin as metadata-preserving placeholders.
+        // LM-03 native fixture proof, not this synchronous smoke, must assert
+        // eventual decoded Bitmap and corrupt fallback after dispatcher work.
+        if (CoverFor(gameA, 48, 64) is not StackPanel ||
+            CoverFor(gameB, 48, 64) is not StackPanel ||
+            CoverFor(gameC, 48, 64) is not StackPanel)
             return false;
         Render();
         var dashboardText = SmokeVisibleTexts();
@@ -686,32 +831,15 @@ public sealed partial class MainWindow
             group.Children.Add(Text("Référencé, mais introuvable lors de l'import", 12));
             return Panel(group);
         }
-        if (!_importedUi.TryOpenMedia(media, out var stream))
+        var image = new Image
         {
-            group.Children.Add(Text("Fichier indisponible à la lecture · état actuel inconnu", 12));
-            return Panel(group);
-        }
-        try
-        {
-            using (stream)
-            {
-                var bitmap = new Bitmap(stream!);
-                _coverImages.Add(bitmap);
-                group.Children.Add(new Image
-                {
-                    Source = bitmap, Width = 145,
-                    Height = media.Kind == "marquee" ? 84 : 178,
-                    Stretch = Stretch.Uniform
-                });
-                group.Children.Add(Text("Décodé depuis un fichier local déclaré", 11));
-            }
-        }
-        catch (Exception error) when (error is IOException or ArgumentException or
-            InvalidDataException or InvalidOperationException or NotSupportedException or
-            System.Runtime.InteropServices.COMException)
-        {
-            group.Children.Add(Text("Fichier média illisible · à vérifier", 12));
-        }
+            Width = 145, Height = media.Kind == "marquee" ? 84 : 178,
+            Stretch = Stretch.Uniform, IsVisible = false
+        };
+        var placeholder = Text("Aperçu en attente · lecture bornée", 12);
+        group.Children.Add(image);
+        group.Children.Add(placeholder);
+        ScheduleLegacyImage([media], image, placeholder, LegacyImageSlot.Gallery);
         return Panel(group);
     }
 
@@ -719,34 +847,21 @@ public sealed partial class MainWindow
     {
         var candidates = ImportedCatalogueUiState.CoverCandidates(game);
         if (candidates.Count == 0) return Text("Jaquette non renseignée", 13);
-        var undecodable = false;
-        foreach (var media in candidates)
+        // Metadata and control tree are painted immediately, rather than
+        // decoding up to 50 bitmaps synchronously inside FillImportedResults.
+        var panel = new StackPanel { Spacing = 2 };
+        var image = new Image
         {
-            if (!_importedUi.TryOpenMedia(media, out var stream)) continue;
-            try
-            {
-                using (stream)
-                {
-                    var bitmap = new Bitmap(stream!);
-                    _coverImages.Add(bitmap);
-                    return new Image
-                    {
-                        Source = bitmap, Width = width, Height = height,
-                        Stretch = Stretch.Uniform
-                    };
-                }
-            }
-            catch (Exception error) when (error is IOException or ArgumentException or
-                InvalidDataException or InvalidOperationException or NotSupportedException or
-                System.Runtime.InteropServices.COMException)
-            {
-                // Invalid image data is a placeholder case; try the thumbnail next.
-                undecodable = true;
-            }
-        }
-        return Text(undecodable
-            ? "Jaquette illisible / miniature indisponible"
-            : "Jaquette absente / indisponible", 13);
+            Width = width, Height = height,
+            Stretch = Stretch.Uniform, IsVisible = false
+        };
+        var placeholder = Text("Jaquette en attente · lecture bornée", 11);
+        panel.Children.Add(image);
+        panel.Children.Add(placeholder);
+        var slot = width > 192 || height > 256 ? LegacyImageSlot.Detail :
+            width <= 70 ? LegacyImageSlot.Dashboard : LegacyImageSlot.Card;
+        ScheduleLegacyImage(candidates, image, placeholder, slot);
+        return panel;
     }
 
     private void ImportedLibraries(EsDeCatalogueSnapshot snapshot)

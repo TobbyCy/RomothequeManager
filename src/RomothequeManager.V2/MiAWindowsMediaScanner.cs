@@ -14,6 +14,7 @@ internal enum MiAOperation { MediaIndex }
 internal sealed class MiAReadGrant
 {
     private int _revoked;
+    private int _claimed;
     private MiAReadGrant(string rootId, long version, long generation,
         DateTimeOffset expiresUtc, RsAHandleIdentity identity, MiABudget budget)
     {
@@ -37,6 +38,12 @@ internal sealed class MiAReadGrant
     internal RsAHandleIdentity RootIdentity { get; }
     internal MiABudget Budget { get; }
     internal void Revoke() => Interlocked.Exchange(ref _revoked, 1);
+    // Exclusive per-grant claim; Valid intentionally ignores _claimed so an
+    // already-running native read remains subject to revoke/expiry checks.
+    internal bool TryClaim(string rootId, long version, long generation) =>
+        Valid(rootId, version, generation) &&
+        Interlocked.CompareExchange(ref _claimed, 1, 0) == 0 &&
+        Valid(rootId, version, generation);
     internal bool Valid(string rootId, long version, long generation) =>
         Volatile.Read(ref _revoked) == 0 &&
         DateTimeOffset.UtcNow < ExpiresUtc &&
@@ -264,6 +271,12 @@ internal sealed class MiAFixtureMediaSession
         try
         {
             Check(); // No filesystem access without a live, exact capability.
+            // CAS prevents both sequential and concurrent Scan replays before
+            // any native root/header open. This does NOT revoke the active run.
+            if (supplied is null || rootId is null ||
+                !supplied.TryClaim(rootId, selectionVersion, generation))
+                throw new UnauthorizedAccessException("MI_A_GRANT_INVALID");
+            Check();
             if (root is null) throw new UnauthorizedAccessException("MI_A_NO_SELECTION");
             if (!ActiveScopes.TryAdd(root, 0))
                 throw new UnauthorizedAccessException("MI_A_ALREADY_SCANNING");

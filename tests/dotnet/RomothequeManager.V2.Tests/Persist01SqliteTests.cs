@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RomothequeManager.V2.Inventory;
@@ -95,6 +96,258 @@ public sealed class Persist01SqliteTests
         new(Guid.NewGuid().ToString("D"), _libraryId, "roms:gba/Fiction.gba",
             "title", "MANUAL_IMPORT_FIXTURE", external, value,
             "SYNTHETIC_LOCAL_PROVENANCE", DateTimeOffset.UtcNow);
+
+
+    // #140 A01/A02 — six adversarial witnesses against the ACTUAL SQLite store.
+    // Mutations affect only the database or backup in a generated test temp fixture.
+    // The source-era red run MUST reject these assertions before the fix.
+    private static void MutateStoredManifest(string dbPath, string rootId,
+        Action<JsonObject> mutate, string? sqlHeaderChange = null)
+    {
+        using var db = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = dbPath, Pooling = false
+        }.ToString());
+        db.Open();
+        string id, raw;
+        using (var cmd = db.CreateCommand())
+        {
+            cmd.CommandText = @"SELECT s.SnapshotId,s.ManifestJson FROM ScanSnapshot s
+                JOIN StorageRoot r ON r.CurrentCompleteSnapshotId=s.SnapshotId
+                WHERE r.StorageRootId=@root";
+            cmd.Parameters.AddWithValue("@root", rootId);
+            using var row = cmd.ExecuteReader();
+            Assert.IsTrue(row.Read(), "SQL140_SEEDED_CURRENT_REQUIRED");
+            id = row.GetString(0);
+            raw = row.GetString(1);
+        }
+        var envelope = JsonNode.Parse(raw)!.AsObject();
+        var snapshot = JsonNode.Parse(envelope["SnapshotJson"]!.GetValue<string>())!.AsObject();
+        mutate(snapshot);
+        envelope["SnapshotJson"] = snapshot.ToJsonString();
+        using (var cmd = db.CreateCommand())
+        {
+            cmd.CommandText = "UPDATE ScanSnapshot SET ManifestJson=@manifest" +
+                (sqlHeaderChange is null ? "" : ", " + sqlHeaderChange) +
+                " WHERE SnapshotId=@id";
+            cmd.Parameters.AddWithValue("@manifest", envelope.ToJsonString());
+            cmd.Parameters.AddWithValue("@id", id);
+            Assert.AreEqual(1, cmd.ExecuteNonQuery());
+        }
+        using var integrity = db.CreateCommand();
+        integrity.CommandText = "PRAGMA integrity_check";
+        Assert.AreEqual("ok", integrity.ExecuteScalar()?.ToString());
+    }
+
+    private void AssertUnchanged(string romRun, string mediaRun, string decisionId)
+    {
+        using var reopened = Store();
+        var r = reopened.LoadLastKnown(_romRootId);
+        var m = reopened.LoadLastKnown(_mediaRootId);
+        Assert.AreEqual(romRun, r.CurrentComplete!.Inventory!.ScanId);
+        Assert.AreEqual(mediaRun, m.CurrentComplete!.Media!.RunId);
+        Assert.AreEqual(romRun, r.LastAttempt!.Inventory!.ScanId);
+        Assert.AreEqual(mediaRun, m.LastAttempt!.Media!.RunId);
+        Assert.IsTrue(r.Decisions.Any(d => d.DecisionId == decisionId));
+    }
+
+    [TestMethod]
+    public void SQL_01_R_RejectInconsistentCompleteRomBeforeWrite()
+    {
+        var good = RomSnapshot();
+        var media = MediaSnapshot();
+        var choice = Decision();
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveAttempt(_romRootId, good);
+            store.SaveAttempt(_mediaRootId, media);
+            store.SaveManualDecision(choice, true);
+            var bad = RomSnapshot() with
+            {
+                Observations = Array.Empty<FileObservation>(),
+                ObservedFileCount = 1,
+                TotalFileCount = 1
+            };
+            Assert.ThrowsExactly<InvalidDataException>(() => store.SaveAttempt(_romRootId, bad),
+                "SQL_01_R_EXPECT_REJECTION_BEFORE_POINTER_PROMOTION");
+        }
+        AssertUnchanged(good.ScanId, media.RunId, choice.DecisionId);
+    }
+
+    [TestMethod]
+    public void SQL_01_M_RejectInconsistentCompleteMediaBeforeWrite()
+    {
+        var good = RomSnapshot();
+        var media = MediaSnapshot();
+        var choice = Decision();
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveAttempt(_romRootId, good);
+            store.SaveAttempt(_mediaRootId, media);
+            store.SaveManualDecision(choice, true);
+            var bad = MediaSnapshot() with
+            {
+                Observations = Array.Empty<MediaObservation>(),
+                ObservedFileCount = 1,
+                TotalFileCount = 1
+            };
+            Assert.ThrowsExactly<InvalidDataException>(() => store.SaveAttempt(_mediaRootId, bad),
+                "SQL_01_M_EXPECT_REJECTION_BEFORE_POINTER_PROMOTION");
+        }
+        AssertUnchanged(good.ScanId, media.RunId, choice.DecisionId);
+    }
+
+    [TestMethod]
+    public void SQL_03_S_RejectSqlCompleteAgainstFailedManifestOnReopen()
+    {
+        var rom = RomSnapshot();
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveAttempt(_romRootId, rom);
+        }
+        MutateStoredManifest(_db, _romRootId, x => x["ScanStatus"] = (int)InventoryScanStatus.Failed);
+        using var reopened = Store();
+        Assert.ThrowsExactly<InvalidDataException>(() => reopened.LoadLastKnown(_romRootId),
+            "SQL_03_S_SQL_JSON_STATUS_CONTRADICTION");
+    }
+
+    [TestMethod]
+    public void SQL_03_P_RejectTraversalInjectedOnlyThroughStoredJsonOnReopen()
+    {
+        var rom = RomSnapshot();
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveAttempt(_romRootId, rom);
+        }
+        MutateStoredManifest(_db, _romRootId, x =>
+            x["Observations"]!.AsArray()[0]!["RelativePath"] = "../../outside-fiction");
+        using var reopened = Store();
+        Assert.ThrowsExactly<InvalidDataException>(() => reopened.LoadLastKnown(_romRootId),
+            "SQL_03_P_NO_PATH_RESOLUTION_OR_OUTSIDE_OPEN");
+    }
+
+    [TestMethod]
+    public void SQL_03_R_RejectContradictorySqlRunRefOnReopen()
+    {
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveAttempt(_romRootId, RomSnapshot());
+        }
+        MutateStoredManifest(_db, _romRootId, _ => { },
+            "RunRef='scan-fictitious-foreign-run'");
+        using var reopened = Store();
+        Assert.ThrowsExactly<InvalidDataException>(() => reopened.LoadLastKnown(_romRootId),
+            "SQL_03_R_SQL_JSON_RUN_PROVENANCE");
+    }
+
+    [TestMethod]
+    public void SQL_04_B_RejectSemanticallyInconsistentBackupBeforeReplacingBaseB()
+    {
+        var original = RomSnapshot();
+        var currentB = RomSnapshot(stem: "NewerB");
+        var media = MediaSnapshot();
+        var oldDecision = Decision(value: "old-choice");
+        var newDecision = Decision(value: "newer-choice");
+        string backup;
+        using (var store = Store())
+        {
+            Seed(store);
+            store.SaveAttempt(_romRootId, original);
+            store.SaveAttempt(_mediaRootId, media);
+            store.SaveManualDecision(oldDecision, true);
+            backup = store.BackupVerified();
+            store.SaveAttempt(_romRootId, currentB);
+            store.SaveManualDecision(newDecision, true);
+        }
+        // Backup A is SQLite-integrity-valid yet its business header contradicts JSON.
+        var badBackup = Path.Combine(Path.GetDirectoryName(backup)!,
+            "semantically-invalid-" + Guid.NewGuid().ToString("N") + ".sqlite");
+        File.Copy(backup, badBackup);
+        MutateStoredManifest(badBackup, _romRootId,
+            x => x["ScanStatus"] = (int)InventoryScanStatus.Failed);
+        using (var store = Store())
+            Assert.ThrowsExactly<InvalidDataException>(() => store.RestoreVerified(badBackup),
+                "SQL_04_B_STAGING_MUST_REJECT_BEFORE_SWAP");
+        using var reopened = Store();
+        var state = reopened.LoadLastKnown(_romRootId);
+        Assert.AreEqual(currentB.ScanId, state.CurrentComplete!.Inventory!.ScanId);
+        Assert.AreEqual(currentB.ScanId, state.LastAttempt!.Inventory!.ScanId);
+        Assert.IsTrue(state.Decisions.Any(x => x.DecisionId == newDecision.DecisionId));
+        Assert.IsTrue(state.Decisions.Any(x => x.DecisionId == oldDecision.DecisionId));
+        Assert.AreEqual(media.RunId,
+            reopened.LoadLastKnown(_mediaRootId).CurrentComplete!.Media!.RunId);
+    }
+
+    // SQL_02 mutation sentinels MUST fail if both ValidateRelativePaths write
+    // calls are deleted on a disposable source copy. No scanner or user FS I/O.
+    [TestMethod]
+    public void SQL_02_R_WriteGuardRejectsTraversalWithValidCounts()
+    {
+        using var store = Store();
+        Seed(store);
+        var good = RomSnapshot();
+        store.SaveAttempt(_romRootId, good);
+        var bad = RomSnapshot() with
+        {
+            Observations = new[] {
+                RomSnapshot().Observations.Single() with
+                { RelativePath = "../../outside-fiction.gba" }
+            }
+        };
+        Assert.ThrowsExactly<InvalidDataException>(() => store.SaveAttempt(_romRootId, bad));
+        Assert.AreEqual(good.ScanId,
+            store.LoadLastKnown(_romRootId).CurrentComplete!.Inventory!.ScanId);
+    }
+
+    [TestMethod]
+    public void SQL_02_M_WriteGuardRejectsTraversalWithValidCounts()
+    {
+        using var store = Store();
+        Seed(store);
+        var good = MediaSnapshot();
+        store.SaveAttempt(_mediaRootId, good);
+        var bad = MediaSnapshot() with
+        {
+            Observations = new[] {
+                MediaSnapshot().Observations.Single() with
+                { RelativePath = "../outside-fiction.png" }
+            }
+        };
+        Assert.ThrowsExactly<InvalidDataException>(() => store.SaveAttempt(_mediaRootId, bad));
+        Assert.AreEqual(good.RunId,
+            store.LoadLastKnown(_mediaRootId).CurrentComplete!.Media!.RunId);
+    }
+
+    [TestMethod]
+    public void SQL_POS_CompleteEmptyRomAndMediaRemainValid()
+    {
+        using var store = Store();
+        Seed(store);
+        var rom = RomSnapshot() with
+        {
+            Observations = Array.Empty<FileObservation>(),
+            ObservedFileCount = 0, TotalFileCount = 0
+        };
+        var media = MediaSnapshot() with
+        {
+            Observations = Array.Empty<MediaObservation>(),
+            ObservedFileCount = 0, TotalFileCount = 0
+        };
+        store.SaveAttempt(_romRootId, rom);
+        store.SaveAttempt(_mediaRootId, media);
+        var loadedRom = store.LoadLastKnown(_romRootId);
+        var loadedMedia = store.LoadLastKnown(_mediaRootId);
+        Assert.AreEqual(0, loadedRom.CurrentComplete!.Inventory!.Observations.Count);
+        Assert.AreEqual(0, loadedMedia.CurrentComplete!.Media!.Observations.Count);
+        Assert.AreEqual(InventoryAvailability.Offline,
+            loadedRom.CurrentComplete.DisplayAvailability);
+        Assert.AreEqual(InventoryFreshness.Stale, loadedMedia.CurrentComplete.DisplayFreshness);
+    }
 
     [TestMethod]
     public void PERS_01_SaveCloseReopenInNewProcessWithoutLibraryOrXml()

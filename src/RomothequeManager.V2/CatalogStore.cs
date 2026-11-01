@@ -174,6 +174,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ValidateRelativePaths(snapshot.Observations.Select(o => o.RelativePath));
+        ValidateBusinessSnapshot(snapshot, persisted: false);
         if (snapshot.Observations.Count > MaxObservations)
             throw new InvalidDataException("PERSIST01_OBSERVATION_LIMIT");
         SaveAttemptCore(storageRootId, "ROMS", snapshot.ScanId, snapshot.CapturedAtUtc,
@@ -188,6 +189,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ValidateRelativePaths(snapshot.Observations.Select(o => o.RelativePath));
+        ValidateBusinessSnapshot(snapshot, persisted: false);
         if (snapshot.Observations.Count > MaxObservations)
             throw new InvalidDataException("PERSIST01_OBSERVATION_LIMIT");
         SaveAttemptCore(storageRootId, "MEDIAS", snapshot.RunId, snapshot.CapturedAtUtc,
@@ -265,7 +267,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
             }
             var current = currentId is null ? null : ReadSnapshot(db, currentId, storageRootId);
             var last = lastId is null ? null : ReadSnapshot(db, lastId, storageRootId);
-            if (current is { ScanStatus: not InventoryScanStatus.Complete })
+            if (current is not null && !CurrentEligible(current))
                 throw new InvalidDataException("PERSIST01_CURRENT_NOT_COMPLETE");
             var claims = new List<CatalogMetadataClaim>();
             using (var c = Command(db, null, @"SELECT ClaimId,LibraryId,SubjectKey,FieldKey,
@@ -303,16 +305,19 @@ public sealed class SqliteCatalogStore : ICatalogStore
 
     private static CatalogSavedSnapshot ReadSnapshot(SqliteConnection db, string id, string rootId)
     {
-        using var cmd = Command(db, null, @"SELECT SourceKind,RunRef,ScanStatus,Availability,Freshness,
-            CapturedAtUtc,ManifestVersion,ManifestJson FROM ScanSnapshot
-            WHERE SnapshotId=@id AND StorageRootId=@root", ("@id", id), ("@root", rootId));
+        using var cmd = Command(db, null, @"SELECT s.SourceKind,s.RunRef,s.ScanStatus,s.Availability,s.Freshness,
+            s.CapturedAtUtc,s.ManifestVersion,s.ManifestJson,s.ObservedCount,s.TotalCount,
+            r.Role,r.RelativeBinding FROM ScanSnapshot s
+            JOIN StorageRoot r ON r.StorageRootId=s.StorageRootId
+            WHERE s.SnapshotId=@id AND s.StorageRootId=@root",
+            ("@id", id), ("@root", rootId));
         using var row = cmd.ExecuteReader();
         if (!row.Read()) throw new InvalidDataException("PERSIST01_MISSING_SNAPSHOT");
         var kind = row.GetString(0);
         var run = row.GetString(1);
-        var status = Enum.Parse<InventoryScanStatus>(row.GetString(2), true);
-        var availability = Enum.Parse<InventoryAvailability>(row.GetString(3), true);
-        var freshness = Enum.Parse<InventoryFreshness>(row.GetString(4), true);
+        var status = ParseStoredEnum<InventoryScanStatus>(row.GetString(2));
+        var availability = ParseStoredEnum<InventoryAvailability>(row.GetString(3));
+        var freshness = ParseStoredEnum<InventoryFreshness>(row.GetString(4));
         var captured = DateTimeOffset.Parse(row.GetString(5),
             System.Globalization.CultureInfo.InvariantCulture);
         if (row.GetInt32(6) != ManifestVersion) throw new InvalidDataException("Unsupported manifest version.");
@@ -323,12 +328,44 @@ public sealed class SqliteCatalogStore : ICatalogStore
             ?? throw new InvalidDataException("PERSIST01_INVALID_MANIFEST");
         if (envelope.Version != ManifestVersion || envelope.SourceKind != kind)
             throw new InvalidDataException("PERSIST01_MANIFEST_KIND_MISMATCH");
-        var inventory = kind == "ROMS" ?
-            JsonSerializer.Deserialize<InventorySnapshot>(envelope.SnapshotJson) : null;
-        var media = kind == "MEDIAS" ?
-            JsonSerializer.Deserialize<MediaIndexSnapshot>(envelope.SnapshotJson) : null;
+        InventorySnapshot? inventory;
+        MediaIndexSnapshot? media;
+        try
+        {
+            inventory = kind == "ROMS" ?
+                JsonSerializer.Deserialize<InventorySnapshot>(envelope.SnapshotJson) : null;
+            media = kind == "MEDIAS" ?
+                JsonSerializer.Deserialize<MediaIndexSnapshot>(envelope.SnapshotJson) : null;
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("PERSIST01_STORED_MANIFEST_INVALID", ex);
+        }
         if ((inventory is null) == (media is null))
             throw new InvalidDataException("PERSIST01_INVALID_SNAPSHOT_TYPE");
+        if (row.GetString(10) != kind || row.GetString(11) != kind ||
+            kind is not ("ROMS" or "MEDIAS"))
+            throw new InvalidDataException("PERSIST01_SQL_ROLE_MISMATCH");
+        var observed = row.GetInt32(8);
+        var total = row.IsDBNull(9) ? (int?)null : row.GetInt32(9);
+        if (inventory is not null)
+        {
+            ValidateBusinessSnapshot(inventory, persisted: true);
+            if (inventory.ScanId != run || inventory.CapturedAtUtc != captured ||
+                inventory.ScanStatus != status || inventory.Availability != availability ||
+                inventory.Freshness != freshness ||
+                inventory.ObservedFileCount != observed || inventory.TotalFileCount != total)
+                throw new InvalidDataException("PERSIST01_SQL_JSON_CONTRADICTION");
+        }
+        else if (media is not null)
+        {
+            ValidateBusinessSnapshot(media, persisted: true);
+            if (media.RunId != run || media.CapturedAtUtc != captured ||
+                media.ScanStatus != status || media.Availability != availability ||
+                media.Freshness != freshness ||
+                media.ObservedFileCount != observed || media.TotalFileCount != total)
+                throw new InvalidDataException("PERSIST01_SQL_JSON_CONTRADICTION");
+        }
         // No source enumeration, XML, preview, volume binding or real filesystem access here.
         return new CatalogSavedSnapshot(id, rootId, kind, run, captured,
             status, availability, freshness, inventory, media);
@@ -446,6 +483,9 @@ public sealed class SqliteCatalogStore : ICatalogStore
                 ValidateCompatibleDatabase(staged, allowOlder: true);
                 EnsureSchema(staged); // migrations run ONLY on the disposable staging copy
                 ValidateCompatibleDatabase(staged, allowOlder: false);
+                // Reject an integrity-valid but semantically contradictory backup
+                // BEFORE it can replace CurrentComplete, LastAttempt or user decisions.
+                ValidateDatabaseBusiness(staged);
                 _testBeforeRestoreSwap?.Invoke();
                 File.Move(staged, _databasePath, true);
                 swapped = true;
@@ -733,6 +773,117 @@ public sealed class SqliteCatalogStore : ICatalogStore
     {
         if (string.IsNullOrWhiteSpace(value) || value.Length > limit)
             throw new ArgumentException("PERSIST01_FIELD_LIMIT");
+    }
+
+
+    // One shared business contract is applied before SaveAttempt, after every
+    // ReadSnapshot, and to every staged backup before File.Move. Pure data checks:
+    // no path resolution, root open, media decoding or permission restoration.
+    // Write-path guards stay at both SaveAttempt entrypoints so SQL_02 remains
+    // causally sensitive to their removal. Persisted payloads validate paths here.
+    private static void ValidateBusinessSnapshot(InventorySnapshot snapshot, bool persisted)
+    {
+        if (snapshot is null || string.IsNullOrWhiteSpace(snapshot.SchemaVersion) ||
+            string.IsNullOrWhiteSpace(snapshot.LibrarySessionId) ||
+            string.IsNullOrWhiteSpace(snapshot.ScanId))
+            throw new InvalidDataException("PERSIST01_ROM_PROVENANCE_INVALID");
+        ValidateBusinessCounts(snapshot.ScanStatus, snapshot.Availability, snapshot.Freshness,
+            snapshot.CoverageProof, snapshot.Observations?.Count ?? -1,
+            snapshot.ObservedFileCount, snapshot.TotalFileCount, snapshot.CapturedAtUtc);
+        if (snapshot.Observations is null || snapshot.Observations.Any(x =>
+            x is null || !Enum.IsDefined(x.Kind) || !Enum.IsDefined(x.Availability) ||
+            (x.SizeBytes is < 0)))
+            throw new InvalidDataException("PERSIST01_ROM_OBSERVATION_INVALID");
+        if (persisted)
+            ValidateRelativePaths(snapshot.Observations.Select(x => x.RelativePath));
+    }
+
+    private static void ValidateBusinessSnapshot(MediaIndexSnapshot snapshot, bool persisted)
+    {
+        if (snapshot is null || string.IsNullOrWhiteSpace(snapshot.RunId) ||
+            string.IsNullOrWhiteSpace(snapshot.MediaRootRef))
+            throw new InvalidDataException("PERSIST01_MEDIA_PROVENANCE_INVALID");
+        ValidateBusinessCounts(snapshot.ScanStatus, snapshot.Availability, snapshot.Freshness,
+            snapshot.CoverageProof, snapshot.Observations?.Count ?? -1,
+            snapshot.ObservedFileCount, snapshot.TotalFileCount, snapshot.CapturedAtUtc);
+        if (snapshot.Observations is null || snapshot.Observations.Any(x =>
+            x is null || !Enum.IsDefined(x.Kind) || !Enum.IsDefined(x.DetectedFormat) ||
+            !Enum.IsDefined(x.Availability) || x.SizeBytes is < 0))
+            throw new InvalidDataException("PERSIST01_MEDIA_OBSERVATION_INVALID");
+        if (persisted)
+            ValidateRelativePaths(snapshot.Observations.Select(x => x.RelativePath));
+    }
+
+    private static void ValidateBusinessCounts(InventoryScanStatus status,
+        InventoryAvailability availability, InventoryFreshness freshness,
+        IReadOnlyList<InventoryCoverage>? coverage, int actualObservations,
+        int observedCount, int? totalCount, DateTimeOffset captured)
+    {
+        if (!Enum.IsDefined(status) || !Enum.IsDefined(availability) ||
+            !Enum.IsDefined(freshness) ||
+            coverage is null || coverage.Count == 0 || coverage.Count > 10000 ||
+            coverage.Any(x => x is null || string.IsNullOrWhiteSpace(x.PartitionKey) ||
+                !Enum.IsDefined(x.Status)) ||
+            actualObservations < 0 || actualObservations > MaxObservations ||
+            observedCount != actualObservations || totalCount is < 0 ||
+            captured == default)
+            throw new InvalidDataException("PERSIST01_BUSINESS_COUNTS_INVALID");
+        if (status == InventoryScanStatus.Complete &&
+            (totalCount != actualObservations ||
+             coverage.Any(c => c.Status != InventoryScanStatus.Complete)))
+            throw new InvalidDataException("PERSIST01_COMPLETE_CONTRADICTORY");
+        // Partial/Failed and Complete+Offline/Stale may be LastAttempt; never
+        // upgrade them to CurrentComplete. A consistent empty Complete is valid.
+    }
+
+    private static T ParseStoredEnum<T>(string value) where T : struct, Enum
+    {
+        if (!Enum.TryParse<T>(value, ignoreCase: false, out var parsed) ||
+            !Enum.IsDefined(parsed) || parsed.ToString() != value)
+            throw new InvalidDataException("PERSIST01_SQL_ENUM_INVALID");
+        return parsed;
+    }
+
+    private static bool CurrentEligible(CatalogSavedSnapshot s) =>
+        s.ScanStatus == InventoryScanStatus.Complete &&
+        s.CapturedAvailability == InventoryAvailability.Online &&
+        s.CapturedFreshness == InventoryFreshness.Fresh &&
+        ((s.Inventory is { } inventory &&
+          inventory.TotalFileCount == inventory.ObservedFileCount) ||
+         (s.Media is { } media &&
+          media.TotalFileCount == media.ObservedFileCount));
+
+    private static void ValidateDatabaseBusiness(string path)
+    {
+        // Enumerate IDs first and close the reader before calling ReadSnapshot.
+        // Validate ALL stored rows, not only the current pointers, so staging
+        // cannot smuggle an invalid LastAttempt or orphaned historical attempt.
+        using var db = OpenConnection(path, create: false);
+        var snapshots = new List<(string Id, string Root)>();
+        using (var cmd = Command(db, null,
+            "SELECT SnapshotId,StorageRootId FROM ScanSnapshot"))
+        using (var rows = cmd.ExecuteReader())
+            while (rows.Read()) snapshots.Add((rows.GetString(0), rows.GetString(1)));
+        foreach (var (id, root) in snapshots) ReadSnapshot(db, id, root);
+
+        var roots = new List<(string Id, string Role, string Binding, string? Current, string? Last)>();
+        using (var cmd = Command(db, null,
+            @"SELECT StorageRootId,Role,RelativeBinding,
+                CurrentCompleteSnapshotId,LastAttemptSnapshotId FROM StorageRoot"))
+        using (var rows = cmd.ExecuteReader())
+            while (rows.Read())
+                roots.Add((rows.GetString(0), rows.GetString(1), rows.GetString(2),
+                    rows.IsDBNull(3) ? null : rows.GetString(3),
+                    rows.IsDBNull(4) ? null : rows.GetString(4)));
+        foreach (var root in roots)
+        {
+            if (root.Role is not ("ROMS" or "MEDIAS") || root.Binding != root.Role)
+                throw new InvalidDataException("PERSIST01_STORED_ROOT_ROLE_INVALID");
+            if (root.Current is not null &&
+                !CurrentEligible(ReadSnapshot(db, root.Current, root.Id)))
+                throw new InvalidDataException("PERSIST01_STORED_CURRENT_INVALID");
+            if (root.Last is not null) ReadSnapshot(db, root.Last, root.Id);
+        }
     }
 
     private static void ValidateRelativePaths(IEnumerable<string> paths)

@@ -33,7 +33,14 @@ internal sealed class RsAReadGrant
     internal DateTimeOffset ExpiresUtc { get; }
     internal RsAHandleIdentity RootIdentity { get; }
     private int _revoked;
+    private int _claimed;
     internal bool Revoked => Volatile.Read(ref _revoked) != 0;
+    // A grant admits exactly ONE Scan invocation. Claim is never reset;
+    // Valid intentionally remains true for the active run's repeated checks.
+    internal bool TryClaim(string rootId, long version) =>
+        Valid(rootId, version) &&
+        Interlocked.CompareExchange(ref _claimed, 1, 0) == 0 &&
+        Valid(rootId, version);
     internal void Revoke() => Interlocked.Exchange(ref _revoked, 1);
     internal bool Valid(string rootId, long version) =>
         !Revoked && DateTimeOffset.UtcNow < ExpiresUtc &&
@@ -133,7 +140,11 @@ internal sealed class RsAFixtureRomSession
 
         try
         {
-            // Authorization before even opening the root directory.
+            // Claim once before opening any root handle. Concurrent/replayed
+            // calls cannot enter I/O, but the running Scan retains live checks.
+            CheckPermission();
+            if (supplied is null || !supplied.TryClaim(rootId, _version))
+                throw new UnauthorizedAccessException("RS_A_GRANT_INVALID");
             CheckPermission();
             var root = _root ?? throw new UnauthorizedAccessException("RS_A_NO_SELECTION");
             using var pinnedRoot = RsAAnchoredReader.OpenRoot(root);
