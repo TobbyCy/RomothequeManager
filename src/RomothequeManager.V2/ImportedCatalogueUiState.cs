@@ -89,6 +89,11 @@ public sealed class ImportedCatalogueUiState
         }
     }
 
+    /// <summary>
+    /// Legacy synchronous refresh adapter. It prepares a candidate without mutation,
+    /// then uses exactly the same guarded commit as the observable VM.
+    /// </summary>
+    /// <returns>True only when the selected session and UI adopt one identical snapshot.</returns>
     public bool TryReimport()
     {
         if (_session is null)
@@ -98,9 +103,10 @@ public sealed class ImportedCatalogueUiState
         }
         try
         {
-            var updated = _applicationService.RefreshAsync(_session, CancellationToken.None)
+            var prepared = _applicationService.RefreshAsync(_session, CancellationToken.None)
                 .GetAwaiter().GetResult();
-            ApplyRefresh(updated);
+            if (!TryApplyPreparedRefresh(_session, prepared))
+                throw new InvalidDataException("ESDE_REFRESH_STALE_PROPOSAL");
             return true;
         }
         catch (Exception error) when (IsExpectedImportError(error))
@@ -111,23 +117,54 @@ public sealed class ImportedCatalogueUiState
     }
 
     /// <summary>
-    /// Adopt only a completed refresh, preserving the selection and session identity.
-    /// Must be called by its VM after cancellation/generation checks.
+    /// Commits an opaque prepared refresh to the session and accepted UI state
+    /// in one synchronous owner-context operation, without events or I/O between them.
+    /// All display projections are calculated before the backend commit.
     /// </summary>
-    internal void ApplyRefresh(EsDeCatalogueSnapshot updated)
+    /// <param name="session">Expected accepted session, checked by reference.</param>
+    /// <param name="prepared">Candidate created on that session without modifying Current.</param>
+    /// <returns>False without modifying the UI or session if any guard rejects the proposal.</returns>
+    internal bool TryApplyPreparedRefresh(EsDeImportSession session,
+        EsDeImportSession.PreparedEsDeRefresh prepared)
     {
-        if (_session is null || _acceptedSnapshot is null ||
-            !string.Equals(updated.LibraryId, _acceptedSnapshot.LibraryId, StringComparison.Ordinal))
-            throw new InvalidOperationException("ESDE_REFRESH_LIBRARY_ID_MISMATCH");
+        if (!ReferenceEquals(session, _session) || _acceptedSnapshot is null ||
+            !ReferenceEquals(session.Current, _acceptedSnapshot) || prepared is null)
+            return false;
+
+        var updated = prepared.Snapshot;
+        if (!string.Equals(updated.LibraryId, _acceptedSnapshot.LibraryId, StringComparison.Ordinal))
+            return false;
+
+        // Fully project all mutable UI selection/page state BEFORE a possible commit.
+        // A stale/foreign proposal must leave both the VM's Current and media authority alone.
+        var nextGameId = updated.Games.Any(g => g.GameId == SelectedGameId)
+            ? SelectedGameId : null;
+        var nextPlatform = SelectedPlatform is not null && updated.Games.Any(g =>
+            string.Equals(g.Platform, SelectedPlatform, StringComparison.OrdinalIgnoreCase))
+            ? SelectedPlatform : null;
+        var nextView = nextGameId is null && CurrentView == POCView.GameDetail
+            ? POCView.Collection : CurrentView;
+        var filteredCount = updated.Games.Count(g =>
+            (nextPlatform is null || string.Equals(g.Platform, nextPlatform,
+                StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(SearchText) ||
+                g.Title.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                g.Platform.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                g.RomRelativePath.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase)));
+        var nextPageCount = Math.Max(1, (filteredCount + PageSize - 1) / PageSize);
+        var nextPage = Math.Min(PageIndex, nextPageCount - 1);
+
+        // No awaits, callbacks, notifications or parsing between the backend's
+        // accepted-media authority switch and the UI snapshot assignment.
+        if (!session.TryCommitPreparedRefresh(prepared))
+            return false;
         _acceptedSnapshot = updated;
-        SelectedGameId = updated.Games.Any(g => g.GameId == SelectedGameId) ? SelectedGameId : null;
-        if (SelectedPlatform is not null && !updated.Games.Any(g =>
-            string.Equals(g.Platform, SelectedPlatform, StringComparison.OrdinalIgnoreCase)))
-            SelectedPlatform = null;
-        if (SelectedGameId is null && CurrentView == POCView.GameDetail)
-            CurrentView = POCView.Collection;
-        PageIndex = Math.Min(PageIndex, PageCount - 1);
+        SelectedGameId = nextGameId;
+        SelectedPlatform = nextPlatform;
+        CurrentView = nextView;
+        PageIndex = nextPage;
         ErrorMessage = null;
+        return true;
     }
 
     public static bool IsExpectedImportError(Exception error) =>
