@@ -393,6 +393,14 @@ internal static class Program
               public void Read() {}
             }}
             """;
+        const string wrongBaseline = """
+            namespace Canary {
+            /// <summary>Exposes a service whose method must carry its own valid documentation.</summary>
+            public sealed class Wrong {
+              /// <summary>Reads a fixed local example value without opening any file.</summary>
+              public void Read() {}
+            }}
+            """;
         const string partial2 = """
             namespace Canary {
             public partial class Example {
@@ -444,7 +452,7 @@ internal static class Program
         AssertRed("INTERNAL_CRITICAL_MISSING", baseline, M([existing, criticalMissing]));
         AssertGreen("INTERNAL_CRITICAL_DOCUMENTED", baseline, M([existing, criticalGood]));
         AssertGreen("INHERITDOC_RESOLVED", M([implementation]), M([implementation]));
-        AssertRed("INHERITDOC_UNRESOLVED", M([implementation]), M([unresolved]));
+        AssertRed("INHERITDOC_UNRESOLVED", M([wrongBaseline]), M([unresolved]));
         AssertGreen("PARTIAL_DEDUP_DOCUMENTED", baseline, M([existing, partial2]));
         AssertGreen("PRIVATE_EXCLUDED", M([privateOnly]), M([privateOnly]));
         const string conditional = """
