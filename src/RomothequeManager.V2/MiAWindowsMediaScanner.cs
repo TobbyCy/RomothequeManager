@@ -42,6 +42,7 @@ internal sealed class MiAReadGrant
     internal string RootId { get; }
 /// <summary>Generation invalidating old consent after selecting a different fixture root.</summary>
 /// <summary>Current root-selection generation used to reject stale or cross-root grants.</summary>
+    /// <summary>Monotonically increasing fixture selection generation; invalidates grants and results from prior roots.</summary>
     internal long SelectionVersion { get; }
 /// <summary>One-use consent issuance generation; prevents replay after authorizing a newer attempt.</summary>
     internal long Generation { get; }
