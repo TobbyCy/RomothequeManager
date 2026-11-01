@@ -279,10 +279,8 @@ internal sealed class RsAStopException(string message) : Exception(message);
 /// <summary>Native volume serial and file identifier used to detect swapped or redirected roots.</summary>
 internal readonly record struct RsAHandleIdentity(ulong VolumeSerial, string FileIdHex);
 
-/// <summary>Win32 directory enumeration and NtCreateFile relative to a pinned parent handle.
-/// No Directory.EnumerateFiles(path) or FileStream(path) may be used inside this reader.
-/// Reject every reparse point; deny DELETE sharing so a held directory cannot be moved.</summary>
-/// <summary>Windows handle-confined helper for fixture-only metadata enumeration; excludes reparse traversal.</summary>
+/// <summary>Enumerates a fixture ROMS scope through parent-relative Win32 handles without following reparse points.</summary>
+/// <remarks>File metadata is obtained from the pinned handle; DELETE sharing is denied and no checked file is reopened by path.</remarks>
 internal static class RsAAnchoredReader
 {
     private const uint ReadAttributes = 0x80;
