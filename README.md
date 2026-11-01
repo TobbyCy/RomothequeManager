@@ -6,7 +6,7 @@
 
 ## Télécharger et essayer
 
-**Dernière version publiée : [v0.3.0-alpha.1 Windows x64 portable](https://github.com/TobbyCy/RomothequeManager/releases/tag/v0.3.0-alpha.1)** (NEXT-03, **pas NEXT-04**).
+**Version alpha historique documentée ici : [v0.3.0-alpha.1 Windows x64 portable](https://github.com/TobbyCy/RomothequeManager/releases/tag/v0.3.0-alpha.1)** (NEXT-03, **pas NEXT-04**).
 
 1. Télécharger le [ZIP Windows](https://github.com/TobbyCy/RomothequeManager/releases/download/v0.3.0-alpha.1/RomothequeManager-v0.3.0-alpha.1-win-x64.zip) et le [SHA-256](https://github.com/TobbyCy/RomothequeManager/releases/download/v0.3.0-alpha.1/RomothequeManager-v0.3.0-alpha.1-win-x64.zip.sha256).
 2. Vérifier avec `Get-FileHash -Algorithm SHA256 .\RomothequeManager-v0.3.0-alpha.1-win-x64.zip` ; empreinte attendue : `07989c5f87b6fff605412cc54d43232f0f8b23632fa301341615e587e4a6e228`.
@@ -15,14 +15,16 @@
 
 ## Disponible, en cours, absent
 
-| Fonction | ZIP public | Code NEXT-04 dans `main` |
+> **État documentaire en consolidation (#146).** Le tableau ci-dessous décrit un instantané NEXT-04 historique et **non** l'intégralité de `main` NEXT-05. Les évolutions SQLite, inventaire et médias intégrées sur fixtures ne sont pas nécessairement présentes dans le ZIP public. La recette humaine reste **NOT_EXECUTED** ; les restrictions `REAL_*_HOLD` et `NEXT05_RELEASE_HOLD` demeurent applicables. La dernière Release doit être vérifiée dans [Releases](https://github.com/TobbyCy/RomothequeManager/releases) avant tout téléchargement.
+
+| Fonction | ZIP historique cité | Instantané NEXT-04 (historique) |
 | --- | --- | --- |
 | Dashboard, bibliothèques, collection, fiches | Oui, Alpha et démonstrations | Interface améliorée [#93 fusionnée](https://github.com/TobbyCy/RomothequeManager/pull/93) dans `main`, **non publiée en ZIP** |
 | Import ES-DE historique | Expérimental, en lecture seule | Trois conventions, diagnostics, métadonnées et médias renforcés |
 | Inventaire NEXT-03 | Aperçu/simulation ; **scan personnel refusé** | Tests du service sur fixtures fictives |
 | Catalogue sauvegardé, export/copie de ROMs | **Non implémentés** | Non livrés |
 
-L'import est volontaire, ne modifie pas les fichiers sources et conserve le catalogue **en mémoire seulement**. Les dispositions ES-DE personnelles ne sont pas toutes garanties ; aucun enrichissement réseau ni scraper. Une CI verte et des captures Windows ne constituent pas une recette humaine. Aucun jeu, ROM, BIOS ni jaquette commerciale n'est fourni.
+Dans le ZIP historique décrit ci-dessus, l'import est volontaire, ne modifie pas les fichiers sources et conserve le catalogue **en mémoire seulement**. La persistance SQLite minimale existe séparément dans le code NEXT-05 sur fixtures ; elle ne constitue pas une validation de persistance sur bibliothèque personnelle. Les dispositions ES-DE personnelles ne sont pas toutes garanties ; aucun enrichissement réseau ni scraper. Une CI verte et des captures Windows ne constituent pas une recette humaine. Aucun jeu, ROM, BIOS ni jaquette commerciale n'est fourni.
 
 ## Documentation et contribution
 
