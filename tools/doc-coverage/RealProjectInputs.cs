@@ -36,6 +36,9 @@ internal sealed class RealProjectInputs
     internal static string Sha256(string path) =>
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
 
+    internal static string Sha256Text(string source) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source))).ToLowerInvariant();
+
     internal static string GeneratedKey(GeneratedSourceProvenance source) =>
         source.GeneratorIdentity + "/" + source.RelativePath.Replace('\\', '/');
 
@@ -134,11 +137,11 @@ internal sealed class RealProjectInputs
                 : "UNMAPPED_XAML_INPUT_SET_SHA256:" + xamlFingerprint;
             var attested = authenticFolder && matchingXaml.Length == 1;
             evidence.Add(source, new GeneratedSourceProvenance(source, relative,
-                declaredGenerator, analyzerVersion, analyzerHash, Sha256(source),
+                declaredGenerator, analyzerVersion, analyzerHash, Sha256Text(contents),
                 xamlSource, xamlFingerprint, attested));
             Console.WriteLine("DOC_GENERATED_PROVENANCE " + relative +
                 " generator=" + declaredGenerator + " version=" + analyzerVersion +
-                " sourceHash=" + Sha256(source) + " xaml=" + xamlSource +
+                " sourceHash=" + Sha256Text(contents) + " xaml=" + xamlSource +
                 " attested=" + attested);
         }
         Console.WriteLine("DOC_COVERAGE_NATIVE_GENERATED_SOURCES count=" + generated.Length +
