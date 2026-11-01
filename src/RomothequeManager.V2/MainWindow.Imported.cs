@@ -318,6 +318,12 @@ public sealed partial class MainWindow
     // Test-only exercise of the REAL imported Avalonia visual tree on disposable CI
     // fixtures. Never invoked during normal launch; no network, real ROM or scraping.
     // This verifies the labels actually presented, unlike a model-only unit test.
+    /// <summary>
+    /// Exercises an explicitly supplied synthetic ES-DE catalogue through the
+    /// Avalonia view tree only. This is not a standard EXE human acceptance test.
+    /// </summary>
+    /// <param name="fixtureRoot">Temporary fixture root; never a private ROM/SSD library.</param>
+    /// <returns>True only if expected fixture diagnostics and views can be displayed.</returns>
     public bool SmokeExerciseOfflineImportedFixture(string fixtureRoot)
     {
         if (!_importedUi.TryImport(fixtureRoot) || !_importedUi.IsImported)
