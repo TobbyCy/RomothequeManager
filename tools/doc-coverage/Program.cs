@@ -309,20 +309,158 @@ internal static class Program
 
     private static int RunCanaries()
     {
-        const string good = "namespace Canary {\n/// <summary>Documents the example class used for testing.</summary>\npublic class Example {\n/// <summary>Returns a stable number to the caller.</summary>\npublic int Existing() => 1;\n}}";
-        const string newBad = "namespace Canary {\n/// <summary>Documents the example class used for testing.</summary>\npublic class Example {\n/// <summary>Returns a stable number to the caller.</summary>\npublic int Existing() => 1;\npublic int NewApi() => 2;\n}}";
-        const string newGood = "namespace Canary {\n/// <summary>Documents the example class used for testing.</summary>\npublic class Example {\n/// <summary>Returns a stable number to the caller.</summary>\npublic int Existing() => 1;\n/// <summary>Returns a second independent sample number.</summary>\npublic int NewApi() => 2;\n}}";
-        const string removed = "namespace Canary {\n/// <summary>Documents the example class used for testing.</summary>\npublic class Example {\npublic int Existing() => 1;\n}}";
-        Measurement M(string s) => Measure("canary", new[] { ("src/RomothequeManager.V2/Canary.cs", s) });
-        var b = M(good); var red = M(newBad); var green = M(newGood); var loss = M(removed);
-        if (b.Eligible != 2 || b.Documented != 2 ||
-            red.Eligible != 3 || red.Documented != 2 ||
-            green.Eligible != 3 || green.Documented != 3 ||
-            loss.Eligible != 2 || loss.Documented != 1)
-            throw new InvalidOperationException("DOC_COVERAGE_CANARY_WRONG_ORACLE");
-        Console.WriteLine("DOC_CANARY_RED_NEW_UNDOCUMENTED_PASS");
-        Console.WriteLine("DOC_CANARY_RED_REMOVED_SUMMARY_PASS");
-        Console.WriteLine("DOC_CANARY_GREEN_RESTORED_PASS");
+        const string existing = """
+            namespace Canary {
+            /// <summary>Documents a stable source class and its local behavior.</summary>
+            public partial class Example {
+            /// <summary>Returns the stable example number to its caller.</summary>
+            public int Existing() => 1;
+            }}
+            """;
+        const string newPublicMissing = """
+            namespace Canary {
+            /// <summary>Documents a stable source class and its local behavior.</summary>
+            public partial class Example {
+            /// <summary>Returns the stable example number to its caller.</summary>
+            public int Existing() => 1;
+            public int NewApi() => 2;
+            }}
+            """;
+        const string newPublicGood = """
+            namespace Canary {
+            /// <summary>Documents a stable source class and its local behavior.</summary>
+            public partial class Example {
+            /// <summary>Returns the stable example number to its caller.</summary>
+            public int Existing() => 1;
+            /// <summary>Returns a second stable value without any filesystem access.</summary>
+            public int NewApi() => 2;
+            }}
+            """;
+        const string duplicateSummary = """
+            namespace Canary {
+            /// <summary>Documents a stable source class and its local behavior.</summary>
+            public partial class Example {
+            /// <summary>Returns the stable example number to its caller.</summary>
+            /// <summary>Conflicting duplicate description of the same method.</summary>
+            public int Existing() => 1;
+            }}
+            """;
+        const string lostSummary = """
+            namespace Canary {
+            /// <summary>Documents a stable source class and its local behavior.</summary>
+            public partial class Example {
+            public int Existing() => 1;
+            }}
+            """;
+        const string removedMember = """
+            namespace Canary {
+            /// <summary>Documents a stable source class and its local behavior.</summary>
+            public partial class Example { }
+            }
+            """;
+        const string criticalMissing = """
+            namespace Canary {
+            internal sealed class ProchainePermissionApplicationService {
+              internal bool ValidateGrant() => false;
+            }}
+            """;
+        const string criticalGood = """
+            namespace Canary {
+            /// <summary>Checks a hypothetical temporary fixture permission without opening real files.</summary>
+            internal sealed class ProchainePermissionApplicationService {
+              /// <summary>Rejects the synthetic grant until an explicit scope is supplied.</summary>
+              internal bool ValidateGrant() => false;
+            }}
+            """;
+        const string implementation = """
+            namespace Canary {
+            /// <summary>Contract that exposes a read-only operation without modifying media.</summary>
+            public interface IProbe {
+              /// <summary>Returns the observed number without any filesystem operation.</summary>
+              int Read();
+            }
+            /// <summary>Provides the in-memory implementation of a read-only example.</summary>
+            public sealed class Probe : IProbe {
+              /// <inheritdoc/>
+              public int Read() => 42;
+            }}
+            """;
+        const string unresolved = """
+            namespace Canary {
+            /// <summary>Exposes a service whose inherited documentation target is missing.</summary>
+            public sealed class Wrong {
+              /// <inheritdoc/>
+              public void Read() {}
+            }}
+            """;
+        const string partial2 = """
+            namespace Canary {
+            public partial class Example {
+            /// <summary>Returns a valid additional symbol defined by the second partial declaration.</summary>
+            public int PartialExtra() => 3;
+            }}
+            """;
+        const string privateOnly = """
+            namespace Canary {
+            /// <summary>Contains only an explicitly private implementation detail.</summary>
+            public class PrivateOnly {
+              private void Hidden() {}
+            }}
+            """;
+        var refs = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? "")
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Where(File.Exists).Select(x => MetadataReference.CreateFromFile(x)).ToArray();
+        if (refs.Length < 20) throw new InvalidOperationException("CANARY_TPA_MISSING");
+        Measurement M(string[] texts, params string[] defines)
+        {
+            var parse = CSharpParseOptions.Default.WithDocumentationMode(DocumentationMode.Diagnose)
+                .WithPreprocessorSymbols(defines);
+            var trees = texts.Select((text, i) => CSharpSyntaxTree.ParseText(
+                text, parse, "src/RomothequeManager.V2/Canary" + i + ".cs")).ToArray();
+            var compilation = CSharpCompilation.Create("Canary", trees, refs,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            return Measure("canary", compilation, ".");
+        }
+        void AssertRed(string name, Measurement before, Measurement after)
+        {
+            if (EvaluateGate(before, after).Pass)
+                throw new InvalidOperationException("DOC_GATE_E2E_RED_FAILED:" + name);
+            Console.WriteLine("DOC_GATE_E2E_RED_" + name + "_PASS");
+        }
+        void AssertGreen(string name, Measurement before, Measurement after)
+        {
+            if (!EvaluateGate(before, after).Pass)
+                throw new InvalidOperationException("DOC_GATE_E2E_GREEN_FAILED:" + name);
+            Console.WriteLine("DOC_GATE_E2E_GREEN_" + name + "_PASS");
+        }
+        var baseline = M([existing]);
+        if (baseline.Eligible != 2 || baseline.Documented != 2)
+            throw new InvalidOperationException("DOC_GATE_CANARY_BASELINE_INVALID");
+        AssertRed("NEW_PUBLIC_UNDOCUMENTED", baseline, M([newPublicMissing]));
+        AssertGreen("NEW_PUBLIC_DOCUMENTED", baseline, M([newPublicGood]));
+        AssertRed("LOST_XML_SUMMARY", baseline, M([lostSummary]));
+        AssertRed("REMOVED_ELIGIBLE_API", baseline, M([removedMember]));
+        AssertRed("DUPLICATE_XML_SUMMARY", baseline, M([duplicateSummary]));
+        AssertRed("INTERNAL_CRITICAL_MISSING", baseline, M([existing, criticalMissing]));
+        AssertGreen("INTERNAL_CRITICAL_DOCUMENTED", baseline, M([existing, criticalGood]));
+        AssertGreen("INHERITDOC_RESOLVED", M([implementation]), M([implementation]));
+        AssertRed("INHERITDOC_UNRESOLVED", M([implementation]), M([unresolved]));
+        AssertGreen("PARTIAL_DEDUP_DOCUMENTED", baseline, M([existing, partial2]));
+        AssertGreen("PRIVATE_EXCLUDED", M([privateOnly]), M([privateOnly]));
+        const string conditional = """
+            namespace Canary {
+            /// <summary>Contains conditionally compiled contractual source declarations.</summary>
+            public sealed class Conditional {
+            #if RELEASE
+              public int NewGrant() => 1;
+            #endif
+            }}
+            """;
+        var conditionalEnabled = M([conditional], "RELEASE");
+        var conditionalDisabled = M([conditional]);
+        if (conditionalEnabled.Eligible != 2 || conditionalDisabled.Eligible != 1)
+            throw new InvalidOperationException("DOC_CANARY_MSBUILD_DEFINES_NOT_EFFECTIVE");
+        Console.WriteLine("DOC_GATE_E2E_DEFINES_DIFFERENT_SYMBOL_SETS_PASS");
         return 0;
     }
 }
