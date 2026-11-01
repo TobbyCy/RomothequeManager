@@ -1,0 +1,925 @@
+{
+  "schema": "design-only/platform-icons-01/preproduction-1",
+  "status": "OWNER_GO_GRAPHIC_PREPRODUCTION_ONLY",
+  "runtimeContract": false,
+  "ownerValidatedPlatforms": [],
+  "platformMappings": [],
+  "platformListStatus": "AWAITING_EXPLICIT_OWNER_LIST",
+  "date": "2026-11-01",
+  "assets": [
+    {
+      "designId": "study-nes/console-name/dark",
+      "studyId": "study-nes",
+      "exampleDisplayName": "NES",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-name",
+      "theme": "dark",
+      "source": "sources/study-nes/console-name/dark.svg",
+      "smallSource": "sources/study-nes/console-name/dark-small.svg",
+      "labelMinimumHeight": 32,
+      "exports": [
+        {
+          "path": "png/study-nes/console-name/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-nes/console-name/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-nes/console-name/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-nes/console-name/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-nes/console-name/dark/32.png",
+          "width": 96,
+          "height": 32,
+          "source": "sources/study-nes/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-name/dark/48.png",
+          "width": 144,
+          "height": 48,
+          "source": "sources/study-nes/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-name/dark/64.png",
+          "width": 192,
+          "height": 64,
+          "source": "sources/study-nes/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-name/dark/128.png",
+          "width": 384,
+          "height": 128,
+          "source": "sources/study-nes/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-name/dark/256.png",
+          "width": 768,
+          "height": 256,
+          "source": "sources/study-nes/console-name/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-nes/console-name/light",
+      "studyId": "study-nes",
+      "exampleDisplayName": "NES",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-name",
+      "theme": "light",
+      "source": "sources/study-nes/console-name/light.svg",
+      "smallSource": "sources/study-nes/console-name/light-small.svg",
+      "labelMinimumHeight": 32,
+      "exports": [
+        {
+          "path": "png/study-nes/console-name/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-nes/console-name/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-nes/console-name/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-nes/console-name/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-nes/console-name/light/32.png",
+          "width": 96,
+          "height": 32,
+          "source": "sources/study-nes/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-name/light/48.png",
+          "width": 144,
+          "height": 48,
+          "source": "sources/study-nes/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-name/light/64.png",
+          "width": 192,
+          "height": 64,
+          "source": "sources/study-nes/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-name/light/128.png",
+          "width": 384,
+          "height": 128,
+          "source": "sources/study-nes/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-name/light/256.png",
+          "width": 768,
+          "height": 256,
+          "source": "sources/study-nes/console-name/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-nes/controller/dark",
+      "studyId": "study-nes",
+      "exampleDisplayName": "NES",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "controller",
+      "theme": "dark",
+      "source": "sources/study-nes/controller/dark.svg",
+      "smallSource": "sources/study-nes/controller/dark-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/study-nes/controller/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-nes/controller/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-nes/controller/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/dark/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-nes/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/dark/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-nes/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/dark/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-nes/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/dark/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-nes/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/dark/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-nes/controller/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-nes/controller/light",
+      "studyId": "study-nes",
+      "exampleDisplayName": "NES",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "controller",
+      "theme": "light",
+      "source": "sources/study-nes/controller/light.svg",
+      "smallSource": "sources/study-nes/controller/light-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/study-nes/controller/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-nes/controller/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-nes/controller/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/light/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-nes/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/light/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-nes/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/light/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-nes/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/light/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-nes/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/controller/light/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-nes/controller/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-nes/console-silhouette/dark",
+      "studyId": "study-nes",
+      "exampleDisplayName": "NES",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-silhouette",
+      "theme": "dark",
+      "source": "sources/study-nes/console-silhouette/dark.svg",
+      "smallSource": "sources/study-nes/console-silhouette/dark-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/study-nes/console-silhouette/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-nes/console-silhouette/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-nes/console-silhouette/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/dark/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-nes/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/dark/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-nes/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/dark/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-nes/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/dark/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-nes/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/dark/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-nes/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-nes/console-silhouette/light",
+      "studyId": "study-nes",
+      "exampleDisplayName": "NES",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-silhouette",
+      "theme": "light",
+      "source": "sources/study-nes/console-silhouette/light.svg",
+      "smallSource": "sources/study-nes/console-silhouette/light-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/study-nes/console-silhouette/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-nes/console-silhouette/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-nes/console-silhouette/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/light/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-nes/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/light/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-nes/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/light/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-nes/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/light/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-nes/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-nes/console-silhouette/light/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-nes/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-playstation/console-name/dark",
+      "studyId": "study-playstation",
+      "exampleDisplayName": "PlayStation",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-name",
+      "theme": "dark",
+      "source": "sources/study-playstation/console-name/dark.svg",
+      "smallSource": "sources/study-playstation/console-name/dark-small.svg",
+      "labelMinimumHeight": 32,
+      "exports": [
+        {
+          "path": "png/study-playstation/console-name/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-playstation/console-name/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-playstation/console-name/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-playstation/console-name/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-playstation/console-name/dark/32.png",
+          "width": 96,
+          "height": 32,
+          "source": "sources/study-playstation/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-name/dark/48.png",
+          "width": 144,
+          "height": 48,
+          "source": "sources/study-playstation/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-name/dark/64.png",
+          "width": 192,
+          "height": 64,
+          "source": "sources/study-playstation/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-name/dark/128.png",
+          "width": 384,
+          "height": 128,
+          "source": "sources/study-playstation/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-name/dark/256.png",
+          "width": 768,
+          "height": 256,
+          "source": "sources/study-playstation/console-name/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-playstation/console-name/light",
+      "studyId": "study-playstation",
+      "exampleDisplayName": "PlayStation",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-name",
+      "theme": "light",
+      "source": "sources/study-playstation/console-name/light.svg",
+      "smallSource": "sources/study-playstation/console-name/light-small.svg",
+      "labelMinimumHeight": 32,
+      "exports": [
+        {
+          "path": "png/study-playstation/console-name/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-playstation/console-name/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-playstation/console-name/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-playstation/console-name/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-playstation/console-name/light/32.png",
+          "width": 96,
+          "height": 32,
+          "source": "sources/study-playstation/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-name/light/48.png",
+          "width": 144,
+          "height": 48,
+          "source": "sources/study-playstation/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-name/light/64.png",
+          "width": 192,
+          "height": 64,
+          "source": "sources/study-playstation/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-name/light/128.png",
+          "width": 384,
+          "height": 128,
+          "source": "sources/study-playstation/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-name/light/256.png",
+          "width": 768,
+          "height": 256,
+          "source": "sources/study-playstation/console-name/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-playstation/controller/dark",
+      "studyId": "study-playstation",
+      "exampleDisplayName": "PlayStation",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "controller",
+      "theme": "dark",
+      "source": "sources/study-playstation/controller/dark.svg",
+      "smallSource": "sources/study-playstation/controller/dark-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/study-playstation/controller/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-playstation/controller/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-playstation/controller/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/dark/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-playstation/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/dark/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-playstation/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/dark/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-playstation/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/dark/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-playstation/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/dark/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-playstation/controller/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-playstation/controller/light",
+      "studyId": "study-playstation",
+      "exampleDisplayName": "PlayStation",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "controller",
+      "theme": "light",
+      "source": "sources/study-playstation/controller/light.svg",
+      "smallSource": "sources/study-playstation/controller/light-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/study-playstation/controller/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-playstation/controller/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-playstation/controller/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/light/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-playstation/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/light/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-playstation/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/light/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-playstation/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/light/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-playstation/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/controller/light/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-playstation/controller/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-playstation/console-silhouette/dark",
+      "studyId": "study-playstation",
+      "exampleDisplayName": "PlayStation",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-silhouette",
+      "theme": "dark",
+      "source": "sources/study-playstation/console-silhouette/dark.svg",
+      "smallSource": "sources/study-playstation/console-silhouette/dark-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/study-playstation/console-silhouette/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-playstation/console-silhouette/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-playstation/console-silhouette/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/dark/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-playstation/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/dark/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-playstation/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/dark/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-playstation/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/dark/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-playstation/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/dark/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-playstation/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-playstation/console-silhouette/light",
+      "studyId": "study-playstation",
+      "exampleDisplayName": "PlayStation",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-silhouette",
+      "theme": "light",
+      "source": "sources/study-playstation/console-silhouette/light.svg",
+      "smallSource": "sources/study-playstation/console-silhouette/light-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/study-playstation/console-silhouette/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-playstation/console-silhouette/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-playstation/console-silhouette/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/light/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-playstation/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/light/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-playstation/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/light/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-playstation/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/light/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-playstation/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-playstation/console-silhouette/light/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-playstation/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "fallback/dark",
+      "studyId": null,
+      "exampleDisplayName": null,
+      "platformKey": null,
+      "style": "neutral",
+      "theme": "dark",
+      "source": "sources/fallback/dark.svg",
+      "smallSource": "sources/fallback/dark-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/fallback/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/fallback/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/fallback/dark-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/dark/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/fallback/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/dark/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/fallback/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/dark/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/fallback/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/dark/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/fallback/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/dark/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/fallback/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "fallback/light",
+      "studyId": null,
+      "exampleDisplayName": null,
+      "platformKey": null,
+      "style": "neutral",
+      "theme": "light",
+      "source": "sources/fallback/light.svg",
+      "smallSource": "sources/fallback/light-small.svg",
+      "labelMinimumHeight": null,
+      "exports": [
+        {
+          "path": "png/fallback/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/fallback/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/fallback/light-small.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/light/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/fallback/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/light/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/fallback/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/light/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/fallback/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/light/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/fallback/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/fallback/light/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/fallback/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    }
+  ],
+  "rightsReview": "DEV2_PENDING",
+  "visualDirectionApproval": "CONTROLLER_PENDING",
+  "originalShapes": true,
+  "thirdPartyLogoDownloads": 0,
+  "sourceHashes": {
+    "sources/fallback/dark-small.svg": "29fa897fdcc6eb7a7c8588a07496821d72419d5fc4889f0eea5666af0e517b23",
+    "sources/fallback/dark.svg": "b36abd1f47542ad6831b3a2a04b8e1b04670c86a98f2afb42e2bd0569f30a958",
+    "sources/fallback/light-small.svg": "ffaeaaa3b3a895ebf619c7817457bdee68e8545fcc5e4393d83f3627e19bd503",
+    "sources/fallback/light.svg": "9339870029a7d6719aef7ef0f239f6a7df8ade09a9cbf7b591f4108bf57618f2",
+    "sources/study-nes/console-name/dark-small.svg": "24f4535dd832bccb65686c3d222f527aa430bb2ec66a75bb95afb6679f16b6eb",
+    "sources/study-nes/console-name/dark.svg": "4104bc4110873c0e5505b186e2a55050b6c15b37e0f694d62f44729053374164",
+    "sources/study-nes/console-name/light-small.svg": "47051b05c0c67c05a6e9adb14ae055b2b058c537eb24fc4d5e9a47898f3bf471",
+    "sources/study-nes/console-name/light.svg": "1f4e565ef7b68f54b8bcf22747f245502fd3a6b7d2c84f1fd52e17e261e69bdb",
+    "sources/study-nes/console-silhouette/dark-small.svg": "0161a2eede466904eb9e6d3894d4eb69bcc3307599cfef30b2043c1f7b77ed92",
+    "sources/study-nes/console-silhouette/dark.svg": "a6957f5c86090c8f787b71855b02bc3994a373ded57f7041575093c4838fc853",
+    "sources/study-nes/console-silhouette/light-small.svg": "5b415aa6cc548cb630a00e512a7f08a523764b8d30cf71ca2edff5a2e387b08b",
+    "sources/study-nes/console-silhouette/light.svg": "bbc9fe28905d01632bbb47f579128dff0e0c34e68c573b91a78a21081c1e5a1a",
+    "sources/study-nes/controller/dark-small.svg": "eb8123f712bb6b68afb67c1a1db3c59a52fcfe754e7f5011fec83075dcf55731",
+    "sources/study-nes/controller/dark.svg": "99b74a6a045758549811818f28db4d0317f3ab9aa0c2049d22d85237b83b4828",
+    "sources/study-nes/controller/light-small.svg": "ec9a35d01b9865046dd6586de1de112234d756d5c09a4931477f511db4525214",
+    "sources/study-nes/controller/light.svg": "234f45d4db316c823a2b129998c04576d85c31df0c73594ace3f7205a256c4e2",
+    "sources/study-playstation/console-name/dark-small.svg": "740dd6402f293ac58777a9fd5d6c7fbedc73ca332087cb32017e06d1a66d48f8",
+    "sources/study-playstation/console-name/dark.svg": "b5fb7aa20e9b04917584137b71367fb037017ff5b1355a069bff4651a752463f",
+    "sources/study-playstation/console-name/light-small.svg": "ebd20b25ac890b706c5af01581a48febc8e4162f189588e86853e31a9fb6a213",
+    "sources/study-playstation/console-name/light.svg": "223e6ec535d80c0ceefa42e1fe9bd17cc6563b32b8c80a8909119de552b19b07",
+    "sources/study-playstation/console-silhouette/dark-small.svg": "e92c73ab8979846447d4cadd506e16faa1447c95749e39c72983016f73fd7c19",
+    "sources/study-playstation/console-silhouette/dark.svg": "853ca57ee77a4fedf1c2969f8ef8ab52c095ecf02571cc5f091891411b651120",
+    "sources/study-playstation/console-silhouette/light-small.svg": "05b7ea293514c6d95d484d27ff0ae28f80af6bd7dbc7f0a1401893f5905bf628",
+    "sources/study-playstation/console-silhouette/light.svg": "2750ef441e8229b052445ec08fcfc0d0c0f4a7844425075717f96e85d9034dee",
+    "sources/study-playstation/controller/dark-small.svg": "dc085f7fb3f253a2e50509a09fa8bfb09c6bb1ad0faaf2ef8b83dca4795979a6",
+    "sources/study-playstation/controller/dark.svg": "b53bc7ff5629e2a39fdecc58644d5272b9327f2561afd4480ea6f78b9779774d",
+    "sources/study-playstation/controller/light-small.svg": "06dfedee476453a476935eaccef5994adfcfdd0bdbe769117d51eabf3ffbbef8",
+    "sources/study-playstation/controller/light.svg": "24d055955cf54195c9a05b1e4e4d48fd2b679cfd1ac66cd493ef7b2dbe5b9758"
+  }
+}
