@@ -490,21 +490,45 @@ jobs:
           python -B tools/doc-coverage/check_site.py docs/api-reference
           if ($LASTEXITCODE -ne 0) { throw 'DOCFX_UID_OR_LINK_FAILED' }
           Copy-Item docs/api-reference/site-check.json $report
-      - name: Roslyn semantic coverage and real red green canaries
+      - name: Roslyn semantic coverage with real native MSBuild manifests and e2e canaries
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          dotnet restore tools/doc-coverage/DocCoverage.csproj
-          if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_RESTORE_FAILED' }
-          dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --canaries
-          if ($LASTEXITCODE -ne 0) { throw 'DOC_CANARY_FAILED' }
+          $report = Join-Path $env:RUNNER_TEMP 'docfx-internal-reference'
+          New-Item -ItemType Directory -Force -Path $report | Out-Null
           $base = (git rev-parse 'HEAD^1').Trim()
           if ($LASTEXITCODE -ne 0 -or $base -notmatch '^[a-f0-9]{40}$') { throw 'DOC_BASE_SHA_MISSING' }
           $source = if ($env:GITHUB_EVENT_NAME -eq 'pull_request') { (git rev-parse 'HEAD^2').Trim() } else { (git rev-parse 'HEAD').Trim() }
           if ($LASTEXITCODE -ne 0 -or $source -notmatch '^[a-f0-9]{40}$') { throw 'DOC_SOURCE_SHA_MISSING' }
           $env:DOC_SOURCE_SHA = $source
-          dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --root . --base $base --out (Join-Path $env:RUNNER_TEMP 'docfx-internal-reference')
-          if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_BELOW_CONTRACT' }
+          $targets = (Resolve-Path 'tools/doc-coverage/DocCoverage.targets').Path
+          $headProject = (Resolve-Path 'src/RomothequeManager.V2/RomothequeManager.V2.csproj').Path
+          $headInputs = Join-Path $report 'head.msbuild-inputs'
+          $baseInputs = Join-Path $report 'base.msbuild-inputs'
+          dotnet build $headProject -c Release --no-restore -p:GenerateDocumentationFile=true -p:TreatWarningsAsErrors=false "-p:CustomAfterMicrosoftCommonTargets=$targets" "-p:DocCoverageManifest=$headInputs" 2>&1 |
+            Tee-Object -FilePath (Join-Path $report 'head-msbuild.log')
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $headInputs)) { throw 'DOC_HEAD_REAL_MSBUILD_MANIFEST_FAILED' }
+          $baselineRoot = Join-Path $env:RUNNER_TEMP ('rm-docfx-baseline-' + $base.Substring(0,12))
+          if (Test-Path $baselineRoot) { throw 'DOC_BASELINE_WORKTREE_ALREADY_EXISTS' }
+          git worktree add --detach -- $baselineRoot $base
+          if ($LASTEXITCODE -ne 0) { throw 'DOC_BASELINE_WORKTREE_CREATE_FAILED' }
+          try {
+            $baseProject = Join-Path $baselineRoot 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+            dotnet restore $baseProject --locked-mode
+            if ($LASTEXITCODE -ne 0) { throw 'DOC_BASELINE_RESTORE_FAILED' }
+            dotnet build $baseProject -c Release --no-restore -p:GenerateDocumentationFile=true -p:TreatWarningsAsErrors=false "-p:CustomAfterMicrosoftCommonTargets=$targets" "-p:DocCoverageManifest=$baseInputs" 2>&1 |
+              Tee-Object -FilePath (Join-Path $report 'base-msbuild.log')
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path $baseInputs)) { throw 'DOC_BASE_REAL_MSBUILD_MANIFEST_FAILED' }
+            dotnet restore tools/doc-coverage/DocCoverage.csproj
+            if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_TOOL_RESTORE_FAILED' }
+            dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --canaries
+            if ($LASTEXITCODE -ne 0) { throw 'DOC_GATE_E2E_CANARIES_FAILED' }
+            dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --root . --base $base --out $report --head-inputs $headInputs --base-inputs $baseInputs
+            if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_NATIVE_GATE_FAILED' }
+          } finally {
+            git worktree remove --force -- $baselineRoot
+            if ($LASTEXITCODE -ne 0) { throw 'DOC_BASELINE_WORKTREE_CLEANUP_FAILED' }
+          }
       - name: Store only temporary internal DocFX site and coverage evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
