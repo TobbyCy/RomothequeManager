@@ -339,6 +339,9 @@ def verify_public_ci_guard(root):
     actual = {line.strip() for line in owners.splitlines()
               if line.strip() and not line.lstrip().startswith("#")}
     require(expected <= actual, "PUBLIC_CI_CODEOWNERS_MISSING")
+    docfx_job = workflow.split("  ci-docfx:\n", 1)[1].split("\n  ci-policy-gate:", 1)[0]
+    require("    if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' }}" in docfx_job,
+            "PUBLIC_CI_DOCFX_CANNOT_BE_OPTIONAL")
     require("  ci-docfx:" in workflow and
             "ci-docfx]" in workflow and
             "ci-policy-gate:" in workflow and
