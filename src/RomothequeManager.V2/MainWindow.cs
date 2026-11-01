@@ -8,6 +8,10 @@ using Avalonia.Media.Imaging;
 
 namespace RomothequeManager.V2;
 
+/// <summary>
+/// Standard Avalonia shell. Native selection and consent remain in this View;
+/// explicit ES-DE import state and commands are owned by the injected VM.
+/// </summary>
 public sealed partial class MainWindow : Window
 {
     // Never construct the built-in demo catalogue on a normal, empty launch.
@@ -112,10 +116,16 @@ public sealed partial class MainWindow : Window
     }
     private readonly List<SidebarVisual> _sidebarVisuals = [];
 
+    /// <summary>Visible shell route; selecting a route does not start an import or scan.</summary>
     public POCView CurrentView => ActiveView;
 
     // Exercises the three real Avalonia visual trees after the window opens.
     // The normal UI still uses actual buttons/textbox for human interaction.
+    /// <summary>
+    /// CI-only synthetic navigation smoke over the Avalonia view tree, not the
+    /// human Windows recipe or a proof of real ROM/MEDIAS scan permissions.
+    /// </summary>
+    /// <returns>True when four synthetic views can be constructed and navigated.</returns>
     public bool SmokeExerciseFourViews()
     {
         // --smoke-window is an explicit synthetic test, not normal startup.
@@ -141,8 +151,26 @@ public sealed partial class MainWindow : Window
         return _state.CurrentView == POCView.Dashboard && _page.Children.Count >= 3;
     }
 
+    /// <summary>
+    /// Constructs the standard shell without auto-import; the folder picker
+    /// and second explicit read-only consent are required before ES-DE I/O.
+    /// </summary>
     public MainWindow()
     {
+        _importVm = new ImportedCatalogueViewModel(_importedUi);
+        _importVm.PropertyChanged += (_, change) =>
+        {
+            // Track UI scroll before an asynchronous refresh, without owning its job.
+            if (change.PropertyName == nameof(ImportedCatalogueViewModel.IsBusy))
+            {
+                var collection = _importedUi.IsImported && ActiveView == POCView.Collection;
+                if (_importVm.IsBusy && collection)
+                    _importedCollectionOffset = _contentScroll?.Offset ?? default;
+                Render();
+                if (!_importVm.IsBusy && collection)
+                    RestoreCollectionOffset(true);
+            }
+        };
         _demoProjection = new Lazy<LibraryProjection>(() => LibraryProjection.LoadSynthetic(_state.Catalogue));
         _demoLibraries = new Lazy<LibraryViewState>(() => new LibraryViewState(_libraryProjection));
         SizeChanged += (_, _) =>
@@ -174,6 +202,7 @@ public sealed partial class MainWindow : Window
         var logoBitmap = new Bitmap(logoPath);
         Closed += (_, _) =>
         {
+            _importVm.Dispose(); // cancel outstanding ES-DE import and suppress late callbacks
             StopLegacyMediaOnClose(); // detach and Dispose thumbnails before close
             logoBitmap.Dispose();
         };
@@ -213,7 +242,8 @@ public sealed partial class MainWindow : Window
         menu.Children.Add(SidebarButton("Inventaire de fichiers · sans ES-DE", () =>
             new ObservedLibraryWindow().Show(this)));
         menu.Children.Add(SidebarButton("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
-        _refreshImportButton = SidebarButton("Actualiser l'import", () => _ = RefreshImportAsync());
+        _refreshImportButton = SidebarButton("Actualiser l'import", null);
+        _refreshImportButton.Command = _importVm.RefreshCommand;
         menu.Children.Add(_refreshImportButton);
         _refreshImportHint = Text("Disponible après import d'une bibliothèque ES-DE.", 11);
         menu.Children.Add(_refreshImportHint);
@@ -276,7 +306,7 @@ public sealed partial class MainWindow : Window
 
     // Native button remains focusable/keyboard accessible. Label and surface colors
     // are under our control for inactive, active and pointer-hover states.
-    private Button SidebarButton(string title, Action action, POCView? view = null)
+    private Button SidebarButton(string title, Action? action, POCView? view = null)
     {
         var label = new TextBlock
         {
@@ -301,7 +331,7 @@ public sealed partial class MainWindow : Window
         state.Control = button;
         button.PointerEntered += (_, _) => { state.Hovered = true; UpdateSidebarStyles(); };
         button.PointerExited += (_, _) => { state.Hovered = false; UpdateSidebarStyles(); };
-        button.Click += (_, _) => action();
+        if (action is not null) button.Click += (_, _) => action();
         return button;
     }
 
@@ -383,8 +413,8 @@ public sealed partial class MainWindow : Window
 
     private void Render()
     {
-        if (_refreshImportButton is not null) _refreshImportButton.IsEnabled = _importedUi.IsImported && !_importBusy;
-        if (_viewImportButton is not null) _viewImportButton.IsEnabled = _importedUi.HasImportedCatalogue && !_importBusy;
+        if (_refreshImportButton is not null) _refreshImportButton.IsEnabled = _importVm.CanRefresh;
+        if (_viewImportButton is not null) _viewImportButton.IsEnabled = _importedUi.HasImportedCatalogue && !_importVm.IsBusy;
         if (_refreshImportHint is not null) _refreshImportHint.IsVisible = _refreshImportButton?.IsEnabled != true;
         if (_viewImportHint is not null) _viewImportHint.IsVisible = _viewImportButton?.IsEnabled != true;
         UpdateSidebarStyles();
@@ -400,11 +430,17 @@ public sealed partial class MainWindow : Window
             " — Démonstration" : "");
         if (_importedUi.ErrorMessage is not null)
             _page.Children.Add(Notice("Import non effectué", _importedUi.ErrorMessage, warning: true));
-        if (_importBusy)
+        if (_importVm.IsBusy)
         {
             _page.Children.Add(Notice("Import ES-DE en cours",
                 "Lecture des métadonnées sélectionnées ; pas de scan global ni d'écriture."));
             _page.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 5 });
+            _page.Children.Add(new Button
+            {
+                Content = "Annuler l'import ES-DE",
+                Command = _importVm.CancelCommand,
+                MinHeight = 40
+            });
         }
         if (_importedUi.IsImported)
         {
