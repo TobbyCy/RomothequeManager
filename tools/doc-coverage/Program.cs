@@ -458,9 +458,9 @@ internal static class Program
             " addedUndocumented=" + highGate.Added.Length);
         AssertGreen("ATYPICAL_INTERNAL_DOCUMENTED_90_PLUS", highBaseline, highDocumented);
         var highPublicMissing = M([documentedStableSuite,
-            "namespace RomothequeManager.V2 {" +
-            "/// <summary>Contains a newly exported synthetic read probe that lacks an XML member summary.</summary>" +
-            "public sealed class AdditionalApi { public bool Read() => false; }}"]);
+            "namespace RomothequeManager.V2 {\n" +
+            "/// <summary>Contains a newly exported synthetic read probe that lacks an XML member summary.</summary>\n" +
+            "public sealed class AdditionalApi { public bool Read() => false; }\n}\n"]);
         if (10L * highPublicMissing.Documented < 9L * highPublicMissing.Eligible)
             throw new InvalidOperationException("DOC_GATE_HIGH_RATIO_PUBLIC_CANARY_NOT_OVER_90");
         AssertRed("NEW_PUBLIC_UNDOCUMENTED_90_PLUS", highBaseline, highPublicMissing);
