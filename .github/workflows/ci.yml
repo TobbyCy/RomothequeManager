@@ -500,6 +500,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'DOC_CANARY_FAILED' }
           $base = (git rev-parse 'HEAD^1').Trim()
           if ($LASTEXITCODE -ne 0 -or $base -notmatch '^[a-f0-9]{40}$') { throw 'DOC_BASE_SHA_MISSING' }
+          $source = if ($env:GITHUB_EVENT_NAME -eq 'pull_request') { (git rev-parse 'HEAD^2').Trim() } else { (git rev-parse 'HEAD').Trim() }
+          if ($LASTEXITCODE -ne 0 -or $source -notmatch '^[a-f0-9]{40}$') { throw 'DOC_SOURCE_SHA_MISSING' }
+          $env:DOC_SOURCE_SHA = $source
           dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --root . --base $base --out (Join-Path $env:RUNNER_TEMP 'docfx-internal-reference')
           if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_BELOW_CONTRACT' }
       - name: Store only temporary internal DocFX site and coverage evidence
