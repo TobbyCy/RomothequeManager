@@ -33,12 +33,51 @@ public sealed record EsDeCatalogueSnapshot(
 /// <see cref="Current"/> and the previously selected source root.</remarks>
 public sealed class EsDeImportSession
 {
+    private readonly object _sessionGate = new();
+    private readonly object _refreshAuthority = new();
     private string _root;
     // Session-scoped identity: persists through reimports and verified relocation.
     // A new process/session needs explicit future persistence or re-association.
     private readonly string _libraryId = "library-" + Guid.NewGuid().ToString("N");
-    public EsDeCatalogueSnapshot? Current { get; private set; }
+    private EsDeCatalogueSnapshot? _current;
+    private long _revision;
 
+    /// <summary>Last committed catalogue; preparing a refresh cannot change this snapshot.</summary>
+    public EsDeCatalogueSnapshot? Current
+    {
+        get { lock (_sessionGate) return _current; }
+        private set { lock (_sessionGate) _current = value; }
+    }
+
+    /// <summary>
+    /// Opaque, session-bound proposal containing an existing-importer result.
+    /// It grants no permission and cannot be constructed by callers outside this assembly.
+    /// </summary>
+    public sealed class PreparedEsDeRefresh
+    {
+        internal PreparedEsDeRefresh(EsDeImportSession owner, object authority,
+            string root, long revision, EsDeCatalogueSnapshot? expectedCurrent,
+            EsDeCatalogueSnapshot snapshot)
+        {
+            Owner = owner;
+            Authority = authority;
+            Root = root;
+            Revision = revision;
+            ExpectedCurrent = expectedCurrent;
+            Snapshot = snapshot;
+        }
+
+        internal EsDeImportSession Owner { get; }
+        internal object Authority { get; }
+        internal string Root { get; }
+        internal long Revision { get; }
+        internal EsDeCatalogueSnapshot? ExpectedCurrent { get; }
+
+        /// <summary>Fully parsed candidate; not adopted by the session until commit succeeds.</summary>
+        public EsDeCatalogueSnapshot Snapshot { get; }
+    }
+
+    /// <summary>Creates a session for a caller-explicit library root, without reading files.</summary>
     public EsDeImportSession(string explicitlySelectedLibraryRoot)
     {
         if (string.IsNullOrWhiteSpace(explicitlySelectedLibraryRoot))
@@ -46,14 +85,73 @@ public sealed class EsDeImportSession
         _root = Path.GetFullPath(explicitlySelectedLibraryRoot);
     }
 
-    // Build fully in temporary memory; failure leaves Current untouched.
+    // Keep the historical explicit import semantics; synchronize publication with
+    // relocation and media membership so a staged refresh cannot be adopted over it.
     /// <summary>Explicitly imports from the selected root into a staged in-memory catalogue.</summary>
     /// <returns>The complete accepted catalogue; an exception never replaces Current.</returns>
     public EsDeCatalogueSnapshot Import()
     {
-        var staged = EsDeCatalogueImporter.Read(_root, _libraryId);
-        Current = staged;
-        return staged;
+        lock (_sessionGate)
+        {
+            var staged = EsDeCatalogueImporter.Read(_root, _libraryId);
+            _current = staged;
+            ++_revision;
+            return staged;
+        }
+    }
+
+    /// <summary>
+    /// Parses the existing explicitly selected ES-DE root without changing Current,
+    /// media authority, selected root, or session identity.
+    /// </summary>
+    /// <remarks>The parser is synchronous and not physically cancellable.
+    /// A worker can discard this proposal before commit after Cancel or Dispose.</remarks>
+    /// <returns>A proposal bound to this session, its selected root, revision, and accepted snapshot.</returns>
+    public PreparedEsDeRefresh PrepareRefresh()
+    {
+        string capturedRoot;
+        long capturedRevision;
+        EsDeCatalogueSnapshot? accepted;
+        lock (_sessionGate)
+        {
+            capturedRoot = _root;
+            capturedRevision = _revision;
+            accepted = _current;
+        }
+
+        // The one existing ES-DE reader keeps all XML, media path, fingerprint V2,
+        // and read-only policy. Parsing never touches the session's accepted state.
+        var candidate = EsDeCatalogueImporter.Read(capturedRoot, _libraryId);
+        return new PreparedEsDeRefresh(this, _refreshAuthority, capturedRoot,
+            capturedRevision, accepted, candidate);
+    }
+
+    /// <summary>
+    /// Atomically commits an already parsed proposal only if its originating
+    /// session, selected root, revision, and accepted Current still match.
+    /// </summary>
+    /// <remarks>No file reads, callbacks or permission changes occur during this commit.
+    /// Call only after the owner UI validates Cancel, generation and Dispose;
+    /// adopt Snapshot in the UI synchronously without an await or notification gap.</remarks>
+    /// <param name="prepared">Opaque candidate returned by PrepareRefresh on this session.</param>
+    /// <returns>False without changing state for a stale, foreign, or previously committed candidate.</returns>
+    public bool TryCommitPreparedRefresh(PreparedEsDeRefresh? prepared)
+    {
+        if (prepared is null) return false;
+        lock (_sessionGate)
+        {
+            if (!ReferenceEquals(prepared.Owner, this) ||
+                !ReferenceEquals(prepared.Authority, _refreshAuthority) ||
+                !string.Equals(prepared.Root, _root, StringComparison.Ordinal) ||
+                prepared.Revision != _revision ||
+                !ReferenceEquals(prepared.ExpectedCurrent, _current) ||
+                !string.Equals(prepared.Snapshot.LibraryId, _libraryId, StringComparison.Ordinal))
+                return false;
+
+            _current = prepared.Snapshot;
+            ++_revision; // The same candidate cannot be committed a second time.
+            return true;
+        }
     }
 
     // A new drive letter/path must be explicitly supplied and have matching content.
@@ -63,20 +161,24 @@ public sealed class EsDeImportSession
     /// <returns>A verified catalogue under the existing session identity.</returns>
     public EsDeCatalogueSnapshot RelocateVerified(string explicitlySelectedNewRoot)
     {
-        if (Current is null) throw new InvalidOperationException("Import before relocation.");
-        // V1 (legacy 24-hex), unknown versions and malformed V2 are never relocation proofs.
-        // Reject BEFORE reading a candidate root; an explicit Import() is the only
-        // re-baseline route from the already selected root, never a silent migration.
-        if (!EsDeFingerprintV2.IsSupportedV2Fingerprint(Current.ContentFingerprint))
-            throw new InvalidDataException("Relocation not verified: unsupported fingerprint version.");
-        var newRoot = Path.GetFullPath(explicitlySelectedNewRoot);
-        var staged = EsDeCatalogueImporter.Read(newRoot, _libraryId);
-        if (!EsDeFingerprintV2.IsSupportedV2Fingerprint(staged.ContentFingerprint) ||
-            !string.Equals(staged.ContentFingerprint, Current.ContentFingerprint, StringComparison.Ordinal))
-            throw new InvalidDataException("Relocation not verified: catalogue fingerprint differs.");
-        _root = newRoot;
-        Current = staged;
-        return staged;
+        lock (_sessionGate)
+        {
+            if (_current is null) throw new InvalidOperationException("Import before relocation.");
+            // V1 (legacy 24-hex), unknown versions and malformed V2 are never relocation proofs.
+            // Reject BEFORE reading a candidate root; an explicit Import() is the only
+            // re-baseline route from the already selected root, never a silent migration.
+            if (!EsDeFingerprintV2.IsSupportedV2Fingerprint(_current.ContentFingerprint))
+                throw new InvalidDataException("Relocation not verified: unsupported fingerprint version.");
+            var newRoot = Path.GetFullPath(explicitlySelectedNewRoot);
+            var staged = EsDeCatalogueImporter.Read(newRoot, _libraryId);
+            if (!EsDeFingerprintV2.IsSupportedV2Fingerprint(staged.ContentFingerprint) ||
+                !string.Equals(staged.ContentFingerprint, _current.ContentFingerprint, StringComparison.Ordinal))
+                throw new InvalidDataException("Relocation not verified: catalogue fingerprint differs.");
+            _root = newRoot;
+            _current = staged;
+            ++_revision;
+            return staged;
+        }
     }
 
     // Never trust Exists from a previous import: enforce snapshot membership and
@@ -89,19 +191,22 @@ public sealed class EsDeImportSession
     public bool TryOpenMedia(EsDeMedia media, out Stream? stream)
     {
         stream = null;
-        if (media is null || Current is null) return false;
-        if (!Current.Games.SelectMany(game => game.Media).Contains(media)) return false;
-        try
+        lock (_sessionGate)
         {
-            var path = EsDeCatalogueImporter.ResolveSnapshotMedia(_root, media.RelativePath);
-            stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return true;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
-            or InvalidDataException or ArgumentException or System.Security.SecurityException
-            or NotSupportedException)
-        {
-            return false;
+            if (media is null || _current is null) return false;
+            if (!_current.Games.SelectMany(game => game.Media).Contains(media)) return false;
+            try
+            {
+                var path = EsDeCatalogueImporter.ResolveSnapshotMedia(_root, media.RelativePath);
+                stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+                or InvalidDataException or ArgumentException or System.Security.SecurityException
+                or NotSupportedException)
+            {
+                return false;
+            }
         }
     }
 }
