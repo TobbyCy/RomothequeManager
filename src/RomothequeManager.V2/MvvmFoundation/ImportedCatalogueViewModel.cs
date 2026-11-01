@@ -103,6 +103,7 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
         _operation = source;
         _busy = true;
         SetStatus("Running");
+        OnChanged(nameof(IsBusy));
         NotifyCommands();
         try
         {
@@ -246,7 +247,6 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
 
     private void NotifyCommands()
     {
-        OnChanged(nameof(IsBusy));
         OnChanged(nameof(CanImport));
         OnChanged(nameof(CanRefresh));
         OnChanged(nameof(CanCancel));
