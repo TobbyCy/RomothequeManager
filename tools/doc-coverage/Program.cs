@@ -34,8 +34,9 @@ internal static class Program
         try
         {
             if (args.SequenceEqual(new[] { "--canaries" })) return RunCanaries();
-            if (args.Length != 6 || args[0] != "--root" || args[2] != "--base" || args[4] != "--out")
-                throw new InvalidOperationException("Usage: --root DIR --base SHA --out DIR | --canaries");
+            if (args.Length != 10 || args[0] != "--root" || args[2] != "--base" ||
+                args[4] != "--out" || args[6] != "--head-inputs" || args[8] != "--base-inputs")
+                throw new InvalidOperationException("Usage: --root DIR --base SHA --out DIR --head-inputs MSBUILD_MANIFEST --base-inputs MSBUILD_MANIFEST | --canaries");
             var root = Path.GetFullPath(args[1]);
             var baseSha = args[3];
             if (!System.Text.RegularExpressions.Regex.IsMatch(baseSha, "^[0-9a-f]{40}$"))
@@ -45,21 +46,18 @@ internal static class Program
             var sourceSha = Environment.GetEnvironmentVariable("DOC_SOURCE_SHA") ?? headSha;
             if (!System.Text.RegularExpressions.Regex.IsMatch(sourceSha, "^[0-9a-f]{40}$"))
                 throw new InvalidOperationException("SOURCE_SHA_INVALID");
-            var head = Measure(headSha, LocalFiles(root));
-            var baseline = Measure(baseSha, GitFiles(root, baseSha));
+            var headInputs = RealProjectInputs.Read(args[7]);
+            var baseInputs = RealProjectInputs.Read(args[9]);
+            var headCompilation = headInputs.Compile();
+            var baseCompilation = baseInputs.Compile();
+            var head = Measure(headSha, headCompilation, root);
+            var baseline = Measure(baseSha, baseCompilation, root);
+            headInputs.VerifyActualAssembly(headCompilation, head.Symbols.Select(x => x.Id));
+            baseInputs.VerifyActualAssembly(baseCompilation, baseline.Symbols.Select(x => x.Id));
             Directory.CreateDirectory(dir);
             Save(dir, "head.json", head);
             Save(dir, "base.json", baseline);
-            var baseIds = baseline.Symbols.ToDictionary(x => x.Id, StringComparer.Ordinal);
-            var headIds = head.Symbols.ToDictionary(x => x.Id, StringComparer.Ordinal);
-            var added = head.Symbols.Where(x => !baseIds.ContainsKey(x.Id)).ToArray();
-            var removed = baseline.Symbols.Where(x => !headIds.ContainsKey(x.Id)).ToArray();
-            var lostDocs = head.Symbols.Where(x => baseIds.TryGetValue(x.Id, out var b) && b.Documented && !x.Documented).ToArray();
-            bool pass = head.Eligible > 0 && baseline.Eligible > 0
-                && 10L * head.Documented >= 9L * head.Eligible
-                && added.All(x => x.Documented)
-                && (long)head.Documented * baseline.Eligible >= (long)baseline.Documented * head.Eligible
-                && lostDocs.Length == 0 && removed.Length == 0;
+            var (pass, added, removed, lostDocs) = EvaluateGate(baseline, head);
             Save(dir, "gate.json", new
             {
                 schema = "1.0", headSha, sourceSha, baseSha, headEligible = head.Eligible,
