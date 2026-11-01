@@ -10,9 +10,23 @@ public sealed record ImportedSystem(string Platform, int ReferencedGames);
 public sealed class ImportedCatalogueUiState
 {
     private EsDeImportSession? _session;
+    private EsDeCatalogueSnapshot? _acceptedSnapshot;
+    private readonly IEsDeImportApplicationService _applicationService;
+
+    /// <summary>Presentation state; import I/O is delegated to an application service.</summary>
+    public ImportedCatalogueUiState() : this(new EsDeImportApplicationService()) { }
+
+    /// <summary>Use an injected read-only importer for testable, explicit operations.</summary>
+    public ImportedCatalogueUiState(IEsDeImportApplicationService applicationService) =>
+        _applicationService = applicationService ?? throw new ArgumentNullException(nameof(applicationService));
+
+    internal IEsDeImportApplicationService ApplicationService => _applicationService;
+    internal EsDeImportSession? Session => _session;
+
     public CatalogueMode Mode { get; private set; } = CatalogueMode.NoCatalog;
     public bool HasImportedCatalogue => Snapshot is not null;
-    public EsDeCatalogueSnapshot? Snapshot => _session?.Current;
+    // An asynchronous reimport may finish after Cancel; never display a non-adopted snapshot.
+    public EsDeCatalogueSnapshot? Snapshot => _acceptedSnapshot;
     public bool IsImported => Mode == CatalogueMode.Imported && Snapshot is not null;
     public string? ErrorMessage { get; private set; }
     public string SearchText { get; private set; } = "";
@@ -47,6 +61,7 @@ public sealed class ImportedCatalogueUiState
         if (prepared?.Current is null)
             throw new ArgumentException("A validated import is required.", nameof(prepared));
         _session = prepared;
+        _acceptedSnapshot = prepared.Current;
         Mode = CatalogueMode.Imported;
         SearchText = "";
         SelectedPlatform = null;
@@ -56,13 +71,15 @@ public sealed class ImportedCatalogueUiState
         ErrorMessage = null;
     }
 
+    // Compatibility entrypoints for existing tests; the standard View calls its
+    // observable VM, never these blocking methods. No parsing/I/O lives here.
     public bool TryImport(string selectedRoot)
     {
         try
         {
-            var staged = new EsDeImportSession(selectedRoot);
-            staged.Import();
-            Adopt(staged);
+            var prepared = _applicationService.PrepareAsync(selectedRoot, CancellationToken.None)
+                .GetAwaiter().GetResult();
+            Adopt(prepared);
             return true;
         }
         catch (Exception error) when (IsExpectedImportError(error))
@@ -81,15 +98,9 @@ public sealed class ImportedCatalogueUiState
         }
         try
         {
-            var updated = _session.Import();
-            SelectedGameId = updated.Games.Any(g => g.GameId == SelectedGameId) ? SelectedGameId : null;
-            if (SelectedPlatform is not null && !updated.Games.Any(g =>
-                    string.Equals(g.Platform, SelectedPlatform, StringComparison.OrdinalIgnoreCase)))
-                SelectedPlatform = null;
-            if (SelectedGameId is null && CurrentView == POCView.GameDetail)
-                CurrentView = POCView.Collection;
-            PageIndex = Math.Min(PageIndex, PageCount - 1);
-            ErrorMessage = null;
+            var updated = _applicationService.RefreshAsync(_session, CancellationToken.None)
+                .GetAwaiter().GetResult();
+            ApplyRefresh(updated);
             return true;
         }
         catch (Exception error) when (IsExpectedImportError(error))
@@ -97,6 +108,26 @@ public sealed class ImportedCatalogueUiState
             ImportFailed(error);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Adopt only a completed refresh, preserving the selection and session identity.
+    /// Must be called by its VM after cancellation/generation checks.
+    /// </summary>
+    internal void ApplyRefresh(EsDeCatalogueSnapshot updated)
+    {
+        if (_session is null || _acceptedSnapshot is null ||
+            !string.Equals(updated.LibraryId, _acceptedSnapshot.LibraryId, StringComparison.Ordinal))
+            throw new InvalidOperationException("ESDE_REFRESH_LIBRARY_ID_MISMATCH");
+        _acceptedSnapshot = updated;
+        SelectedGameId = updated.Games.Any(g => g.GameId == SelectedGameId) ? SelectedGameId : null;
+        if (SelectedPlatform is not null && !updated.Games.Any(g =>
+            string.Equals(g.Platform, SelectedPlatform, StringComparison.OrdinalIgnoreCase)))
+            SelectedPlatform = null;
+        if (SelectedGameId is null && CurrentView == POCView.GameDetail)
+            CurrentView = POCView.Collection;
+        PageIndex = Math.Min(PageIndex, PageCount - 1);
+        ErrorMessage = null;
     }
 
     public static bool IsExpectedImportError(Exception error) =>
