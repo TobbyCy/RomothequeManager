@@ -9,7 +9,11 @@ namespace RomothequeManager.V2.Inventory.Media.MiA;
 
 /// <summary>MI-A is an internal synthetic-fixture capability, not a production permission.
 /// It is never transferable to RomsInventory or MediaPreview.</summary>
-internal enum MiAOperation { MediaIndex }
+internal enum MiAOperation
+{
+    /// <summary>Fixture-only media-header enumeration capability, never a ROMS or image-preview grant.</summary>
+    MediaIndex
+}
 
 /// <summary>One-shot fixture MEDIAS indexing capability, separate from ROM inventory and image PREVIEW permissions.</summary>
 internal sealed class MiAReadGrant
