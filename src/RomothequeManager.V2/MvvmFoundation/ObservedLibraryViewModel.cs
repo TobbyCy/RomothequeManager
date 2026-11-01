@@ -208,8 +208,11 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
               s.TotalFileCount.HasValue ? s.TotalFileCount.Value.ToString() : "inconnu") +
           " · jeux identifiés : " + (s.ConfirmedGameCount?.ToString() ?? "inconnu")
         : "Aucun fichier observé dans cette session.";
+    /// <summary>Bounded frequency summary of observed platform keys, not inferred game platforms.</summary>
     public string PlatformSummary => Summarize(x => x.PlatformKey);
+    /// <summary>Bounded frequency summary of observed file extensions.</summary>
     public string ExtensionSummary => Summarize(x => x.Extension);
+    /// <summary>Bounded frequency summary of observed inventory file kinds.</summary>
     public string TypeSummary => Summarize(x => x.Kind.ToString());
     /// <summary>Identifies the displayed complete, attempt, RS-A or restored historical generation.</summary>
     public string GenerationLabel => _restored is not null ? _restored.StatusLabel
@@ -220,6 +223,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     /// <summary>Read-only coverage proof of the currently displayed generation.</summary>
     public IReadOnlyList<InventoryCoverage> Coverage =>
         DisplayedSnapshot?.CoverageProof ?? Array.Empty<InventoryCoverage>();
+    /// <summary>Count of diagnostics in the displayed inventory generation.</summary>
     public string DiagnosticSummary => Diagnostics.Count + " diagnostic(s) de la génération affichée.";
     /// <summary>Makes no-observation or no-filter-match status explicit without inferring absent games.</summary>
     public string EmptyText => _page is null ? "Aucune preuve : sélectionner et confirmer un inventaire fictif." :
