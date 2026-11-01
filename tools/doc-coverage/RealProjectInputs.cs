@@ -102,15 +102,29 @@ internal sealed class RealProjectInputs
         var meta = CSharpCompilation.Create("DocCoverageReferenceAudit",
             references: References.Select(x => MetadataReference.CreateFromFile(x)).Append(asmRef),
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        var missing = new List<string>();
-        var all = eligibleIds.Distinct(StringComparer.Ordinal).ToArray();
-        foreach (var id in all)
+        // Directly traverse the actual compiled assembly's metadata. Lookup of an
+        // internal symbol through an external compilation wrongly reports it absent
+        // (accessibility), even though the method/field is present in the DLL.
+        var compiledAssembly = meta.GetAssemblyOrModuleSymbol(asmRef) as IAssemblySymbol
+            ?? throw new InvalidDataException("REAL_ASSEMBLY_METADATA_NOT_LOADABLE");
+        var emitted = new HashSet<string>(StringComparer.Ordinal);
+        void Visit(ISymbol symbol)
         {
-            var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId(id, meta);
-            if (symbol is null ||
-                symbol.ContainingAssembly?.Identity.Name != AssemblyName)
-                missing.Add(id);
+            var id = symbol.GetDocumentationCommentId();
+            if (!string.IsNullOrWhiteSpace(id)) emitted.Add(id);
+            switch (symbol)
+            {
+                case INamespaceSymbol ns:
+                    foreach (var member in ns.GetMembers()) Visit(member);
+                    break;
+                case INamedTypeSymbol type:
+                    foreach (var member in type.GetMembers()) Visit(member);
+                    break;
+            }
         }
+        Visit(compiledAssembly.GlobalNamespace);
+        var all = eligibleIds.Distinct(StringComparer.Ordinal).ToArray();
+        var missing = all.Where(id => !emitted.Contains(id)).ToList();
         if (missing.Count != 0)
             throw new InvalidDataException("REAL_ASSEMBLY_DECLARED_API_MISSING:" +
                 missing.Count + ":" + string.Join(",", missing.Take(12)));
