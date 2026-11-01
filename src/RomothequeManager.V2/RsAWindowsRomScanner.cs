@@ -15,7 +15,11 @@ public static class RealRomInventoryGate
 
 /// <summary>Internal fixture-only operation. Grants are volatile, one scope and one selection.
 /// This is NOT a production filesystem permission or a substitute for an OS sandbox.</summary>
-internal enum RsAOperation { RomsInventory }
+internal enum RsAOperation
+{
+    /// <summary>Read-only inventory of explicitly selected fictional ROMS under a one-use bounded grant.</summary>
+    RomsInventory
+}
 
 /// <summary>Short-lived, one-use fixture-specific ROM read capability bound to selected scope, version and native root identity.</summary>
 internal sealed class RsAReadGrant
