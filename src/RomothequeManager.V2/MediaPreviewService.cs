@@ -34,6 +34,10 @@ public sealed class DecodedMediaPreview : IDisposable
 {
     private byte[]? _rgba;
 
+    /// <summary>Adopts an already bounded RGBA8888 buffer for transfer to the read-only UI adapter.</summary>
+    /// <param name="width">Decoded image width validated against the preview size limit.</param>
+    /// <param name="height">Decoded image height validated against the preview size limit.</param>
+    /// <param name="rgba">Owned pixel buffer cleared on Dispose; no source file handle is transferred.</param>
     internal DecodedMediaPreview(int width, int height, byte[] rgba)
     {
         Width = width;
