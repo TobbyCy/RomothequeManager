@@ -147,15 +147,15 @@ public sealed class EsDeRefreshAtomicityCausalTests
         public Task<EsDeImportSession> PrepareAsync(string root, CancellationToken token) =>
             _real.PrepareAsync(root, token);
 
-        public async Task<EsDeCatalogueSnapshot> RefreshAsync(
+        public async Task<EsDeImportSession.PreparedEsDeRefresh> RefreshAsync(
             EsDeImportSession session, CancellationToken token)
         {
-            // Real backend, not a fake DTO. Before the fix, this mutates Current.
-            var result = await _real.RefreshAsync(session, token);
-            LastRefreshedSnapshot = result;
+            // Genuine backend parsing; candidate B exists but session.Current stays A.
+            var proposal = await _real.RefreshAsync(session, token);
+            LastRefreshedSnapshot = proposal.Snapshot;
             AfterBackendRefresh.TrySetResult(true);
             await _release.Task.WaitAsync(TimeSpan.FromSeconds(45));
-            return result;
+            return proposal;
         }
 
         public void Release() => _release.TrySetResult(true);
