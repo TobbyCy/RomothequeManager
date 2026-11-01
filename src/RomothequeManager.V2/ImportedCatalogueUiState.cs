@@ -34,7 +34,10 @@ public sealed class ImportedCatalogueUiState
     public ImportedCatalogueUiState(IEsDeImportApplicationService applicationService) =>
         _applicationService = applicationService ?? throw new ArgumentNullException(nameof(applicationService));
 
+    /// <summary>Injected sole read-only import orchestration service; never a new grant.</summary>
     internal IEsDeImportApplicationService ApplicationService => _applicationService;
+
+    /// <summary>Current accepted backend authority; its media membership must match Snapshot.</summary>
     internal EsDeImportSession? Session => _session;
 
     /// <summary>Currently displayed shell mode; never an import or scan trigger.</summary>
