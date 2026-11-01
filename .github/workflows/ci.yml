@@ -507,6 +507,8 @@ jobs:
           $baseInputs = Join-Path $report 'base.msbuild-inputs'
           $headGenerated = Join-Path $report 'generated-head'
           $baseGenerated = Join-Path $report 'generated-base'
+          # Fresh compiler output is mandatory: a pre-existing file could spoof a generator.
+          if ((Test-Path $headGenerated) -or (Test-Path $baseGenerated)) { throw 'DOC_GENERATOR_OUTPUT_NOT_FRESH' }
           New-Item -ItemType Directory -Force -Path $headGenerated, $baseGenerated | Out-Null
           dotnet build $headProject -c Release --no-incremental --no-restore -p:GenerateDocumentationFile=true -p:TreatWarningsAsErrors=false -p:EmitCompilerGeneratedFiles=true "-p:CompilerGeneratedFilesOutputPath=$headGenerated" "-p:CustomAfterMicrosoftCommonTargets=$targets" "-p:DocCoverageManifest=$headInputs" 2>&1 |
             Tee-Object -FilePath (Join-Path $report 'head-msbuild.log')
