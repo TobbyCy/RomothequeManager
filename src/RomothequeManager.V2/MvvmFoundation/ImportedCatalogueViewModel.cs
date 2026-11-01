@@ -23,6 +23,7 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
     private bool _disposed;
     private bool _busy;
     private int _revision;
+    private long _operationGeneration;
     private string _status = "Idle";
 
     /// <summary>Creates a model for the existing presentation state and injectable import service.</summary>
@@ -41,7 +42,10 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
         _cancel = new InventoryCommand(_ => Cancel(), _ => CanCancel);
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Notifies the View after an accepted presentation transition. No notification
+    /// is sent between committing the backend session and adopting the UI snapshot.
+    /// </summary>
     public event PropertyChangedEventHandler? PropertyChanged;
     /// <summary>Existing UI-only selection, filtering and diagnostics state.</summary>
     public ImportedCatalogueUiState State { get; }
@@ -71,12 +75,11 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
     {
         if (!explicitlyConfirmed || string.IsNullOrWhiteSpace(selectedRoot) || !CanImport)
             return Task.FromResult(false);
-        return RunAsync(async token =>
+        return RunAsync(async (token, generation) =>
         {
             var prepared = await _service.PrepareAsync(selectedRoot, token);
-            token.ThrowIfCancellationRequested();
-            if (_disposed) return false;
-            State.Adopt(prepared); // UI-context adoption after all guards
+            if (!IsCurrentOperation(token, generation)) return false;
+            State.Adopt(prepared); // no await/notification between final guard and adoption
             return true;
         });
     }
@@ -86,20 +89,36 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
     {
         if (!CanRefresh || State.Session is not { } session)
             return Task.FromResult(false);
-        return RunAsync(async token =>
+        var accepted = State.Snapshot;
+        return RunAsync(async (token, generation) =>
         {
-            var updated = await _service.RefreshAsync(session, token);
-            token.ThrowIfCancellationRequested();
-            if (_disposed) return false;
-            State.ApplyRefresh(updated);
+            var prepared = await _service.RefreshAsync(session, token);
+            // Both the accepted projection and TryOpenMedia session authority must
+            // remain A until this synchronous commit is explicitly authorized.
+            if (!IsCurrentOperation(token, generation) ||
+                !ReferenceEquals(State.Session, session) ||
+                !ReferenceEquals(State.Snapshot, accepted) ||
+                !ReferenceEquals(session.Current, accepted))
+                return false;
+            // Prepare every UI projection before the guarded session commit;
+            // the state method has no await, callbacks or notifications between
+            // session.TryCommitPreparedRefresh and adopting the exact same snapshot.
+            if (!State.TryApplyPreparedRefresh(session, prepared))
+                throw new InvalidDataException("ESDE_REFRESH_STALE_PROPOSAL");
             return true;
         });
     }
 
-    private async Task<bool> RunAsync(Func<CancellationToken, Task<bool>> operation)
+    private bool IsCurrentOperation(CancellationToken token, long generation) =>
+        !_disposed && !token.IsCancellationRequested &&
+        _operation is not null && _operation.Token == token &&
+        _operationGeneration == generation;
+
+    private async Task<bool> RunAsync(Func<CancellationToken, long, Task<bool>> operation)
     {
         if (!CanImport) return false;
         var source = new CancellationTokenSource();
+        var generation = ++_operationGeneration;
         _operation = source;
         _busy = true;
         SetStatus("Running");
@@ -107,8 +126,8 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
         NotifyCommands();
         try
         {
-            var accepted = await operation(source.Token);
-            if (_disposed || source.IsCancellationRequested || !ReferenceEquals(_operation, source))
+            var accepted = await operation(source.Token, generation);
+            if (!IsCurrentOperation(source.Token, generation))
                 return false;
             SetStatus(accepted ? "Complete" : "Cancelled");
             StateChanged();
@@ -149,6 +168,7 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
     public void Cancel()
     {
         if (!CanCancel) return;
+        ++_operationGeneration;
         _operation!.Cancel();
         SetStatus("CancellationRequested");
         NotifyCommands();
@@ -266,6 +286,7 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
     {
         if (_disposed) return;
         _disposed = true;
+        ++_operationGeneration;
         _operation?.Cancel(); // the operation's own finally disposes the CTS
         PropertyChanged = null;
     }
