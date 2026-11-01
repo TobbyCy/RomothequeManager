@@ -8,6 +8,10 @@ using Avalonia.Media.Imaging;
 
 namespace RomothequeManager.V2;
 
+/// <summary>
+/// Standard Avalonia shell. Native selection and consent remain in this View;
+/// explicit ES-DE import state and commands are owned by the injected VM.
+/// </summary>
 public sealed partial class MainWindow : Window
 {
     // Never construct the built-in demo catalogue on a normal, empty launch.
@@ -112,10 +116,16 @@ public sealed partial class MainWindow : Window
     }
     private readonly List<SidebarVisual> _sidebarVisuals = [];
 
+    /// <summary>Visible shell route; selecting a route does not start an import or scan.</summary>
     public POCView CurrentView => ActiveView;
 
     // Exercises the three real Avalonia visual trees after the window opens.
     // The normal UI still uses actual buttons/textbox for human interaction.
+    /// <summary>
+    /// CI-only synthetic navigation smoke over the Avalonia view tree, not the
+    /// human Windows recipe or a proof of real ROM/MEDIAS scan permissions.
+    /// </summary>
+    /// <returns>True when four synthetic views can be constructed and navigated.</returns>
     public bool SmokeExerciseFourViews()
     {
         // --smoke-window is an explicit synthetic test, not normal startup.
@@ -141,6 +151,10 @@ public sealed partial class MainWindow : Window
         return _state.CurrentView == POCView.Dashboard && _page.Children.Count >= 3;
     }
 
+    /// <summary>
+    /// Constructs the standard shell without auto-import; the folder picker
+    /// and second explicit read-only consent are required before ES-DE I/O.
+    /// </summary>
     public MainWindow()
     {
         _importVm = new ImportedCatalogueViewModel(_importedUi);
