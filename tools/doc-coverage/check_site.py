@@ -42,7 +42,7 @@ def check(root: Path):
     uids = set()
     for f in yaml_files:
         for line in f.read_text(encoding="utf-8-sig").splitlines():
-            m = re.match(r"\s*uid:\s*['\"]?([^'\" #]+)", line)
+            m = re.match(r"\s*(?:-\s+)?uid:\s*['\"]?([^'\" #]+)", line)
             if m:
                 uids.add(m.group(1))
     missing_uid = [want for want in REQUIRED if not any(uid.split(".")[-1] == want for uid in uids)]
