@@ -495,6 +495,58 @@ internal static class Program
                 StringComparer.OrdinalIgnoreCase) { [generatedPath] = source };
             return Measure("canary", compilation, ".", evidence);
         }
+        void AssertRed(string name, Measurement before, Measurement after)
+        {
+            if (EvaluateGate(before, after).Pass)
+                throw new InvalidOperationException("DOC_GATE_E2E_RED_FAILED:" + name);
+            Console.WriteLine("DOC_GATE_E2E_RED_" + name + "_PASS");
+        }
+        void AssertGreen(string name, Measurement before, Measurement after)
+        {
+            if (!EvaluateGate(before, after).Pass)
+                throw new InvalidOperationException("DOC_GATE_E2E_GREEN_FAILED:" + name);
+            Console.WriteLine("DOC_GATE_E2E_GREEN_" + name + "_PASS");
+        }
+        var baseline = M([existing]);
+        if (baseline.Eligible != 2 || baseline.Documented != 2)
+            throw new InvalidOperationException("DOC_GATE_CANARY_BASELINE_INVALID");
+        AssertRed("NEW_PUBLIC_UNDOCUMENTED", baseline, M([newPublicMissing]));
+        AssertGreen("NEW_PUBLIC_DOCUMENTED", baseline, M([newPublicGood]));
+        AssertRed("LOST_XML_SUMMARY", baseline, M([lostSummary]));
+        AssertRed("REMOVED_ELIGIBLE_API", baseline, M([removedMember]));
+        AssertRed("DUPLICATE_XML_SUMMARY", baseline, M([duplicateSummary]));
+        AssertRed("INTERNAL_CRITICAL_MISSING", baseline, M([existing, criticalMissing]));
+        AssertGreen("INTERNAL_CRITICAL_DOCUMENTED", baseline, M([existing, criticalGood]));
+        AssertGreen("INHERITDOC_RESOLVED", M([implementation]), M([implementation]));
+        AssertRed("INHERITDOC_UNRESOLVED", M([wrongBaseline]), M([unresolved]));
+        AssertGreen("PARTIAL_DEDUP_DOCUMENTED", baseline, M([existing, partial2]));
+        AssertGreen("PRIVATE_EXCLUDED", M([privateOnly]), M([privateOnly]));
+        // P1 regression: a never-before-seen internal authorization contract
+        // must fail through EvaluateGate even when the overall ratio is >90%.
+        // In particular "ReadAccessPolicy" must not rely on a keyword list.
+        var documentedStableSuite =
+            "namespace RomothequeManager.V2 {\n" +
+            "/// <summary>Contains twenty previously accepted synthetic read-only operations.</summary>\n" +
+            "public sealed class StableApiSuite {\n" +
+            string.Concat(Enumerable.Range(0, 20).Select(i =>
+                "/// <summary>Returns the known synthetic number " + i +
+                " with no filesystem access or mutation.</summary>\n" +
+                "public int Read" + i + "() => " + i + ";\n")) +
+            "}}\n";
+        const string atypicalMissing = """
+            namespace RomothequeManager.V2 {
+            internal sealed class ReadAccessPolicy {
+              internal bool AllowsRead() => false;
+            }}
+            """;
+        const string atypicalDocumented = """
+            namespace RomothequeManager.V2 {
+            /// <summary>Controls fixture-only read admission without granting actual filesystem access.</summary>
+            internal sealed class ReadAccessPolicy {
+              /// <summary>Denies access to an unconfirmed synthetic read scope without opening any file.</summary>
+              internal bool AllowsRead() => false;
+            }}
+            """;
         void CheckGeneratedCanaries()
         {
             const string generated = """
@@ -564,58 +616,7 @@ internal static class Program
             Console.WriteLine("DOC_GENERATED_BASE_HEAD_VERSION_DRIFT_RED_PASS");
         }
 
-        void AssertRed(string name, Measurement before, Measurement after)
-        {
-            if (EvaluateGate(before, after).Pass)
-                throw new InvalidOperationException("DOC_GATE_E2E_RED_FAILED:" + name);
-            Console.WriteLine("DOC_GATE_E2E_RED_" + name + "_PASS");
-        }
-        void AssertGreen(string name, Measurement before, Measurement after)
-        {
-            if (!EvaluateGate(before, after).Pass)
-                throw new InvalidOperationException("DOC_GATE_E2E_GREEN_FAILED:" + name);
-            Console.WriteLine("DOC_GATE_E2E_GREEN_" + name + "_PASS");
-        }
-        var baseline = M([existing]);
-        if (baseline.Eligible != 2 || baseline.Documented != 2)
-            throw new InvalidOperationException("DOC_GATE_CANARY_BASELINE_INVALID");
-        AssertRed("NEW_PUBLIC_UNDOCUMENTED", baseline, M([newPublicMissing]));
-        AssertGreen("NEW_PUBLIC_DOCUMENTED", baseline, M([newPublicGood]));
-        AssertRed("LOST_XML_SUMMARY", baseline, M([lostSummary]));
-        AssertRed("REMOVED_ELIGIBLE_API", baseline, M([removedMember]));
-        AssertRed("DUPLICATE_XML_SUMMARY", baseline, M([duplicateSummary]));
-        AssertRed("INTERNAL_CRITICAL_MISSING", baseline, M([existing, criticalMissing]));
-        AssertGreen("INTERNAL_CRITICAL_DOCUMENTED", baseline, M([existing, criticalGood]));
-        AssertGreen("INHERITDOC_RESOLVED", M([implementation]), M([implementation]));
-        AssertRed("INHERITDOC_UNRESOLVED", M([wrongBaseline]), M([unresolved]));
-        AssertGreen("PARTIAL_DEDUP_DOCUMENTED", baseline, M([existing, partial2]));
-        AssertGreen("PRIVATE_EXCLUDED", M([privateOnly]), M([privateOnly]));
-        // P1 regression: a never-before-seen internal authorization contract
-        // must fail through EvaluateGate even when the overall ratio is >90%.
-        // In particular "ReadAccessPolicy" must not rely on a keyword list.
-        var documentedStableSuite =
-            "namespace RomothequeManager.V2 {\n" +
-            "/// <summary>Contains twenty previously accepted synthetic read-only operations.</summary>\n" +
-            "public sealed class StableApiSuite {\n" +
-            string.Concat(Enumerable.Range(0, 20).Select(i =>
-                "/// <summary>Returns the known synthetic number " + i +
-                " with no filesystem access or mutation.</summary>\n" +
-                "public int Read" + i + "() => " + i + ";\n")) +
-            "}}\n";
-        const string atypicalMissing = """
-            namespace RomothequeManager.V2 {
-            internal sealed class ReadAccessPolicy {
-              internal bool AllowsRead() => false;
-            }}
-            """;
-        const string atypicalDocumented = """
-            namespace RomothequeManager.V2 {
-            /// <summary>Controls fixture-only read admission without granting actual filesystem access.</summary>
-            internal sealed class ReadAccessPolicy {
-              /// <summary>Denies access to an unconfirmed synthetic read scope without opening any file.</summary>
-              internal bool AllowsRead() => false;
-            }}
-            """;
+
         var highBaseline = M([documentedStableSuite]);
         var highMissing = M([documentedStableSuite, atypicalMissing]);
         var highDocumented = M([documentedStableSuite, atypicalDocumented]);
