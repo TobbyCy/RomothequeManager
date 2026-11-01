@@ -42,6 +42,9 @@ internal static class Program
                 throw new InvalidOperationException("BASE_SHA_INVALID");
             var dir = Path.GetFullPath(args[5]);
             var headSha = Git(root, "rev-parse", "HEAD").Trim();
+            var sourceSha = Environment.GetEnvironmentVariable("DOC_SOURCE_SHA") ?? headSha;
+            if (!System.Text.RegularExpressions.Regex.IsMatch(sourceSha, "^[0-9a-f]{40}$"))
+                throw new InvalidOperationException("SOURCE_SHA_INVALID");
             var head = Measure(headSha, LocalFiles(root));
             var baseline = Measure(baseSha, GitFiles(root, baseSha));
             Directory.CreateDirectory(dir);
@@ -59,7 +62,7 @@ internal static class Program
                 && lostDocs.Length == 0 && removed.Length == 0;
             Save(dir, "gate.json", new
             {
-                schema = "1.0", headSha, baseSha, headEligible = head.Eligible,
+                schema = "1.0", headSha, sourceSha, baseSha, headEligible = head.Eligible,
                 headDocumented = head.Documented, headPercent = head.Percent,
                 baseEligible = baseline.Eligible, baseDocumented = baseline.Documented,
                 basePercent = baseline.Percent, addedEligible = added,
@@ -68,7 +71,7 @@ internal static class Program
             });
             var md = new StringBuilder();
             md.AppendLine("# Roslyn XML API coverage")
-              .AppendLine().AppendLine("HEAD: " + headSha + " | BASE: " + baseSha)
+              .AppendLine().AppendLine("TESTED_TREE: " + headSha + " | SOURCE: " + sourceSha + " | BASE: " + baseSha)
               .AppendLine().AppendLine("HEAD: " + head.Documented + "/" + head.Eligible + " = " + head.Percent.ToString("F2") + "%")
               .AppendLine("BASE: " + baseline.Documented + "/" + baseline.Eligible + " = " + baseline.Percent.ToString("F2") + "%")
               .AppendLine("New: " + added.Length + " | New missing: " + added.Count(x => !x.Documented)
