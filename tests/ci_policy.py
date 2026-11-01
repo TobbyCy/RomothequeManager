@@ -325,7 +325,8 @@ def verify_public_ci_guard(root):
                     and "docs/api-reference/api/" in step
                     and "docs/api-reference/_site/" in step
                     and "if-no-files-found: error" in step
-                    and "retention-days: 3" in step,
+                    and "retention-days: 3" in step
+                    and "        if: ${{ always() }}" in workflow[workflow.rfind("      - name:", 0, action.start()):action.start()],
                     "PUBLIC_CI_DOCFX_ARTIFACT_UNSCOPED")
         else:
             require(re.fullmatch(r"actions/checkout@[0-9a-f]{40}", value) is not None,
