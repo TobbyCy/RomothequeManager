@@ -530,7 +530,10 @@ class WorkflowTests(unittest.TestCase):
             "HOLD_OWNER_GO",
         ):
             self.assertIn(required, workflow)
-        self.assertNotIn("actions/upload-artifact@", workflow)
+        self.assertEqual(1, workflow.count("actions/upload-artifact@"))
+        self.assertIn("name: docfx-internal-reference", workflow)
+        self.assertIn("retention-days: 3", workflow)
+        self.assertIn("ci-docfx", workflow)
         self.assertNotIn("gh release", workflow)
         self.assertNotIn("v2-01a-win-x64-candidate", workflow)
 
