@@ -10,12 +10,66 @@ namespace RomothequeManager.V2.Inventory;
 
 // NEXT-02: opt-in filesystem observations only; no ES-DE, ROM hashing or source mutation.
 // The public types are candidate v0.1 until independent DEV 2 contract review.
-public enum InventoryScanStatus { Complete, Partial, Failed }
-public enum InventoryAvailability { Online, Offline, Inaccessible, Unknown }
-public enum InventoryFreshness { Fresh, Stale, Unknown }
-public enum InventoryKind { PotentialRom, Playlist, ArchiveCandidate, Sidecar, Media, Unknown }
-public enum InventorySeverity { Info, Warning, Error }
+/// <summary>Coverage state of a bounded inventory attempt, not an assertion of ROM authenticity.</summary>
+public enum InventoryScanStatus
+{
+    /// <summary>Selected partitions were traversed within declared limits; only a complete result can replace Current.</summary>
+    Complete,
+    /// <summary>Some entries were observed, but cancellation, limits or failures prevent conclusions about absent files.</summary>
+    Partial,
+    /// <summary>The attempt could not establish usable coverage; the previous complete snapshot must remain available.</summary>
+    Failed,
+}
+/// <summary>Reachability of the explicitly selected local scope at observation time.</summary>
+public enum InventoryAvailability
+{
+    /// <summary>The selected scope was reachable during this observation, not a guarantee that the device remains mounted.</summary>
+    Online,
+    /// <summary>The selected root was unavailable at this attempt; stored entries cannot be treated as deleted.</summary>
+    Offline,
+    /// <summary>The operating system refused access to the selected scope; this is not evidence of an empty collection.</summary>
+    Inaccessible,
+    /// <summary>No reliable availability assertion could be established from the attempted observation.</summary>
+    Unknown,
+}
+/// <summary>Whether a snapshot can be treated as current without a new scan.</summary>
+public enum InventoryFreshness
+{
+    /// <summary>The snapshot reflects the completed current observation within its declared capture window.</summary>
+    Fresh,
+    /// <summary>The saved evidence predates the present availability check and must not be assumed current.</summary>
+    Stale,
+    /// <summary>The system cannot establish whether the recorded observations are still current.</summary>
+    Unknown,
+}
+/// <summary>Metadata-only file categories; no observed file is automatically a recognized game.</summary>
+public enum InventoryKind
+{
+    /// <summary>A file is a ROM candidate by observed path or extension only, without verifying game identity or playability.</summary>
+    PotentialRom,
+    /// <summary>A playlist or multidisc container was identified by metadata; its linked files remain separate observations.</summary>
+    Playlist,
+    /// <summary>A recognized archive path was observed without opening or inspecting the compressed game contents.</summary>
+    ArchiveCandidate,
+    /// <summary>A supporting metadata or checksum file was observed and is not counted as a confirmed game.</summary>
+    Sidecar,
+    /// <summary>A potential local image or media file was observed without approving any association to a game.</summary>
+    Media,
+    /// <summary>No supported file classification is justified by the available metadata.</summary>
+    Unknown,
+}
+/// <summary>Severity of a bounded inventory diagnostic with no private-path disclosure.</summary>
+public enum InventorySeverity
+{
+    /// <summary>Diagnostic context that does not itself invalidate complete coverage.</summary>
+    Info,
+    /// <summary>A limitation or anomaly that requires inspection before relying on a derived conclusion.</summary>
+    Warning,
+    /// <summary>A failed operation or rejected source boundary that must remain visible in the attempt diagnostics.</summary>
+    Error,
+}
 
+/// <summary>Explicitly selected local inventory boundary and operation budgets; constructing this record never authorizes a scan.</summary>
 public sealed record InventoryScope(
     string LibraryRoot,
     IReadOnlyDictionary<string, string>? PlatformAliases = null,
@@ -30,22 +84,29 @@ public sealed record InventoryScope(
     internal Action<int>? PlaylistChunkObserved { get; init; }
 }
 
+/// <summary>Metadata-only evidence about one observed path; neither the provisional kind nor a size implies a verified game.</summary>
 public sealed record FileObservation(
     string ObservationId, string LocationKey, string PlatformKey, string RelativePath,
     InventoryKind Kind, string Extension, long? SizeBytes, DateTimeOffset? ModifiedUtc,
     DateTimeOffset ObservedAtUtc, string SourceKind, InventoryAvailability Availability,
     IReadOnlyList<string> DiagnosticRefs);
 
+/// <summary>Safe, scoped explanation of an inventory limitation; diagnostic references avoid exposing raw filesystem details.</summary>
 public sealed record InventoryDiagnostic(
     string Code, InventorySeverity Severity, string ScopeRef, string Reason,
     string SourceKind, DateTimeOffset ObservedAtUtc);
 
+/// <summary>Per-partition coverage state used to distinguish complete enumeration from missing or interrupted evidence.</summary>
 public sealed record InventoryCoverage(string PartitionKey, InventoryScanStatus Status);
+/// <summary>A relative playlist target with observed existence; the target is never opened to infer a game identity.</summary>
 public sealed record InventoryPlaylistMember(string RelativePath, bool Exists);
+/// <summary>An observed playlist and its bounded relative member references, not a validated multidisc title.</summary>
 public sealed record InventoryPlaylist(string PlaylistLocationKey, IReadOnlyList<InventoryPlaylistMember> Members);
+/// <summary>Evidence-based group of potentially matching file observations; no automatic duplicate deletion or merging is implied.</summary>
 public sealed record PotentialDuplicateGroup(
     string GroupId, IReadOnlyList<string> ObservationIds, string Reason);
 
+/// <summary>Immutable record of observations, diagnostics and coverage for an attempt; unknown totals remain null rather than estimated.</summary>
 public sealed record InventorySnapshot(
     string SchemaVersion, string LibrarySessionId, string ScanId, DateTimeOffset CapturedAtUtc,
     InventoryScanStatus ScanStatus, InventoryAvailability Availability, InventoryFreshness Freshness,
@@ -54,12 +115,14 @@ public sealed record InventorySnapshot(
     IReadOnlyList<PotentialDuplicateGroup> PotentialDuplicates, string ContentFingerprint,
     int ObservedFileCount, int? TotalFileCount, int? ConfirmedGameCount);
 
+/// <summary>Maintains current complete evidence and the last attempt for one explicit scope; never relocates by trusting a drive letter.</summary>
 public sealed class InventorySession
 {
     private readonly InventoryScope _scope;
     private readonly string _sessionId = "library-" + Guid.NewGuid().ToString("N");
     private string _root;
 
+/// <summary>Initialize a bounded local scope after validating its syntax and scan limits; construction performs no inventory scan.</summary>
     public InventorySession(InventoryScope explicitlySelectedScope)
     {
         ArgumentNullException.ThrowIfNull(explicitlySelectedScope);
@@ -68,10 +131,13 @@ public sealed class InventorySession
         ValidateLimits(_scope);
     }
 
+/// <summary>Last fully completed inventory snapshot; partial, failed or cancelled attempts do not replace this evidence.</summary>
     public InventorySnapshot? Current { get; private set; }
+/// <summary>Most recent scan or relocation attempt, including incomplete attempts that must remain inspectable.</summary>
     public InventorySnapshot? LastAttempt { get; private set; }
 
     // Failed or partial observations remain inspectable, but never erase a complete snapshot.
+/// <summary>Observe the selected ROMS scope with bounded metadata reads; update Current only when the attempt completes.</summary>
     public InventorySnapshot Scan(CancellationToken cancellationToken = default)
     {
         var attempted = InventoryReader.Scan(_scope with { LibraryRoot = _root }, _sessionId, cancellationToken);
@@ -81,6 +147,7 @@ public sealed class InventorySession
     }
 
     // Explicit relocation requires a fully observed, equivalent projection; not drive-letter trust.
+/// <summary>Accept a new explicitly selected root only after a complete snapshot proves matching content fingerprint; preserve Current on refusal.</summary>
     public InventorySnapshot RelocateVerified(string explicitlySelectedRoot, CancellationToken cancellationToken = default)
     {
         if (Current is null) throw new InvalidOperationException("A complete snapshot is required.");
@@ -95,6 +162,7 @@ public sealed class InventorySession
         return staged;
     }
 
+/// <summary>Reject nonlocal, relative, UNC or device-style roots before any traversal and return a normalized absolute local path.</summary>
     internal static string ValidateRootSyntax(string root)
     {
         if (string.IsNullOrWhiteSpace(root) || root.Contains("://", StringComparison.Ordinal) ||
@@ -118,6 +186,7 @@ public sealed class InventorySession
     }
 }
 
+/// <summary>Metadata-only bounded scanner underpinning InventorySession; it never hashes ROM data or authorizes a private library.</summary>
 internal static class InventoryReader
 {
     private const string Source = "FILESYSTEM_OBSERVATION";
@@ -129,6 +198,7 @@ internal static class InventoryReader
     private static readonly HashSet<string> SidecarExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".xml", ".txt", ".nfo", ".json", ".dat", ".sha256" };
 
+/// <summary>Build a bounded observation snapshot with cancellation, coverage proof and stable provenance identifiers.</summary>
     internal static InventorySnapshot Scan(InventoryScope scope, string librarySessionId, CancellationToken token)
     {
         var scanId = Guid.NewGuid().ToString("N");
@@ -455,6 +525,7 @@ internal static class InventoryReader
 
     // Internal testable core; the source stream can grow despite a prior file-size check.
     // At most MaxPlaylistBytes + 1 bytes are ever requested; extra data fails closed.
+/// <summary>Read only a capped playlist byte range for metadata parsing; never follow targets or open ROM content.</summary>
     internal static byte[] ReadBoundedPlaylistBytes(
         Stream source, int maxBytes, int maxLines, CancellationToken token,
         Action<int>? afterChunk = null)
