@@ -15,6 +15,7 @@ namespace RomothequeManager.V2;
 public sealed partial class MainWindow
 {
     private readonly ImportedCatalogueUiState _importedUi = new();
+    private readonly ImportedCatalogueViewModel _importVm;
     private readonly List<Bitmap> _coverImages = new();
     // #141: one worker and one retained-bitmap budget for BOTH legacy ES-DE paths.
     private readonly SemaphoreSlim _legacyMediaSlot = new(1, 1);
@@ -30,7 +31,6 @@ public sealed partial class MainWindow
     // Ignore callbacks from controls detached during an Avalonia visual-tree rebuild.
     private ComboBox? _liveImportedSystemSelector;
     private TextBox? _liveImportedSearchBox;
-    private bool _importBusy;
     private int _diagnosticsPageIndex;
     private POCView ActiveView => _importedUi.IsImported ? _importedUi.CurrentView :
         _importedUi.Mode == CatalogueMode.NoCatalog ? _emptyView :
@@ -42,7 +42,7 @@ public sealed partial class MainWindow
         var imported = _importedUi.IsImported;
         _scenarioDetail = false;
         if (_importedUi.IsImported)
-            _importedUi.Navigate(view);
+            _importVm.Navigate(view);
         else if (_importedUi.Mode == CatalogueMode.NoCatalog)
             _emptyView = view == POCView.GameDetail ? POCView.Collection : view;
         else
@@ -62,7 +62,7 @@ public sealed partial class MainWindow
     private void OpenImportedGame(string gameId)
     {
         var offset = _contentScroll?.Offset ?? default;
-        if (_importedUi.Open(gameId))
+        if (_importVm.Open(gameId))
         {
             _importedCollectionOffset = offset;
             Render();
@@ -74,7 +74,7 @@ public sealed partial class MainWindow
     {
         _scenarioUi.Clear();
         _scenarioDetail = false;
-        _importedUi.ShowWelcome();
+        _importVm.ShowWelcome();
         _emptyView = POCView.Dashboard;
         _state.ShowDashboard();
         Render();
@@ -84,20 +84,20 @@ public sealed partial class MainWindow
     {
         _scenarioUi.Clear();
         _scenarioDetail = false;
-        _importedUi.ShowDemo();
+        _importVm.ShowDemo();
         _state.ShowDashboard();
         Render();
     }
 
     private void ShowImported()
     {
-        _importedUi.ShowImported();
+        _importVm.ShowImported();
         Render();
     }
 
     private async Task ChooseLibraryAsync()
     {
-        if (_importBusy) return;
+        if (!_importVm.CanImport) return;
         try
         {
             var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
@@ -114,7 +114,8 @@ public sealed partial class MainWindow
                 return;
             }
             if (!await ConfirmEsDeReadOnlyAsync()) return;
-            await RunImportAsync(() => _importedUi.TryImport(selected.Path.LocalPath));
+            // Only the View can supply the explicit picker + confirmation.
+            await RunImportAsync(() => _importVm.ImportConfirmedAsync(selected.Path.LocalPath, true));
         }
         catch (Exception error) when (ImportedCatalogueUiState.IsExpectedImportError(error) ||
             error is InvalidOperationException)
@@ -149,24 +150,21 @@ public sealed partial class MainWindow
 
     private async Task RefreshImportAsync()
     {
-        if (_importBusy) return;
-        await RunImportAsync(_importedUi.TryReimport);
+        if (!_importVm.CanRefresh) return;
+        await RunImportAsync(_importVm.RefreshAsync);
     }
 
-    private async Task RunImportAsync(Func<bool> operation)
+    private async Task RunImportAsync(Func<Task<bool>> operation)
     {
+        // The View owns visual scroll restoration, not the import worker or its state.
         var wasCollection = _importedUi.IsImported && ActiveView == POCView.Collection;
         var previousOffset = _contentScroll?.Offset ?? default;
-        _importBusy = true;
-        Render();
         try
         {
-            // A new import adopts Dashboard; refresh keeps system, search, page and detail.
-            await Task.Run(operation);
+            await operation(); // VM schedules its application service away from the UI thread
         }
         finally
         {
-            _importBusy = false;
             Render();
             if (wasCollection && _importedUi.IsImported && ActiveView == POCView.Collection)
             {
@@ -655,7 +653,7 @@ public sealed partial class MainWindow
             var desired = index == 0 ? null : systems[index - 1].Platform;
             if (string.Equals(_importedUi.SelectedPlatform, desired, StringComparison.OrdinalIgnoreCase))
                 return; // no re-render or page reset for an unchanged Avalonia value
-            if (_importedUi.SelectPlatform(desired))
+            if (_importVm.SelectPlatform(desired))
             {
                 Render();
                 if (_contentScroll is not null) _contentScroll.Offset = default;
@@ -674,7 +672,7 @@ public sealed partial class MainWindow
                 ActiveView != POCView.Collection ||
                 string.Equals(search.Text ?? "", _importedUi.SearchText, StringComparison.Ordinal))
                 return;
-            _importedUi.Search(search.Text);
+            _importVm.Search(search.Text);
             FillImportedResults();
         };
         _importedList = new StackPanel { Spacing = 10 };
@@ -729,13 +727,13 @@ public sealed partial class MainWindow
         var pages = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         var previous = Button("← Précédente", () =>
         {
-            if (_importedUi.PreviousPage()) FillImportedResults();
+            if (_importVm.PreviousPage()) FillImportedResults();
         });
         previous.IsEnabled = _importedUi.PageIndex > 0;
         pages.Children.Add(previous);
         var next = Button("Suivante →", () =>
         {
-            if (_importedUi.NextPage()) FillImportedResults();
+            if (_importVm.NextPage()) FillImportedResults();
         });
         next.IsEnabled = _importedUi.PageIndex + 1 < _importedUi.PageCount;
         pages.Children.Add(next);
