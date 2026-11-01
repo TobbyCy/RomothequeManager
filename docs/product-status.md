@@ -1,5 +1,17 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #145 — première consolidation MVVM shell/import ES-DE (PR #147, 01.11.2026)
+
+- **Statut : PR #147 OUVERTE, P1 corrigé sur fixtures et RE-REVUE DEV 2 EXIGÉE, AUCUNE RELEASE.** Base `main=1aac0912930bd0a040e06800a1e8316fbe077dc2`, [contrat DEV 2 #145](https://github.com/TobbyCy/RomothequeManager/issues/145#issuecomment-6556459173) ; [GO backend distinct](https://github.com/TobbyCy/RomothequeManager/pull/147#issuecomment-6558416188). La recette utilisateur EXE standard #95 reste **NOT_EXECUTED** ; aucun PASS humain n'est revendiqué.
+- **ROUGE Windows causal (avant seam)** : [Adaptive #41328573756](https://github.com/TobbyCy/RomothequeManager/actions/runs/41328573756), HEAD `3a3b8a40b82e200ba3e08bf81b96f9f066eeb9cf` : **318 PASS / 1 FAIL attendu**, `stateA=True sessionA=False openA=False openB=True` après Cancel sur vrai parseur ES-DE + média temporaire, preuve du P1 `ESDE_REFRESH_CANCEL_MUTATES_ACCEPTED_SESSION`.
+- **VERT Windows après seam backend et raccord VM** : [Adaptive #41329083836](https://github.com/TobbyCy/RomothequeManager/actions/runs/41329083836), HEAD `af7b611ac80277fc03761dcd605651d297c4e1aa` : **323/323 PASS**, 0 FAIL/0 SKIP, policy/docs/`ci-policy-gate` SUCCESS. La CI au HEAD final, après synchronisation documentaire, reste à revérifier.
+- **Correctif P1 borné :** `EsDeImportSession.PrepareRefresh` prépare B sur la racine/LibraryId déjà sélectionnés **sans modifier Current** ; `TryCommitPreparedRefresh` contrôle session, base, racine, révision et rejeu ; service/VM prévalident Cancel, génération, Dispose et identité, puis commit session + UI snapshot en séquence synchrone sans événement intermédiaire. `TryOpenMedia` conserve la seule autorité backend. Les fichiers média #141, V2 #142, G1 et SQLite demeurent inchangés.
+
+- **Frontières :** `MainWindow` conserve picker, double confirmation, scroll, rendu et bitmaps ; `ImportedCatalogueViewModel` expose `INotifyPropertyChanged`, `Import/Refresh/Cancel`, Busy, Current accepté, filtres et pagination ; `IEsDeImportApplicationService` effectue l'orchestration hors UI en réutilisant `EsDeImportSession`. États de requête annulée ou échouée non adoptés dans `Current` UI ; garde import explicite seulement, aucune autorisation de scan.
+- **Tests ciblés :** `ImportedCatalogueMvvmBoundaryTests` (consentement, 55 références/50 par page, Current/réimport, annulation tardive, Dispose, redaction). Vérifications et chiffres **NOT_EXECUTED à ce point documentaire** ; tests historiques G1/#140/#141/#142 et restrictions de lecture seule inchangés.
+- **Hors lot :** scheduler médias historiques, SQLite/RESTORE, DocFX et fonctionnalités réelles. [Contrat de frontières](architecture/next05-mvvm145-esde-import.md). `REAL_*_HOLD / NEXT05_RELEASE_HOLD` actifs ; contrôle DEV 2 requis et fusion réservée au Contrôleur.
+
+
 ## NEXT-05 / #142 — ESDE-FP-V2 canonical fingerprint (fixtures Windows, 01.11.2026)
 
 - **Base / scope**: [PR #144](https://github.com/TobbyCy/RomothequeManager/pull/144) depuis `main=2e4f03978d7f8bdee4cead889a05d8b60da220f2` après fusion de #143 et sa CI Windows 294 PASS. Contrat normatif `CONTRACT_APPROVABLE` [DEV 2 / Issue #142](https://github.com/TobbyCy/RomothequeManager/issues/142#issuecomment-6553992309). Une seule branche, aucun changement du schéma SQLite, de grants, des médias, de la fonction `Digest(string)` commune ou des calculs GameId/VariantId.
