@@ -1,5 +1,8 @@
 # Guide de démarrage pour développeurs
 
+> **Attention — historique technique daté du 23.10.2026.** Les références ci-dessous au POC 31 MSTest et au packaging non publié sont des preuves de leur époque, pas un inventaire actuel. NEXT-05 comporte des intégrations supplémentaires testées sur fixtures ; DocFX #88/#138/#148 et consolidation MVVM #145/#147 évoluent. Avant de qualifier le HEAD courant, vérifier sa CI Windows et `ci-policy-gate` ; aucune CI ne vaut recette humaine. Les restrictions `REAL_*_HOLD` et `NEXT05_RELEASE_HOLD` restent actives.
+
+
 **État au 23 octobre 2026 :** le dépôt public comprend le moteur Windows PowerShell 5.1, le prototype web local et le **POC Windows V2-01A/B** sous .NET 10 / Avalonia 12.1.4, avec quatre vues sur six jeux fictifs et trois bibliothèques fictives. V2-01B est intégrée via [PR #48](https://github.com/TobbyCy/RomothequeManager/pull/48) ; **V2-01C prépare uniquement le packaging**, sans autorisation de distribution.
 
 ## Environnements et prérequis
