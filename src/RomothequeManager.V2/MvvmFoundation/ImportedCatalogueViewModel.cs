@@ -153,6 +153,33 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
         NotifyCommands();
     }
 
+    /// <summary>Return to an empty shell without discarding the last accepted import.</summary>
+    public void ShowWelcome()
+    {
+        if (_disposed) return;
+        Cancel();
+        State.ShowWelcome();
+        StateChanged();
+    }
+
+    /// <summary>Enter the explicitly selected synthetic demonstration mode.</summary>
+    public void ShowDemo()
+    {
+        if (_disposed) return;
+        Cancel();
+        State.ShowDemo();
+        StateChanged();
+    }
+
+    /// <summary>Resume a previously accepted import without a new read operation.</summary>
+    public bool ShowImported()
+    {
+        if (_disposed) return false;
+        var shown = State.ShowImported();
+        StateChanged();
+        return shown;
+    }
+
     /// <summary>Change only the selected platform; never infer it from a ROM filename.</summary>
     public bool SelectPlatform(string? platform)
     {
