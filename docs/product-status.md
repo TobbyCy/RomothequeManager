@@ -413,3 +413,8 @@ La recette Windows `tools/demo-library/Invoke-Demo02Recipe.ps1` réutilise stric
 
 
 **Contrôle croisé DEMO-02 (PR #75 vs #76/#77).** Le dossier `docs/ux/demo02-technical-cross-review.md` fournit la matrice honnête des 28 scénarios, sans déclarer PASS les parcours UX non testés. Deux tests synthétiques supplémentaires assurent l'exécution effective du lanceur Windows PowerShell de recette sur une sortie temporaire (`-SkipDotNetTests`, sans suppression/overwrite) et la conservation de `Current` après tentative NEXT-02 annulée (`LastAttempt=PARTIAL`). Le raccordement réel NEXT-02 à l'interface, les états Offline/Stale historiques, la comparaison A/B de scénario et les tests manuels d'accessibilité Windows demeurent hors périmètre du livrable DEV 1 ; aucune Release ou scan réel autorisé.
+
+
+### NEXT-05 — consolidation DocFX #88/#138 (travail en PR, pas intégré)
+
+La branche DEV 1 de documentation permanente propose un workflow natif Windows de génération XML → YAML → HTML et de mesure sémantique par symbole (≥90 % du périmètre éligible, 100 % des nouvelles API). Ce chantier n'est **pas** intégré à `main` ; la couverture réelle et la recette Windows de la PR restent à prouver, et aucun état READY/RELEASE n'en découle. Les anciennes preuves pilotes sur fixtures restent historiques. Tous les `REAL_*_HOLD` et `NEXT05_RELEASE_HOLD` demeurent.
