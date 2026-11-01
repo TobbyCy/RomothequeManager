@@ -25,7 +25,7 @@ Base `main=1aac0912930bd0a040e06800a1e8316fbe077dc2`. This is a
   Its completed result is discarded if the VM was cancelled or disposed.
 - **P1 causal before fix**: Windows [#41328573756](https://github.com/TobbyCy/RomothequeManager/actions/runs/41328573756)
   at `3a3b8a40`, **318 PASS / 1 intended FAIL**:
-  `stateA=True sessionA=False sessionB=True openA=False openB=True`.
+  `stateA=True sessionA=False openA=False openB=True`.
   The old `EsDeImportSession.Import` mutated media authority before Cancel.
 - **Corrected design**: a worker calls `session.PrepareRefresh` on the *same*
   accepted session and LibraryId, without mutating `Current`. VM validates
