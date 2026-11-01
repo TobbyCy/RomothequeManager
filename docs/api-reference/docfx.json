@@ -37,9 +37,6 @@
     "globalMetadata": {
       "_appTitle": "ROMothèque Manager — référence API interne",
       "_appFooter": "Documentation technique. Aucun accès ROMS/MEDIAS réel autorisé."
-    },
-    "xref": [
-      "api/xrefmap.yml"
-    ]
+    }
   }
 }
