@@ -8,6 +8,7 @@
     <ItemGroup>
       <_DocCoverageManifestLines Include="PROPERTY|AssemblyName|$(AssemblyName)" />
       <_DocCoverageManifestLines Include="PROPERTY|TargetPath|$(TargetPath)" />
+      <_DocCoverageManifestLines Include="PROPERTY|CompilerGeneratedFilesOutputPath|$(CompilerGeneratedFilesOutputPath)" />
       <_DocCoverageManifestLines Include="PROPERTY|TargetFramework|$(TargetFramework)" />
       <_DocCoverageManifestLines Include="PROPERTY|Configuration|$(Configuration)" />
       <_DocCoverageManifestLines Include="PROPERTY|LangVersion|$(LangVersion)" />
