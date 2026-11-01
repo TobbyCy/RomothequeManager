@@ -447,6 +447,89 @@ jobs:
           # No artifact upload, Release or public download. The runner temp is destroyed.
           Write-Host 'POC_ZIP_QUARANTINED_NOT_UPLOADED thirdPartyNotices=PENDING ownerReleaseGo=PENDING'
 
+  ci-docfx:
+    name: DocFX / Windows XML YAML HTML and API coverage
+    needs: [policy, ci-docs]
+    if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' }}
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - name: Checkout no persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Exact SDK 10.0.401
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Native XML to YAML to HTML and strict site checks
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $report = Join-Path $env:RUNNER_TEMP 'docfx-internal-reference'
+          New-Item -ItemType Directory -Force -Path $report | Out-Null
+          $sdk = (dotnet --version).Trim()
+          if ($LASTEXITCODE -ne 0 -or $sdk -cne '10.0.401') { throw 'DOCFX_SDK_PIN_FAILED' }
+          $app = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet restore $app --locked-mode
+          if ($LASTEXITCODE -ne 0) { throw 'DOCFX_RESTORE_FAILED' }
+          dotnet build $app -c Release --no-restore -p:GenerateDocumentationFile=true -p:TreatWarningsAsErrors=false 2>&1 | Tee-Object -FilePath (Join-Path $report 'xml-build.log')
+          if ($LASTEXITCODE -ne 0) { throw 'DOCFX_XML_BUILD_FAILED' }
+          $xml = @(Get-ChildItem 'src/RomothequeManager.V2/bin/Release' -Recurse -Filter 'RomothequeManager.V2.xml' -File)
+          if ($xml.Count -lt 1 -or @([regex]::Matches((Get-Content $xml[0].FullName -Raw), '<member name=')).Count -lt 7) { throw 'DOCFX_XML_MISSING_OR_EMPTY' }
+          dotnet tool install docfx --tool-path (Join-Path $env:RUNNER_TEMP 'docfx') --version 2.81.0
+          if ($LASTEXITCODE -ne 0) { throw 'DOCFX_PINNED_INSTALL_FAILED' }
+          $exe = Join-Path (Join-Path $env:RUNNER_TEMP 'docfx') 'docfx.exe'
+          $version = & $exe --version
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch '2\.81\.0') { throw 'DOCFX_VERSION_FAILED' }
+          & $exe metadata docs/api-reference/docfx.json 2>&1 | Tee-Object -FilePath (Join-Path $report 'metadata.log')
+          if ($LASTEXITCODE -ne 0) { throw 'DOCFX_METADATA_FAILED' }
+          & $exe build docs/api-reference/docfx.json --warningsAsErrors 2>&1 | Tee-Object -FilePath (Join-Path $report 'build.log')
+          if ($LASTEXITCODE -ne 0) { throw 'DOCFX_BUILD_FAILED' }
+          python -B tools/doc-coverage/check_site.py docs/api-reference
+          if ($LASTEXITCODE -ne 0) { throw 'DOCFX_UID_OR_LINK_FAILED' }
+          Copy-Item docs/api-reference/site-check.json $report
+      - name: Roslyn semantic coverage and real red green canaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet restore tools/doc-coverage/DocCoverage.csproj
+          if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_RESTORE_FAILED' }
+          dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --canaries
+          if ($LASTEXITCODE -ne 0) { throw 'DOC_CANARY_FAILED' }
+          $base = (git rev-parse 'HEAD^1').Trim()
+          if ($LASTEXITCODE -ne 0 -or $base -notmatch '^[a-f0-9]{40}
+    name: ci-policy-gate
+    if: ${{ always() }}
+    needs: [policy, ci-docs, ci0-static, ci1-runtime, ci2-pester, ci3-e1-integration, ci4-preflight-synthetic, ci-dotnet, ci-docfx]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout for independent policy recomputation
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Reject omitted, cancelled, skipped or failed required checks
+        env:
+          CI_NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 -B tests/ci_policy.py gate
+) { throw 'DOC_BASE_SHA_MISSING' }
+          dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --root . --base $base --out (Join-Path $env:RUNNER_TEMP 'docfx-internal-reference')
+          if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_BELOW_CONTRACT' }
+      - name: Store only temporary internal DocFX site and coverage evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: docfx-internal-reference
+          path: |
+            ${{ runner.temp }}/docfx-internal-reference/
+            docs/api-reference/api/
+            docs/api-reference/_site/
+          if-no-files-found: error
+          retention-days: 3
+
   ci-policy-gate:
     name: ci-policy-gate
     if: ${{ always() }}
