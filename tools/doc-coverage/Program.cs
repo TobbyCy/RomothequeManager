@@ -111,6 +111,13 @@ internal static class Program
             foreach (var s in head.Exclusions)
                 md.AppendLine("- " + s.Id + " at " + s.File + ":" + s.Line + ": " + s.Reason);
             File.WriteAllText(Path.Combine(dir, "report.md"), md.ToString(), new UTF8Encoding(false));
+            foreach (var group in head.Symbols.GroupBy(x => x.File).OrderBy(x => x.Key, StringComparer.Ordinal))
+                Console.WriteLine("DOC_COVERAGE_FILE file=" + group.Key +
+                    " eligible=" + group.Count() + " documented=" + group.Count(x => x.Documented) +
+                    " missing=" + group.Count(x => !x.Documented));
+            foreach (var group in (head.GeneratedExclusions ?? []).GroupBy(x => x.GeneratedSource)
+                .OrderBy(x => x.Key, StringComparer.Ordinal))
+                Console.WriteLine("DOC_GENERATED_FILE source=" + group.Key + " excluded=" + group.Count());
             Console.WriteLine("DOC_COVERAGE eligible=" + head.Eligible + " documented=" + head.Documented
                 + " percent=" + head.Percent.ToString("F2") + " new=" + added.Length
                 + " undocumentedNew=" + added.Count(x => !x.Documented) + " PASS=" + pass);
