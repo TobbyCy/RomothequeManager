@@ -1,5 +1,13 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #145 — première consolidation MVVM shell/import ES-DE (PR #147, 01.11.2026)
+
+- **Statut : PR EN REVUE, NON FUSIONNÉE, AUCUNE RELEASE.** Premier lot ciblé depuis `main=1aac0912930bd0a040e06800a1e8316fbe077dc2` selon [contrat DEV 2 #145](https://github.com/TobbyCy/RomothequeManager/issues/145#issuecomment-6556459173) : [PR #147](https://github.com/TobbyCy/RomothequeManager/pull/147). Les preuves CI Windows **restent à acquérir au HEAD final** ; aucune recette de l'EXE standard #95 n'est revendiquée.
+- **Frontières :** `MainWindow` conserve picker, double confirmation, scroll, rendu et bitmaps ; `ImportedCatalogueViewModel` expose `INotifyPropertyChanged`, `Import/Refresh/Cancel`, Busy, Current accepté, filtres et pagination ; `IEsDeImportApplicationService` effectue l'orchestration hors UI en réutilisant `EsDeImportSession`. États de requête annulée ou échouée non adoptés dans `Current` UI ; garde import explicite seulement, aucune autorisation de scan.
+- **Tests ciblés :** `ImportedCatalogueMvvmBoundaryTests` (consentement, 55 références/50 par page, Current/réimport, annulation tardive, Dispose, redaction). Vérifications et chiffres **NOT_EXECUTED à ce point documentaire** ; tests historiques G1/#140/#141/#142 et restrictions de lecture seule inchangés.
+- **Hors lot :** scheduler médias historiques, SQLite/RESTORE, DocFX et fonctionnalités réelles. [Contrat de frontières](architecture/next05-mvvm145-esde-import.md). `REAL_*_HOLD / NEXT05_RELEASE_HOLD` actifs ; contrôle DEV 2 requis et fusion réservée au Contrôleur.
+
+
 ## NEXT-05 / #142 — ESDE-FP-V2 canonical fingerprint (fixtures Windows, 01.11.2026)
 
 - **Base / scope**: [PR #144](https://github.com/TobbyCy/RomothequeManager/pull/144) depuis `main=2e4f03978d7f8bdee4cead889a05d8b60da220f2` après fusion de #143 et sa CI Windows 294 PASS. Contrat normatif `CONTRACT_APPROVABLE` [DEV 2 / Issue #142](https://github.com/TobbyCy/RomothequeManager/issues/142#issuecomment-6553992309). Une seule branche, aucun changement du schéma SQLite, de grants, des médias, de la fonction `Digest(string)` commune ou des calculs GameId/VariantId.
