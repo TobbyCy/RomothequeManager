@@ -52,6 +52,14 @@ internal sealed class RealProjectInputs
             sources.Any(x => !File.Exists(x) || !x.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)) ||
             refs.Any(x => !File.Exists(x) || !x.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)))
             throw new InvalidDataException("REAL_MSBUILD_INPUTS_INVALID_OR_INCOMPLETE");
+        var generatorRoot = Path.GetFullPath(Get("CompilerGeneratedFilesOutputPath"));
+        if (!Directory.Exists(generatorRoot))
+            throw new InvalidDataException("REAL_MSBUILD_SOURCE_GENERATOR_DIR_MISSING");
+        var generated = Directory.EnumerateFiles(generatorRoot, "*.cs", SearchOption.AllDirectories)
+            .Select(Path.GetFullPath).ToArray();
+        if (generated.Length < 3)
+            throw new InvalidDataException("REAL_MSBUILD_AVALONIA_GENERATED_SOURCES_MISSING");
+        Console.WriteLine("DOC_COVERAGE_NATIVE_GENERATED_SOURCES count=" + generated.Length);
         return new RealProjectInputs
         {
             AssemblyName = Get("AssemblyName"),
@@ -61,7 +69,8 @@ internal sealed class RealProjectInputs
             Nullable = Get("Nullable"),
             LangVersion = Get("LangVersion"),
             Defines = Get("DefineConstants").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
-            Sources = sources.Order(StringComparer.OrdinalIgnoreCase).ToArray(),
+            Sources = sources.Concat(generated).Distinct(StringComparer.OrdinalIgnoreCase)
+                .Order(StringComparer.OrdinalIgnoreCase).ToArray(),
             References = refs.Order(StringComparer.OrdinalIgnoreCase).ToArray()
         };
     }
