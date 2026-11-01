@@ -128,7 +128,11 @@ public sealed class ImportedCatalogueViewModel : INotifyPropertyChanged, IDispos
         {
             var accepted = await operation(source.Token, generation);
             if (!IsCurrentOperation(source.Token, generation))
+            {
+                if (!_disposed && (source.IsCancellationRequested || _operationGeneration != generation))
+                    SetStatus("Cancelled");
                 return false;
+            }
             SetStatus(accepted ? "Complete" : "Cancelled");
             StateChanged();
             return accepted;
