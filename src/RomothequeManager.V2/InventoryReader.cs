@@ -81,6 +81,7 @@ public sealed record InventoryScope(
     TimeSpan? TimeLimit = null)
 {
     // Test-only deterministic cancellation seam, not exposed as a public inventory API.
+    /// <summary>Test-only observer of bounded playlist reads, never a production progress or filesystem grant.</summary>
     internal Action<int>? PlaylistChunkObserved { get; init; }
 }
 
