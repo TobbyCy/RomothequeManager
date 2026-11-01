@@ -120,6 +120,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
             Changed();
         }
     }
+    /// <summary>Human-readable source kind from the displayed snapshot, or an explicit unobserved label.</summary>
     public string SourceLabel => DisplayedSnapshot?.Observations.FirstOrDefault()?.SourceKind ??
         DisplayedSnapshot?.Diagnostics.FirstOrDefault()?.SourceKind ?? "Non observé";
     /// <summary>Distinguishes a historical complete snapshot from the last attempt.</summary>
@@ -160,6 +161,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         ? "Aucune preuve disponible"
         : "Scan " + DisplayedSnapshot.ScanStatus + " · ROMS · " +
             DisplayedSnapshot.CapturedAtUtc.ToString("u");
+    /// <summary>Availability captured by the displayed generation; does not revalidate the filesystem.</summary>
     public string AvailabilityText => DisplayedSnapshot?.Availability.ToString() ?? "Non vérifiée";
     /// <summary>Reports snapshot freshness or an explicit unverified label.</summary>
     public string FreshnessText => DisplayedSnapshot?.Freshness == InventoryFreshness.Unknown ||
