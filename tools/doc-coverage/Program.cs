@@ -413,6 +413,58 @@ internal static class Program
         AssertRed("INHERITDOC_UNRESOLVED", M([wrongBaseline]), M([unresolved]));
         AssertGreen("PARTIAL_DEDUP_DOCUMENTED", baseline, M([existing, partial2]));
         AssertGreen("PRIVATE_EXCLUDED", M([privateOnly]), M([privateOnly]));
+        // P1 regression: a never-before-seen internal authorization contract
+        // must fail through EvaluateGate even when the overall ratio is >90%.
+        // In particular "ReadAccessPolicy" must not rely on a keyword list.
+        var documentedStableSuite =
+            "namespace RomothequeManager.V2 {\n" +
+            "/// <summary>Contains twenty previously accepted synthetic read-only operations.</summary>\n" +
+            "public sealed class StableApiSuite {\n" +
+            string.Concat(Enumerable.Range(0, 20).Select(i =>
+                "/// <summary>Returns the known synthetic number " + i +
+                " with no filesystem access or mutation.</summary>\n" +
+                "public int Read" + i + "() => " + i + ";\n")) +
+            "}}\n";
+        const string atypicalMissing = """
+            namespace RomothequeManager.V2 {
+            internal sealed class ReadAccessPolicy {
+              internal bool AllowsRead() => false;
+            }}
+            """;
+        const string atypicalDocumented = """
+            namespace RomothequeManager.V2 {
+            /// <summary>Controls fixture-only read admission without granting actual filesystem access.</summary>
+            internal sealed class ReadAccessPolicy {
+              /// <summary>Denies access to an unconfirmed synthetic read scope without opening any file.</summary>
+              internal bool AllowsRead() => false;
+            }}
+            """;
+        var highBaseline = M([documentedStableSuite]);
+        var highMissing = M([documentedStableSuite, atypicalMissing]);
+        var highDocumented = M([documentedStableSuite, atypicalDocumented]);
+        var highGate = EvaluateGate(highBaseline, highMissing);
+        var highAdded = highGate.Added.Select(x => x.Id).ToArray();
+        if (highBaseline.Eligible != 21 || highBaseline.Documented != 21 ||
+            highMissing.Eligible != 23 || highMissing.Documented != 21 ||
+            10L * highMissing.Documented < 9L * highMissing.Eligible ||
+            highAdded.Length != 2 ||
+            !highAdded.Contains("T:RomothequeManager.V2.ReadAccessPolicy", StringComparer.Ordinal) ||
+            !highAdded.Contains("M:RomothequeManager.V2.ReadAccessPolicy.AllowsRead", StringComparer.Ordinal) ||
+            !highGate.Added.All(x => x.InternalContract && !x.Documented) ||
+            highGate.Pass)
+            throw new InvalidOperationException("DOC_GATE_HIGH_RATIO_INTERNAL_NEW_API_NOT_BLOCKED");
+        Console.WriteLine("DOC_GATE_E2E_RED_ATYPICAL_INTERNAL_90_PLUS_PASS " +
+            "documented=" + highMissing.Documented + " eligible=" + highMissing.Eligible +
+            " addedUndocumented=" + highGate.Added.Length);
+        AssertGreen("ATYPICAL_INTERNAL_DOCUMENTED_90_PLUS", highBaseline, highDocumented);
+        var highPublicMissing = M([documentedStableSuite,
+            "namespace RomothequeManager.V2 {" +
+            "/// <summary>Contains a newly exported synthetic read probe that lacks an XML member summary.</summary>" +
+            "public sealed class AdditionalApi { public bool Read() => false; }}"]);
+        if (10L * highPublicMissing.Documented < 9L * highPublicMissing.Eligible)
+            throw new InvalidOperationException("DOC_GATE_HIGH_RATIO_PUBLIC_CANARY_NOT_OVER_90");
+        AssertRed("NEW_PUBLIC_UNDOCUMENTED_90_PLUS", highBaseline, highPublicMissing);
+
         const string conditional = """
             namespace Canary {
             /// <summary>Contains conditionally compiled contractual source declarations.</summary>
