@@ -958,7 +958,7 @@ class CliRoutingProofTests(unittest.TestCase):
                 plan = json.loads(next(line[len("CI_POLICY "):] for line in output.splitlines() if line.startswith("CI_POLICY ")))
                 self.assertEqual(category, plan["class"])
                 run("docs")
-                needs = {job: {"result": "success" if job in ("policy", "ci-docs") else "skipped"} for job in p.NEEDS}
+                needs = {job: {"result": "success" if job in ("policy", "ci-docs", "ci-docfx") else "skipped"} for job in p.NEEDS}
                 needs["policy"]["outputs"] = {"policy": json.dumps(plan)}
                 env["CI_NEEDS_JSON"] = json.dumps(needs)
                 verdict = run("gate", 0 if pass_gate else 1)
