@@ -505,7 +505,10 @@ jobs:
           $headProject = (Resolve-Path 'src/RomothequeManager.V2/RomothequeManager.V2.csproj').Path
           $headInputs = Join-Path $report 'head.msbuild-inputs'
           $baseInputs = Join-Path $report 'base.msbuild-inputs'
-          dotnet build $headProject -c Release --no-restore -p:GenerateDocumentationFile=true -p:TreatWarningsAsErrors=false "-p:CustomAfterMicrosoftCommonTargets=$targets" "-p:DocCoverageManifest=$headInputs" 2>&1 |
+          $headGenerated = Join-Path $report 'generated-head'
+          $baseGenerated = Join-Path $report 'generated-base'
+          New-Item -ItemType Directory -Force -Path $headGenerated, $baseGenerated | Out-Null
+          dotnet build $headProject -c Release --no-incremental --no-restore -p:GenerateDocumentationFile=true -p:TreatWarningsAsErrors=false -p:EmitCompilerGeneratedFiles=true "-p:CompilerGeneratedFilesOutputPath=$headGenerated" "-p:CustomAfterMicrosoftCommonTargets=$targets" "-p:DocCoverageManifest=$headInputs" 2>&1 |
             Tee-Object -FilePath (Join-Path $report 'head-msbuild.log')
           if ($LASTEXITCODE -ne 0 -or -not (Test-Path $headInputs)) { throw 'DOC_HEAD_REAL_MSBUILD_MANIFEST_FAILED' }
           $baselineRoot = Join-Path $env:RUNNER_TEMP ('rm-docfx-baseline-' + $base.Substring(0,12))
@@ -516,7 +519,7 @@ jobs:
             $baseProject = Join-Path $baselineRoot 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
             dotnet restore $baseProject --locked-mode
             if ($LASTEXITCODE -ne 0) { throw 'DOC_BASELINE_RESTORE_FAILED' }
-            dotnet build $baseProject -c Release --no-restore -p:GenerateDocumentationFile=true -p:TreatWarningsAsErrors=false "-p:CustomAfterMicrosoftCommonTargets=$targets" "-p:DocCoverageManifest=$baseInputs" 2>&1 |
+            dotnet build $baseProject -c Release --no-incremental --no-restore -p:GenerateDocumentationFile=true -p:TreatWarningsAsErrors=false -p:EmitCompilerGeneratedFiles=true "-p:CompilerGeneratedFilesOutputPath=$baseGenerated" "-p:CustomAfterMicrosoftCommonTargets=$targets" "-p:DocCoverageManifest=$baseInputs" 2>&1 |
               Tee-Object -FilePath (Join-Path $report 'base-msbuild.log')
             if ($LASTEXITCODE -ne 0 -or -not (Test-Path $baseInputs)) { throw 'DOC_BASE_REAL_MSBUILD_MANIFEST_FAILED' }
             dotnet restore tools/doc-coverage/DocCoverage.csproj
