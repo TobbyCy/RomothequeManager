@@ -46,7 +46,7 @@ try {
         '^docs/design/mockups/v2/README\.md$',
         '^\.github/workflows/ci\.yml$', '^\.github/workflows/dist-zip\.yml$', '^\.github/workflows/ux-artifact\.yml$', '^\.github/workflows/visual-proof\.yml$', '^\.github/workflows/library-ux02-proof\.yml$', '^\.github/workflows/next03-real-gui\.yml$', '^\.github/workflows/next04-import-hardening\.yml$', '^\.github/workflows/next04-ux-proof\.yml$', '^\.github/workflows/next05-avalonia-proof\.yml$', '^\.github/workflows/next05-media-ui-proof\.yml$', '^\.github/workflows/next05-sqlite-ui-proof\.yml$', '^\.github/CODEOWNERS$', '^\.github/pull_request_template\.md$',
         '^\.github/ISSUE_TEMPLATE/(bug|config|docs|feature|question)\.yml$',
-        '^tests/(ci_policy|test_ci_policy)\.py$',
+        '^tests/(ci_policy|test_ci_policy|sqlite_legal_gate|test_sqlite_legal_gate)\.py$', '^packaging/sqlite-legal-manifest\.json$',
         '^docs/api-reference/(docfx\.json|filterConfig\.yml|index\.md|toc\.yml)$',
         '^tools/doc-coverage/(DocCoverage\.csproj|DocCoverage\.targets|Program\.cs|RealProjectInputs\.cs|check_site\.py)$',
         '^(src|app)/RomothequeManager\.V2/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|sln|axaml|resx|json|png|svg|ico)$',

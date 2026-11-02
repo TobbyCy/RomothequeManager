@@ -334,6 +334,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'V2C_RUNTIME_PACK_LOCKED_RESTORE_FAILED' }
           dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=false -p:PublishTrimmed=false -p:TreatWarningsAsErrors=true -o $publish
           if ($LASTEXITCODE -ne 0) { throw 'V2C_PUBLISH_FAILED' }
+          # Lot A #149: synthetic positive/negative tests and exact NUPKG/publish/legal evidence.
+          python -B -m unittest discover -s tests -p test_sqlite_legal_gate.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'V2C_SQLITE_LEGAL_NEGATIVE_CANARIES_FAILED' }
+          $nugetPackages = if (-not [string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) { $env:NUGET_PACKAGES } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages' }
+          python -B tests/sqlite_legal_gate.py --manifest packaging/sqlite-legal-manifest.json --publish $publish --packages $nugetPackages --lock src/RomothequeManager.V2/packages.lock.json --notices packaging/THIRD-PARTY-NOTICES.txt --licenses packaging/licenses
+          if ($LASTEXITCODE -ne 0) { throw 'V2C_SQLITE_LEGAL_PROVENANCE_FAILED' }
           foreach ($required in @('RomothequeManager.V2.exe','coreclr.dll','hostfxr.dll')) {
             if (-not (Test-Path -LiteralPath (Join-Path $publish $required) -PathType Leaf)) { throw ('V2C_SELF_CONTAINED_FILE_MISSING:' + $required) }
           }
