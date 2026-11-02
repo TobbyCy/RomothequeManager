@@ -193,11 +193,13 @@ internal static class Program
 }
 
 
+/// <summary>CI-only bounded startup trace, disabled for all ordinary application launches.</summary>
 // #154: a strictly CI-fixture-only breadcrumb probe; no product logging or user paths.
 internal static class BetaIdealAvaloniaTrace
 {
     private static bool _enabled;
 
+    /// <summary>Enable constant-code breadcrumbs only inside a canonical disposable Windows CI fixture.</summary>
     internal static void ActivateForAuthorizedFixture(string[] args)
     {
         _enabled = false;
@@ -261,6 +263,7 @@ internal static class BetaIdealAvaloniaTrace
         }
     }
 
+    /// <summary>Flush one whitelisted stage code without emitting user, filesystem or application data.</summary>
     internal static void Mark(string stage)
     {
         if (!_enabled) return;
