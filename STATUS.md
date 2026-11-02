@@ -1,21 +1,34 @@
-# État de ROMothèque Manager — instantané historique et limites actuelles
+# État réel de ROMothèque Manager — NEXT-05
 
-> **Consolidation NEXT-05 / #146 en cours.** Les preuves ci-dessous décrivent le 30 octobre, pas le HEAD courant. Depuis cet instantané, SQLite minimal, inventaire et médias ont été intégrés sur fixtures dans `main`, sans recette humaine ni autorisation de données personnelles. Vérifier la [dernière Release publiée](https://github.com/TobbyCy/RomothequeManager/releases) indépendamment de `main`. Les restrictions `REAL_*_HOLD` et `NEXT05_RELEASE_HOLD` restent actives ; la recette humaine est **NOT_EXECUTED**. La synchronisation définitive avec DocFX #148 et MVVM #147 reste **PENDING**.
+**Point documentaire du 2 novembre 2026.** Cette page distingue la **Release publique**, le **code intégré au dépôt** et les **validations non terminées**. Aucun état ci-dessous n'autorise un scan personnel, une opération sur les ROMs ou une nouvelle Release.
 
-**Instantané historique vérifié le 30 octobre 2026 (superseded pour l'état actuel).** `main` : `f1bd75b15ab8dacbbdb4ec25e6bff32bed4cda5e`. Les fonctionnalités en PR ne sont pas distribuées automatiquement.
-
-| État | Ce qui existe | Limite |
+| Niveau | État vérifié | Limitation |
 | --- | --- | --- |
-| **PUBLIÉ** | [Alpha v0.3.0-alpha.1 Windows x64 portable](https://github.com/TobbyCy/RomothequeManager/releases/tag/v0.3.0-alpha.1) : démos et import ES-DE historique expérimental | **NEXT-03, pas NEXT-04** ; catalogue en mémoire, scan personnel refusé |
-| **MAIN — fusionné** | Backend ES-DE #92/#96 **et UX #93 fusionnés** : trois conventions XML, diagnostics, limites de lecture, métadonnées Genre/Developer/ReleaseDate, conservation du dernier catalogue valide | Tests sur fixtures fictives ; **non présent automatiquement dans le ZIP publié** |
-| **MAIN — UX intégrée** | [#93 fusionnée](https://github.com/TobbyCy/RomothequeManager/pull/93) depuis HEAD `bed9735919b1d9b572c87671746fa486ba396e93` : cinq écrans, navigation, recherche, pagination, logo/ICO, démonstration ES-DE fictive | Réception technique `APPROVABLE_INTEGRATED_SYNTHETIC` ; **pas dans la Release publique actuelle** |
-| **RECETTE HUMAINE** | Procédure [#97](https://github.com/TobbyCy/RomothequeManager/issues/97), test prévu sur bibliothèque fictive | **NOT_EXECUTED** : picker réel, confirmation/annulation, clavier/focus, DPI physique, ultralarge ; bibliothèque personnelle non testée |
-| **NON LIVRÉ dans cet instantané / ZIP** | Persistance durable pour l'utilisateur, scraper, SteamOS qualifié, installateur signé, export, copie et réorganisation de ROMs | Maquettes, contrats et boutons inactifs ne sont pas des fonctions |
+| **Release publiée** | [v0.4.0-alpha.1 / NEXT-04.1](https://github.com/TobbyCy/RomothequeManager/releases/tag/v0.4.0-alpha.1), Windows x64 portable, 30.10.2026 | Interface/ES-DE historique volontaire en lecture seule ; catalogue en mémoire, jaquettes uniquement référencées par XML ; **pas** d'inventaire autonome ni de SQLite NEXT-05 |
+| **Code `main`** | `7aa62c8fe643ab56d58829903036d89031b11170` ; [CI Windows post-intégration #41465566095](https://github.com/TobbyCy/RomothequeManager/actions/runs/41465566095) **SUCCESS**, policy/.NET/DocFX/gate verts | Bibliothèque IDEAL, index médias, MVVM et persistance **vérifiés sur fixtures**, non distribués dans l'Alpha |
+| **Candidat bêta** | [PR #154](https://github.com/TobbyCy/RomothequeManager/pull/154) `f27bbe71`, **OPEN/DRAFT**, CI [#41482716933](https://github.com/TobbyCy/RomothequeManager/actions/runs/41482716933) **FAILURE 8/10** | Échec du smoke GUI d'EXE extrait sous utilisateur non-admin ; `.NET` et `ci-policy-gate` rouges, **aucun GO fusion** |
+| **Recette dédiée #95 NEXT-05** | [Protocole de recette sur fixtures](https://github.com/TobbyCy/RomothequeManager/issues/95#issuecomment-6582880001) préparé | **NOT_EXECUTED** sur le véritable ZIP candidat, machine Windows standard dédiée |
+| **Release bêta IDEAL / usages réels** | **NON PUBLIÉS / HOLD** | `REAL_LIBRARY_SCAN_HOLD`, `REAL_MEDIA_SCAN_HOLD`, `REAL_MEDIA_PREVIEW_HOLD`, `REAL_CATALOG_STORAGE_HOLD`, `NEXT05_RELEASE_HOLD` |
 
-**Preuves techniques :** les trois CI sur le HEAD combiné #93 sont vertes (Adaptive avec `ci-policy-gate`, moteur Windows natif et GUI Windows). Ce sont des preuves **synthétiques**, pas une validation d'usage personnel. Un ZIP temporaire de CI n'est pas un téléchargement public pérenne.
+## Fonctions présentes dans le code, testées uniquement sur fixtures
 
-Les anciens ZIP V2-01C restent consultables dans les [Releases](https://github.com/TobbyCy/RomothequeManager/releases). Le [README](README.md) renvoie à la dernière Release effectivement publiée.
+- **Import historique ES-DE** : sélection et confirmation positives, XML de référence, catalogue accepté `Current` et tentative `LastAttempt`, recherche/filtres et navigation. Un nouvel import refusé ou annulé ne remplace pas silencieusement le catalogue accepté.
+- **Inventaire autonome IDEAL ROMS** : sélection explicite, reconnaissance `Complete/Partial/Failed/Offline/Stale`, résultat de couverture et maintien du dernier inventaire `CurrentComplete`. Aucun scan automatique au lancement ; hors couverture démontrée, le nombre de jeux reste **inconnu**, jamais zéro inventé.
+- **Médias locaux** : index MEDIAS avec permission distincte de ROMS ; aperçu PNG/JPEG contrôlé, association manuelle et origine de référence. Les médias historiques ES-DE passent par `EsDeImportSession.TryOpenMedia` ; pas de scraper, pas d'attribution automatique ni de prévisualisation personnelle autorisée. Les refus et placeholders restent visibles.
+- **SQLite minimal PERSIST-01** : snapshots, revendications de métadonnées et décisions manuelles, backup/restore contrôlés en **environnement synthétique**. Le constructeur public du stockage réel reste refusé, sans autoscan ou rattachement USB automatique. L'état sauvegardé peut s'afficher `Offline/Stale` après réouverture, sans présence actuelle du support.
+- **MVVM et isolation** : View/VM/service séparés, consentement et périmètres ROMS/MEDIAS/PREVIEW distincts, annulation/générations anti-résultats tardifs, isolation A/B, limites des files et des bitmaps. La preuve B-05 à 760×480 a été inspectée et approuvée par DEV 2 sur fixtures ([PR #151](https://github.com/TobbyCy/RomothequeManager/pull/151)).
+- **DocFX permanent** : [génération XML → YAML → HTML](docs/developer/docfx-permanent.md), couverture Roslyn obligatoire **≥90 %**, **100 % des nouvelles API**, suivi des signatures et exclusions générées. Une CI verte ne remplace pas la recette humaine.
 
-[Contrat NEXT-04 #91](https://github.com/TobbyCy/RomothequeManager/issues/91) · [Remédiation usage #97](https://github.com/TobbyCy/RomothequeManager/issues/97) · [DOC-TRUTH #98](https://github.com/TobbyCy/RomothequeManager/issues/98) · [Historique technique](docs/product-status.md). Les anciens HEAD et mentions « Draft » dans l'historique décrivent **leur époque**, pas l'état actuel.
+Ces capacités décrivent le **code fusionné** et des tests sur fixtures fictives, **pas une promesse de fonctionnement libre sur une ROMothèque personnelle**. Les fonctionnalités futures d'export, copie, déplacement, réorganisation, réseau/scraper, installation signée et support SteamOS ne sont pas déclarées prêtes.
 
-**#93 fusionnée dans main ;** aucune nouvelle Release n'est implicite. La recette humaine demeure distincte.
+## Blocage du candidat bêta #154 — ne pas confondre les preuves
+
+Au HEAD `f27bbe71`, les deux archives Windows de validation sont reproductibles sur le checkout testé, les inventaires de licences/manifeste sont contrôlés, le probe **SQLite natif du ZIP extrait** sous compte standard est **PASS**, les droits Win32 du bureau sont contrôlés, et **DocFX 860/938 = 91,68 %, nouvelles API 3/3** est vert. En revanche, le vrai `RomothequeManager.V2.exe` extrait ne prouve pas `MainWindow.Opened` dans le worker non-admin après **90 secondes**. La cause demeure **NOT_VERIFIED** ; l'import ES-DE et le backup/restore **métier** dans cet EXE restent **NOT_EXECUTED**. Les huit expériences Avalonia minimales indépendantes [#149](https://github.com/TobbyCy/RomothequeManager/issues/149#issuecomment-6582784650) ne testent pas l'apphost candidat exact et **ne lèvent pas le blocage**.
+
+Le ZIP produit par la CI de #154 n'est **pas téléversé**. Ses empreintes valent seulement pour les octets et le checkout probatoires correspondants ; elles ne constituent ni une URL de téléchargement public ni une Release. La validation Windows #95 exige un opérateur, une session interactive réellement non-admin, une provenance vérifiée du candidat et des fixtures fictives. Aucun contournement des checks rouges ni lancement avec droits élevés à la place du compte standard.
+
+## Historique et sources
+
+L'ancien instantané du **30.10.2026** (`main=f1bd75b1`, Release `v0.3.0-alpha.1` et état UX #93) est **dépassé pour l'état présent**. Il reste consultable dans [l'historique des commits](https://github.com/TobbyCy/RomothequeManager/commits/main/STATUS.md), [les anciennes Releases](https://github.com/TobbyCy/RomothequeManager/releases) et le [journal technique](docs/product-status.md) : ses assertions ne doivent pas être reportées comme statut CURRENT.
+
+Consulter le [README](README.md), le [guide de parcours IDEAL](docs/user/parcours-ideal-next05.md), la [FAQ et les incidents connus](docs/user/faq-depannage-next05.md), les [limitations de sécurité](docs/user/securite-et-limites.md), le [guide développeur](docs/developer/README.md) et la [recette #95](https://github.com/TobbyCy/RomothequeManager/issues/95). **Le code, les CI, les essais sur fixtures et la version publiée sont quatre preuves distinctes.**
