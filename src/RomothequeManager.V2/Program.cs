@@ -11,6 +11,9 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Activated only by the synthetic, confined ZIP proof. No normal-app logging.
+        BetaIdealAvaloniaTrace.ActivateForAuthorizedFixture(args);
+        BetaIdealAvaloniaTrace.Mark("MAIN_ENTER");
 #if NEXT04_IMPORT_CI
         // The native import proof is compiled only into an isolated CI executable.
         // A normal Windows portable build contains no such entrypoint.
@@ -35,11 +38,15 @@ internal static class Program
         {
             Args = args
         };
+        BetaIdealAvaloniaTrace.Mark("SETUP_BEGIN");
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .AfterSetup(builder => builder.Instance?.Styles.Add(new FluentTheme()))
             .SetupWithLifetime(lifetime);
+        BetaIdealAvaloniaTrace.Mark("SETUP_COMPLETE");
+        BetaIdealAvaloniaTrace.Mark("MAINWINDOW_CTOR_BEGIN");
         var window = new MainWindow();
+        BetaIdealAvaloniaTrace.Mark("MAINWINDOW_CTOR_END");
         lifetime.MainWindow = window;
         if (args.Contains("--ci-ux-offline-fixture", StringComparer.Ordinal))
         {
@@ -56,28 +63,39 @@ internal static class Program
                 !File.Exists(Path.Combine(fixture, "MEDIAS", "gba", "metadata", "es-de-gamelist.xml")))
                 throw new InvalidOperationException("UX_RECIPE_SYNTHETIC_FIXTURE_REQUIRED");
             window.Opened += (_, _) =>
+            {
+                BetaIdealAvaloniaTrace.Mark("WINDOW_OPENED");
+                BetaIdealAvaloniaTrace.Mark("DISPATCHER_POST");
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
+                    BetaIdealAvaloniaTrace.Mark("DISPATCHER_EXECUTE");
                     try
                     {
                         if (!window.IsVisible ||
                             !window.SmokeExerciseOfflineImportedFixture(fixture))
                         {
                             Environment.ExitCode = 29;
+                            BetaIdealAvaloniaTrace.Mark("SMOKE_FAIL");
                             Console.Error.WriteLine("UX_RECIPE_OFFLINE_ESDE_GUI_FAIL");
                         }
                         else
+                        {
+                            BetaIdealAvaloniaTrace.Mark("SMOKE_PASS");
                             Console.WriteLine("UX_RECIPE_OFFLINE_ESDE_GUI_PASS synthetic=1 " +
                                 "local_media=1 french_diagnostics=1 malformed_xml_preserves_catalogue=1");
+                        }
                     }
                     catch (Exception error)
                     {
                         Environment.ExitCode = 29;
+                        BetaIdealAvaloniaTrace.Mark("SMOKE_FAIL");
+                        // Original smoke failure semantics; the worker never displays raw output.
                         Console.Error.WriteLine("UX_RECIPE_OFFLINE_ESDE_GUI_FAIL " +
                             error.GetType().Name + ": " + error.Message);
                     }
                     finally { window.Close(); }
                 });
+            };
         }
         if (args.Contains("--ci-visual-capture", StringComparer.Ordinal))
             VisualCapture.Configure(window);
@@ -144,8 +162,11 @@ internal static class Program
             // Real native Avalonia window must open. No artificial test-only success path.
             window.Opened += (_, _) =>
             {
+                BetaIdealAvaloniaTrace.Mark("WINDOW_OPENED");
+                BetaIdealAvaloniaTrace.Mark("DISPATCHER_POST");
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
+                    BetaIdealAvaloniaTrace.Mark("DISPATCHER_EXECUTE");
                     // --smoke-window explicitly opts into the legacy synthetic journey.
                     // Normal startup intentionally remains a NoCatalog welcome screen.
                     if (!window.IsVisible || window.Content is null ||
@@ -153,13 +174,104 @@ internal static class Program
                         window.Title != "ROMothèque Manager — Démonstration")
                     {
                         Environment.ExitCode = 17;
+                        BetaIdealAvaloniaTrace.Mark("SMOKE_FAIL");
                         Console.Error.WriteLine("POC_WINDOW_SMOKE_FAIL");
                     }
-                    else Console.WriteLine("POC_WINDOW_OPENED_PASS views=Dashboard,Collection,GameDetail,Libraries fixtures=6 synthetic=1");
+                    else
+                    {
+                        BetaIdealAvaloniaTrace.Mark("SMOKE_PASS");
+                        Console.WriteLine("POC_WINDOW_OPENED_PASS views=Dashboard,Collection,GameDetail,Libraries fixtures=6 synthetic=1");
+                    }
                     window.Close();
                 });
             };
         }
+        BetaIdealAvaloniaTrace.Mark("LIFETIME_START_BEGIN");
         lifetime.Start(args);
+        BetaIdealAvaloniaTrace.Mark("LIFETIME_RETURN");
+    }
+}
+
+
+// #154: a strictly CI-fixture-only breadcrumb probe; no product logging or user paths.
+internal static class BetaIdealAvaloniaTrace
+{
+    private static bool _enabled;
+
+    internal static void ActivateForAuthorizedFixture(string[] args)
+    {
+        _enabled = false;
+        if (!args.Contains("--smoke-window", StringComparer.Ordinal) &&
+            !args.Contains("--ci-ux-offline-fixture", StringComparer.Ordinal))
+            return;
+        if (Environment.GetEnvironmentVariable("ROMOTHEQUE_BETA_TRACE") != "1")
+            return;
+        // Never activate for an ordinary application, even if a caller supplied a flag.
+        if (!OperatingSystem.IsWindows() ||
+            Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true")
+            throw new InvalidOperationException("BETA_TRACE_SCOPE_DENIED");
+
+        try
+        {
+            var rawRoot = Environment.GetEnvironmentVariable("RUNNER_TEMP");
+            var rawBound = Environment.GetEnvironmentVariable("ROMOTHEQUE_BETA_TRACE_ROOT");
+            if (string.IsNullOrWhiteSpace(rawRoot) ||
+                string.IsNullOrWhiteSpace(rawBound))
+                throw new InvalidOperationException();
+            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(rawRoot));
+            var bound = Path.TrimEndingDirectorySeparator(Path.GetFullPath(rawBound));
+            var common = Path.TrimEndingDirectorySeparator(Path.GetFullPath(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments)));
+            var name = Path.GetFileName(root);
+            var signature = "rm-beta-ci-";
+            if (!string.Equals(root, bound, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(Path.GetDirectoryName(root), common,
+                    StringComparison.OrdinalIgnoreCase) ||
+                name.Length != signature.Length + 10 ||
+                !name.StartsWith(signature, StringComparison.Ordinal) ||
+                !name.AsSpan(signature.Length).ToString().All(c =>
+                    c is >= '0' and <= '9' or >= 'a' and <= 'f') ||
+                !Directory.Exists(root))
+                throw new InvalidOperationException();
+            var unpacked = Path.Combine(root, "unpacked");
+            if (!string.Equals(
+                    Path.TrimEndingDirectorySeparator(Path.GetFullPath(AppContext.BaseDirectory)),
+                    Path.GetFullPath(unpacked), StringComparison.OrdinalIgnoreCase) ||
+                !Directory.Exists(unpacked) ||
+                (File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0 ||
+                (File.GetAttributes(unpacked) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidOperationException();
+            // A marker created alongside disposable .fixture and metadata paths by the
+            // Windows CI harness; no ROM, image, user profile or XML contents are read.
+            var marker = Path.Combine(root, "BETA-TRACE-FIXTURE.marker");
+            var rom = Path.Combine(root, "fictional-ideal", "ROMS", "gba", "A.fixture");
+            var xml = Path.Combine(root, "fictional-ideal", "MEDIAS", "gba",
+                "metadata", "es-de-gamelist.xml");
+            if (!File.Exists(marker) || new FileInfo(marker).Length > 64 ||
+                File.ReadAllText(marker) != "BETA_SYNTHETIC_FIXTURE_ONLY" ||
+                !File.Exists(rom) || !File.Exists(xml) ||
+                (File.GetAttributes(marker) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidOperationException();
+            _enabled = true;
+        }
+        catch
+        {
+            // Fail closed. Never reveal a filesystem path, account or token.
+            throw new InvalidOperationException("BETA_TRACE_SCOPE_DENIED");
+        }
+    }
+
+    internal static void Mark(string stage)
+    {
+        if (!_enabled) return;
+        // Restrict the sole output channel to fixed codes, never arbitrary text.
+        if (stage is not ("MAIN_ENTER" or "SETUP_BEGIN" or "SETUP_COMPLETE" or
+            "MAINWINDOW_CTOR_BEGIN" or "MAINWINDOW_CTOR_END" or
+            "LIFETIME_START_BEGIN" or "WINDOW_OPENED" or "DISPATCHER_POST" or
+            "DISPATCHER_EXECUTE" or "SMOKE_PASS" or "SMOKE_FAIL" or
+            "LIFETIME_RETURN"))
+            throw new InvalidOperationException("BETA_TRACE_CODE_DENIED");
+        Console.Out.WriteLine("BETA_AVALONIA_TRACE " + stage);
+        Console.Out.Flush();
     }
 }
