@@ -1,5 +1,12 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #149 — Lot A : notices et provenance SQLite (PR #153, validation ciblée)
+
+- **GO d'implémentation uniquement :** PR #153 créée depuis `main=1bb5c208` pour les notices SQLite/Microsoft.Data.Sqlite 10.0.14, SQLitePCLRaw 2.1.13, SHA-256 binaires et SHA-512 NuGet, plus les contrôles Windows et leurs tests synthétiques. Aucun produit réel ni scanner modifié.
+- **Périmètre juridique :** le marqueur historique de distribution ne couvre pas automatiquement les nouveaux composants ; une seconde approbation spécifique est requise pour `phase=publish`. Aucune approbation juridique définitive, ZIP bêta, scan réel ni Release autorisés.
+- **CI :** 17 tests de validation synthétiques PASS localement. La CI Windows, le gate documentaire et `ci-policy-gate` restent à constater au HEAD final et la PR exige une revue indépendante DEV 2 avant fusion.
+- **Lot B : HOLD** malgré son GO de préparation ; lancement seulement après fusion validée de A et CI `push/main` SUCCESS. Conserver tous les contrôles et `NEXT05_RELEASE_HOLD`.
+
 ## NEXT-05 / #145 — Lot B médias historiques ES-DE (PR DEV 3 distincte, 02.11.2026)
 
 - **État en cours :** après fusion [#150](https://github.com/TobbyCy/RomothequeManager/pull/150) et `main=26409f141c0c2ae3b14cad65d531792052a9cf0b`, GO propriétaire #145 déjà donné ; une branche/PR B distincte ajoute un chargeur injectable, une VM d'identité et de cycle de vie média, et réduit la View à la présentation. **Ni approbation ni fusion ni accès réel autorisé** à ce stade.
