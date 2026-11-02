@@ -7,8 +7,10 @@ namespace RomothequeManager.V2.MvvmFoundation;
 // opens/stat/enumerates any root, file, gamelist, ROM, media, network or USB device.
 // Replace this class with DEV 1's reviewed service before a real integration.
 // Result data are invented previews, explicitly labelled NEXT03_UI_SIMULATION.
+/// <summary>Synthetic inventory scenarios for UI demonstration only; none reflects a physical filesystem scan.</summary>
 internal enum InventoryPreviewOutcome { Complete, Partial, Failed, Offline, Stale }
 
+/// <summary>In-memory fixture simulator implementing inventory service transitions without opening or enumerating any path.</summary>
 internal sealed class InventoryPreviewService : IInventoryApplicationService
 {
     private readonly object _gate = new();
@@ -19,9 +21,12 @@ internal sealed class InventoryPreviewService : IInventoryApplicationService
     private bool _disposed;
     private InventoryPreviewOutcome _outcome;
 
+    /// <summary>Reports synthetic state transitions; subscribers must not infer real scanner permissions.</summary>
     public event EventHandler<InventoryApplicationState>? StateChanged;
+    /// <summary>Returns the current simulated selection and snapshot state under its synchronization gate.</summary>
     public InventoryApplicationState State { get { lock (_gate) return _state; } }
 
+    /// <summary>Selects a simulated completion, partial, failure or offline/stale outcome while idle.</summary>
     public bool SelectPreviewOutcome(InventoryPreviewOutcome outcome)
     {
         lock (_gate)
@@ -32,6 +37,7 @@ internal sealed class InventoryPreviewService : IInventoryApplicationService
         }
     }
 
+    /// <summary>Checks only absolute-path syntax and updates simulated selection without filesystem access.</summary>
     public InventorySelectionResult PrepareSelection(InventoryScope settings)
     {
         var root = settings.LibraryRoot;
@@ -56,6 +62,7 @@ internal sealed class InventoryPreviewService : IInventoryApplicationService
         return new(true, null, next.SelectionVersion);
     }
 
+    /// <summary>Produces invented delayed evidence only after matching selection version and explicit consent; never starts a real scan.</summary>
     public Task<InventoryApplicationState> StartConfirmedScanAsync(
         InventoryRunRequest request, CancellationToken cancellationToken = default)
     {
@@ -83,6 +90,7 @@ internal sealed class InventoryPreviewService : IInventoryApplicationService
         return task;
     }
 
+    /// <summary>Requests cancellation of the synthetic run and publishes its intermediate phase.</summary>
     public bool RequestCancellation()
     {
         InventoryApplicationState next;
@@ -98,6 +106,7 @@ internal sealed class InventoryPreviewService : IInventoryApplicationService
         return true;
     }
 
+    /// <summary>Clears synthetic selection when idle and increments its generation.</summary>
     public bool ClearSelection()
     {
         InventoryApplicationState next;
@@ -193,6 +202,7 @@ internal sealed class InventoryPreviewService : IInventoryApplicationService
             phase == InventoryScanStatus.Complete ? files.Length : null, null);
     }
 
+    /// <summary>Cancels and awaits the simulator's pending task before completing disposal, without reading any real file.</summary>
     public async ValueTask DisposeAsync()
     {
         Task<InventoryApplicationState>? task;
