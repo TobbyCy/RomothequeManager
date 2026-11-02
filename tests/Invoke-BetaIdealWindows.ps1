@@ -71,7 +71,7 @@ try {
   $rawPassword = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(24)) + 'aA1!'
   $secret = ConvertTo-SecureString $rawPassword -AsPlainText -Force
   $rawPassword = $null
-  $local = New-LocalUser -Name $username -Password $secret -Description 'Disposable ROMotheque beta synthetic ZIP validation' -ErrorAction Stop
+  $local = New-LocalUser -Name $username -Password $secret -Description 'Disposable beta ZIP CI fixture account' -ErrorAction Stop
   $accountCreated = $true
   $credential = [Management.Automation.PSCredential]::new($username, $secret)
   $sid = $local.SID.Value
