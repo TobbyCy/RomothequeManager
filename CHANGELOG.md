@@ -1,5 +1,13 @@
 # Journal des changements
 
+## NEXT-05 / #149 — Lot B ZIP IDEAL validate-only (DRAFT, 02.11.2026)
+
+- Gate d'entrée post-fusion #153 vérifié : main 7aa62c8f ; CI push/main #41465566095 SUCCESS 10/10. GO propriétaire B confirmé.
+- Proposition d'un ZIP candidat v0.5.0-beta.1 non publié, distinct du POC V2C en quarantaine : deux builds Windows autonomes indépendants, manifestes SHA-256, notices, SQLite/NuGet fail-closed, extraction et preuves sous compte Windows non-admin sur fixtures inventées.
+- Aucune CI du Lot B ni revue DEV 2 encore attestée au moment de l'ouverture. Pas de scan réel, autorisation juridique, phase publish, fusion autonome ou Release.
+
+
+
 ## NEXT-05 / #149 — Lot C : cleanup baseline DocFX Windows (proposition, 02.11.2026)
 
 - Huit tentatives conservées avec pauses progressives bornées ; un dossier encore présent ou un worktree encore enregistré demeure un échec fatal. Les diagnostics CIM indisponibles sont tracés sans masquer ce verdict.
