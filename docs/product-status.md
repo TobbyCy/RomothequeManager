@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #145 — Lot B médias historiques ES-DE (PR DEV 3 distincte, 02.11.2026)
+
+- **État en cours :** après fusion [#150](https://github.com/TobbyCy/RomothequeManager/pull/150) et `main=26409f141c0c2ae3b14cad65d531792052a9cf0b`, GO propriétaire #145 déjà donné ; une branche/PR B distincte ajoute un chargeur injectable, une VM d'identité et de cycle de vie média, et réduit la View à la présentation. **Ni approbation ni fusion ni accès réel autorisé** à ce stade.
+- **Sécurité :** le service utilise seulement l'opener `EsDeImportSession.TryOpenMedia` et le décodeur plafonné #141 ; même session + snapshot accepté + jeu + référence XML exacts, refus neutres, un décodeur par fenêtre, 50 requêtes maximum, 12 MiB de rétention logique. La View reçoit un bitmap uniquement par transfert d'ownership et le dispose après détachement. Annulation/refresh/navigation/Dispose invalident les générations et refusent les résultats tardifs.
+- **Vérifications :** tests sur fixtures pour refus d'identité/consentement, taille, dimensions, fallback déclaré, queue et annulation. Les oracles Windows natifs B-05, CI et verdict DEV 2 doivent être documentés au SHA probatoire ; aucun PASS ou capture n'est revendiqué sans exécution. La validation DocFX #148 est une dépendance de fusion, non un prétexte à modifier son outillage. Lot C, stockage personnel, scraping, permission Preview réelle, #149, #120, recette humaine et Release restent HOLD.
+
 ## NEXT-05 / #138 — Rattrapage documentation XML UI/VM, PR #150 DRAFT (01.11.2026)
 
 - **État live :** [#147](https://github.com/TobbyCy/RomothequeManager/pull/147) est **MERGED**, `main=8739cd0419c0b17bf3babe1bd09d8aa644966a3a` ; le lot A reste validé sur fixtures (326 tests Windows PASS post-fusion) et **non testé humainement**. La section #147 ci-dessous décrit un instantané historique antérieur à son intégration.
