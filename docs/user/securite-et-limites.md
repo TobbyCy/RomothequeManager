@@ -1,35 +1,36 @@
 # Sécurité, limitations et bonnes pratiques
 
-> **Portée :** les indications sur la mémoire et l'absence de persistance ci-dessous concernent la Release alpha historique citée, non tout le code `main`. Une persistance SQLite minimale a été intégrée sur fixtures en NEXT-05 ; elle n'autorise ni migration ni utilisation de bibliothèque personnelle. Recette humaine **NOT_EXECUTED**, `REAL_*_HOLD` et `NEXT05_RELEASE_HOLD` actifs. Pour identifier la version effectivement distribuée, consulter les [Releases](https://github.com/TobbyCy/RomothequeManager/releases).
+**État au 02.11.2026.** Il faut distinguer **l'Alpha publiée**, le **code NEXT-05 testé avec des jeux fictifs** et le **ZIP bêta IDEAL encore en validation**. Ce document ne donne aucune permission d'utiliser des ROM, BIOS, XML privés, jaquettes commerciales ou bibliothèques personnelles dans les tests du projet.
 
+## Ce qui est réellement téléchargeable
 
-**Référence au 29 octobre 2026 : [v0.3.0-alpha.1 / NEXT-03](https://github.com/TobbyCy/RomothequeManager/releases/tag/v0.3.0-alpha.1).** Une application Windows portable est disponible. Elle reste une Alpha de développement et de démonstration, sans usage en production ni opération physique sur les ROMs.
+La dernière version publiée est [**v0.4.0-alpha.1 / NEXT-04.1**](https://github.com/TobbyCy/RomothequeManager/releases/tag/v0.4.0-alpha.1), ZIP Windows x64 portable du 30.10.2026. Elle propose l'interface, la recherche/les fiches et un **import historique ES-DE explicite et en lecture seule**. L'import est **en mémoire** : un redémarrage exige un nouvel import. Les jaquettes ne sont accessibles que par les références médias du XML, lorsqu'elles sont acceptées.
 
-## Ce qui est disponible et ce qui reste limité
+Cette Alpha **n'intègre pas** la lecture autonome NEXT-05, l'index local MEDIAS indépendant des XML, la sauvegarde/restauration SQLite ou le nouvel EXE bêta. Ne pas lui appliquer la couverture DocFX, les CI et les parcours expérimentaux de `main`. Un ancien essai humain sur une version antérieure ne certifie pas le candidat NEXT-05.
 
-- L'interface permet de consulter les démonstrations synthétiques et d'essayer un import ES-DE volontaire en lecture seule sur une disposition compatible. La compatibilité avec une bibliothèque personnelle n'est pas validée.
-- Le service d'inventaire du binaire public refuse le scan personnel. Les essais du vrai service avec les fixtures utilisent une compilation CI distincte.
-- Le catalogue importé est conservé en mémoire pendant la session ; aucune persistance durable du catalogue, des favoris ou des annotations n'est livrée.
-- Les vues et maquettes décrivant des capacités futures ne les rendent pas opérationnelles. NEXT-04 reste en développement.
-- Logo pixélisé, défilement perdu au retour, import réel non validé et présentation ultralarge perfectible restent des réserves connues de l'Alpha.
+[Instructions de téléchargement et SHA-256](../../README.md#télécharger-et-essayer) · [État vérifié](../../STATUS.md).
 
-## Ce que signifie « hors ligne »
+## NEXT-05 : capacités techniques limitées aux fixtures
 
-Une session déjà ouverte peut conserver un snapshot en mémoire lorsqu'un support devient indisponible. Cela ne garantit pas une consultation après fermeture de l'application : le catalogue persistant reste à développer. Un disque OFFLINE ne signifie pas que ses jeux sont supprimés. Un résultat PARTIAL, FAILED ou STALE conserve ses limites et ne transforme jamais les zones inconnues en « zéro élément ». Les médias sont revérifiés à l'ouverture et peuvent devenir inaccessibles.
+Le code `main` intègre désormais **sur fixtures synthétiques uniquement** l'inventaire ROMS, l'index MEDIAS, des écrans/VM, une persistance SQLite minimale et des contrôles `Offline/Stale`, annulation et consentement. Le candidat [#154](https://github.com/TobbyCy/RomothequeManager/pull/154) n'est **pas publié** : son lancement GUI non-admin depuis le vrai ZIP extrait n'est pas validé, et la recette dédiée [#95](https://github.com/TobbyCy/RomothequeManager/issues/95) n'est **pas exécutée**.
 
-## Protection des collections
+Les frontières suivantes sont obligatoires :
+- **Choisir ≠ consentir ≠ lire** : une racine ou un jeu affiché n'ouvre pas automatiquement de droits ROMS, MEDIAS ou PREVIEW. Un refus d'ACL, un support déplacé ou un chemin hors racine se traduit par refus/diagnostic, jamais par élargissement implicite.
+- **La lecture ES-DE est historique** : le XML peut être absent, incomplet ou erroné ; ne pas dériver une suppression ou une attribution de jaquette d'une référence manquante. Les visuels autorisés sont PNG/JPEG bornés et disposent de placeholders neutres en cas de refus.
+- **Les états restent orthogonaux** : `OFFLINE` = support explicitement indisponible, `STALE` = information non fraîche, `PARTIAL` = couverture incomplète et `UNKNOWN` = absence de preuve. Aucun ne signifie « zéro jeu », « supprimé » ou « support définitivement perdu ». Le dernier snapshot `CurrentComplete` demeure distinct de la tentative `LastAttempt`.
+- **Annulation** : une opération synchrone déjà démarrée n'est pas toujours interrompable physiquement. L'application doit au minimum empêcher un résultat tardif annulé/obsolète de remplacer l'état accepté ; la fermeture doit libérer flux et bitmaps.
+- **SQLite** : sur fixtures, une base peut sauvegarder les états, décisions manuelles et backups ; l'ouverture historique `Offline/Stale` n'est pas une confirmation de présence du support. Le stockage **personnel** reste refusé, le mode portable n'est pas activé implicitement et aucune lettre USB ne réassocie seule une bibliothèque.
 
-- Ne jamais utiliser de véritables ROM, BIOS, XML ES-DE, StateRoot ou captures de bibliothèques privées pour les tests et rapports GitHub.
-- La consultation d'un snapshot ne valide pas automatiquement la présence actuelle des fichiers.
-- Une lettre de lecteur n'est pas une identité. Le code dispose d'une réassociation ES-DE vérifiée au sein d'une session, sans garantie de reconnexion automatique ou de persistance après redémarrage.
-- Un favori ou une annotation utilisateur devra rester séparé d'un index reconstructible dans une future version. Cette capacité n'est pas encore livrée.
-- Un rapport PASS de tests synthétiques ne permet pas d'en déduire une autorisation d'export réel, de conversion, de suppression ou de scraping.
-- Aucun scan personnel automatique, déplacement, effacement ou réorganisation de ROMs n'est autorisé dans cette Alpha.
+Les fonctions de scraper, attribution automatique, export/copie/réorganisation de ROM, effacement, gestion des BIOS et synchronisation réseau ne sont **ni livrées ni autorisées** dans le parcours NEXT-05 actuel.
 
-## Télécharger et démarrer
+## Téléchargement, intégrité et protection du poste
 
-Suivre les [instructions du README](../../README.md#télécharger-et-essayer) pour télécharger le ZIP Windows x64 et son SHA-256 depuis la Pre-release officielle. Extraire l'archive entièrement, conserver DLL, données et licences ensemble, puis lancer `RomothequeManager.V2.exe` sans droits administrateur. Le runtime .NET est inclus.
+Télécharger uniquement depuis les [Releases officielles](https://github.com/TobbyCy/RomothequeManager/releases) ; vérifier le fichier `.sha256` avec `Get-FileHash`, extraire **tous les fichiers** et conserver `licenses/`/notices avec l'application. Le ZIP public contient le runtime .NET ; aucun SDK requis. **Un SHA-256 n'est pas une signature d'éditeur** : le binaire n'est pas signé et Windows SmartScreen peut avertir. Ne pas désactiver SmartScreen, Defender, les ACL ou le pare-feu pour obtenir un PASS.
 
-Le binaire n'est pas signé ; SmartScreen peut avertir. Ne pas désactiver les protections globalement. Aucun installateur ni système de mise à jour automatique n'est livré. Le ZIP autonome ne garantit pas encore que les paramètres et catalogues soient stockés sur le même SSD que l'application.
+Le **ZIP CI de #154** est une archive de validation quarantainée et non téléversée ; son hash probatoire ne prouve **pas** l'authenticité d'un autre ZIP reconstruit ni l'existence d'un téléchargement bêta. Les procédures techniques réservées à l'équipe sont [sur #95](https://github.com/TobbyCy/RomothequeManager/issues/95#issuecomment-6582880001) et ne constituent pas un assistant d'installation public.
 
-Pour une question, consulter [SUPPORT](../../SUPPORT.md) ; pour une vulnérabilité, consulter [SECURITY](../../SECURITY.md).
+## Préserver sa collection et demander de l'aide
+
+Tester les évolutions NEXT-05 **avec des données inventées** sur une machine et un compte dédiés uniquement si une autorisation précise existe. Ne pas joindre aux Issues des chemins absolus personnels, journaux bruts, XML, captures de jaquettes privées, ROM ou BIOS. Pour une erreur, conserver plutôt la **version**, le **SHA**, un **code de diagnostic neutre**, les étapes sur fixture et la séparation entre **PASS / FAIL / NOT_EXECUTED**.
+
+[Parcours IDEAL prudent](parcours-ideal-next05.md) · [FAQ et dépannage](faq-depannage-next05.md) · [Lexique](lexique.md) · [SUPPORT](../../SUPPORT.md) · [Signaler une vulnérabilité](../../SECURITY.md). Le code est sous [MIT](../../LICENSE), mais les marques et illustrations officielles suivent [leurs propres droits](../../BRANDING.md) ; les médias tiers restent à leurs ayants droit.
