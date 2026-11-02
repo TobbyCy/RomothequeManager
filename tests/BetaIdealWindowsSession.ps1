@@ -15,6 +15,18 @@ public static class RomothequeBetaSessionProbe
     [DllImport("kernel32.dll")] public static extern uint WTSGetActiveConsoleSessionId();
     [DllImport("user32.dll")] private static extern IntPtr GetProcessWindowStation();
     [DllImport("user32.dll")] private static extern IntPtr GetThreadDesktop(uint threadId);
+    [DllImport("user32.dll", EntryPoint="OpenDesktopW", CharSet=CharSet.Unicode, SetLastError=true)]
+    private static extern IntPtr OpenDesktop(string name, uint flags, bool inherit, uint access);
+    [DllImport("user32.dll", SetLastError=true)]
+    private static extern IntPtr OpenInputDesktop(uint flags, bool inherit, uint access);
+    [DllImport("user32.dll", SetLastError=true)]
+    private static extern bool CloseDesktop(IntPtr desktop);
+    [DllImport("user32.dll", EntryPoint="CreateWindowExW", CharSet=CharSet.Unicode, SetLastError=true)]
+    private static extern IntPtr CreateWindowEx(uint exStyle, string className, string title,
+        uint style, int x, int y, int width, int height, IntPtr parent, IntPtr menu,
+        IntPtr instance, IntPtr parameter);
+    [DllImport("user32.dll", SetLastError=true)]
+    private static extern bool DestroyWindow(IntPtr window);
     [DllImport("user32.dll", EntryPoint="GetUserObjectInformationW", SetLastError=true)]
     private static extern bool UserInfo(IntPtr handle, int index, IntPtr data, uint length, out uint needed);
     [DllImport("wtsapi32.dll", EntryPoint="WTSQuerySessionInformationW", SetLastError=true)]
@@ -52,6 +64,27 @@ public static class RomothequeBetaSessionProbe
     }
     public static string Station() => SafeName(GetProcessWindowStation(), "WinSta0");
     public static string Desktop() => SafeName(GetThreadDesktop(GetCurrentThreadId()), "Default");
+    // Return 0 on actual access; otherwise the native GetLastError, never an invented PASS.
+    public static int OpenDefaultDesktopError()
+    {
+        IntPtr desktop = OpenDesktop("Default", 0, false, 0x0001 | 0x0002);
+        if (desktop == IntPtr.Zero) return Marshal.GetLastWin32Error();
+        try { return 0; } finally { CloseDesktop(desktop); }
+    }
+    public static int OpenInputDesktopError()
+    {
+        IntPtr desktop = OpenInputDesktop(0, false, 0x0001 | 0x0002);
+        if (desktop == IntPtr.Zero) return Marshal.GetLastWin32Error();
+        try { return 0; } finally { CloseDesktop(desktop); }
+    }
+    public static int CreateHiddenWindowError()
+    {
+        // Built-in STATIC class; creates no visible window, no message loop and no user content.
+        IntPtr window = CreateWindowEx(0, "STATIC", "", 0, 0, 0, 1, 1,
+            IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+        if (window == IntPtr.Zero) return Marshal.GetLastWin32Error();
+        try { return 0; } finally { DestroyWindow(window); }
+    }
     public static int StationVisible()
     {
         IntPtr h = GetProcessWindowStation();
@@ -130,11 +163,15 @@ function Get-BetaWindowsSessionFacts {
   $desktop = [RomothequeBetaSessionProbe]::Desktop()
   $visible = [RomothequeBetaSessionProbe]::StationVisible()
   $state = [RomothequeBetaSessionProbe]::SessionState($sid)
+  $defaultAccessError = [RomothequeBetaSessionProbe]::OpenDefaultDesktopError()
+  $inputAccessError = [RomothequeBetaSessionProbe]::OpenInputDesktopError()
+  $hiddenWindowError = [RomothequeBetaSessionProbe]::CreateHiddenWindowError()
   $console = [RomothequeBetaSessionProbe]::WTSGetActiveConsoleSessionId()
   $activeSessions = [RomothequeBetaSessionProbe]::ActiveSessions()
   $activeConsole = if ($console -eq [uint32]::MaxValue) { -1 } else { [int64]$console }
   $interactive = $state -eq 0 -and $station -ceq 'WinSta0' -and
-    $desktop -ceq 'Default' -and $visible -eq 1
+    $desktop -ceq 'Default' -and $visible -eq 1 -and
+    $defaultAccessError -eq 0 -and $inputAccessError -eq 0 -and $hiddenWindowError -eq 0
   $facts = [pscustomobject]@{
     role = $Role
     pid = [int]$process.Id
@@ -145,6 +182,9 @@ function Get-BetaWindowsSessionFacts {
     windowStation = $station
     desktop = $desktop
     stationVisible = $visible
+    defaultDesktopAccessError = $defaultAccessError
+    inputDesktopAccessError = $inputAccessError
+    hiddenWindowCreateError = $hiddenWindowError
     integrityRid = $integrity
     isAdmin = [bool]$admin
     interactive = [bool]$interactive
