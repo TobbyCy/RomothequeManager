@@ -1,5 +1,24 @@
 # DocFX permanent — NEXT-05 / #88 et #138
 
+## Checkpoint réel — 02.11.2026 (CURRENT)
+
+Les garanties ci-dessous sont des **mesures Windows au SHA exact**, non une projection des anciens essais POC. Les « signatures » contrôlées ici sont celles des **API C#** (types, paramètres et surcharges), **pas une signature Authenticode** : l'application reste non signée.
+
+| Contrôle | `main=7aa62c8f` intégré | PR #154 HEAD `f27bbe71` DRAFT/non fusionnée |
+| --- | --- | --- |
+| CI source | [push/main #41465566095](https://github.com/TobbyCy/RomothequeManager/actions/runs/41465566095) **10/10 SUCCESS**, gate vert | [Windows #41482716933](https://github.com/TobbyCy/RomothequeManager/actions/runs/41482716933) **8/10 SUCCESS**, `.NET` et `ci-policy-gate` **FAILURE** |
+| .NET | **335/335 PASS** | Tests métier/packaging techniques séparés ; GUI non-admin extrait échoue à la recette CI |
+| Roslyn (D/N) | **857/935 = 91,66 %**, nouveaux **0/0** | **860/938 = 91,68 %**, nouveaux **3/3** documentés |
+| Éligibles/exclus | `997=935+62` | `1000=938+62` ; **62** générés Avalonia exclusivement sur provenance attestée |
+| Contrôle sémantique | Signatures exactes, membres internes, assemblage et surcharges **PASS** | Idem **PASS** |
+| Site DocFX | **120 YAML, 122 HTML, 2 013 liens locaux, 0 lien cassé et 0 UID absent** | Même validation des UID/liens **PASS**, sans rendre le required gate vert |
+
+La compilation XML → métadonnées YAML → HTML et les canaris RED/GREEN du cleanup Windows sont **effectivement validés dans le job `ci-docfx`** de ces deux runs. Les vérifications de site **ne valident pas les liens et ancres ajoutés sur la branche documentaire #146**, qui exigent leur contrôle indépendant. Les résultats des mesures historiques ci-dessous gardent leur valeur **pour leurs seuls HEAD**, pas comme taux CURRENT.
+
+**Différence essentielle de périmètre :** `docs/api-reference/filterConfig.yml` filtre certains harnais CI dans le **site rendu**. Ce fichier **ne retire pas** ces symboles du **dénominateur Roslyn** ; seules les 62 déclarations entièrement générées par Avalonia et attestées par XAML/analyzer peuvent être exclues. Les API métier `internal` demeurent éligibles. Aucun seuil abaissé, `NoWarn`, exclusion de fichier métier ou suppression de check requis.
+
+Le site DocFX n'est **pas publié**. Le succès du job documentaire de #154 ne compense pas l'échec du vrai EXE extrait sous utilisateur standard. Voir [STATUS](../../STATUS.md) et [checklist de recette #95](https://github.com/TobbyCy/RomothequeManager/issues/95#issuecomment-6585108522).
+
 ## Cleanup Windows de la baseline (#149, lot C)
 
 Le cleanup conserve huit tentatives, les diagnostics Git/IO/processus et un échec fatal
@@ -41,13 +60,13 @@ Le programme `tools/doc-coverage/RealProjectInputs.cs` exige des manifestes vali
 
 Un symbole n'est documenté que si son XML est valide, comporte un `summary` suffisamment informatif, sans `TODO` ni résumé contradictoire ou dupliqué. Un `inheritdoc` est accepté **uniquement si sa cible est résolue** et documentée (surcharge, interface ou `cref`), sinon il est refusé. Les canaris exécutent le vrai prédicat du gate avec des mutations RED/GREEN : nouveaux publics et internes métier, `ReadAccessPolicy.AllowsRead` aux noms atypiques, **ajouts non documentés alors que le taux global reste supérieur à 90 %**, retrait de documentation/API, résumés multiples, héritage résolu/non résolu, `partial`, exclusion privée et symboles conditionnés par `DefineConstants`. Rapports JSON/Markdown par fichier et symbole dans l'artefact CI à rétention courte, sans publication DocFX.
 
-**Point historique, périmètre précédent : au HEAD `f51d4f8f`, `523/767 = 68,19 %`. Ce taux N/D n'est PAS reconductible au nouveau calcul qui inclut désormais par défaut les contrats `internal` déclarés dans le projet de production.** Une nouvelle mesure native au HEAD outillage courant et une nouvelle mesure après toute fusion #147 sont obligatoires ; la CI conserve le ratio exact `10×D≥9×N`, les 100 % des nouveaux symboles et la non-régression. Les fichiers UI/VM demeurent sous responsabilité DEV 3, sans modification concurrente DEV 1. Aucun taux avant le rapport Windows réel ne doit être présenté comme validé.
+**HISTORICAL — NON_PRESCRIPTIVE (checkpoint ancien au HEAD `f51d4f8f`) :** la mesure `523/767 = 68,19 %` utilisait un ancien périmètre et ne doit **jamais** être reprise comme taux courant. Les demandes de nouvelle mesure native et de recalcul *après fusion de #147* étaient des consignes **à l'époque** : #147 est depuis fusionnée, et les mesures réelles post-fusion sur `main=7aa62c8f` et #154 sont documentées dans le checkpoint CURRENT en tête. La répartition historique des tâches DEV 1/DEV 3 n'est pas un nouveau mandat. Les règles du gate (`10×D≥9×N`, 100 % des nouveaux symboles, non-régression) restent, elles, **actuelles et obligatoires**.
 
 Le gate impose **90 % minimum**, **100 % des nouveaux IDs éligibles documentés**, aucun recul du ratio, aucune disparition silencieuse d'API éligible et aucun commentaire auparavant valable supprimé. Un résultat en dessous du seuil échoue : il n'est pas corrigé en baissant le seuil ni en masquant CS1591.
 
-L'exécution historique [pilote DocFX #41212901369](https://github.com/TobbyCy/RomothequeManager/actions/runs/41212901369) prouve uniquement la faisabilité native sur un ancien SHA. Une CI au SHA actuel doit réellement construire XML/YAML/HTML et contrôler liens/UID, sans scanner de données personnelles.
+**HISTORICAL — NON_PRESCRIPTIVE :** [pilote DocFX #41212901369](https://github.com/TobbyCy/RomothequeManager/actions/runs/41212901369) prouvait seulement la faisabilité native sur son ancien SHA. La construction XML/YAML/HTML et les contrôles de liens/UID ont depuis été **exécutés avec succès** sur les SHAs CURRENT indiqués en tête. Toute **nouvelle** modification doit toujours obtenir sa propre CI au HEAD exact, sans données personnelles.
 
-Le passage en état **genuinely required** du check `ci-policy-gate` relève de la protection de branche GitHub contrôlée par le propriétaire. Un workflow présent ne suffit pas : si la protection est invérifiable, déclarer `BLOCKED_BRANCH_RULE`.
+**HISTORICAL pour la demande initiale de mise en place :** la responsabilité de configuration du required check `ci-policy-gate` appartient au propriétaire. Des exécutions du gate et son refus effectif de fusion ont été attestés depuis cet ancien checkpoint ; cela **ne prouve pas une lecture administrative exhaustive** de la protection/ruleset GitHub. Pour tout contrôle futur de la configuration non accessible, déclarer `ADMIN_RULE_NOT_VERIFIED` et ne pas transformer la présence d'un workflow en preuve d'une règle propriétaire.
 
 ## GENERATED_AVALONIA_ONLY — qualification contrôlée (#138)
 
@@ -57,4 +76,4 @@ Pour chaque `SymbolId`, le classificateur utilise **toutes** les `DeclaringSynta
 
 Les artefacts internes `generated-exclusions-head.json` et `generated-exclusions-base.json`, et le rapport `gate.json`, donnent pour chaque ID exclu : règle, générateur/version/empreinte, source/empreinte, SHA de compilation, nombre de déclarations et source XAML. Pour chaque compilation, réconcilier `E_all = E_manual + E_generated_excluded` sans doublons. Des canaris vérifient provenance authentique, fichier trompeur, `partial` mixte, hash falsifié, dérive de générateur et ajout d'API manuelle non documentée malgré une couverture globale ≥90 %.
 
-L'ancienne mesure 531/896 au HEAD `4bfd86dd` est **historique**, non reconductible après #147. La qualification des 59 candidats n'est ni une exemption pré-approuvée, ni une preuve de couverture ≥90 %. La CI Windows et la revue indépendante DEV 2 devront valider le nouveau HEAD ; aucun site public, `NoWarn`, changement de visibilité ni Release.
+**HISTORICAL — NON_PRESCRIPTIVE (HEAD `4bfd86dd`) :** la mesure `531/896` et les 59 candidats au filtrage généré précèdent la fusion de #147. Ce paragraphe ne demande **plus** de relancer cette revue : les mesures plus récentes `857/935` sur `main=7aa62c8f` et `860/938` sur #154, avec **62 exclusions Avalonia attestées**, sont disponibles dans le checkpoint CURRENT. Toute future modification reste soumise aux gates CI et à la revue au nouveau HEAD ; aucun site public, `NoWarn`, altération des seuils ni Release automatique.
