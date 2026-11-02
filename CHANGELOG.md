@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / #138 — Complément XML UI/VM (PR #150, 01.11.2026 — DRAFT)
+
+- **Documentation seule, non publiée :** après fusion de [PR #147](https://github.com/TobbyCy/RomothequeManager/pull/147) sur `main=8739cd0419c0b17bf3babe1bd09d8aa644966a3a`, 172 résumés XML métier ajoutés, puis précisions `param`/`remarks` sur les constructeurs suite à la revue DEV 2 dans six fichiers `MvvmFoundation` (inventaire, navigation, RS-A, restauration historique, média et simulation). Le diff des sources après retrait des seules lignes de documentation XML est identique à la base ; aucune API, logique, autorisation ou visibilité modifiée.
+- **Validation PR #150 :** [Adaptive Windows #41367836521](https://github.com/TobbyCy/RomothequeManager/actions/runs/41367836521) au HEAD précédent `181160f` **SUCCESS, 326/326 PASS, 0 FAIL/0 SKIP**, `ci-policy-gate` SUCCESS. **CI du nouveau HEAD après correctif XML P1 et re-revue indépendante DEV 2 PENDING** ; aucune validation combinée DocFX revendiquée.
+- **Mesure #148 distincte :** [preuve native Windows](https://github.com/TobbyCy/RomothequeManager/pull/148#issuecomment-6564633945), HEAD source `d2f2952654df1385bc3ce2dfedb97abf8f0ff2a3`, base `8739cd04` : **633/883 = 71,69 %**, 250 manquants, `ci-docfx` FAILURE sous le seuil normatif ≥90 %. Les 172 XML de #150 ne sont pas mesurés sur l'assemblage commun : **`COMBINED_MEASUREMENT_PENDING`** (projection 805/883 ≈ 91,17 % seulement conditionnelle) ; oracles des nouveaux IDs et qualité XML à vérifier.
+- **Suite des lots :** [GO d'implémentation lot B #145 accordé](https://github.com/TobbyCy/RomothequeManager/issues/145#issuecomment-6564482257), **aucun patch/PR/CI B livré** ; exécution ordonnée après intégration #150 pour éviter collision de ViewModels. Lot C SQLite, accès réels, recette humaine et Release restent HOLD.
+
 ## NEXT-05 / #145 — MVVM : premier lot shell/import historique ES-DE (PR #147, 01.11.2026)
 
 - **Correction P1 sur PR #147, en attente de re-revue indépendante, non publiée :** depuis `main=1aac0912930bd0a040e06800a1e8316fbe077dc2`, préparation de refresh ES-DE non mutatrice via `EsDeImportSession.PrepareRefresh` et adoption gardée par `TryCommitPreparedRefresh`; VM contrôle Cancel/génération/Dispose/session/Current, puis commit et adoption UI sans await/notification. Le parseur, l'identité V2 et la politique média ne sont pas doublés.
