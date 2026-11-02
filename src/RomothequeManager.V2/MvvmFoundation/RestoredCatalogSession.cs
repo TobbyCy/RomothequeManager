@@ -44,11 +44,20 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
 
     // Permission for disposable, synthetic test DBs only. Not exposed to normal application.
     /// <summary>Creates a historical catalogue session for controlled synthetic fixtures, with explicitly bounded optional manual-decision writes.</summary>
-    /// <remarks>When fixtureWriteAllowed is true, Save and Revoke can write only to the fixture store after explicit confirmation, valid selection and complete saved ROMS/MEDIAS evidence; CanSave and CanRevoke enforce those conditions. Both root roles and their shared LibraryId are validated. This switch does not grant personal catalogue writes, live ROMS/MEDIAS reads, image decoding or preview permission.</remarks>
-    /// <param name="store">Injected fixture catalogue store, owned and disposed by the session.</param>
+    /// <remarks>The test composition must inject a controlled synthetic, disposable ICatalogStore;
+    /// this constructor does not verify the store's physical path or whether it is disposable.
+    /// It validates the saved ROMS/MEDIAS roles and their shared LibraryId, but assigns
+    /// fixtureWriteAllowed from the caller without independently proving fixture scope.
+    /// CanSave requires a live session, that flag, explicit confirmation, a selected ROM and
+    /// candidate cover, a Complete displayed inventory, and saved CurrentComplete ROMS
+    /// inventory and MEDIAS index evidence. CanRevoke instead requires a live session,
+    /// that flag, explicit confirmation and an active manual decision; it does not require
+    /// the completeness evidence specific to CanSave. Neither path grants real ROMS/MEDIAS
+    /// reads, image previews or permission to modify a personal catalogue.</remarks>
+    /// <param name="store">Catalogue store supplied by the controlled test composition; the session owns and disposes it but does not prove its physical scope or disposability.</param>
     /// <param name="romRootId">Stored ROMS root identifier; its role and library are validated during construction.</param>
     /// <param name="mediaRootId">Stored MEDIAS root identifier; must belong to the same validated library.</param>
-    /// <param name="fixtureWriteAllowed">True only for a controlled disposable synthetic fixture to permit explicitly confirmed manual decisions; false makes Save/Revoke unavailable.</param>
+    /// <param name="fixtureWriteAllowed">Flag supplied only by fixture test composition. When true it permits guarded, explicitly confirmed manual decisions; it does not verify that the injected store is synthetic or disposable. False disables Save/Revoke.</param>
     internal RestoredCatalogSession(ICatalogStore store, string romRootId, string mediaRootId,
         bool fixtureWriteAllowed)
     {
