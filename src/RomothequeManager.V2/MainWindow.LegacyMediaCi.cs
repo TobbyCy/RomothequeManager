@@ -131,9 +131,19 @@ public sealed partial class MainWindow
         var line = card?.Child as Avalonia.Controls.Grid;
         var details = line?.Children.OfType<Avalonia.Controls.StackPanel>().FirstOrDefault();
         var action = details?.Children.OfType<Avalonia.Controls.Button>().FirstOrDefault();
-        return selector.Focus() && selector.IsFocused &&
-            search.Focus() && search.IsFocused &&
-            action is not null && action.Focus() && action.IsFocused;
+        var selectorFocused = selector.Focus();
+        var selectorActual = selector.IsFocused;
+        var searchFocused = search.Focus();
+        var searchActual = search.IsFocused;
+        var actionFocused = action?.Focus() == true;
+        var actionActual = action?.IsFocused == true;
+        Console.WriteLine("B05_FOCUS_NATIVE_DIAGNOSTICS active=" + IsActive +
+            " selector=" + selectorFocused + "/" + selectorActual +
+            " search=" + searchFocused + "/" + searchActual +
+            " cardAction=" + actionFocused + "/" + actionActual +
+            " cardVisible=" + (action?.IsVisible.ToString() ?? "null"));
+        return selectorFocused && selectorActual &&
+            searchFocused && searchActual && actionFocused && actionActual;
     }
 
     internal string CiLegacyTexts() => SmokeVisibleTexts();
