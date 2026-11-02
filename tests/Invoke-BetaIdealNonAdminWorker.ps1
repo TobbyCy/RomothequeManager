@@ -141,16 +141,29 @@ if ($sessionFacts.isAdmin -or $sessionFacts.integrityRid -ge 12288) {
 # A new Windows account launched by -Credential is not proof of a visible desktop.
 # WTSActive + WinSta0/Default + WSF_VISIBLE must be observed in THAT token.
 if (-not $sessionFacts.interactive) {
+  $reason = if ($sessionFacts.defaultDesktopAccessError -eq 5 -or
+      $sessionFacts.inputDesktopAccessError -eq 5 -or
+      $sessionFacts.hiddenWindowCreateError -eq 5) {
+    'win32_desktop_access_denied'
+  } elseif ($sessionFacts.hiddenWindowCreateError -ne 0) {
+    'native_hwnd_creation_failed'
+  } else {
+    'wts_or_desktop_unavailable'
+  }
   Write-Host ('CI_NONADMIN_GUI_ENV_UNSUPPORTED / OWNER_DECISION_REQUIRED ' +
-    'reason=no_interactive_worker_desktop session=' + $sessionFacts.session +
+    'reason=' + $reason +
+    ' session=' + $sessionFacts.session +
     ' state=' + $sessionFacts.connectionState +
     ' station=' + $sessionFacts.windowStation +
     ' desktop=' + $sessionFacts.desktop +
     ' visible=' + $sessionFacts.stationVisible +
+    ' openDefaultError=' + $sessionFacts.defaultDesktopAccessError +
+    ' openInputError=' + $sessionFacts.inputDesktopAccessError +
+    ' createWindowError=' + $sessionFacts.hiddenWindowCreateError +
     ' sqliteNative=PASS gui=NOT_EXECUTED')
   throw 'CI_NONADMIN_GUI_ENV_UNSUPPORTED OWNER_DECISION_REQUIRED'
 }
-Write-Host 'BETA_NONADMIN_INTERACTIVE_DESKTOP_VERIFIED user=nonadmin station=WinSta0 desktop=Default'
+Write-Host 'BETA_NONADMIN_INTERACTIVE_DESKTOP_VERIFIED user=nonadmin station=WinSta0 desktop=Default openDefault=PASS openInput=PASS hiddenWindowCreate=PASS'
 Invoke-BetaExe @('--smoke-window') 'POC_WINDOW_OPENED_PASS'
 Write-Host 'BETA_NONADMIN_EXTRACTED_UI_PASS native_window=true self_contained=true'
 Invoke-BetaExe @('--ci-ux-offline-fixture', $Fixture) 'UX_RECIPE_OFFLINE_ESDE_GUI_PASS'
