@@ -142,7 +142,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
         lock (_gate) EnsureSchema();
     }
 
-    /// <inheritdoc/>
+    /// <summary>Registers a logical library identity in the fixture database; rejects conflicting identities without scanning any physical source.</summary>
     public void AddLibrary(CatalogLibrary library)
     {
         ArgumentNullException.ThrowIfNull(library);
@@ -154,7 +154,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
                 ("@id", library.LibraryId), ("@label", library.Label)));
     }
 
-    /// <inheritdoc/>
+    /// <summary>Records the declared storage-root role and logical relationship, without mounting or revalidating a real drive.</summary>
     public void AddStorageRoot(CatalogStorageRoot root)
     {
         ArgumentNullException.ThrowIfNull(root);
@@ -169,7 +169,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
                 ("@role", root.Role), ("@binding", root.RelativeBinding)));
     }
 
-    /// <inheritdoc/>
+    /// <summary>Atomically preserves a ROMS observation attempt; only a complete verified snapshot may advance Current.</summary>
     public void SaveAttempt(string storageRootId, InventorySnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -184,7 +184,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
                 JsonSerializer.Serialize(snapshot))));
     }
 
-    /// <inheritdoc/>
+    /// <summary>Atomically records a MEDIAS attempt in its isolated root; incomplete runs never erase the last complete result.</summary>
     public void SaveAttempt(string storageRootId, MediaIndexSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -244,7 +244,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
         });
     }
 
-    /// <inheritdoc/>
+    /// <summary>Reads previously persisted states and diagnostics without opening the original ROMS or MEDIAS roots.</summary>
     public CatalogLastKnown LoadLastKnown(string storageRootId)
     {
         RequireUuid(storageRootId);
@@ -371,7 +371,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
             status, availability, freshness, inventory, media);
     }
 
-    /// <inheritdoc/>
+    /// <summary>Stores a source-attributed metadata claim idempotently; it never creates an approved cover or user decision.</summary>
     public void SaveClaim(CatalogMetadataClaim claim)
     {
         ArgumentNullException.ThrowIfNull(claim);
@@ -400,7 +400,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
             ("@time", claim.CapturedAtUtc.ToString("O")), ("@rule", claim.RuleVersion)));
     }
 
-    /// <inheritdoc/>
+    /// <summary>Saves an explicit user choice only after a separate confirmed fixture action and provenance checks.</summary>
     public void SaveManualDecision(CatalogUserDecision decision, bool explicitUserAction)
     {
         if (!explicitUserAction)
@@ -424,7 +424,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
                 ("@prev", (object?)decision.SupersedesId ?? DBNull.Value)));
     }
 
-    /// <inheritdoc/>
+    /// <summary>Revokes a previously recorded manual choice while retaining its historical source and audit history.</summary>
     public void RevokeManualDecision(string decisionId, bool explicitUserAction)
     {
         if (!explicitUserAction)
@@ -440,7 +440,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
         });
     }
 
-    /// <inheritdoc/>
+    /// <summary>Creates an integrity-checked consistent database backup inside the explicitly authorized fixture directory.</summary>
     public string BackupVerified()
     {
         lock (_gate)
@@ -454,7 +454,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Adopts a validated fixture backup only after schema, manifest, relative paths and consistency checks succeed.</summary>
     public void RestoreVerified(string backupFile)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(backupFile);
@@ -921,7 +921,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
         if (_disposed) throw new ObjectDisposedException(nameof(SqliteCatalogStore));
     }
 
-    /// <inheritdoc/>
+    /// <summary>Marks the fixture-scoped store disposed so no further persistence operations may proceed.</summary>
     public void Dispose()
     {
         lock (_gate) _disposed = true;
