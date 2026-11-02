@@ -200,6 +200,7 @@ fb6a46bc6e9e5786e3800c67e82abe6937343d8f19952b861f053ade6786e1d4  Modules/StateC
             }
         }
     }
+    $sqliteMarkerFailureCount = $failures.Count
     $sqliteMarkerLines = @($distSource -split "`n" | Where-Object { $_.StartsWith('$sqliteLegalApproved = $inventory -cmatch ') })
     Require ($sqliteMarkerLines.Count -eq 1) 'DIST_SQLITE_LEGAL_MARKER_PREDICATE_MISSING_OR_DUPLICATE'
     if ($sqliteMarkerLines.Count -eq 1) {
