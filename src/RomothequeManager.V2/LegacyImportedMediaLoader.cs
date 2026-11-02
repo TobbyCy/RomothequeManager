@@ -4,10 +4,32 @@ namespace RomothequeManager.V2;
 
 /// <summary>UI-visible result phases for one explicitly accepted ES-DE media reference.
 /// A refused or unavailable reference never establishes that a media file is absent.</summary>
-internal enum LegacyMediaPhase { Idle, Loading, Ready, Refused, Unavailable, Cancelled, Stale }
+internal enum LegacyMediaPhase
+{
+    /// <summary>No accepted media request has started for this view.</summary>
+    Idle,
+    /// <summary>One or more accepted references are queued or decoding.</summary>
+    Loading,
+    /// <summary>A bounded result may be transferred to the View.</summary>
+    Ready,
+    /// <summary>Membership, permission or safe decoding checks refused a reference.</summary>
+    Refused,
+    /// <summary>No declared candidate can currently be opened or found.</summary>
+    Unavailable,
+    /// <summary>The owner explicitly cancelled the request.</summary>
+    Cancelled,
+    /// <summary>The request belongs to an obsolete snapshot or View generation.</summary>
+    Stale
+}
 
 /// <summary>One bounded request against the exact accepted session and ES-DE snapshot.
 /// References and their order originate only from the selected game's declared XML media.</summary>
+/// <param name="Session">Backend session that accepted the imported root.</param>
+/// <param name="Snapshot">Exact immutable snapshot shared with the UI and session Current.</param>
+/// <param name="Game">Game object from Snapshot; its media references are authoritative.</param>
+/// <param name="Candidates">Ordered references declared in Game.Media, never inferred paths.</param>
+/// <param name="Slot">Existing #141 output dimension policy for this presentation slot.</param>
+/// <param name="ExplicitConsent">True only after the View's explicit import or a controlled synthetic fixture; not a new permission grant.</param>
 internal sealed record LegacyMediaRequest(
     EsDeImportSession Session, EsDeCatalogueSnapshot Snapshot, EsDeGame Game,
     IReadOnlyList<EsDeMedia> Candidates, LegacyImageSlot Slot, bool ExplicitConsent);
@@ -85,6 +107,9 @@ internal sealed class LegacyImportedMediaLoader : ILegacyImportedMediaLoader
     private int _nativeDecoderEntered;
     private int _activeDecodes;
     private int _peakActiveDecodes;
+
+    /// <summary>Create a loader for one window; it owns the single-flight semaphore.</summary>
+    internal LegacyImportedMediaLoader() { }
 
     /// <summary>Actual guarded decoder entries, not merely successful file opens.</summary>
     public int NativeDecoderEntered => Volatile.Read(ref _nativeDecoderEntered);
