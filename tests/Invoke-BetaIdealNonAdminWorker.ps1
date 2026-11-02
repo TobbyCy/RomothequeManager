@@ -35,6 +35,28 @@ if (-not (Test-Path -LiteralPath $xml -PathType Leaf) -or
 }
 $originalXml = (Get-FileHash -LiteralPath $xml -Algorithm SHA256).Hash
 
+# Codes are the only application data permitted to escape a terminated process.
+# Never display raw stdout/stderr, exception text, paths or the trace's parent process.
+$script:BetaTracePattern = '^BETA_AVALONIA_TRACE (MAIN_ENTER|SETUP_BEGIN|SETUP_COMPLETE|MAINWINDOW_CTOR_BEGIN|MAINWINDOW_CTOR_END|LIFETIME_START_BEGIN|WINDOW_OPENED|DISPATCHER_POST|DISPATCHER_EXECUTE|SMOKE_PASS|SMOKE_FAIL|LIFETIME_RETURN)$'
+function Write-BetaTraceSummary([object]$stdoutTask, [object]$stderrTask, [string]$role) {
+  $completed = $stdoutTask.IsCompletedSuccessfully
+  $codes = [Collections.Generic.List[string]]::new()
+  if ($completed) {
+    $raw = [string]$stdoutTask.Result
+    $tail = $raw.Substring([Math]::Max(0, $raw.Length - 16384))
+    foreach ($line in ($tail -split '\r?\n')) {
+      if ($line -cmatch $script:BetaTracePattern) {
+        if ($codes.Count -eq 12) { $codes.RemoveAt(0) }
+        $codes.Add($Matches[1])
+      }
+    }
+  }
+  $last = if ($codes.Count -eq 0) { 'NOT_VERIFIED' } else { $codes[$codes.Count - 1] }
+  $sequence = if ($codes.Count -eq 0) { 'NOT_VERIFIED' } else { [string]::Join(',', $codes) }
+  Write-Host ('BETA_AVALONIA_TRACE_SUMMARY role=' + $role + ' last=' + $last +
+    ' codes=' + $sequence + ' stdoutComplete=' + $completed +
+    ' stderrComplete=' + $stderrTask.IsCompletedSuccessfully)
+}
 function Invoke-BetaExe([string[]]$args, [string]$expected) {
   $start = [Diagnostics.ProcessStartInfo]::new()
   $start.FileName = $exe
@@ -48,6 +70,9 @@ function Invoke-BetaExe([string[]]$args, [string]$expected) {
   $start.Environment['DOTNET_ROOT'] = Join-Path $Shared 'missing-dotnet'
   $start.Environment['DOTNET_ROOT_X64'] = Join-Path $Shared 'missing-dotnet'
   $start.Environment['DOTNET_MULTILEVEL_LOOKUP'] = '0'
+  # The actual child RUNNER_TEMP must equal the explicit, canonical shared fixture.
+  $start.Environment['ROMOTHEQUE_BETA_TRACE'] = '1'
+  $start.Environment['ROMOTHEQUE_BETA_TRACE_ROOT'] = $Shared
   $start.Environment['PATH'] = $Extract + ';' + $env:SystemRoot + '\System32;' + $env:SystemRoot
   $proc = [Diagnostics.Process]::Start($start)
   if ($null -eq $proc) { throw 'BETA_NONADMIN_PROCESS_NOT_STARTED' }
@@ -58,22 +83,30 @@ function Invoke-BetaExe([string[]]$args, [string]$expected) {
     $out = $proc.StandardOutput.ReadToEndAsync()
     $err = $proc.StandardError.ReadToEndAsync()
     if (-not $proc.WaitForExit(90000)) {
+      $threads = -1
+      try { $threads = $proc.Threads.Count } catch { }
       Write-Host ('BETA_EXTRACTED_PROCESS_TIMEOUT pid=' + $proc.Id +
         ' processSession=' + $proc.SessionId +
         ' workerSession=' + $sessionFacts.session +
-        ' exited=' + $proc.HasExited +
-        ' windowSignal=NOT_VERIFIED stdoutCompleted=' + $out.IsCompleted +
-        ' stderrCompleted=' + $err.IsCompleted)
-      $proc.Kill($true)
+        ' threads=' + $threads + ' windowSignal=NOT_VERIFIED')
+      # Only the EXE child, never arbitrary session processes or GUI helpers.
+      if (-not $proc.HasExited) { $proc.Kill() }
       [void]$proc.WaitForExit(5000)
+      # Capture bounded partial output only AFTER termination. No raw pipes or paths.
+      try { [void][Threading.Tasks.Task]::WhenAll(@($out, $err)).Wait(5000) } catch { }
+      Write-BetaTraceSummary $out $err 'nonadmin'
       throw 'BETA_NONADMIN_EXTRACTED_TIMEOUT'
     }
     Write-Host ('BETA_EXTRACTED_PROCESS_EXIT pid=' + $proc.Id +
       ' session=' + $proc.SessionId + ' exit=' + $proc.ExitCode +
       ' completed=true')
-    if ($proc.ExitCode -ne 0 -or -not $out.Result.Contains($expected, [StringComparison]::Ordinal)) {
+    try { [void][Threading.Tasks.Task]::WhenAll(@($out, $err)).Wait(5000) } catch { }
+    Write-BetaTraceSummary $out $err 'nonadmin'
+    $oracle = $out.IsCompletedSuccessfully -and
+      $out.Result.Contains($expected, [StringComparison]::Ordinal)
+    if ($proc.ExitCode -ne 0 -or -not $oracle) {
       throw ('BETA_NONADMIN_EXTRACTED_FAIL exit=' + $proc.ExitCode +
-        ' stdout=' + $out.Result + ' stderr=' + $err.Result)
+        ' expectedOracleObserved=' + $oracle)
     }
   } finally { $proc.Dispose() }
 }
