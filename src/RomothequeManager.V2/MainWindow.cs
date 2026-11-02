@@ -158,6 +158,8 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         _importVm = new ImportedCatalogueViewModel(_importedUi);
+        _legacyMediaVm = new LegacyImportedMediaViewModel(_importedUi, _importVm,
+            new LegacyImportedMediaLoader());
         _importVm.PropertyChanged += (_, change) =>
         {
             // Track UI scroll before an asynchronous refresh, without owning its job.
