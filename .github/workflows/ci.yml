@@ -469,6 +469,11 @@ jobs:
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: '10.0.401'
+      - name: Native held and transient lock cleanup canaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./tools/doc-coverage/Test-BaselineCleanup.ps1 -EvidenceRoot (Join-Path $env:RUNNER_TEMP ('docfx-cleanup-canary-' + [guid]::NewGuid().ToString('N'))) -TransientLock
       - name: Native XML to YAML to HTML and strict site checks
         shell: pwsh
         run: |
@@ -584,11 +589,16 @@ jobs:
                   foreach ($item in $remaining) {
                     Write-BaselineCleanup ('REMAINING_TEMP_ENTRY ' + $item)
                   }
-                  $holders = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
-                    Where-Object { $_.Name -in @('dotnet.exe','MSBuild.exe','VBCSCompiler.exe') -and
-                      $_.CommandLine -and $_.CommandLine.Contains($baselineFull, [StringComparison]::OrdinalIgnoreCase) })
-                  foreach ($proc in $holders) {
-                    Write-BaselineCleanup ('PROCESS_REFERENCES_BASELINE name=' + $proc.Name + ' pid=' + $proc.ProcessId)
+                  try {
+                    $holders = @(Get-CimInstance Win32_Process -ErrorAction Stop |
+                      Where-Object { $_.Name -in @('dotnet.exe','MSBuild.exe','VBCSCompiler.exe') -and
+                        $_.CommandLine -and $_.CommandLine.Contains($baselineFull, [StringComparison]::OrdinalIgnoreCase) })
+                    foreach ($proc in $holders) {
+                      Write-BaselineCleanup ('PROCESS_REFERENCES_BASELINE name=' + $proc.Name + ' pid=' + $proc.ProcessId)
+                    }
+                  } catch {
+                    # Optional diagnostics must not mask the final double-invariant verdict.
+                    Write-BaselineCleanup ('PROCESS_DIAGNOSTICS_UNAVAILABLE type=' + $_.Exception.GetType().Name)
                   }
                 }
               }
@@ -616,7 +626,13 @@ jobs:
                 $baselineCleaned = $true
                 break
               }
-              if ($attempt -lt 8) { Start-Sleep -Seconds 2 }
+              if ($attempt -lt 8) {
+                # Eight attempts remain bounded, but allow transient Windows handles
+                # to outlive the former 14-second total wait (2+4+6+8+10+12+14=56s).
+                $delaySeconds = 2 * $attempt
+                Write-BaselineCleanup ('RETRY_DELAY attempt=' + $attempt + ' seconds=' + $delaySeconds)
+                Start-Sleep -Seconds $delaySeconds
+              }
             }
             if (-not $baselineCleaned) { throw 'DOC_BASELINE_WORKTREE_CLEANUP_FAILED' }
             Write-BaselineCleanup 'PASS physical_tree_absent=true git_registration_absent=true'

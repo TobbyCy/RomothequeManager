@@ -48,7 +48,7 @@ try {
         '^\.github/ISSUE_TEMPLATE/(bug|config|docs|feature|question)\.yml$',
         '^tests/(ci_policy|test_ci_policy|sqlite_legal_gate|test_sqlite_legal_gate)\.py$', '^packaging/sqlite-legal-manifest\.json$',
         '^docs/api-reference/(docfx\.json|filterConfig\.yml|index\.md|toc\.yml)$',
-        '^tools/doc-coverage/(DocCoverage\.csproj|DocCoverage\.targets|Program\.cs|RealProjectInputs\.cs|check_site\.py)$',
+        '^tools/doc-coverage/(DocCoverage\.csproj|DocCoverage\.targets|Program\.cs|RealProjectInputs\.cs|check_site\.py|Test-BaselineCleanup\.ps1)$',
         '^(src|app)/RomothequeManager\.V2/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|sln|axaml|resx|json|png|svg|ico)$',
         '^tests/dotnet/RomothequeManager\.V2\.Tests/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.(cs|csproj|json)$',
         '^(contracts|schemas)/([A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.json$',

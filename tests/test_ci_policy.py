@@ -458,6 +458,12 @@ class DocumentTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_docfx_cleanup_canary_has_an_exact_allowlist_entry(self):
+        root = Path(__file__).resolve().parent.parent
+        rules, _ = p.path_rules(root)
+        self.assertTrue(any(p.re.fullmatch(rule, "tools/doc-coverage/Test-BaselineCleanup.ps1") for rule in rules))
+        self.assertFalse(any(p.re.fullmatch(rule, "tools/doc-coverage/UnreviewedCleanup.ps1") for rule in rules))
+
     def test_stab03a_ps51_unicode_sources_have_utf8_bom(self):
         # GitHub-stored bytes: PS5.1 must never interpret UTF-8 literals as ACP.
         root = Path(__file__).resolve().parent.parent

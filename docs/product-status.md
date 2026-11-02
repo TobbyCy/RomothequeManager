@@ -4,8 +4,19 @@
 
 - **GO d'implémentation uniquement :** PR #153 créée depuis `main=1bb5c208` pour les notices SQLite/Microsoft.Data.Sqlite 10.0.14, SQLitePCLRaw 2.1.13, SHA-256 binaires et SHA-512 NuGet, plus les contrôles Windows et leurs tests synthétiques. Aucun produit réel ni scanner modifié.
 - **Périmètre juridique :** le marqueur historique de distribution ne couvre pas automatiquement les nouveaux composants ; une seconde approbation spécifique est requise pour `phase=publish`. Aucune approbation juridique définitive, ZIP bêta, scan réel ni Release autorisés.
-- **CI :** 335/335 tests .NET, 18 canaris SQLite synthétiques validés sur la CI initiale ; les premiers runs ont révélé une confusion entre SHA-512 de contenu NuGet et SHA-512 de l'archive signée, corrigée sans abaisser les contrôles. La CI Windows, le gate DocFX et `ci-policy-gate` restent à constater au HEAD final ; revue indépendante DEV 2 exigée avant fusion.
+- **CI :** 335/335 tests .NET, 23/23 canaris SQLite, 6/6 provenances NUPKG, 5/5 binaires et 4/4 textes légaux validés au HEAD `ed433506` (CI #41455972332, job .NET SUCCESS) ; `ci-docfx` avait échoué sur un verrou Windows traité dans #152 ; les premiers runs ont révélé une confusion entre SHA-512 de contenu NuGet et SHA-512 de l'archive signée, corrigée sans abaisser les contrôles. La CI Windows, le gate DocFX et `ci-policy-gate` restent à constater au HEAD final ; revue indépendante DEV 2 exigée avant fusion.
 - **Lot B : HOLD** malgré son GO de préparation ; lancement seulement après fusion validée de A et CI `push/main` SUCCESS. Conserver tous les contrôles et `NEXT05_RELEASE_HOLD`.
+
+## CLEAN-LEGACY-05 / #149 — Lot C cleanup DocFX proposé (02.11.2026)
+
+Correctif limité au cleanup du worktree baseline Windows : huit tentatives avec attente
+progressive bornée, diagnostic CIM non bloquant et verdict fatal inchangé si le dossier
+ou l'enregistrement Git subsiste. Un canari natif crée exclusivement un dépôt et un
+verrou synthétiques ; RED sous verrou maintenu, GREEN après libération et récupération
+d'un verrou transitoire de 22 secondes. Aucun PID historique de l'incident CI n'est
+identifié par cette reproduction contrôlée. CI Windows distante et revue DEV 2 au
+HEAD exact requises ; couverture/exclusions Roslyn, gates, packaging et permissions
+réelles inchangés. Aucune fusion ni Release autorisée.
 
 ## NEXT-05 / #145 — Lot B médias historiques ES-DE (PR DEV 3 distincte, 02.11.2026)
 
