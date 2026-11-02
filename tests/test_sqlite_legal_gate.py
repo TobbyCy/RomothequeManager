@@ -90,6 +90,13 @@ class SqliteLegalGateTests(unittest.TestCase):
     def test_green_all_five_binaries_six_nupkgs_legal(self):
         self.assertIsNone(self.verify())
 
+    def test_green_windows_crlf_checkout_keeps_exact_git_blob(self):
+        file = self.licenses / gate.LEGAL_FILES[0]
+        content = file.read_bytes()
+        self.assertIn(b"\n", content)
+        file.write_bytes(content.replace(b"\n", b"\r\n"))
+        self.assertIsNone(self.verify())
+
     def test_red_missing_binary(self):
         (self.publish / gate.BINARY_NAMES[0]).unlink()
         self.reject("SQLITE_PUBLISH_BINARY_SET_MISMATCH")
