@@ -236,6 +236,100 @@ internal static class Next05LegacyMediaHarness
         }, DispatcherPriority.Background);
     }
 
+    // #145 Lot B: TARGETED native evidence for the changed View/VM/service boundary.
+    // Reuses fixture generation and screenshot functions without replaying LM01..07.
+    /// <summary>Exercises only the new lot-B media pipeline on a Windows CI-only Avalonia
+    /// window, checking 50 cards, fallback, generation invalidation and 1120/760 captures.</summary>
+    internal static void ConfigureLotB(MainWindow window)
+    {
+        var runner = Environment.GetEnvironmentVariable("RUNNER_TEMP");
+        if (!OperatingSystem.IsWindows() ||
+            Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true" ||
+            string.IsNullOrWhiteSpace(runner))
+            throw new InvalidOperationException("B05_FIXTURES_ONLY_WINDOWS_RUNNER_REQUIRED");
+        var jpeg = Path.Combine(runner, "lm-valid-synthetic.jpg");
+        if (!File.Exists(jpeg)) throw new InvalidDataException("B05_JPEG_FIXTURE_MISSING");
+        var root = Path.Combine(runner, "LOTB145-" + Guid.NewGuid().ToString("N"));
+        var gallery = Path.Combine(runner, "LOTB145-Windows-PNG");
+        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(gallery);
+        BuildFixture(root, jpeg); // all data generated in RUNNER_TEMP, no real user media.
+
+        window.Opened += (_, _) => Dispatcher.UIThread.Post(async () =>
+        {
+            try
+            {
+                Demand(window.IsVisible && window.CiLegacyImport(root, 50),
+                    "B05_ACCEPTED_FIXTURE_IMPORT_REQUIRED");
+                await WaitForQueueAsync(window, 30000);
+                var cards = window.LegacyMediaCounters();
+                Demand(cards.PeakActive <= 1 && cards.Pending == 0 &&
+                    cards.RetainedBytes <= LegacyImportedImageBudget.MaxViewBytes &&
+                    window.CiLegacyLiveBitmapCount >= 47 &&
+                    window.CiLegacyLiveBitmapCount <= 50,
+                    "B05_50_CARD_SINGLE_FLIGHT_AND_RETENTION");
+                Console.WriteLine("LOTB_B05_50_CARDS_PASS peak=" + cards.PeakActive +
+                    " nativeEntries=" + cards.NativeDecoderEntered +
+                    " retained=" + cards.RetainedBytes);
+
+                window.Width = 1120; window.Height = 720;
+                await WaitForQueueAsync(window, 30000);
+                Capture(window, gallery, "B05-Collection-1120x720", 1120, 720);
+                window.Width = 760; window.Height = 480;
+                await WaitForQueueAsync(window, 30000);
+                Capture(window, gallery, "B05-Collection-760x480", 760, 480);
+
+                Demand(window.CiLegacyOpenIndex(2), "B03_FALLBACK_GAME_NOT_OPENED");
+                await WaitForQueueAsync(window, 30000);
+                Demand(window.CiLegacyLiveBitmapCount >= 2 &&
+                    window.LegacyMediaCounters().PeakActive <= 1,
+                    "B03_DECLARED_THUMBNAIL_NOT_DISPLAYED");
+                window.Width = 1120; window.Height = 720;
+                await WaitForQueueAsync(window, 30000);
+                Capture(window, gallery, "B03-Thumbnail-1120x720", 1120, 720);
+                window.Width = 760; window.Height = 480;
+                await WaitForQueueAsync(window, 30000);
+                Capture(window, gallery, "B03-Thumbnail-760x480", 760, 480);
+                Console.WriteLine("LOTB_B03_FALLBACK_WINDOWS_PASS declared_thumbnail=true");
+
+                Demand(window.CiLegacyShowCollection(), "B04_COLLECTION_RETURN_FAILED");
+                for (var i = 0; i < 8; i++)
+                {
+                    Demand(window.CiLegacyShowDashboard(), "B04_DASHBOARD_NAV_FAILED");
+                    Demand(window.CiLegacyShowCollection(), "B04_COLLECTION_NAV_FAILED");
+                }
+                Demand(window.CiLegacySearch("LM Game 01"), "B04_FILTER_FAILED");
+                Demand(window.CiLegacySearch(""), "B04_CLEAR_FILTER_FAILED");
+                Demand(window.CiLegacyReimport(), "B01_REFRESH_REQUIRED");
+                await WaitForQueueAsync(window, 30000);
+                var settled = window.LegacyMediaCounters();
+                Demand(settled.RetainedBytes <= LegacyImportedImageBudget.MaxViewBytes &&
+                    settled.PeakActive <= 1 && settled.Pending == 0,
+                    "B04_NAVIGATION_GENERATION_BUDGET_FAILED");
+                window.Width = 1120; window.Height = 720;
+                await WaitForQueueAsync(window, 30000);
+                Capture(window, gallery, "B04-Refresh-1120x720", 1120, 720);
+                window.Width = 760; window.Height = 480;
+                await WaitForQueueAsync(window, 30000);
+                Capture(window, gallery, "B04-Refresh-760x480", 760, 480);
+
+                window.Close();
+                Demand(window.CiLegacyLiveBitmapCount == 0 &&
+                    window.LegacyMediaCounters().RetainedBytes == 0,
+                    "B04_VIEW_DISPOSE_MUST_RELEASE_BITMAPS");
+                Console.WriteLine("LOTB_B04_CANCEL_STALE_DISPOSE_PASS retained=0 attached=0");
+                Console.WriteLine("LOTB_B03_B04_B05_WINDOWS_FIXTURES_PASS source=CI_ONLY");
+            }
+            catch (Exception error)
+            {
+                Environment.ExitCode = 76;
+                Console.Error.WriteLine("LOTB_NATIVE_FIXTURE_FAIL " +
+                    error.GetType().Name + " " + error.Message);
+                window.Close();
+            }
+        }, DispatcherPriority.Background);
+    }
+
     // 20ms polling produces an OBSERVED sampled peak, never a proven OS hard
     // maximum. GC and Skia can retain native allocations across navigation.
     private sealed class MemorySample
