@@ -1,0 +1,109 @@
+name: NEXT-05 / #145 lot B targeted native Windows fixture proof (temporary)
+on:
+  push:
+    branches: [dev3/next05-lotb-esde-media-mvvm]
+permissions:
+  contents: read
+concurrency:
+  group: next05-lotb-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lotb-windows-proof:
+    if: github.repository == 'TobbyCy/RomothequeManager'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact source without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Pinned .NET SDK 10.0.401
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Locked build and targeted B canaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'B_WRONG_SOURCE_SHA' }
+          $test = 'tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj'
+          $app  = 'src/RomothequeManager.V2/RomothequeManager.V2.csproj'
+          dotnet restore $test --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'B_LOCKED_RESTORE_FAILED' }
+          dotnet test $test -c Release --no-restore -p:TreatWarningsAsErrors=true --filter 'FullyQualifiedName~LegacyImportedMediaMvvmTests'
+          if ($LASTEXITCODE -ne 0) { throw 'B_TARGETED_TESTS_FAILED' }
+          dotnet restore $app -r win-x64 --locked-mode -p:SelfContained=true -p:NuGetAudit=true -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+          if ($LASTEXITCODE -ne 0) { throw 'B_GUI_RESTORE_FAILED' }
+          $output = Join-Path $env:RUNNER_TEMP 'LOTB145-ci-app'
+          dotnet publish $app -c Release -r win-x64 --self-contained true --no-restore -p:DefineConstants=NEXT05_CI -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -p:TreatWarningsAsErrors=true -o $output
+          if ($LASTEXITCODE -ne 0) { throw 'B_GUI_PUBLISH_FAILED' }
+          if (-not (Test-Path -LiteralPath (Join-Path $output 'RomothequeManager.V2.exe') -PathType Leaf)) { throw 'B_GUI_EXE_MISSING' }
+      - name: Make genuine synthetic JPEG
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $bmp = [Drawing.Bitmap]::new(96,64)
+          $canvas = [Drawing.Graphics]::FromImage($bmp)
+          try {
+            $canvas.Clear([Drawing.Color]::DarkBlue)
+            $jpeg = Join-Path $env:RUNNER_TEMP 'lm-valid-synthetic.jpg'
+            $bmp.Save($jpeg,[Drawing.Imaging.ImageFormat]::Jpeg)
+          } finally { $canvas.Dispose(); $bmp.Dispose() }
+          if ((Get-Item $jpeg).Length -lt 100) { throw 'B_JPEG_INVALID' }
+      - name: Native Avalonia 50 cards, thumbnail fallback, 760x480 and Dispose
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $env:RUNNER_TEMP 'LOTB145-ci-app/RomothequeManager.V2.exe'
+          $psi = [Diagnostics.ProcessStartInfo]::new()
+          $psi.FileName = $exe
+          $psi.WorkingDirectory = Split-Path $exe
+          $psi.ArgumentList.Add('--ci-next05-lotb-media')
+          $psi.RedirectStandardOutput = $true
+          $psi.RedirectStandardError = $true
+          $psi.UseShellExecute = $false
+          $process = [Diagnostics.Process]::Start($psi)
+          if ($null -eq $process) { throw 'B_WINDOWS_UI_START_FAILED' }
+          try {
+            if (-not $process.WaitForExit(180000)) {
+              $process.Kill($true)
+              throw 'B_WINDOWS_GUI_TIMEOUT'
+            }
+            $stdout = $process.StandardOutput.ReadToEnd()
+            $stderr = $process.StandardError.ReadToEnd()
+            Write-Host $stdout
+            if ($stderr) { Write-Host $stderr }
+            if ($process.ExitCode -ne 0) { throw ('B_WINDOWS_GUI_EXIT_' + $process.ExitCode) }
+            foreach ($marker in @('LOTB_B05_50_CARDS_PASS',
+                'LOTB_B03_FALLBACK_WINDOWS_PASS',
+                'LOTB_B04_CANCEL_STALE_DISPOSE_PASS',
+                'LOTB_B03_B04_B05_WINDOWS_FIXTURES_PASS')) {
+              if (-not $stdout.Contains($marker)) { throw ('B_NATIVE_ORACLE_MISSING:' + $marker) }
+            }
+          } finally { $process.Dispose() }
+          $out = Join-Path $env:RUNNER_TEMP 'LOTB145-Windows-PNG'
+          $captures = @(Get-ChildItem -LiteralPath $out -Filter '*.png' -File)
+          if ($captures.Count -ne 6) { throw ('B_PNG_COUNT_' + $captures.Count) }
+          Add-Type -AssemblyName System.Drawing
+          foreach ($png in $captures) {
+            $bitmap = [Drawing.Bitmap]::FromFile($png.FullName)
+            try {
+              if ($bitmap.Width -lt 760 -or $bitmap.Height -lt 480 -or $png.Length -lt 4000) { throw ('B_BAD_PNG:' + $png.Name) }
+            } finally { $bitmap.Dispose() }
+          }
+          $list = @($captures | Sort-Object Name | ForEach-Object {
+            [ordered]@{name=$_.Name;bytes=$_.Length;sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
+          })
+          [ordered]@{source=$env:GITHUB_SHA;syntheticOnly=$true;nativeWindows=$true;release=$false;png=$list} |
+            ConvertTo-Json -Depth 5 | Set-Content (Join-Path $out 'LOTB145-PROOF.json') -Encoding utf8
+          Write-Host ('LOTB_WINDOWS_6_PNG_PASS source='+$env:GITHUB_SHA)
+      - name: Three-day synthetic-only proof artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: LOTB145-Windows-Fictional-PNG
+          path: |
+            ${{ runner.temp }}/LOTB145-Windows-PNG/*
+          retention-days: 3
+          if-no-files-found: warn
