@@ -9,6 +9,13 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'BETA_NONADMIN_WINDOWS_REQUIRED' }
+$sessionScript = Join-Path $Shared 'BetaIdealWindowsSession.ps1'
+if (-not (Test-Path -LiteralPath $sessionScript -PathType Leaf)) {
+  throw 'BETA_SESSION_DIAGNOSTIC_SCRIPT_MISSING'
+}
+. $sessionScript
+$sessionFacts = Get-BetaWindowsSessionFacts -Role worker
+if ($sessionFacts.integrityRid -lt 0) { Write-Host 'BETA_WORKER_INTEGRITY_NOT_VERIFIED' }
 $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
 if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
   throw 'BETA_NONADMIN_IDENTITY_FAILED'
@@ -44,27 +51,32 @@ function Invoke-BetaExe([string[]]$args, [string]$expected) {
   $start.Environment['PATH'] = $Extract + ';' + $env:SystemRoot + '\System32;' + $env:SystemRoot
   $proc = [Diagnostics.Process]::Start($start)
   if ($null -eq $proc) { throw 'BETA_NONADMIN_PROCESS_NOT_STARTED' }
+  Write-Host ('BETA_EXTRACTED_PROCESS_START role=worker pid=' + $proc.Id +
+    ' session=' + $proc.SessionId + ' workerSession=' + $sessionFacts.session +
+    ' launched=true exited=' + $proc.HasExited)
   try {
     $out = $proc.StandardOutput.ReadToEndAsync()
     $err = $proc.StandardError.ReadToEndAsync()
     if (-not $proc.WaitForExit(90000)) {
-      $proc.Kill()
+      Write-Host ('BETA_EXTRACTED_PROCESS_TIMEOUT pid=' + $proc.Id +
+        ' processSession=' + $proc.SessionId +
+        ' workerSession=' + $sessionFacts.session +
+        ' exited=' + $proc.HasExited +
+        ' windowSignal=NOT_VERIFIED stdoutCompleted=' + $out.IsCompleted +
+        ' stderrCompleted=' + $err.IsCompleted)
+      $proc.Kill($true)
+      [void]$proc.WaitForExit(5000)
       throw 'BETA_NONADMIN_EXTRACTED_TIMEOUT'
     }
+    Write-Host ('BETA_EXTRACTED_PROCESS_EXIT pid=' + $proc.Id +
+      ' session=' + $proc.SessionId + ' exit=' + $proc.ExitCode +
+      ' completed=true')
     if ($proc.ExitCode -ne 0 -or -not $out.Result.Contains($expected, [StringComparison]::Ordinal)) {
       throw ('BETA_NONADMIN_EXTRACTED_FAIL exit=' + $proc.ExitCode +
         ' stdout=' + $out.Result + ' stderr=' + $err.Result)
     }
   } finally { $proc.Dispose() }
 }
-Invoke-BetaExe @('--smoke-window') 'POC_WINDOW_OPENED_PASS'
-Write-Host 'BETA_NONADMIN_EXTRACTED_UI_PASS native_window=true self_contained=true'
-Invoke-BetaExe @('--ci-ux-offline-fixture', $Fixture) 'UX_RECIPE_OFFLINE_ESDE_GUI_PASS'
-if ((Get-FileHash -LiteralPath $xml -Algorithm SHA256).Hash -cne $originalXml) {
-  throw 'BETA_ESDE_XML_NOT_RESTORED'
-}
-Write-Host 'BETA_NONADMIN_ESDE_PASS imported=4 diagnostics=true media_fallback_placeholder=true malformed_xml_refused=true'
-
 # Native SQLite is actually loaded from the EXTRACTED ZIP, never from a system copy.
 # Product SQLite persistence and restoration are additionally exercised by the
 # existing fixture-only .NET tests; this probe alone is NOT a full app restore.
@@ -123,4 +135,27 @@ Add-Type -TypeDefinition $native -ErrorAction Stop
 $database = Join-Path $Shared 'synthetic-sqlite-probe.sqlite'
 [BetaNativeSqliteProbe]::Verify((Join-Path $Extract 'e_sqlite3.dll'), $database)
 Write-Host 'BETA_NONADMIN_NATIVE_SQLITE_PASS e_sqlite3_from_extracted=true write_close_reopen_read=true'
+if ($sessionFacts.isAdmin -or $sessionFacts.integrityRid -ge 12288) {
+  throw 'BETA_NONADMIN_INTEGRITY_OR_ADMIN_REFUSED'
+}
+# A new Windows account launched by -Credential is not proof of a visible desktop.
+# WTSActive + WinSta0/Default + WSF_VISIBLE must be observed in THAT token.
+if (-not $sessionFacts.interactive) {
+  Write-Host ('CI_NONADMIN_GUI_ENV_UNSUPPORTED / OWNER_DECISION_REQUIRED ' +
+    'reason=no_interactive_worker_desktop session=' + $sessionFacts.session +
+    ' state=' + $sessionFacts.connectionState +
+    ' station=' + $sessionFacts.windowStation +
+    ' desktop=' + $sessionFacts.desktop +
+    ' visible=' + $sessionFacts.stationVisible +
+    ' sqliteNative=PASS gui=NOT_EXECUTED')
+  throw 'CI_NONADMIN_GUI_ENV_UNSUPPORTED OWNER_DECISION_REQUIRED'
+}
+Write-Host 'BETA_NONADMIN_INTERACTIVE_DESKTOP_VERIFIED user=nonadmin station=WinSta0 desktop=Default'
+Invoke-BetaExe @('--smoke-window') 'POC_WINDOW_OPENED_PASS'
+Write-Host 'BETA_NONADMIN_EXTRACTED_UI_PASS native_window=true self_contained=true'
+Invoke-BetaExe @('--ci-ux-offline-fixture', $Fixture) 'UX_RECIPE_OFFLINE_ESDE_GUI_PASS'
+if ((Get-FileHash -LiteralPath $xml -Algorithm SHA256).Hash -cne $originalXml) {
+  throw 'BETA_ESDE_XML_NOT_RESTORED'
+}
+Write-Host 'BETA_NONADMIN_ESDE_PASS imported=4 diagnostics=true media_fallback_placeholder=true malformed_xml_refused=true'
 Write-Host 'BETA_NONADMIN_FIXTURE_PASS no_personal_scan=true no_release=true'
