@@ -3,7 +3,9 @@
 ## NEXT-05 / #138 — Complément XML UI/VM (PR #150, 01.11.2026 — DRAFT)
 
 - **Documentation seule, non publiée :** après fusion de [PR #147](https://github.com/TobbyCy/RomothequeManager/pull/147) sur `main=8739cd0419c0b17bf3babe1bd09d8aa644966a3a`, 172 résumés XML métier ajoutés dans six fichiers `MvvmFoundation` (inventaire, navigation, RS-A, restauration historique, média et simulation). Le diff des sources après retrait des seules lignes de documentation XML est identique à la base ; aucune API, logique, autorisation ou visibilité modifiée.
-- **Validation :** PR [#150](https://github.com/TobbyCy/RomothequeManager/pull/150) en revue ; compilation/CI Windows et mesure Roslyn au périmètre #148 post-#147 à vérifier au HEAD final. Les anciens dénominateurs ne sont pas réutilisables. Le lot B #145, le lot C et les restrictions d'accès réels restent HOLD ; aucune recette humaine ni Release.
+- **Validation PR #150 :** [Adaptive Windows #41355180633](https://github.com/TobbyCy/RomothequeManager/actions/runs/41355180633) au HEAD précédent `19b4749` **SUCCESS, 326/326 PASS, 0 FAIL/0 SKIP**, `ci-policy-gate` SUCCESS. **CI au HEAD après correction factuelle et revue indépendante DEV 2 PENDING** ; aucune validation combinée DocFX revendiquée.
+- **Mesure #148 distincte :** [preuve native Windows](https://github.com/TobbyCy/RomothequeManager/pull/148#issuecomment-6564633945), HEAD source `d2f2952654df1385bc3ce2dfedb97abf8f0ff2a3`, base `8739cd04` : **633/883 = 71,69 %**, 250 manquants, `ci-docfx` FAILURE sous le seuil normatif ≥90 %. Les 172 XML de #150 ne sont pas mesurés sur l'assemblage commun : **`COMBINED_MEASUREMENT_PENDING`** (projection 805/883 ≈ 91,17 % seulement conditionnelle) ; oracles des nouveaux IDs et qualité XML à vérifier.
+- **Suite des lots :** [GO d'implémentation lot B #145 accordé](https://github.com/TobbyCy/RomothequeManager/issues/145#issuecomment-6564482257), **aucun patch/PR/CI B livré** ; exécution ordonnée après intégration #150 pour éviter collision de ViewModels. Lot C SQLite, accès réels, recette humaine et Release restent HOLD.
 
 ## NEXT-05 / #145 — MVVM : premier lot shell/import historique ES-DE (PR #147, 01.11.2026)
 
