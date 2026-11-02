@@ -7,6 +7,12 @@ $ErrorActionPreference = 'Stop'
 if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or $env:GITHUB_SHA -cne $SourceSha) {
   throw 'BETA_WINDOWS_CI_EXACT_HEAD_REQUIRED'
 }
+. .\tests\BetaIdealWindowsSession.ps1
+$runnerFacts = Get-BetaWindowsSessionFacts -Role runner
+Write-Host ('BETA_WINDOWS_RUNNER_CONTEXT session=' + $runnerFacts.session +
+  ' interactive=' + $runnerFacts.interactive +
+  ' integrityRid=' + $runnerFacts.integrityRid +
+  ' no_personal_paths=true')
 $stage = Join-Path $env:RUNNER_TEMP ('rm-beta-ideal-' + $SourceSha.Substring(0, 12))
 $zip = Join-Path $stage ('build-1/RomothequeManager-v0.5.0-beta.1-win-x64-' + $SourceSha.Substring(0, 12) + '.zip')
 $checksum = $zip + '.sha256'
@@ -38,6 +44,7 @@ try {
   python -B tests/ideal_beta_zip_gate.py --root $extract --source $SourceSha
   if ($LASTEXITCODE -ne 0) { throw 'BETA_SHARED_EXTRACT_MANIFEST_INVALID' }
   Copy-Item -LiteralPath 'tests/Invoke-BetaIdealNonAdminWorker.ps1' -Destination $worker
+  Copy-Item -LiteralPath 'tests/BetaIdealWindowsSession.ps1' -Destination (Join-Path $shared 'BetaIdealWindowsSession.ps1')
 
   $rom = Join-Path $fixture 'ROMS/gba'
   $media = Join-Path $fixture 'MEDIAS/gba'
@@ -96,6 +103,10 @@ try {
     '-Shared', ('"' + $shared + '"'))
   $child = Start-Process -FilePath $pwsh -ArgumentList $args -WorkingDirectory $shared -Credential $credential -PassThru -RedirectStandardOutput $output -RedirectStandardError $errors
   if ($null -eq $child) { throw 'BETA_NONADMIN_WORKER_NOT_STARTED' }
+  Write-Host ('BETA_WINDOWS_WORKER_PROCESS_START pid=' + $child.Id +
+    ' session=' + $child.SessionId +
+    ' runnerSession=' + $runnerFacts.session +
+    ' accountIsTemporary=true')
   try {
     if (-not $child.WaitForExit(180000)) {
       $child.Kill()
@@ -103,11 +114,16 @@ try {
     }
     $outText = Get-Content -LiteralPath $output -Raw
     $errorText = Get-Content -LiteralPath $errors -Raw
+    # Diagnostic stdout is always published, including on failure.
+    # It contains only role, PID, session, integrity, station/desktop categories, and gate codes.
+    if (-not [string]::IsNullOrWhiteSpace($outText)) { Write-Host $outText.Trim() }
     if ($child.ExitCode -ne 0 -or
         -not $outText.Contains('BETA_NONADMIN_FIXTURE_PASS', [StringComparison]::Ordinal)) {
-      throw ('BETA_NONADMIN_WORKER_FAILED exit=' + $child.ExitCode + ' stdout=' + $outText + ' stderr=' + $errorText)
+      if ($outText.Contains('CI_NONADMIN_GUI_ENV_UNSUPPORTED', [StringComparison]::Ordinal)) {
+        Write-Host 'OWNER_DECISION_REQUIRED nonadmin_gui_runner_unsupported=true gate=FAIL_CLOSED'
+      }
+      throw ('BETA_NONADMIN_WORKER_FAILED exit=' + $child.ExitCode + ' stderr=' + $errorText)
     }
-    Write-Host $outText.Trim()
     Write-Host ('BETA_IDEAL_WINDOWS_NONADMIN_PASS sha256=' + $hash + ' offline_firewall=true no_global_dotnet=true fixture_only=true')
   } finally { $child.Dispose() }
 } finally {
