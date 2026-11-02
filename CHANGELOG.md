@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / #145 — Lot B : extraction MVVM des médias historiques ES-DE (PR dédiée, 02.11.2026 — EN REVUE)
+
+- **Périmètre préparé sur `main=26409f141c0c2ae3b14cad65d531792052a9cf0b`**, après intégration #150. `MainWindow.Imported.cs` ne déclenche plus ni `TryOpenMedia` ni le décodeur : elle compose la VM/loader et possède uniquement les bitmaps adoptés, avec détachement avant `Dispose` sur les rendus/fermetures.
+- **Service injectable `ILegacyImportedMediaLoader` :** accès seulement par `EsDeImportSession.TryOpenMedia` sur un jeu/candidat appartenant à la session et au snapshot acceptés ; budget unique `LegacyImportedImageBudget` #141, single-flight par fenêtre, refus neutres et fallback XML image→thumbnail individuellement validé, aucun chemin déduit, permission réelle supplémentaire, scraper ou jaquette automatiquement attribuée.
+- **VM `LegacyImportedMediaViewModel` :** identité session/snapshot, génération, annulation/navigation/recherche, limite 50 travaux, réservation rétention 12 MiB et transfert explicite du bitmap à la View ; résultats tardifs rejetés et enveloppes non transférées disposées. Le consentement correspond exclusivement au parcours d'import explicite existant ou à une fixture interne.
+- **Preuves :** tests synthétiques ciblés B-01 à B-04 ajoutés ; compilation, CI Windows, preuves native 1120×720/760×480 et revue DEV 2 doivent être établies sur le HEAD final. La preuve antérieure #141 ne suffit pas à valider les vues modifiées. **PR non fusionnable avant gate DocFX #148, tests/CI et revue indépendante.** Lot C, accès réels, recette humaine et Release HOLD.
+
 ## NEXT-05 / #138 — Complément XML UI/VM (PR #150, 01.11.2026 — DRAFT)
 
 - **Documentation seule, non publiée :** après fusion de [PR #147](https://github.com/TobbyCy/RomothequeManager/pull/147) sur `main=8739cd0419c0b17bf3babe1bd09d8aa644966a3a`, 172 résumés XML métier ajoutés, puis précisions `param`/`remarks` sur les constructeurs suite à la revue DEV 2 dans six fichiers `MvvmFoundation` (inventaire, navigation, RS-A, restauration historique, média et simulation). Le diff des sources après retrait des seules lignes de documentation XML est identique à la base ; aucune API, logique, autorisation ou visibilité modifiée.
