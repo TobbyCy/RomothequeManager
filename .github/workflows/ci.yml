@@ -531,8 +531,20 @@ jobs:
             dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --root . --base $base --out $report --head-inputs $headInputs --base-inputs $baseInputs
             if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_NATIVE_GATE_FAILED' }
           } finally {
-            git worktree remove --force -- $baselineRoot
-            if ($LASTEXITCODE -ne 0) { throw 'DOC_BASELINE_WORKTREE_CLEANUP_FAILED' }
+            # Windows build hosts can retain temporary baseline DLL handles briefly.
+            # Stop MSBuild/Roslyn servers before deleting this isolated worktree.
+            # Never hide a cleanup failure or alter the coverage gate verdict.
+            dotnet build-server shutdown 2>&1 | Out-Null
+            $baselineCleaned = $false
+            for ($attempt = 1; $attempt -le 5; $attempt++) {
+              git worktree remove --force -- $baselineRoot 2>&1 | Out-Null
+              if ($LASTEXITCODE -eq 0 -and -not (Test-Path -LiteralPath $baselineRoot)) {
+                $baselineCleaned = $true
+                break
+              }
+              Start-Sleep -Seconds 2
+            }
+            if (-not $baselineCleaned) { throw 'DOC_BASELINE_WORKTREE_CLEANUP_FAILED' }
           }
       - name: Store only temporary internal DocFX site and coverage evidence
         if: ${{ always() }}
