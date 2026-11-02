@@ -159,11 +159,11 @@ internal sealed class LegacyImportedMediaViewModel : INotifyPropertyChanged, IDi
         bitmap = null;
         reservedBytes = 0;
         if (!IsCurrent(work) || result.Phase != LegacyMediaPhase.Ready ||
-            result.RetainedBytes <= 0 ||
-            result.RetainedBytes > LegacyImportedImageBudget.MaxViewBytes - _retainedBytes)
+            result.RetainedBytes <= 0)
+            return false;
+        if (result.RetainedBytes > LegacyImportedImageBudget.MaxViewBytes - _retainedBytes)
         {
-            if (IsCurrent(work)) SetPhase(LegacyMediaPhase.Refused,
-                "MEDIA_BUDGET_EXHAUSTED_OR_STALE");
+            SetPhase(LegacyMediaPhase.Refused, "MEDIA_BUDGET_EXHAUSTED_OR_STALE");
             return false;
         }
         bitmap = result.TakeBitmap();
