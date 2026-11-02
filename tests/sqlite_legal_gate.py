@@ -125,8 +125,13 @@ def validate(manifest_file, publish_dir, packages_dir, lock_file, notices_file, 
                 and not parsed.username and not parsed.password,
                 "SQLITE_NUGET_SOURCE_NOT_ATTESTED:" + name)
         checksum = root / (name.lower() + "." + version + ".nupkg.sha512")
-        require(checksum.is_file() and checksum.read_text(encoding="utf-8").strip() == digest,
-                "SQLITE_NUGET_PACKAGE_SHA512_MISMATCH:" + name)
+        cached_hash = checksum.read_text(encoding="utf-8-sig").strip() if checksum.is_file() else ""
+        require(cached_hash == digest,
+                "SQLITE_NUGET_PACKAGE_SHA512_MISMATCH:" + name
+                + " filePresent=" + str(checksum.is_file())
+                + " expectedPrefix=" + digest[:16]
+                + " actualLength=" + str(len(cached_hash))
+                + " actualPrefix=" + cached_hash[:16])
         nuspec = root / (name.lower() + ".nuspec")
         require(nuspec.is_file(), "SQLITE_NUGET_NUSPEC_MISSING:" + name)
         try:
