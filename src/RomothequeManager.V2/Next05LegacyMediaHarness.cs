@@ -275,9 +275,33 @@ internal static class Next05LegacyMediaHarness
                 window.Width = 1120; window.Height = 720;
                 await WaitForQueueAsync(window, 30000);
                 Capture(window, gallery, "B05-Collection-1120x720", 1120, 720);
+                // The original B-05 capture changed Window.Width and immediately
+                // measured/arranged Content. The Win32 Bounds/SizeChanged/layout
+                // could still describe the preceding 1120px viewport; a centered
+                // wide _page was consequently cropped on its left side.
                 window.Width = 760; window.Height = 480;
+                var prelayout = window.CiLegacyCollectionNarrowGeometry();
+                Console.WriteLine("B05_BEFORE_RESIZE_LAYOUT fits=" + prelayout.Fits +
+                    " geometry=" + prelayout.Geometry);
+                await SettleNativeCollection760Async(window);
                 await WaitForQueueAsync(window, 30000);
+                var stable = window.CiLegacyCollectionNarrowGeometry();
+                Demand(stable.Fits, "B05_760_LAYOUT_CLIPPED_AFTER_SETTLE:" + stable.Geometry);
+                Console.WriteLine("B05_AFTER_RESIZE_LAYOUT fits=true geometry=" + stable.Geometry);
                 Capture(window, gallery, "B05-Collection-760x480", 760, 480);
+                Demand(window.CiLegacyCollectionNarrowGeometry().Fits,
+                    "B05_760_CAPTURE_ARRANGE_INTRODUCED_CLIPPING");
+                Demand(window.CiLegacyCollectionKeyboardFocus(),
+                    "B05_760_FILTER_SEARCH_CARD_FOCUS_FAILED");
+                Console.WriteLine("B05_760_NATIVE_FOCUS_PASS selector_search_card=true");
+                // The card action is a real native button, and the detail→collection
+                // route remains accessible at 760px without reimport or grants.
+                Demand(window.CiLegacyOpenFirst() && window.CiLegacyShowCollection(),
+                    "B05_760_CARD_NAVIGATION_FAILED");
+                await SettleNativeCollection760Async(window);
+                Demand(window.CiLegacyCollectionNarrowGeometry().Fits,
+                    "B05_760_RETURN_NAVIGATION_CLIPPED");
+                Console.WriteLine("B05_760_NATIVE_NAV_PASS detail_collection=true");
 
                 Demand(window.CiLegacyOpenIndex(2), "B03_FALLBACK_GAME_NOT_OPENED");
                 await WaitForQueueAsync(window, 30000);
@@ -328,6 +352,27 @@ internal static class Next05LegacyMediaHarness
                 window.Close();
             }
         }, DispatcherPriority.Background);
+    }
+
+    // B-05 only: wait for the REAL Windows resize, SizeChanged callback and
+    // arranged visual-tree coordinates, not merely Pending==0 (which measures
+    // decode work, not Avalonia layout readiness). Never force production
+    // UpdateContentWidth or fake a synthetic viewport to make the oracle pass.
+    private static async Task SettleNativeCollection760Async(MainWindow window)
+    {
+        var watch = Stopwatch.StartNew();
+        string last = "LAYOUT_NOT_SAMPLED";
+        while (watch.ElapsedMilliseconds < 6000)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Loaded);
+            await Task.Delay(50);
+            await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Render);
+            var geometry = window.CiLegacyCollectionNarrowGeometry();
+            last = geometry.Geometry;
+            if (geometry.Fits && window.LegacyMediaCounters().Pending == 0)
+                return;
+        }
+        throw new InvalidDataException("B05_760_LAYOUT_NOT_SETTLED:" + last);
     }
 
     // 20ms polling produces an OBSERVED sampled peak, never a proven OS hard
