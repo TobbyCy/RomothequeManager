@@ -5,11 +5,17 @@ namespace RomothequeManager.V2.Inventory.Media;
 /// <summary>Evidence-oriented UI states. None denotes a user-approved cover or identified game.</summary>
 public enum MediaUiState
 {
+    /// <summary>Observed media without a suggested ROM pairing; no cover is assigned automatically.</summary>
     FOUND_UNLINKED,
+    /// <summary>Unapproved, source-scoped naming suggestion; the user has not confirmed an association.</summary>
     CANDIDATE,
+    /// <summary>Explicit sourced path reference under comparable roots; not proof of game identity or cover suitability.</summary>
     REFERENCED,
+    /// <summary>Multiple or contradictory candidate matches requiring independent human review.</summary>
     AMBIGUOUS,
+    /// <summary>No candidate under a genuinely complete comparable scope; not proof of global file removal.</summary>
     ABSENT_IN_COMPLETE_SCOPE,
+    /// <summary>Root, generation, availability or completeness evidence is insufficient for meaningful comparison.</summary>
     NOT_COMPARABLE
 }
 
@@ -50,7 +56,13 @@ public interface IMediaPresentationService
 /// <summary>Default source-neutral implementation consuming the proven NEXT-05 media projection.</summary>
 public sealed class MediaPresentationService : IMediaPresentationService
 {
-    /// <inheritdoc/>
+    /// <summary>Projects two independently captured scans into read-only media suggestions, without opening files or persisting associations.</summary>
+    /// <remarks>Current versus LastAttempt selection remains the caller's responsibility; stale, incomplete and mismatched roots do not justify an ABSENT claim.</remarks>
+    /// <param name="roms">Captured ROMS observations; not an authority to read their paths.</param>
+    /// <param name="media">Independent captured MEDIAS observations; not a preview grant.</param>
+    /// <param name="mapping">Explicit proven mapping between matching scan generations and roots.</param>
+    /// <param name="claims">Optional sourced references, never implicit approval.</param>
+    /// <returns>Run-bound projection retaining diagnostics and unlinked media evidence.</returns>
     public MediaUiSnapshot Build(InventorySnapshot roms, MediaIndexSnapshot media,
         VerifiedScopeMapping mapping, IReadOnlyList<ExplicitMediaReference>? claims = null)
     {
