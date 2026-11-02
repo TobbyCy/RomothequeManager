@@ -34,12 +34,21 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
     private bool _disposed;
     private string _saveStatus = "Aucune modification demandée.";
 
-    /// <summary>Historical read-only SQLite projection. The default constructor never authorizes writes or personal media access.</summary>
+    /// <summary>Creates a historical catalogue presentation with manual decision writes disabled.</summary>
+    /// <remarks>This public overload selects fixtureWriteAllowed=false; it never grants live ROMS/MEDIAS access, previews, or personal catalogue writes.</remarks>
+    /// <param name="store">Injected catalogue store, whose lifetime is owned by this session.</param>
+    /// <param name="romRootId">Identifier of the saved ROMS root, checked against its stored role and library.</param>
+    /// <param name="mediaRootId">Identifier of the saved MEDIAS root, required to share the ROMS library identity.</param>
     public RestoredCatalogSession(ICatalogStore store, string romRootId, string mediaRootId)
         : this(store, romRootId, mediaRootId, fixtureWriteAllowed: false) { }
 
     // Permission for disposable, synthetic test DBs only. Not exposed to normal application.
-    /// <summary>Historical read-only SQLite projection. The default constructor never authorizes writes or personal media access.</summary>
+    /// <summary>Creates a historical catalogue session for controlled synthetic fixtures, with explicitly bounded optional manual-decision writes.</summary>
+    /// <remarks>When fixtureWriteAllowed is true, Save and Revoke can write only to the fixture store after explicit confirmation, valid selection and complete saved ROMS/MEDIAS evidence; CanSave and CanRevoke enforce those conditions. Both root roles and their shared LibraryId are validated. This switch does not grant personal catalogue writes, live ROMS/MEDIAS reads, image decoding or preview permission.</remarks>
+    /// <param name="store">Injected fixture catalogue store, owned and disposed by the session.</param>
+    /// <param name="romRootId">Stored ROMS root identifier; its role and library are validated during construction.</param>
+    /// <param name="mediaRootId">Stored MEDIAS root identifier; must belong to the same validated library.</param>
+    /// <param name="fixtureWriteAllowed">True only for a controlled disposable synthetic fixture to permit explicitly confirmed manual decisions; false makes Save/Revoke unavailable.</param>
     internal RestoredCatalogSession(ICatalogStore store, string romRootId, string mediaRootId,
         bool fixtureWriteAllowed)
     {
