@@ -460,7 +460,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           foreach ($script in @('scripts/Validate-BetaIdealZip.ps1',
               'tests/Invoke-BetaIdealWindows.ps1',
-              'tests/Invoke-BetaIdealNonAdminWorker.ps1')) {
+              'tests/Invoke-BetaIdealNonAdminWorker.ps1',
+              'tests/BetaIdealWindowsSession.ps1')) {
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$errors) | Out-Null
