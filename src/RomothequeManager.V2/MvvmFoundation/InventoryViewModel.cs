@@ -27,7 +27,9 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     private string? _localErrorCode;
     private FileObservation? _selectedObservation;
 
-    /// <summary>Read-only inventory presentation adapter. The injected application service alone owns scans, read grants and immutable results.</summary>
+    /// <summary>Creates a read-only inventory adapter around an injected application service and an explicit UI dispatch callback; construction never starts a scan.</summary>
+    /// <param name="service">Service that exclusively owns selection authorization, scanning, cancellation and immutable Current/LastAttempt state; its lifetime remains with the host.</param>
+    /// <param name="postToUi">Callback that marshals service notifications to the UI thread and permits stale-state checks before adoption.</param>
     public InventoryViewModel(IInventoryApplicationService service, Action<Action> postToUi)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
