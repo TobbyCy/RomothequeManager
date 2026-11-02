@@ -1,0 +1,6 @@
+SQLite native engine: public-domain statement (SQLite.org)
+
+The SQLite database engine itself is in the public domain; SQLite.org states that the code may be used for any purpose without a licence or fee. This is a provenance statement, not a replacement for the separate SQLitePCLRaw Apache-2.0 notices or for binary verification.
+
+Source: https://sqlite.org/copyright.html
+Native distribution: SQLitePCLRaw.lib.e_sqlite3 2.1.13, win-x64/e_sqlite3.dll. Verify exact NUPKG hash and DLL SHA-256 before redistribution.

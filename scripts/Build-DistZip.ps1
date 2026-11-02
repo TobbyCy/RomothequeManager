@@ -36,7 +36,9 @@ foreach ($name in @('Avalonia', 'SkiaSharp', 'HarfBuzz', 'Microsoft', 'MIT')) {
 if ($notices -match '(?i)\[(?:TODO|PENDING|TBD)\]' -or $inventory -match '(?i)\[(?:TODO|PENDING|TBD)\]') {
   throw 'DIST_NOTICES_UNRESOLVED_PLACEHOLDER'
 }
-$legalApproved = $inventory -cmatch '(?m)^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED\r?$'
+$historicalLegalApproved = $inventory -cmatch '(?m)^LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED\r?$'
+$sqliteLegalApproved = $inventory -cmatch '(?m)^SQLITE_LEGAL_01_BINARY_DISTRIBUTION_APPROVED\r?$'
+$legalApproved = $historicalLegalApproved -and $sqliteLegalApproved
 if ($Phase -ceq 'publish' -and -not $legalApproved) {
   throw 'DIST_LICENCE_VALIDATION_HOLD'
 }
@@ -61,7 +63,9 @@ $licensesSource = Join-Path $repo 'packaging/licenses'
 $requiredLicenseNames = @(
   'ANGLE-LICENSE.txt', 'ANGLE-xxHash-LICENSE.txt', 'Avalonia-LICENSE.txt', 'Avalonia-NOTICE.txt',
   'HarfBuzz-COPYING.txt', 'MicroCom-LICENSE.txt', 'Skia-LICENSE.txt',
-  'SkiaSharp-LICENSE.txt', 'SkiaSharp-THIRD-PARTY-NOTICES.txt', 'Tmds.DBus-COPYING.txt'
+  'SkiaSharp-LICENSE.txt', 'SkiaSharp-THIRD-PARTY-NOTICES.txt', 'Tmds.DBus-COPYING.txt',
+  'Microsoft.Data.Sqlite-LICENSE.txt', 'SQLitePCLRaw-LICENSE.txt',
+  'SQLitePCLRaw-NOTICE.txt', 'SQLite-PUBLIC-DOMAIN.txt'
 )
 foreach ($name in $requiredLicenseNames) {
   $source = Join-Path $licensesSource $name
@@ -84,6 +88,9 @@ $nugetRoot = if (-not [string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) {
 } else {
   Join-Path ([Environment]::GetFolderPath('UserProfile')) '.nuget/packages'
 }
+# Exact SQLite binary/package/legal integrity: fail closed on missing or mismatched provenance.
+python -B tests/sqlite_legal_gate.py --manifest packaging/sqlite-legal-manifest.json --publish $publish --packages $nugetRoot --lock src/RomothequeManager.V2/packages.lock.json --notices packaging/THIRD-PARTY-NOTICES.txt --licenses packaging/licenses
+if ($LASTEXITCODE -ne 0) { throw 'DIST_SQLITE_LEGAL_PROVENANCE_FAILED' }
 $runtimeCandidates = @((Join-Path $nugetRoot ('microsoft.netcore.app.runtime.win-x64/' + $runtimePackVersion)))
 if (-not [string]::IsNullOrWhiteSpace($env:DOTNET_ROOT)) {
   $runtimeCandidates += (Join-Path $env:DOTNET_ROOT ('packs/Microsoft.NETCore.App.Runtime.win-x64/' + $runtimePackVersion))
