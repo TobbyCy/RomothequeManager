@@ -8,6 +8,7 @@ if (-not ('RomothequeBetaSessionProbe' -as [type])) {
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 public static class RomothequeBetaSessionProbe
 {
     [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
@@ -19,6 +20,16 @@ public static class RomothequeBetaSessionProbe
     [DllImport("wtsapi32.dll", EntryPoint="WTSQuerySessionInformationW", SetLastError=true)]
     private static extern bool WtsInfo(IntPtr server, uint session, int kind, out IntPtr data, out uint length);
     [DllImport("wtsapi32.dll")] private static extern void WTSFreeMemory(IntPtr buffer);
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WtsSessionInfo
+    {
+        public uint SessionId;
+        public IntPtr WindowStationName; // never inspected or logged
+        public int State;
+    }
+    [DllImport("wtsapi32.dll", EntryPoint="WTSEnumerateSessionsW", SetLastError=true)]
+    private static extern bool EnumerateSessions(IntPtr server, int reserved,
+        int version, out IntPtr sessions, out int count);
     [DllImport("advapi32.dll", SetLastError=true)] private static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
     [DllImport("advapi32.dll", SetLastError=true)] private static extern bool GetTokenInformation(IntPtr token, int kind, IntPtr buffer, int length, out int required);
     [DllImport("advapi32.dll")] private static extern IntPtr GetSidSubAuthorityCount(IntPtr sid);
@@ -61,6 +72,25 @@ public static class RomothequeBetaSessionProbe
         try { return length >= 4 ? Marshal.ReadInt32(data) : -1; }
         finally { if (data != IntPtr.Zero) WTSFreeMemory(data); }
     }
+    // Session IDs and WTS state ONLY; never read Windows usernames or station labels.
+    public static string ActiveSessions()
+    {
+        IntPtr sessions = IntPtr.Zero;
+        int count;
+        if (!EnumerateSessions(IntPtr.Zero, 0, 1, out sessions, out count))
+            return "NOT_VERIFIED";
+        try {
+            if (count < 0 || count > 128) return "NOT_VERIFIED";
+            var ids = new List<int>();
+            for (int i = 0; i < count; ++i) {
+                IntPtr item = IntPtr.Add(sessions, i * Marshal.SizeOf<WtsSessionInfo>());
+                var row = Marshal.PtrToStructure<WtsSessionInfo>(item);
+                if (row.State == 0) ids.Add((int)row.SessionId);
+            }
+            ids.Sort();
+            return ids.Count == 0 ? "NONE" : string.Join(",", ids);
+        } finally { if (sessions != IntPtr.Zero) WTSFreeMemory(sessions); }
+    }
     public static int IntegrityRid()
     {
         IntPtr token;
@@ -74,9 +104,12 @@ public static class RomothequeBetaSessionProbe
                 if (!GetTokenInformation(token, 25, buffer, size, out size)) return -1;
                 IntPtr sid = Marshal.ReadIntPtr(buffer);
                 if (sid == IntPtr.Zero) return -1;
-                int parts = Marshal.ReadByte(GetSidSubAuthorityCount(sid));
+                IntPtr countPtr = GetSidSubAuthorityCount(sid);
+                if (countPtr == IntPtr.Zero) return -1;
+                int parts = Marshal.ReadByte(countPtr);
                 if (parts <= 0) return -1;
-                return Marshal.ReadInt32(GetSidSubAuthority(sid, (uint)(parts - 1)));
+                IntPtr rid = GetSidSubAuthority(sid, (uint)(parts - 1));
+                return rid == IntPtr.Zero ? -1 : Marshal.ReadInt32(rid);
             } finally { Marshal.FreeHGlobal(buffer); }
         } finally { CloseHandle(token); }
     }
@@ -98,6 +131,7 @@ function Get-BetaWindowsSessionFacts {
   $visible = [RomothequeBetaSessionProbe]::StationVisible()
   $state = [RomothequeBetaSessionProbe]::SessionState($sid)
   $console = [RomothequeBetaSessionProbe]::WTSGetActiveConsoleSessionId()
+  $activeSessions = [RomothequeBetaSessionProbe]::ActiveSessions()
   $activeConsole = if ($console -eq [uint32]::MaxValue) { -1 } else { [int64]$console }
   $interactive = $state -eq 0 -and $station -ceq 'WinSta0' -and
     $desktop -ceq 'Default' -and $visible -eq 1
@@ -106,6 +140,7 @@ function Get-BetaWindowsSessionFacts {
     pid = [int]$process.Id
     session = $sid
     activeConsole = $activeConsole
+    wtsActiveSessions = $activeSessions
     connectionState = $state
     windowStation = $station
     desktop = $desktop
