@@ -7,38 +7,38 @@
     {
       "id": "Microsoft.Data.Sqlite",
       "version": "10.0.14",
-      "nupkgSha512": "muyroan6rKrf0omZL8UF7Kw5uOGp/yBg1L/XWvkFN3WhKaNtK2IWqRZw93nIwVqjhTVDO0l4CEGhHIh+mb+sKg==",
-      "license": "MIT"
+      "license": "MIT",
+      "nugetContentSha512": "muyroan6rKrf0omZL8UF7Kw5uOGp/yBg1L/XWvkFN3WhKaNtK2IWqRZw93nIwVqjhTVDO0l4CEGhHIh+mb+sKg=="
     },
     {
       "id": "Microsoft.Data.Sqlite.Core",
       "version": "10.0.14",
-      "nupkgSha512": "1p9rO3Q2X/L/9YrYog3vaDzi8u+WZfJCOkDYoHqmofqYP0DLPLPyZcS2Rnh/79JXAodgbs1AgsaNwLpIvC3Xew==",
-      "license": "MIT"
+      "license": "MIT",
+      "nugetContentSha512": "1p9rO3Q2X/L/9YrYog3vaDzi8u+WZfJCOkDYoHqmofqYP0DLPLPyZcS2Rnh/79JXAodgbs1AgsaNwLpIvC3Xew=="
     },
     {
       "id": "SQLitePCLRaw.bundle_e_sqlite3",
       "version": "2.1.13",
-      "nupkgSha512": "NlDixlC7uHmo+ojXRgkNvN0tQtVGpLDZ3x2OpgNj+G07VHh5cXSszFDrAiC4BpUiPwkcaeuQkMV9WQ123xVtmQ==",
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "nugetContentSha512": "NlDixlC7uHmo+ojXRgkNvN0tQtVGpLDZ3x2OpgNj+G07VHh5cXSszFDrAiC4BpUiPwkcaeuQkMV9WQ123xVtmQ=="
     },
     {
       "id": "SQLitePCLRaw.core",
       "version": "2.1.13",
-      "nupkgSha512": "2joofoinuHBFs0nMX3nKuXgxpXryRkCOdM2Ua6HBqQLLy6IW+5f28ZI+HAvMyF8vG7XfNz/lwfBfE6V4juru8Q==",
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "nugetContentSha512": "2joofoinuHBFs0nMX3nKuXgxpXryRkCOdM2Ua6HBqQLLy6IW+5f28ZI+HAvMyF8vG7XfNz/lwfBfE6V4juru8Q=="
     },
     {
       "id": "SQLitePCLRaw.lib.e_sqlite3",
       "version": "2.1.13",
-      "nupkgSha512": "D2UAuiGxFYBqeRXjjjGgvJ5UQifzn6wefmSqeKU7XcNGKLbJRP6X7kcPZ6opOBJGdCIlgbSxTvDpBbLvsN594A==",
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "nugetContentSha512": "D2UAuiGxFYBqeRXjjjGgvJ5UQifzn6wefmSqeKU7XcNGKLbJRP6X7kcPZ6opOBJGdCIlgbSxTvDpBbLvsN594A=="
     },
     {
       "id": "SQLitePCLRaw.provider.e_sqlite3",
       "version": "2.1.13",
-      "nupkgSha512": "ZU60dSqoSNRe49KcQDUmOVgdRtjITOssVXFtiISs+zJXDI4D2Sndwpn2NOtzDQNPu0ZAvpoLPQ+GLKv6iEZn8Q==",
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "nugetContentSha512": "ZU60dSqoSNRe49KcQDUmOVgdRtjITOssVXFtiISs+zJXDI4D2Sndwpn2NOtzDQNPu0ZAvpoLPQ+GLKv6iEZn8Q=="
     }
   ],
   "binaries": [

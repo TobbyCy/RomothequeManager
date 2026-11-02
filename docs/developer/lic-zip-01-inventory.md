@@ -161,13 +161,13 @@ Runtime Windows autonome et fichiers légaux Microsoft .NET 10.0.12 inchangés.
 | `e_sqlite3.dll` (natif win-x64) | `SQLitePCLRaw.lib.e_sqlite3` 2.1.13 | `b7385d722c83fb52142a00477a726723745916d22a555711ee89834c1111fb2e` |
 
 Le sixième paquet `Microsoft.Data.Sqlite` 10.0.14 est un métapaquet non DLL.
-Les six versions et SHA-512 exacts des NUPKG (tels que verrouillés dans
+Les six versions et SHA-512 de **contenu NuGet non signé** (`contentHash`, indépendants de la signature ; tels que verrouillés dans
 `src/RomothequeManager.V2/packages.lock.json`) et les cinq SHA-256 binaires sont
 consignés dans `packaging/sqlite-legal-manifest.json`. La CI contrôle les
-fichiers réellement publiés contre le cache NuGet : `.nupkg.sha512`,
+fichiers réellement publiés contre le cache NuGet : `.nupkg.sha512` (SHA-512 **archive signée** distinct de `contentHash`, égal au SHA-512 des octets du NUPKG présent),
 `.nupkg.metadata` (SHA et source HTTPS NuGet.org), `nuspec` (id, version,
 expression de licence) et fichier binaire byte-identique du bon paquet.
-Le NUPKG lui-même est aussi vérifié par SHA-512 s'il est présent dans le cache.
+Le NUPKG lui-même est **obligatoire**, vérifié avec son SHA-512 d'archive signée ; toute absence/mismatch entraîne un FAIL. Voir le [comportement NuGet documenté](https://github.com/NuGet/Home/wiki/Nupkg-Metadata-File) : `packages.lock.json`/`.nupkg.metadata` contient le hash de contenu stable, la signature éditeur/dépôt peut modifier le hash de l'archive sans modifier ce contenu. Ne jamais les comparer l'un à l'autre.
 Les contrôles n'invoquent aucune bibliothèque ROM/MEDIA réelle.
 
 Textes complets ajoutés et contrôlés par Git blob SHA avant distribution :

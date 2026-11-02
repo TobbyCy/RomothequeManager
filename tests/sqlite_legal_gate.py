@@ -102,7 +102,7 @@ def validate(manifest_file, publish_dir, packages_dir, lock_file, notices_file, 
     for record in packages:
         name = record["id"]
         version = record.get("version")
-        digest = record.get("nupkgSha512")
+        digest = record.get("nugetContentSha512")
         expression = record.get("license")
         expected_expr = "MIT" if name.startswith("Microsoft.Data.Sqlite") else "Apache-2.0"
         require(expression == expected_expr, "SQLITE_PACKAGE_LICENSE_MISMATCH:" + name)
@@ -124,14 +124,23 @@ def validate(manifest_file, publish_dir, packages_dir, lock_file, notices_file, 
                 and parsed.hostname in ("api.nuget.org", "www.nuget.org")
                 and not parsed.username and not parsed.password,
                 "SQLITE_NUGET_SOURCE_NOT_ATTESTED:" + name)
+        # NuGet deliberately maintains TWO different SHA-512 hashes for signed
+        # NUPKGs: unsigned CONTENT (packages.lock/.nupkg.metadata) and archive
+        # BYTES (id.version.nupkg.sha512). Repository signatures change the latter.
+        # Independently verify BOTH without comparing different hash domains.
         checksum = root / (name.lower() + "." + version + ".nupkg.sha512")
-        cached_hash = checksum.read_text(encoding="utf-8-sig").strip() if checksum.is_file() else ""
-        require(cached_hash == digest,
-                "SQLITE_NUGET_PACKAGE_SHA512_MISMATCH:" + name
-                + " filePresent=" + str(checksum.is_file())
-                + " expectedPrefix=" + digest[:16]
-                + " actualLength=" + str(len(cached_hash))
-                + " actualPrefix=" + cached_hash[:16])
+        nupkg = root / (name.lower() + "." + version + ".nupkg")
+        require(checksum.is_file() and not checksum.is_symlink(),
+                "SQLITE_NUGET_ARCHIVE_SHA512_MISSING:" + name)
+        signed_archive_sha512 = checksum.read_text(encoding="utf-8-sig").strip()
+        require(re.fullmatch(r"[A-Za-z0-9+/]{86}==", signed_archive_sha512) is not None
+                and len(base64.b64decode(signed_archive_sha512, validate=True)) == 64,
+                "SQLITE_NUGET_ARCHIVE_SHA512_INVALID:" + name)
+        require(nupkg.is_file() and not nupkg.is_symlink(),
+                "SQLITE_NUGET_ARCHIVE_BYTES_MISSING:" + name)
+        observed_archive_sha512 = base64.b64encode(hashlib.sha512(nupkg.read_bytes()).digest()).decode("ascii")
+        require(observed_archive_sha512 == signed_archive_sha512,
+                "SQLITE_NUGET_ARCHIVE_BYTES_SHA512_MISMATCH:" + name)
         nuspec = root / (name.lower() + ".nuspec")
         require(nuspec.is_file(), "SQLITE_NUGET_NUSPEC_MISSING:" + name)
         try:
@@ -147,13 +156,10 @@ def validate(manifest_file, publish_dir, packages_dir, lock_file, notices_file, 
         require(license_node is not None and license_node.attrib.get("type") == "expression"
                 and (license_node.text or "").strip() == expected_expr,
                 "SQLITE_NUGET_NUSPEC_LICENSE_MISMATCH:" + name)
-        nupkg = root / (name.lower() + "." + version + ".nupkg")
-        if nupkg.is_file():
-            real_hash = base64.b64encode(hashlib.sha512(nupkg.read_bytes()).digest()).decode("ascii")
-            require(real_hash == digest, "SQLITE_NUGET_NUPKG_BYTES_HASH_MISMATCH:" + name)
         versions[name] = (version, root)
         print("SQLITE_NUGET_PROVENANCE_PASS id=" + name + " version=" + version
-              + " sha512=" + digest + " source=" + source)
+              + " contentSha512=" + digest + " archiveSha512=" + signed_archive_sha512
+              + " source=" + source)
     published = [p for p in publish_dir.rglob("*") if p.is_file() and
                  ("sqlite" in p.name.casefold() or p.name.casefold() == "e_sqlite3.dll")]
     require({p.name for p in published} == set(BINARY_NAMES)

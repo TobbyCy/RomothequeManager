@@ -40,14 +40,20 @@ class SqliteLegalGateTests(unittest.TestCase):
             digest = base64.b64encode(hashlib.sha512(name.encode()).digest()).decode()
             lic = "MIT" if name.startswith("Microsoft.") else "Apache-2.0"
             self.m["packages"].append({"id": name, "version": version,
-                                       "nupkgSha512": digest, "license": lic})
+                                       "nugetContentSha512": digest, "license": lic})
             self.lock["dependencies"]["net10.0"][name] = {
                 "resolved": version, "contentHash": digest}
             pkg = self.packages / name.lower() / version
             pkg.mkdir(parents=True)
             (pkg / ".nupkg.metadata").write_text(json.dumps({
                 "contentHash": digest, "source": "https://api.nuget.org/v3/index.json"}), encoding="utf-8")
-            (pkg / (name.lower() + "." + version + ".nupkg.sha512")).write_text(digest, encoding="utf-8")
+            # Simulate signed NUPKG: archive hash intentionally differs
+            # from the stable unsigned NuGet contentHash in the lock/metadata.
+            archive_bytes = ("synthetic signed NUPKG " + name + "@" + version).encode("utf-8")
+            archive_sha512 = base64.b64encode(hashlib.sha512(archive_bytes).digest()).decode("ascii")
+            (pkg / (name.lower() + "." + version + ".nupkg")).write_bytes(archive_bytes)
+            (pkg / (name.lower() + "." + version + ".nupkg.sha512")).write_text(
+                archive_sha512, encoding="utf-8")
             (pkg / (name.lower() + ".nuspec")).write_text(
                 '<package><metadata><id>' + name + '</id><version>' + version +
                 '</version><license type="expression">' + lic +
@@ -97,6 +103,39 @@ class SqliteLegalGateTests(unittest.TestCase):
         file.write_bytes(content.replace(b"\n", b"\r\n"))
         self.assertIsNone(self.verify())
 
+    def test_green_signed_archive_hash_differs_from_nuget_content_hash(self):
+        package = self.m["packages"][0]
+        cached_root = self.packages / package["id"].lower() / package["version"]
+        archive_hash = (cached_root / (package["id"].lower() + "." + package["version"]
+                                      + ".nupkg.sha512")).read_text(encoding="utf-8")
+        self.assertNotEqual(package["nugetContentSha512"], archive_hash)
+        self.assertIsNone(self.verify())
+
+    def test_red_missing_signed_archive_bytes(self):
+        root = self.packages / "sqlitepclraw.core/2.1.13"
+        (root / "sqlitepclraw.core.2.1.13.nupkg").unlink()
+        self.reject("SQLITE_NUGET_ARCHIVE_BYTES_MISSING")
+
+    def test_red_missing_signed_archive_hash(self):
+        root = self.packages / "sqlitepclraw.core/2.1.13"
+        (root / "sqlitepclraw.core.2.1.13.nupkg.sha512").unlink()
+        self.reject("SQLITE_NUGET_ARCHIVE_SHA512_MISSING")
+
+    def test_red_signed_archive_sha512_is_different_but_valid(self):
+        root = self.packages / "sqlitepclraw.core/2.1.13"
+        (root / "sqlitepclraw.core.2.1.13.nupkg.sha512").write_text(
+            base64.b64encode(hashlib.sha512(b"tampered archive").digest()).decode(),
+            encoding="utf-8")
+        self.reject("SQLITE_NUGET_ARCHIVE_BYTES_SHA512_MISMATCH")
+
+    def test_red_nuget_content_sha512_mismatch(self):
+        root = self.packages / "sqlitepclraw.core/2.1.13"
+        meta = root / ".nupkg.metadata"
+        obj = json.loads(meta.read_text(encoding="utf-8"))
+        obj["contentHash"] = base64.b64encode(hashlib.sha512(b"wrong content").digest()).decode()
+        meta.write_text(json.dumps(obj), encoding="utf-8")
+        self.reject("SQLITE_NUGET_PROVENANCE_HASH_MISMATCH")
+
     def test_red_missing_binary(self):
         (self.publish / gate.BINARY_NAMES[0]).unlink()
         self.reject("SQLITE_PUBLISH_BINARY_SET_MISMATCH")
@@ -144,7 +183,7 @@ class SqliteLegalGateTests(unittest.TestCase):
     def test_red_bad_nupkg_hash(self):
         target = self.packages / "sqlitepclraw.core/2.1.13/sqlitepclraw.core.2.1.13.nupkg.sha512"
         target.write_text("bad", encoding="utf-8")
-        self.reject("SQLITE_NUGET_PACKAGE_SHA512_MISMATCH")
+        self.reject("SQLITE_NUGET_ARCHIVE_SHA512_INVALID")
 
     def test_red_nupkg_untrusted_feed(self):
         path = self.packages / "sqlitepclraw.core/2.1.13/.nupkg.metadata"
@@ -166,7 +205,7 @@ class SqliteLegalGateTests(unittest.TestCase):
     def test_red_nupkg_bytes_not_matching_locked_sha512(self):
         root = self.packages / "sqlitepclraw.core/2.1.13"
         (root / "sqlitepclraw.core.2.1.13.nupkg").write_bytes(b"malicious")
-        self.reject("SQLITE_NUGET_NUPKG_BYTES_HASH_MISMATCH")
+        self.reject("SQLITE_NUGET_ARCHIVE_BYTES_SHA512_MISMATCH")
 
     def test_red_native_rid_mismatch(self):
         root = self.packages / "sqlitepclraw.lib.e_sqlite3/2.1.13"

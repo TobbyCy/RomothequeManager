@@ -95,7 +95,7 @@ RELEASE GATE
 SQLITE-LEGAL-01 — WINDOWS win-x64 / FIVE DISTRIBUTED BINARIES (#149 LOT A)
   Source baseline main: 1bb5c2086c33be54e1ae28fa42c0d35ef63f4905
   Exact publish manifest: Adaptive CI #41442444946 (PUBLISH_FILE_JSON).
-  Exact 5 DLL SHA-256 / 6 NuGet package SHA-512 / license source Git blobs:
+  Exact 5 DLL SHA-256 / 6 NuGet content SHA-512 (not signed archive SHA-512) / license source Git blobs:
   packaging/sqlite-legal-manifest.json. All are verified before ZIP distribution.
 
   Microsoft.Data.Sqlite 10.0.14 (metapackage): MIT.

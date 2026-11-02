@@ -4,7 +4,7 @@
 
 - **GO d'implémentation uniquement :** PR #153 créée depuis `main=1bb5c208` pour les notices SQLite/Microsoft.Data.Sqlite 10.0.14, SQLitePCLRaw 2.1.13, SHA-256 binaires et SHA-512 NuGet, plus les contrôles Windows et leurs tests synthétiques. Aucun produit réel ni scanner modifié.
 - **Périmètre juridique :** le marqueur historique de distribution ne couvre pas automatiquement les nouveaux composants ; une seconde approbation spécifique est requise pour `phase=publish`. Aucune approbation juridique définitive, ZIP bêta, scan réel ni Release autorisés.
-- **CI :** 17 tests de validation synthétiques PASS localement. La CI Windows, le gate documentaire et `ci-policy-gate` restent à constater au HEAD final et la PR exige une revue indépendante DEV 2 avant fusion.
+- **CI :** 335/335 tests .NET, 18 canaris SQLite synthétiques validés sur la CI initiale ; les premiers runs ont révélé une confusion entre SHA-512 de contenu NuGet et SHA-512 de l'archive signée, corrigée sans abaisser les contrôles. La CI Windows, le gate DocFX et `ci-policy-gate` restent à constater au HEAD final ; revue indépendante DEV 2 exigée avant fusion.
 - **Lot B : HOLD** malgré son GO de préparation ; lancement seulement après fusion validée de A et CI `push/main` SUCCESS. Conserver tous les contrôles et `NEXT05_RELEASE_HOLD`.
 
 ## NEXT-05 / #145 — Lot B médias historiques ES-DE (PR DEV 3 distincte, 02.11.2026)
