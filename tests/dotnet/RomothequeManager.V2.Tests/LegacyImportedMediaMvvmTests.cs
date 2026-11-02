@@ -208,6 +208,58 @@ public sealed class LegacyImportedMediaMvvmTests
         Assert.AreEqual(0, fake.NativeDecoderEntered);
     }
 
+    [TestMethod]
+    public async Task B_02_JpegHeaderBeyond256KiBRefusedBeforeDecoder()
+    {
+        var path = Path.Combine(_root, "MEDIAS", "gba", "covers", "primary.png");
+        // APP segments place the first possible JPEG SOF beyond the strict
+        // 256 KiB header scan. Extension is deliberately not trusted.
+        using (var bytes = new MemoryStream())
+        {
+            bytes.Write(new byte[] { 0xFF, 0xD8 });
+            for (var i = 0; i < 5; i++)
+            {
+                bytes.Write(new byte[] { 0xFF, 0xE1, 0xFF, 0xFF });
+                bytes.Write(new byte[65533]);
+            }
+            bytes.Write(new byte[] { 0xFF, 0xC0, 0, 11, 8, 0, 64, 0, 64 });
+            File.WriteAllBytes(path, bytes.ToArray());
+        }
+        var (state, game) = ImportFixture();
+        using var loader = new LegacyImportedMediaLoader();
+        using var result = await loader.LoadAsync(new LegacyMediaRequest(
+            state.Session!, state.Snapshot!, game, [game.Media[0]],
+            LegacyImageSlot.Card, true), CancellationToken.None);
+        Assert.AreEqual(LegacyMediaPhase.Refused, result.Phase);
+        Assert.AreEqual("MEDIA_UNSUPPORTED_OR_UNVERIFIED", result.Reason);
+        Assert.AreEqual(0, loader.NativeDecoderEntered,
+            "B02_UNBOUNDED_JPEG_METADATA_MUST_NOT_ENTER_DECODER");
+    }
+
+    [TestMethod]
+    public async Task B_01_AcceptedRefreshRejectsOldSnapshotResult()
+    {
+        var (state, game) = ImportFixture();
+        using var importVm = new ImportedCatalogueViewModel(state);
+        var fake = new DeferredLoader();
+        using var vm = new LegacyImportedMediaViewModel(state, importVm, fake);
+        var old = state.Snapshot;
+        Assert.IsTrue(vm.TryBegin(game, [game.Media[0]], LegacyImageSlot.Card, out var job));
+        var pending = vm.LoadAsync(job!);
+
+        Assert.IsTrue(state.TryReimport());
+        Assert.AreNotSame(old, state.Snapshot, "B01_ACCEPTED_REFRESH_REPLACED_SNAPSHOT");
+        Assert.AreSame(state.Snapshot, state.Session!.Current);
+        fake.Complete(LegacyMediaLoadResult.WithoutImage(LegacyMediaPhase.Ready, "LATE"));
+        using var stale = await pending;
+        Assert.AreEqual(LegacyMediaPhase.Stale, stale.Phase);
+        Assert.IsFalse(vm.TryTransfer(job!, stale, out var adopted, out _),
+            "B01_OLD_MEDIA_MUST_NOT_BE_ADOPTED_AFTER_B");
+        Assert.IsNull(adopted);
+        vm.Complete(job!);
+        Assert.AreEqual(0L, vm.RetainedBytes);
+    }
+
     private sealed class DeferredLoader : ILegacyImportedMediaLoader
     {
         private readonly TaskCompletionSource<LegacyMediaLoadResult> _completion =
