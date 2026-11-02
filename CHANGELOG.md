@@ -1,5 +1,10 @@
 # Journal des changements
 
+## NEXT-05 / #149 — Lot C : cleanup baseline DocFX Windows (proposition, 02.11.2026)
+
+- Huit tentatives conservées avec pauses progressives bornées ; un dossier encore présent ou un worktree encore enregistré demeure un échec fatal. Les diagnostics CIM indisponibles sont tracés sans masquer ce verdict.
+- Canari Windows sur le bloc réel du workflow : verrou maintenu RED, libération GREEN et récupération d'un verrou transitoire de 22 secondes. Aucun changement de couverture, exclusions, permissions réelles ou packaging ; CI distante et revue DEV 2 requises avant intégration.
+
 ## NEXT-05 / #145 — Lot B : extraction MVVM des médias historiques ES-DE (PR dédiée, 02.11.2026 — EN REVUE)
 
 - **Périmètre préparé sur `main=26409f141c0c2ae3b14cad65d531792052a9cf0b`**, après intégration #150. `MainWindow.Imported.cs` ne déclenche plus ni `TryOpenMedia` ni le décodeur : elle compose la VM/loader et possède uniquement les bitmaps adoptés, avec détachement avant `Dispose` sur les rendus/fermetures.

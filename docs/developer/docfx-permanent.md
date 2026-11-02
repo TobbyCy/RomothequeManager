@@ -1,5 +1,28 @@
 # DocFX permanent — NEXT-05 / #88 et #138
 
+## Cleanup Windows de la baseline (#149, lot C)
+
+Le cleanup conserve huit tentatives, les diagnostics Git/IO/processus et un échec fatal
+`DOC_BASELINE_WORKTREE_CLEANUP_FAILED` si le dossier existe encore **ou** si Git
+enregistre toujours le worktree. Les pauses bornées de 2, 4, 6, 8, 10, 12 et 14 secondes
+(56 secondes cumulées, hors commandes) remplacent les sept pauses fixes de 2 secondes.
+Une lecture CIM indisponible est signalée ; elle ne masque pas le verdict final.
+Aucun processus détenteur d'un handle n'est tué par le cleanup.
+
+`tools/doc-coverage/Test-BaselineCleanup.ps1` exécute le bloc réel de `ci.yml` sous
+Windows, dans un dépôt Git synthétique neuf : verrou sans partage de suppression
+maintenu jusqu'à l'échec fatal RED, puis libéré pour vérifier GREEN avec les deux
+invariants. Un verrou transitoire de 22 secondes vérifie la récupération au-delà de
+l'ancienne fenêtre de 14 secondes. Le PID créé par le canari est connu et tracé ;
+il ne prouve pas l'identité du processus des incidents CI historiques. Aucun fichier
+personnel, build produit, serveur externe ou permission réelle n'est utilisé.
+
+Le canari est obligatoire dans `ci-docfx`. Cette correction ne change ni les règles
+Roslyn/DocFX, ni les exclusions, ni les autres jobs requis. Un handle persistant
+au-delà des huit tentatives reste un échec, pas un PASS ni une relance infinie.
+
+## Génération et gates
+
 La source de vérité des signatures est le code C# et sa documentation XML. Ce site n'est ni publié via Pages, ni une garantie de permissions d'accès réelles.
 
 Sur Windows avec **SDK 10.0.401** (global.json), restaurer l'application en mode verrouillé, puis compiler avec génération XML. Utiliser **DocFX 2.81.0** épinglé localement :

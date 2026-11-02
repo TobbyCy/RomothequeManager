@@ -1,5 +1,16 @@
 # Historique technique des fonctionnalités
 
+## CLEAN-LEGACY-05 / #149 — Lot C cleanup DocFX proposé (02.11.2026)
+
+Correctif limité au cleanup du worktree baseline Windows : huit tentatives avec attente
+progressive bornée, diagnostic CIM non bloquant et verdict fatal inchangé si le dossier
+ou l'enregistrement Git subsiste. Un canari natif crée exclusivement un dépôt et un
+verrou synthétiques ; RED sous verrou maintenu, GREEN après libération et récupération
+d'un verrou transitoire de 22 secondes. Aucun PID historique de l'incident CI n'est
+identifié par cette reproduction contrôlée. CI Windows distante et revue DEV 2 au
+HEAD exact requises ; couverture/exclusions Roslyn, gates, packaging et permissions
+réelles inchangés. Aucune fusion ni Release autorisée.
+
 ## NEXT-05 / #145 — Lot B médias historiques ES-DE (PR DEV 3 distincte, 02.11.2026)
 
 - **État en cours :** après fusion [#150](https://github.com/TobbyCy/RomothequeManager/pull/150) et `main=26409f141c0c2ae3b14cad65d531792052a9cf0b`, GO propriétaire #145 déjà donné ; une branche/PR B distincte ajoute un chargeur injectable, une VM d'identité et de cycle de vie média, et réduit la View à la présentation. **Ni approbation ni fusion ni accès réel autorisé** à ce stade.
