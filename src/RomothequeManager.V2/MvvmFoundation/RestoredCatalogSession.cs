@@ -34,10 +34,30 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
     private bool _disposed;
     private string _saveStatus = "Aucune modification demandée.";
 
+    /// <summary>Creates a historical catalogue presentation with manual decision writes disabled.</summary>
+    /// <remarks>This public overload selects fixtureWriteAllowed=false; it never grants live ROMS/MEDIAS access, previews, or personal catalogue writes.</remarks>
+    /// <param name="store">Injected catalogue store, whose lifetime is owned by this session.</param>
+    /// <param name="romRootId">Identifier of the saved ROMS root, checked against its stored role and library.</param>
+    /// <param name="mediaRootId">Identifier of the saved MEDIAS root, required to share the ROMS library identity.</param>
     public RestoredCatalogSession(ICatalogStore store, string romRootId, string mediaRootId)
         : this(store, romRootId, mediaRootId, fixtureWriteAllowed: false) { }
 
     // Permission for disposable, synthetic test DBs only. Not exposed to normal application.
+    /// <summary>Creates a historical catalogue session for controlled synthetic fixtures, with explicitly bounded optional manual-decision writes.</summary>
+    /// <remarks>The test composition must inject a controlled synthetic, disposable ICatalogStore;
+    /// this constructor does not verify the store's physical path or whether it is disposable.
+    /// It validates the saved ROMS/MEDIAS roles and their shared LibraryId, but assigns
+    /// fixtureWriteAllowed from the caller without independently proving fixture scope.
+    /// CanSave requires a live session, that flag, explicit confirmation, a selected ROM and
+    /// candidate cover, a Complete displayed inventory, and saved CurrentComplete ROMS
+    /// inventory and MEDIAS index evidence. CanRevoke instead requires a live session,
+    /// that flag, explicit confirmation and an active manual decision; it does not require
+    /// the completeness evidence specific to CanSave. Neither path grants real ROMS/MEDIAS
+    /// reads, image previews or permission to modify a personal catalogue.</remarks>
+    /// <param name="store">Catalogue store supplied by the controlled test composition; the session owns and disposes it but does not prove its physical scope or disposability.</param>
+    /// <param name="romRootId">Stored ROMS root identifier; its role and library are validated during construction.</param>
+    /// <param name="mediaRootId">Stored MEDIAS root identifier; must belong to the same validated library.</param>
+    /// <param name="fixtureWriteAllowed">Flag supplied only by fixture test composition. When true it permits guarded, explicitly confirmed manual decisions; it does not verify that the injected store is synthetic or disposable. False disables Save/Revoke.</param>
     internal RestoredCatalogSession(ICatalogStore store, string romRootId, string mediaRootId,
         bool fixtureWriteAllowed)
     {
@@ -58,12 +78,18 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
         _revokeCommand = new InventoryCommand(_ => RevokeExplicitChoice(), _ => CanRevoke);
     }
 
+    /// <summary>Notifies presentation changes after a historical selection or explicitly permitted fixture decision.</summary>
     public event PropertyChangedEventHandler? PropertyChanged;
+    /// <summary>Stable library identity shared by the saved ROMS and MEDIAS roots, validated at construction.</summary>
     public string LibraryId => _roms.StorageRoot.LibraryId;
+    /// <summary>Indicates a recorded attempt exists without asserting that its coverage is complete.</summary>
     public bool HasLastAttempt => _roms.LastAttempt is not null;
+    /// <summary>Indicates that the user selected the last historical attempt instead of CurrentComplete.</summary>
     public bool ShowingAttempt => _showAttempt && HasLastAttempt;
+    /// <summary>Restored captured inventory only, selected between CurrentComplete and LastAttempt; no live drive check.</summary>
     public InventorySnapshot? DisplayedInventory => (ShowingAttempt
         ? _roms.LastAttempt : _roms.CurrentComplete ?? _roms.LastAttempt)?.Inventory;
+    /// <summary>Displays historical capture time and OFFLINE/STALE status without asserting physical availability.</summary>
     public string StatusLabel => DisplayedInventory is null
         ? "Collection sauvegardée indisponible · OFFLINE / STALE · présence non vérifiée."
         : (ShowingAttempt ? "Dernière tentative" : "Dernier inventaire complet") +
@@ -71,11 +97,14 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
               ? _roms.LastAttempt!.CapturedAtUtc
               : (_roms.CurrentComplete ?? _roms.LastAttempt)!.CapturedAtUtc).ToString("u") +
           " · OFFLINE / STALE · présence physique non vérifiée.";
+    /// <summary>Displays the status and timestamp of the last persisted attempt.</summary>
     public string AttemptLabel => _roms.LastAttempt is null
         ? "Aucune tentative enregistrée."
         : "Dernière tentative : " + _roms.LastAttempt.ScanStatus + " · " +
           _roms.LastAttempt.CapturedAtUtc.ToString("u") + " · historique seulement.";
+    /// <summary>Unique validated-format historical cover candidates for the selected ROM observation; no file is opened.</summary>
     public IReadOnlyList<SavedCoverCandidate> Candidates => _candidates;
+    /// <summary>Selected historical candidate must belong to Candidates; changing it revokes pending confirmation.</summary>
     public SavedCoverCandidate? SelectedCandidate
     {
         get => _selectedCover;
@@ -90,6 +119,7 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
             CommandsChanged();
         }
     }
+    /// <summary>Explicit one-shot confirmation required for fixture-scoped save or revoke commands.</summary>
     public bool Confirmation
     {
         get => _confirmation;
@@ -101,18 +131,26 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
             CommandsChanged();
         }
     }
+    /// <summary>Shows the persisted CurrentComplete inventory when available.</summary>
     public ICommand ShowCompleteCommand => _showCompleteCommand;
+    /// <summary>Shows a persisted attempt, including partial or failed evidence, when available.</summary>
     public ICommand ShowAttemptCommand => _showAttemptCommand;
+    /// <summary>Attempts an explicitly confirmed manual cover decision only within synthetic fixture write scope.</summary>
     public ICommand SaveCommand => _saveCommand;
+    /// <summary>Revokes an explicitly confirmed fixture-scoped choice while retaining decision history.</summary>
     public ICommand RevokeCommand => _revokeCommand;
+    /// <summary>Neutral result of the last fixture-only manual decision request; failures are not reported as success.</summary>
     public string SaveStatus => _saveStatus;
+    /// <summary>Requires fixture-write authorization, confirmation, a valid selected ROM and cover, and complete saved ROMS and MEDIAS evidence.</summary>
     public bool CanSave => !_disposed && _fixtureWriteAllowed && _confirmation &&
         _selectedRom is not null && _selectedCover is not null &&
         DisplayedInventory is { ScanStatus: InventoryScanStatus.Complete } &&
         _roms.CurrentComplete?.Inventory is not null &&
         _medias.CurrentComplete?.Media is not null;
+    /// <summary>Requires fixture-write authorization, confirmation and an active historical decision.</summary>
     public bool CanRevoke => !_disposed && _fixtureWriteAllowed && _confirmation &&
         ActiveDecision() is not null;
+    /// <summary>Labels the saved manual choice as historical and media-unverified; never claims a live preview.</summary>
     public string CurrentChoiceLabel
     {
         get
@@ -127,9 +165,12 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
                   " · OFFLINE, aperçu non autorisé.";
         }
     }
+    /// <summary>Reports internal fixture write capability, which is false for normal product composition.</summary>
     public bool FixtureWriteAllowed => _fixtureWriteAllowed;
 
+    /// <summary>Switches to the last complete historical inventory without accessing ROMS or MEDIAS.</summary>
     public void ShowComplete() => SwitchAttempt(false);
+    /// <summary>Switches to the last saved attempt without promoting it to a complete inventory.</summary>
     public void ShowAttempt() => SwitchAttempt(true);
 
     private void SwitchAttempt(bool value)
@@ -143,6 +184,7 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
         Notify(nameof(AttemptLabel));
     }
 
+    /// <summary>Builds bounded historical cover candidates using validated index entries for the selected ROM; no image is opened.</summary>
     public void SelectRom(FileObservation? rom)
     {
         if (_disposed) return;
@@ -269,6 +311,7 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
     private void Notify([CallerMemberName] string? property = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
 
+    /// <summary>Closes the session-owned catalogue store and disables its commands; it does not touch live roots.</summary>
     public void Dispose()
     {
         if (_disposed) return;
@@ -281,5 +324,6 @@ public sealed class RestoredCatalogSession : INotifyPropertyChanged, IDisposable
 /// <summary>Saved media-index description, not an image/thumbnail or live filesystem handle.</summary>
 public sealed record SavedCoverCandidate(string Label, string Format, string DurableKey)
 {
+    /// <summary>Readable label for one saved cover candidate; the association remains historical and unverified.</summary>
     public string Caption => Label + " · " + Format + " · observation historique";
 }

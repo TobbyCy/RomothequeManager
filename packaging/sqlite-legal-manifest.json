@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "rid": "win-x64",
+  "sourceBaseline": "1bb5c2086c33be54e1ae28fa42c0d35ef63f4905",
+  "sourceEvidence": "https://github.com/TobbyCy/RomothequeManager/actions/runs/41442444946",
+  "packages": [
+    {
+      "id": "Microsoft.Data.Sqlite",
+      "version": "10.0.14",
+      "license": "MIT",
+      "nugetContentSha512": "muyroan6rKrf0omZL8UF7Kw5uOGp/yBg1L/XWvkFN3WhKaNtK2IWqRZw93nIwVqjhTVDO0l4CEGhHIh+mb+sKg=="
+    },
+    {
+      "id": "Microsoft.Data.Sqlite.Core",
+      "version": "10.0.14",
+      "license": "MIT",
+      "nugetContentSha512": "1p9rO3Q2X/L/9YrYog3vaDzi8u+WZfJCOkDYoHqmofqYP0DLPLPyZcS2Rnh/79JXAodgbs1AgsaNwLpIvC3Xew=="
+    },
+    {
+      "id": "SQLitePCLRaw.bundle_e_sqlite3",
+      "version": "2.1.13",
+      "license": "Apache-2.0",
+      "nugetContentSha512": "NlDixlC7uHmo+ojXRgkNvN0tQtVGpLDZ3x2OpgNj+G07VHh5cXSszFDrAiC4BpUiPwkcaeuQkMV9WQ123xVtmQ=="
+    },
+    {
+      "id": "SQLitePCLRaw.core",
+      "version": "2.1.13",
+      "license": "Apache-2.0",
+      "nugetContentSha512": "2joofoinuHBFs0nMX3nKuXgxpXryRkCOdM2Ua6HBqQLLy6IW+5f28ZI+HAvMyF8vG7XfNz/lwfBfE6V4juru8Q=="
+    },
+    {
+      "id": "SQLitePCLRaw.lib.e_sqlite3",
+      "version": "2.1.13",
+      "license": "Apache-2.0",
+      "nugetContentSha512": "D2UAuiGxFYBqeRXjjjGgvJ5UQifzn6wefmSqeKU7XcNGKLbJRP6X7kcPZ6opOBJGdCIlgbSxTvDpBbLvsN594A=="
+    },
+    {
+      "id": "SQLitePCLRaw.provider.e_sqlite3",
+      "version": "2.1.13",
+      "license": "Apache-2.0",
+      "nugetContentSha512": "ZU60dSqoSNRe49KcQDUmOVgdRtjITOssVXFtiISs+zJXDI4D2Sndwpn2NOtzDQNPu0ZAvpoLPQ+GLKv6iEZn8Q=="
+    }
+  ],
+  "binaries": [
+    {
+      "name": "Microsoft.Data.Sqlite.dll",
+      "package": "Microsoft.Data.Sqlite.Core",
+      "sha256": "5a0627964721a7acdf5d242fa59db4e8452305d23789dd30c5d03227a370518b"
+    },
+    {
+      "name": "SQLitePCLRaw.batteries_v2.dll",
+      "package": "SQLitePCLRaw.bundle_e_sqlite3",
+      "sha256": "bc69777001eb4db81c580f62835396f67e74aaa381eef446193a904499d5310b"
+    },
+    {
+      "name": "SQLitePCLRaw.core.dll",
+      "package": "SQLitePCLRaw.core",
+      "sha256": "50c999a1ab2afeacc93bce5ac2948d3bb630d99d23efc3cfcbd8bc11d3426eb7"
+    },
+    {
+      "name": "SQLitePCLRaw.provider.e_sqlite3.dll",
+      "package": "SQLitePCLRaw.provider.e_sqlite3",
+      "sha256": "02ad639f45a26de1919ffbb6696bdb399ad01afc149970a163c3867162f310b3"
+    },
+    {
+      "name": "e_sqlite3.dll",
+      "package": "SQLitePCLRaw.lib.e_sqlite3",
+      "sha256": "b7385d722c83fb52142a00477a726723745916d22a555711ee89834c1111fb2e"
+    }
+  ],
+  "legalFiles": [
+    {
+      "file": "Microsoft.Data.Sqlite-LICENSE.txt",
+      "gitBlobSha": "a616ed188dfce68ee308f674350ad242d8588c2b"
+    },
+    {
+      "file": "SQLitePCLRaw-LICENSE.txt",
+      "gitBlobSha": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+    },
+    {
+      "file": "SQLitePCLRaw-NOTICE.txt",
+      "gitBlobSha": "d728ea62485dc1f4a73fe54bbd73d23aa680d283"
+    },
+    {
+      "file": "SQLite-PUBLIC-DOMAIN.txt",
+      "gitBlobSha": "2c3a3172676085b89077dcd7a0d921745c7f62a8"
+    }
+  ]
+}

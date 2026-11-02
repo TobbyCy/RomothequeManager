@@ -9,21 +9,41 @@ namespace RomothequeManager.V2;
 
 // #141: scoped legacy ES-DE decode helper. Not a Preview service or a new grant.
 // Caller MUST use the original EsDeImportSession.TryOpenMedia authorization first.
-internal enum LegacyImageSlot { Card, Dashboard, Detail, Gallery }
+/// <summary>Presentation destination used to select a strict decoded-image dimension limit.</summary>
+internal enum LegacyImageSlot
+{
+    /// <summary>Small collection card with a strictly reduced image size.</summary>
+    Card,
+    /// <summary>Dashboard preview constrained to the small card memory budget.</summary>
+    Dashboard,
+    /// <summary>Selected game detail with a larger but explicitly capped bitmap.</summary>
+    Detail,
+    /// <summary>Paginated gallery preview, still subject to single-decoder execution.</summary>
+    Gallery
+}
 
+/// <summary>Bounded bitmap result plus refusal reason, source dimensions and retained-byte estimate; the caller owns a successful Bitmap.</summary>
 internal readonly record struct LegacyDecodeResult(Bitmap? Bitmap, string Reason,
     int SourceWidth, int SourceHeight, long RetainedBytes)
 {
+    /// <summary>Produces a refusal result without retaining any native bitmap or reporting dimensions.</summary>
     internal static LegacyDecodeResult Refused(string reason) => new(null, reason, 0, 0, 0);
 }
 
 // All dimensions/limits below are the exact DEV 2 contract in Issue #141.
+/// <summary>Applies the legacy media preflight and decode budgets after separate Current-membership path authorization.</summary>
+/// <remarks>Neither this utility nor a header match grants access to a personal MEDIAS root.</remarks>
 internal static class LegacyImportedImageBudget
 {
+    /// <summary>Maximum compressed source size admitted before native decoding: four MiB.</summary>
     internal const int MaxCompressedBytes = 4 * 1024 * 1024;
+    /// <summary>Maximum JPEG header search extent, bounding metadata parsing work.</summary>
     internal const int MaxHeaderBytes = 256 * 1024;
+    /// <summary>Maximum source image width or height before any bitmap decoder is entered.</summary>
     internal const int MaxSidePixels = 2048;
+    /// <summary>Maximum permitted source pixel area; wide images are rejected even below side limits.</summary>
     internal const long MaxSourcePixels = 2_097_152;
+    /// <summary>Maximum retained per-view RGBA size accepted after decoding and scaling.</summary>
     internal const long MaxViewBytes = 12L * 1024 * 1024;
 
     private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
@@ -41,6 +61,10 @@ internal static class LegacyImportedImageBudget
         return ~crc == BinaryPrimitives.ReadUInt32BigEndian(png.Slice(29, 4));
     }
 
+    /// <summary>Checks a complete PNG/JPEG byte sequence, dimensions, framing and size before native decode.</summary>
+    /// <param name="bytes">Bounded content read from an already authorized stream.</param>
+    /// <param name="reason">Explicit code explaining admission or rejection without leaking source paths.</param>
+    /// <returns>True only when the header and size constraints admit a later decoder call.</returns>
     internal static bool Preflight(byte[] bytes, out string reason) =>
         TryProbe(bytes.AsSpan(), out _, out _, out reason);
 
@@ -151,6 +175,13 @@ internal static class LegacyImportedImageBudget
     // Invoked by a SERIAL worker away from the UI thread. Even the read of an
     // unknown-length stream is capped to MaxCompressedBytes+1, not 50 streams.
     // decodeEntered counts the *actual native bitmap call*, never OPEN_OK.
+    /// <summary>Reads one previously authorized stream under byte/time cancellation and bitmap dimension budgets.</summary>
+    /// <remarks>Must run in a serialized worker; rejects stale generations and disposes every non-adopted bitmap. No extra preview permission is granted here.</remarks>
+    /// <param name="source">Read-only stream opened by EsDeImportSession membership and confinement checks.</param>
+    /// <param name="slot">Destination determining strict output dimensions.</param>
+    /// <param name="token">Cancellation token used before read and native decode adoption.</param>
+    /// <param name="decodeEntered">Optional test observer invoked only on actual decoder entry.</param>
+    /// <returns>Adoptable bitmap with retained-byte evidence, or a refusal without bitmap ownership.</returns>
     internal static LegacyDecodeResult Decode(Stream source, LegacyImageSlot slot,
         CancellationToken token, Action? decodeEntered = null)
     {

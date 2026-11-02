@@ -90,3 +90,37 @@ RELEASE GATE
   The legal inventory must be reconciled with the actual publish-file manifest,
   runtime pack, native binary notices and exact ZIP hash. Until then, do NOT
   distribute this source index as proof of completed license compliance.
+
+
+SQLITE-LEGAL-01 — WINDOWS win-x64 / FIVE DISTRIBUTED BINARIES (#149 LOT A)
+  Source baseline main: 1bb5c2086c33be54e1ae28fa42c0d35ef63f4905
+  Exact publish manifest: Adaptive CI #41442444946 (PUBLISH_FILE_JSON).
+  Exact 5 DLL SHA-256 / 6 NuGet content SHA-512 (not signed archive SHA-512) / license source Git blobs:
+  packaging/sqlite-legal-manifest.json. All are verified before ZIP distribution.
+
+  Microsoft.Data.Sqlite 10.0.14 (metapackage): MIT.
+  Microsoft.Data.Sqlite.Core 10.0.14:
+    Microsoft.Data.Sqlite.dll, MIT, licenses/Microsoft.Data.Sqlite-LICENSE.txt.
+    Source: https://github.com/dotnet/efcore/blob/v10.0.14/LICENSE.txt
+  SQLitePCLRaw.bundle_e_sqlite3 2.1.13:
+    SQLitePCLRaw.batteries_v2.dll, Apache-2.0.
+  SQLitePCLRaw.core 2.1.13:
+    SQLitePCLRaw.core.dll, Apache-2.0.
+  SQLitePCLRaw.provider.e_sqlite3 2.1.13:
+    SQLitePCLRaw.provider.e_sqlite3.dll, Apache-2.0.
+  SQLitePCLRaw.lib.e_sqlite3 2.1.13:
+    e_sqlite3.dll, package Apache-2.0; SQLite native engine public domain.
+  SQLitePCLRaw publisher Apache-2.0 and NOTICE:
+    licenses/SQLitePCLRaw-LICENSE.txt
+    licenses/SQLitePCLRaw-NOTICE.txt
+    Source: ericsink/SQLitePCL.raw commit ed046114d5a30534e13294d94d78eb73de896ad4
+    NUPKG provenance independently checked by SHA-512 and NuGet metadata.
+  SQLite native source/public domain statement:
+    licenses/SQLite-PUBLIC-DOMAIN.txt
+    https://sqlite.org/copyright.html
+
+  The historical LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED marker belongs
+  to the prior binary graph. It does not authorize the added SQLite set.
+  A new exact-current-graph owner/legal marker is required before publish:
+  SQLITE_LEGAL_01_BINARY_DISTRIBUTION_APPROVED (NOT granted in Lot A).
+  No Release or real-library scan is authorized by this notice.

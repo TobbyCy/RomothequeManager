@@ -114,6 +114,9 @@ internal static class Program
         // #141: temporary native evidence entrypoint; absent from normal EXE.
         if (args.Contains("--ci-next05-legacy-media", StringComparer.Ordinal))
             Next05LegacyMediaHarness.Configure(window);
+        // #145 Lot B-only targeted GUI proof, unavailable from standard builds.
+        if (args.Contains("--ci-next05-lotb-media", StringComparer.Ordinal))
+            Next05LegacyMediaHarness.ConfigureLotB(window);
         // Native RS-A fixture UI recipe. The production build has no such entrypoint.
         if (args.Contains("--ci-next05-rsa-gui", StringComparer.Ordinal))
             Next05RsAGuiHarness.Configure(window);

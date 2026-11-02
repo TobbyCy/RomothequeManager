@@ -458,6 +458,12 @@ class DocumentTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_docfx_cleanup_canary_has_an_exact_allowlist_entry(self):
+        root = Path(__file__).resolve().parent.parent
+        rules, _ = p.path_rules(root)
+        self.assertTrue(any(p.re.fullmatch(rule, "tools/doc-coverage/Test-BaselineCleanup.ps1") for rule in rules))
+        self.assertFalse(any(p.re.fullmatch(rule, "tools/doc-coverage/UnreviewedCleanup.ps1") for rule in rules))
+
     def test_stab03a_ps51_unicode_sources_have_utf8_bom(self):
         # GitHub-stored bytes: PS5.1 must never interpret UTF-8 literals as ACP.
         root = Path(__file__).resolve().parent.parent
@@ -530,7 +536,10 @@ class WorkflowTests(unittest.TestCase):
             "HOLD_OWNER_GO",
         ):
             self.assertIn(required, workflow)
-        self.assertNotIn("actions/upload-artifact@", workflow)
+        self.assertEqual(1, workflow.count("actions/upload-artifact@"))
+        self.assertIn("name: docfx-internal-reference", workflow)
+        self.assertIn("retention-days: 3", workflow)
+        self.assertIn("ci-docfx", workflow)
         self.assertNotIn("gh release", workflow)
         self.assertNotIn("v2-01a-win-x64-candidate", workflow)
 
@@ -955,7 +964,7 @@ class CliRoutingProofTests(unittest.TestCase):
                 plan = json.loads(next(line[len("CI_POLICY "):] for line in output.splitlines() if line.startswith("CI_POLICY ")))
                 self.assertEqual(category, plan["class"])
                 run("docs")
-                needs = {job: {"result": "success" if job in ("policy", "ci-docs") else "skipped"} for job in p.NEEDS}
+                needs = {job: {"result": "success" if job in ("policy", "ci-docs", "ci-docfx") else "skipped"} for job in p.NEEDS}
                 needs["policy"]["outputs"] = {"policy": json.dumps(plan)}
                 env["CI_NEEDS_JSON"] = json.dumps(needs)
                 verdict = run("gate", 0 if pass_gate else 1)

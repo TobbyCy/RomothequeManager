@@ -7,7 +7,20 @@ namespace RomothequeManager.V2.Inventory.Media;
 /// <summary>Independent preview outcome; Ready proves only decoding of an explicitly chosen file.</summary>
 public enum MediaPreviewStatus
 {
-    Ready, Unsupported, Rejected, Unavailable, Cancelled, DecodeFailed, Stale
+    /// <summary>PNG/JPEG decoding succeeded under a fixture grant; no game or cover is approved.</summary>
+    Ready,
+    /// <summary>Known but unsupported format, including WebP, rejected before Skia decoding.</summary>
+    Unsupported,
+    /// <summary>Permission, source membership, path or format validation failed closed.</summary>
+    Rejected,
+    /// <summary>The selected fixture file is unavailable or cannot be read at this attempt.</summary>
+    Unavailable,
+    /// <summary>Caller cancellation or timeout prevented adoption of decoded pixel data.</summary>
+    Cancelled,
+    /// <summary>Corrupt, inconsistent or otherwise undecodable selected media was refused.</summary>
+    DecodeFailed,
+    /// <summary>Snapshot generation, file metadata or selected root changed; stale pixels were discarded.</summary>
+    Stale
 }
 
 /// <summary>Preview request contains only run-scoped IDs, never absolute paths or URIs.</summary>
@@ -21,6 +34,10 @@ public sealed class DecodedMediaPreview : IDisposable
 {
     private byte[]? _rgba;
 
+    /// <summary>Adopts an already bounded RGBA8888 buffer for transfer to the read-only UI adapter.</summary>
+    /// <param name="width">Decoded image width validated against the preview size limit.</param>
+    /// <param name="height">Decoded image height validated against the preview size limit.</param>
+    /// <param name="rgba">Owned pixel buffer cleared on Dispose; no source file handle is transferred.</param>
     internal DecodedMediaPreview(int width, int height, byte[] rgba)
     {
         Width = width;
@@ -129,7 +146,11 @@ public sealed class MediaPreviewService : IMediaPreviewService
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>Returns a bounded preview only for an exact observation in the selected, comparable fixture run.</summary>
+    /// <remarks>Public construction denies all real paths. PNG/JPEG read and Skia decode are single-flight with limits, reparse checks and stale-result rejection; returned pixels are owned and disposable.</remarks>
+    /// <param name="request">Run-scoped source IDs and target size, never an absolute path.</param>
+    /// <param name="cancellationToken">Cancellation that must prevent adoption even if native decoding has already started.</param>
+    /// <returns>A ready RGBA image or an explicit refusal/status without granting filesystem access.</returns>
     public async Task<MediaPreviewResult> LoadAsync(MediaPreviewRequest request,
         CancellationToken cancellationToken = default)
     {

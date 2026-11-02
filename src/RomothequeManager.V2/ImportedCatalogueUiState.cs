@@ -2,36 +2,84 @@ namespace RomothequeManager.V2;
 
 // UI-only selection, search, paging and mode. The ES-DE importer remains the sole
 // authority for XML parsing, media paths and read-only file access.
-public enum CatalogueMode { NoCatalog, Demonstration, Imported }
+/// <summary>Presentation mode; no file access is implied by switching modes.</summary>
+public enum CatalogueMode
+{
+    /// <summary>Empty welcome; no catalogue has been loaded or restored automatically.</summary>
+    NoCatalog,
+    /// <summary>Explicitly selected, entirely synthetic demonstration data.</summary>
+    Demonstration,
+    /// <summary>Displays an already accepted ES-DE snapshot without granting scan permissions.</summary>
+    Imported
+}
 
 // A system is proven only by games referenced in imported ES-DE XML.
+/// <summary>Platform and reference count inferred from the accepted ES-DE XML only.</summary>
 public sealed record ImportedSystem(string Platform, int ReferencedGames);
 
+/// <summary>
+/// Stores the accepted imported catalogue's view mode, selection, filters and pages.
+/// Media references remain read-only and must be reopened by the accepted session.
+/// </summary>
 public sealed class ImportedCatalogueUiState
 {
     private EsDeImportSession? _session;
+    private EsDeCatalogueSnapshot? _acceptedSnapshot;
+    private readonly IEsDeImportApplicationService _applicationService;
+
+    /// <summary>Presentation state; import I/O is delegated to an application service.</summary>
+    public ImportedCatalogueUiState() : this(new EsDeImportApplicationService()) { }
+
+    /// <summary>Use an injected read-only importer for testable, explicit operations.</summary>
+    public ImportedCatalogueUiState(IEsDeImportApplicationService applicationService) =>
+        _applicationService = applicationService ?? throw new ArgumentNullException(nameof(applicationService));
+
+    /// <summary>Injected sole read-only import orchestration service; never a new grant.</summary>
+    internal IEsDeImportApplicationService ApplicationService => _applicationService;
+
+    /// <summary>Current accepted backend authority; its media membership must match Snapshot.</summary>
+    internal EsDeImportSession? Session => _session;
+
+    /// <summary>Currently displayed shell mode; never an import or scan trigger.</summary>
     public CatalogueMode Mode { get; private set; } = CatalogueMode.NoCatalog;
+    /// <summary>Whether a validated ES-DE snapshot is retained, even outside Imported mode.</summary>
     public bool HasImportedCatalogue => Snapshot is not null;
-    public EsDeCatalogueSnapshot? Snapshot => _session?.Current;
+    // An asynchronous reimport may finish after Cancel; never display a non-adopted snapshot.
+    /// <summary>Last UI-accepted immutable catalogue; never a pending refresh candidate.</summary>
+    public EsDeCatalogueSnapshot? Snapshot => _acceptedSnapshot;
+    /// <summary>True only while displaying a previously accepted imported snapshot.</summary>
     public bool IsImported => Mode == CatalogueMode.Imported && Snapshot is not null;
+    /// <summary>Sanitized last import/refresh error without private root or raw XML.</summary>
     public string? ErrorMessage { get; private set; }
+    /// <summary>Local collection filter; no filesystem search is performed.</summary>
     public string SearchText { get; private set; } = "";
+    /// <summary>Explicit platform filter restricted to systems declared in Current XML.</summary>
     public string? SelectedPlatform { get; private set; }
+    /// <summary>Platforms actually referenced in the accepted catalogue.</summary>
     public IReadOnlyList<ImportedSystem> Systems => Snapshot?.Games
         .GroupBy(game => game.Platform, StringComparer.OrdinalIgnoreCase)
         .Select(group => new ImportedSystem(group.Key, group.Count()))
         .OrderBy(system => system.Platform, StringComparer.OrdinalIgnoreCase)
         .ToArray() ?? Array.Empty<ImportedSystem>();
+    /// <summary>Identifier of a game selected from the accepted snapshot only.</summary>
     public string? SelectedGameId { get; private set; }
+    /// <summary>Selected game if it still belongs to the last accepted snapshot.</summary>
     public EsDeGame? Selected => Snapshot?.Games.FirstOrDefault(game =>
         string.Equals(game.GameId, SelectedGameId, StringComparison.Ordinal));
+    /// <summary>Maximum number of ES-DE game cards on one collection page.</summary>
     public const int PageSize = 50;
+    /// <summary>Zero-based current page, clamped when an accepted refresh changes results.</summary>
     public int PageIndex { get; private set; }
+    /// <summary>Dashboard, collection or permitted game detail in imported mode.</summary>
     public POCView CurrentView { get; private set; } = POCView.Dashboard;
+    /// <summary>Number of currently filtered references, not discovered ROM files.</summary>
     public int TotalCount => FilteredGames.Count;
+    /// <summary>Number of pages with a minimum of one for empty display.</summary>
     public int PageCount => Math.Max(1, (TotalCount + PageSize - 1) / PageSize);
+    /// <summary>At most 50 references from Current matching the filters and page.</summary>
     public IReadOnlyList<EsDeGame> PageGames => FilteredGames.Skip(PageIndex * PageSize).Take(PageSize).ToArray();
 
+    /// <summary>Read-only projection of XML references under platform/text filters.</summary>
     public IReadOnlyList<EsDeGame> FilteredGames => Snapshot?.Games.Where(game =>
         (SelectedPlatform is null || string.Equals(game.Platform, SelectedPlatform,
             StringComparison.OrdinalIgnoreCase)) &&
@@ -42,11 +90,14 @@ public sealed class ImportedCatalogueUiState
         ?? Array.Empty<EsDeGame>();
 
     // A prepared import is adopted only after EsDeImportSession.Import completed.
+    /// <summary>Adopts a completed first import and resets the imported view to Dashboard.</summary>
+    /// <param name="prepared">Explicit session with a validated Current catalogue.</param>
     public void Adopt(EsDeImportSession prepared)
     {
         if (prepared?.Current is null)
             throw new ArgumentException("A validated import is required.", nameof(prepared));
         _session = prepared;
+        _acceptedSnapshot = prepared.Current;
         Mode = CatalogueMode.Imported;
         SearchText = "";
         SelectedPlatform = null;
@@ -56,13 +107,19 @@ public sealed class ImportedCatalogueUiState
         ErrorMessage = null;
     }
 
+    // Compatibility entrypoints for existing tests; the standard View calls its
+    // observable VM, never these blocking methods. No parsing/I/O lives here.
+    /// <summary>Compatibility adapter: explicitly stages and accepts an ES-DE root.</summary>
+    /// <remarks>Standard Avalonia UI instead uses the observable VM after native consent.</remarks>
+    /// <param name="selectedRoot">Root explicitly selected by the caller, never autodiscovered.</param>
+    /// <returns>False on a supported import refusal, leaving the previous Current intact.</returns>
     public bool TryImport(string selectedRoot)
     {
         try
         {
-            var staged = new EsDeImportSession(selectedRoot);
-            staged.Import();
-            Adopt(staged);
+            var prepared = _applicationService.PrepareAsync(selectedRoot, CancellationToken.None)
+                .GetAwaiter().GetResult();
+            Adopt(prepared);
             return true;
         }
         catch (Exception error) when (IsExpectedImportError(error))
@@ -72,6 +129,11 @@ public sealed class ImportedCatalogueUiState
         }
     }
 
+    /// <summary>
+    /// Legacy synchronous refresh adapter. It prepares a candidate without mutation,
+    /// then uses exactly the same guarded commit as the observable VM.
+    /// </summary>
+    /// <returns>True only when the selected session and UI adopt one identical snapshot.</returns>
     public bool TryReimport()
     {
         if (_session is null)
@@ -81,15 +143,10 @@ public sealed class ImportedCatalogueUiState
         }
         try
         {
-            var updated = _session.Import();
-            SelectedGameId = updated.Games.Any(g => g.GameId == SelectedGameId) ? SelectedGameId : null;
-            if (SelectedPlatform is not null && !updated.Games.Any(g =>
-                    string.Equals(g.Platform, SelectedPlatform, StringComparison.OrdinalIgnoreCase)))
-                SelectedPlatform = null;
-            if (SelectedGameId is null && CurrentView == POCView.GameDetail)
-                CurrentView = POCView.Collection;
-            PageIndex = Math.Min(PageIndex, PageCount - 1);
-            ErrorMessage = null;
+            var prepared = _applicationService.RefreshAsync(_session, CancellationToken.None)
+                .GetAwaiter().GetResult();
+            if (!TryApplyPreparedRefresh(_session, prepared))
+                throw new InvalidDataException("ESDE_REFRESH_STALE_PROPOSAL");
             return true;
         }
         catch (Exception error) when (IsExpectedImportError(error))
@@ -99,18 +156,76 @@ public sealed class ImportedCatalogueUiState
         }
     }
 
+    /// <summary>
+    /// Commits an opaque prepared refresh to the session and accepted UI state
+    /// in one synchronous owner-context operation, without events or I/O between them.
+    /// All display projections are calculated before the backend commit.
+    /// </summary>
+    /// <param name="session">Expected accepted session, checked by reference.</param>
+    /// <param name="prepared">Candidate created on that session without modifying Current.</param>
+    /// <returns>False without modifying the UI or session if any guard rejects the proposal.</returns>
+    internal bool TryApplyPreparedRefresh(EsDeImportSession session,
+        EsDeImportSession.PreparedEsDeRefresh prepared)
+    {
+        if (!ReferenceEquals(session, _session) || _acceptedSnapshot is null ||
+            !ReferenceEquals(session.Current, _acceptedSnapshot) || prepared is null)
+            return false;
+
+        var updated = prepared.Snapshot;
+        if (!string.Equals(updated.LibraryId, _acceptedSnapshot.LibraryId, StringComparison.Ordinal))
+            return false;
+
+        // Fully project all mutable UI selection/page state BEFORE a possible commit.
+        // A stale/foreign proposal must leave both the VM's Current and media authority alone.
+        var nextGameId = updated.Games.Any(g => g.GameId == SelectedGameId)
+            ? SelectedGameId : null;
+        var nextPlatform = SelectedPlatform is not null && updated.Games.Any(g =>
+            string.Equals(g.Platform, SelectedPlatform, StringComparison.OrdinalIgnoreCase))
+            ? SelectedPlatform : null;
+        var nextView = nextGameId is null && CurrentView == POCView.GameDetail
+            ? POCView.Collection : CurrentView;
+        var filteredCount = updated.Games.Count(g =>
+            (nextPlatform is null || string.Equals(g.Platform, nextPlatform,
+                StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(SearchText) ||
+                g.Title.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                g.Platform.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                g.RomRelativePath.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase)));
+        var nextPageCount = Math.Max(1, (filteredCount + PageSize - 1) / PageSize);
+        var nextPage = Math.Min(PageIndex, nextPageCount - 1);
+
+        // No awaits, callbacks, notifications or parsing between the backend's
+        // accepted-media authority switch and the UI snapshot assignment.
+        if (!session.TryCommitPreparedRefresh(prepared))
+            return false;
+        _acceptedSnapshot = updated;
+        SelectedGameId = nextGameId;
+        SelectedPlatform = nextPlatform;
+        CurrentView = nextView;
+        PageIndex = nextPage;
+        ErrorMessage = null;
+        return true;
+    }
+
+    /// <summary>Classifies expected read/format refusals for neutral UI diagnostics.</summary>
+    /// <param name="error">Exception to classify without exposing its raw contents.</param>
+    /// <returns>True when the error can be presented without crashing the shell.</returns>
     public static bool IsExpectedImportError(Exception error) =>
         error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or
         System.Xml.XmlException or System.Security.SecurityException or NotSupportedException;
 
+    /// <summary>Shows a sanitized refusal while preserving the accepted snapshot.</summary>
+    /// <param name="error">Original cause, mapped to a bounded non-private explanation.</param>
     public void ImportFailed(Exception error) =>
         ErrorMessage = "Import non effectué : " + EsDeDiagnosticPresentation.ImportFailure(error) + " " +
             (Snapshot is null ? "Aucun catalogue chargé." : "Dernier catalogue valide conservé.") +
             " Aucun fichier source modifié.";
 
+    /// <summary>Reports refusal of a non-local or inaccessible picker selection.</summary>
     public void ReportUnavailableFolder() =>
         ErrorMessage = "Sélectionnez un dossier local accessible. Aucun import effectué.";
 
+    /// <summary>Switches to explicit synthetic demonstration without clearing accepted ES-DE Current.</summary>
     public void ShowDemo()
     {
         Mode = CatalogueMode.Demonstration;
@@ -120,6 +235,7 @@ public sealed class ImportedCatalogueUiState
     }
 
     // Empty welcome never loads/saves the previous filesystem path or exposes demo data.
+    /// <summary>Returns to empty welcome without accessing or exposing the last chosen path.</summary>
     public void ShowWelcome()
     {
         Mode = CatalogueMode.NoCatalog;
@@ -128,6 +244,8 @@ public sealed class ImportedCatalogueUiState
         CurrentView = POCView.Dashboard;
     }
 
+    /// <summary>Displays the last accepted ES-DE catalogue, with no new file read.</summary>
+    /// <returns>False if the session has no accepted catalogue.</returns>
     public bool ShowImported()
     {
         if (Snapshot is null)
@@ -141,6 +259,8 @@ public sealed class ImportedCatalogueUiState
     }
 
     // Imported navigation never points to an unselected game's details.
+    /// <summary>Navigates only to a game detail that is present in accepted Current.</summary>
+    /// <param name="view">Requested imported shell section.</param>
     public void Navigate(POCView view)
     {
         CurrentView = view == POCView.GameDetail && Selected is null
@@ -148,14 +268,23 @@ public sealed class ImportedCatalogueUiState
     }
 
     // UI projection only: absent optional metadata is never an invented value.
+    /// <summary>Displays absent optional metadata without inventing values.</summary>
+    /// <param name="value">Untrusted optional XML metadata value.</param>
+    /// <returns>Original text or a neutral not-provided placeholder.</returns>
     public static string MetadataOrUnspecified(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "Non renseigné" : value;
 
+    /// <summary>Returns declared image then thumbnail references; no automatic attribution.</summary>
+    /// <param name="game">A game already selected from an accepted catalogue.</param>
+    /// <returns>Ordered media references, each still subject to TryOpenMedia authorization.</returns>
     public static IReadOnlyList<EsDeMedia> CoverCandidates(EsDeGame game) =>
         game.Media.Where(media => media.Kind is "image" or "thumbnail")
             .OrderBy(media => media.Kind == "image" ? 0 : 1).ToArray();
 
     // Selects only a platform present in the XML snapshot; never scans folders for systems.
+    /// <summary>Applies an XML-proven platform filter without scanning disk folders.</summary>
+    /// <param name="platform">Declared platform or null to show all.</param>
+    /// <returns>False if the platform is not a member of Current.</returns>
     public bool SelectPlatform(string? platform)
     {
         if (platform is not null && !Systems.Any(system =>
@@ -172,6 +301,8 @@ public sealed class ImportedCatalogueUiState
         return true;
     }
 
+    /// <summary>Applies a local text filter and resets pagination only when changed.</summary>
+    /// <param name="search">Text matched against title, platform and declared ROM-relative path.</param>
     public void Search(string? search)
     {
         var text = search ?? "";
@@ -180,6 +311,8 @@ public sealed class ImportedCatalogueUiState
         PageIndex = 0;
     }
 
+    /// <summary>Advances one bounded 50-reference page when available.</summary>
+    /// <returns>True if the displayed page changed.</returns>
     public bool NextPage()
     {
         if (PageIndex + 1 >= PageCount) return false;
@@ -187,6 +320,8 @@ public sealed class ImportedCatalogueUiState
         return true;
     }
 
+    /// <summary>Moves one page toward the start without leaving page zero.</summary>
+    /// <returns>True if the displayed page changed.</returns>
     public bool PreviousPage()
     {
         if (PageIndex == 0) return false;
@@ -194,6 +329,9 @@ public sealed class ImportedCatalogueUiState
         return true;
     }
 
+    /// <summary>Opens a detail view only for a game referenced by accepted Current.</summary>
+    /// <param name="gameId">Exact game identity from the imported catalogue.</param>
+    /// <returns>False for an unknown or stale identifier.</returns>
     public bool Open(string? gameId)
     {
         if (Snapshot?.Games.Any(game => string.Equals(game.GameId, gameId, StringComparison.Ordinal)) != true)
@@ -203,6 +341,10 @@ public sealed class ImportedCatalogueUiState
         return true;
     }
 
+    /// <summary>Delegates a declared media read to the accepted session's guarded opener.</summary>
+    /// <param name="media">Reference that must belong to the session's accepted Current.</param>
+    /// <param name="stream">Read-only stream owned by caller, null on any refusal.</param>
+    /// <returns>True only when the session permits and opens this specific media reference.</returns>
     public bool TryOpenMedia(EsDeMedia media, out Stream? stream)
     {
         stream = null;
@@ -217,8 +359,12 @@ public sealed class ImportedCatalogueUiState
 /// </summary>
 // Presentation only. The importer's original ReleaseDate is never normalized,
 // rewritten or assigned a timezone. A year-only source remains year-only.
+/// <summary>Culture-safe rendering of declared ES-DE release-date strings; no filesystem access.</summary>
 public static class EsDeReleaseDatePresentation
 {
+    /// <summary>Formats a recognized ES-DE date without changing the source's value.</summary>
+    /// <param name="original">Optional original XML date; unknown patterns are returned unchanged.</param>
+    /// <returns>French readable date or a neutral placeholder for missing metadata.</returns>
     public static string Display(string? original)
     {
         if (string.IsNullOrWhiteSpace(original)) return "Non renseigné";
@@ -247,13 +393,21 @@ public static class EsDeReleaseDatePresentation
     }
 }
 
+/// <summary>Aggregate of ES-DE diagnostics grouped by stable code and attention state.</summary>
 public sealed record EsDeDiagnosticGroup(string Code, string Title, int Count, bool NeedsAttention);
 
+/// <summary>Bounded French diagnostic projection; never exposes raw XML or root paths.</summary>
 public static class EsDeDiagnosticPresentation
 {
+    /// <summary>Recognizes missing XML/ROM/MEDIA/disc references needing attention.</summary>
+    /// <param name="diagnostic">One importer diagnostic code.</param>
+    /// <returns>True for an actionable missing-reference warning.</returns>
     public static bool NeedsAttention(EsDeDiagnostic diagnostic) =>
         diagnostic.Code is "ROM_MISSING" or "MEDIA_MISSING" or "DISC_MISSING" or "XML_MISSING";
 
+    /// <summary>Counts actionable and informational diagnostics without deleting anything.</summary>
+    /// <param name="diagnostics">Only diagnostics produced by the existing importer.</param>
+    /// <returns>Sanitized aggregate summary.</returns>
     public static string Summary(IReadOnlyList<EsDeDiagnostic> diagnostics)
     {
         var attention = diagnostics.Count(NeedsAttention);
@@ -263,6 +417,9 @@ public static class EsDeDiagnosticPresentation
 
     // All codes are counted, including future/unknown codes. This is a bounded
     // presentation aggregation over the existing immutable snapshot, no file reads.
+    /// <summary>Groups every diagnostic code, including unknown future codes, with stable counts.</summary>
+    /// <param name="diagnostics">Immutable import diagnostics to aggregate.</param>
+    /// <returns>Presentation groups ordered by attention, frequency and code.</returns>
     public static IReadOnlyList<EsDeDiagnosticGroup> ByType(IReadOnlyList<EsDeDiagnostic> diagnostics) =>
         diagnostics.GroupBy(d => d.Code, StringComparer.Ordinal)
             .Select(group => new EsDeDiagnosticGroup(group.Key, Title(group.First()),
@@ -272,6 +429,9 @@ public static class EsDeDiagnosticPresentation
             .ThenBy(group => group.Code, StringComparer.Ordinal)
             .ToArray();
 
+    /// <summary>Maps a diagnostic code to a bounded, user-readable label.</summary>
+    /// <param name="diagnostic">Code without untrusted exception text.</param>
+    /// <returns>Neutral title including unknown codes.</returns>
     public static string Title(EsDeDiagnostic diagnostic) => diagnostic.Code switch
     {
         "XML_MISSING" => "Liste de jeux ES-DE absente",
@@ -286,6 +446,9 @@ public static class EsDeDiagnosticPresentation
         _ => "Diagnostic ES-DE (" + diagnostic.Code + ")"
     };
 
+    /// <summary>Displays declared platform and entry without inspecting the filesystem.</summary>
+    /// <param name="diagnostic">Diagnostic associated with the imported entry.</param>
+    /// <returns>Readable platform/entry context.</returns>
     public static string Context(EsDeDiagnostic diagnostic)
     {
         var platform = string.IsNullOrWhiteSpace(diagnostic.Platform)
@@ -294,6 +457,9 @@ public static class EsDeDiagnosticPresentation
             ? platform : platform + " · Entrée : " + diagnostic.Entry;
     }
 
+    /// <summary>Explains supported ES-DE diagnostic codes and their safe remediation.</summary>
+    /// <param name="diagnostic">Existing importer diagnostic; no extra scan is started.</param>
+    /// <returns>Bounded explanation or neutral fallback for an unknown code.</returns>
     public static string Explanation(EsDeDiagnostic diagnostic) => diagnostic.Code switch
     {
         "XML_MISSING" => "Aucun fichier gamelist.xml pris en charge pour cette plateforme. Les autres plateformes importées restent disponibles.",
@@ -309,6 +475,9 @@ public static class EsDeDiagnosticPresentation
             ? "Diagnostic conservé pour vérification." : diagnostic.Message
     };
 
+    /// <summary>Redacts expected import exceptions into neutral French failure messages.</summary>
+    /// <param name="error">Exception whose raw message/path must not be displayed.</param>
+    /// <returns>User-safe explanation that does not reveal private filesystem roots.</returns>
     public static string ImportFailure(Exception error) => error switch
     {
         DirectoryNotFoundException =>

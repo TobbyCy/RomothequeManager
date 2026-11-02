@@ -143,3 +143,55 @@ Les textes BSD-2 ANGLE/xxHash et les notices SkiaSharp/HarfBuzzSharp sont livré
 **Verdict : LEGAL_APPROVED** pour le volet licences/notices de cette Pre-release synthétique Windows, sous réserve de fusion de la présente PR et d'un **nouveau validate sur le nouveau SHA de main**. Le présent verdict ne vaut ni GO final du propriétaire, ni UX externe PASS, ni autorisation d'upload autonome. Le workflow publish reste contrôlé par les valeurs source/ZIP/tag approuvées par Tobby.
 
 LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED
+
+## #149 — Lot A, réconciliation juridique et binaire SQLite au 02.11.2026
+
+Base vérifiée : `main=1bb5c2086c33be54e1ae28fa42c0d35ef63f4905` ;
+[CI post-fusion #41442444946](https://github.com/TobbyCy/RomothequeManager/actions/runs/41442444946)
+— `335/335` tests, `PUBLISH_FILE_MANIFEST_BEGIN count=230`, ZIP synthétique de
+quarantaine `V2C_ZIP_VERIFIED_PASS sha256=1a4044ece2ae82132507c9216a87b3da14575ab054fd6a9b65c574d17e70e574`.
+Runtime Windows autonome et fichiers légaux Microsoft .NET 10.0.12 inchangés.
+
+| Fichier présent dans le `dotnet publish` réel | Paquet NuGet verrouillé | SHA-256 du fichier |
+|---|---|---|
+| `Microsoft.Data.Sqlite.dll` | `Microsoft.Data.Sqlite.Core` 10.0.14 | `5a0627964721a7acdf5d242fa59db4e8452305d23789dd30c5d03227a370518b` |
+| `SQLitePCLRaw.batteries_v2.dll` | `SQLitePCLRaw.bundle_e_sqlite3` 2.1.13 | `bc69777001eb4db81c580f62835396f67e74aaa381eef446193a904499d5310b` |
+| `SQLitePCLRaw.core.dll` | `SQLitePCLRaw.core` 2.1.13 | `50c999a1ab2afeacc93bce5ac2948d3bb630d99d23efc3cfcbd8bc11d3426eb7` |
+| `SQLitePCLRaw.provider.e_sqlite3.dll` | `SQLitePCLRaw.provider.e_sqlite3` 2.1.13 | `02ad639f45a26de1919ffbb6696bdb399ad01afc149970a163c3867162f310b3` |
+| `e_sqlite3.dll` (natif win-x64) | `SQLitePCLRaw.lib.e_sqlite3` 2.1.13 | `b7385d722c83fb52142a00477a726723745916d22a555711ee89834c1111fb2e` |
+
+Le sixième paquet `Microsoft.Data.Sqlite` 10.0.14 est un métapaquet non DLL.
+Les six versions et SHA-512 de **contenu NuGet non signé** (`contentHash`, indépendants de la signature ; tels que verrouillés dans
+`src/RomothequeManager.V2/packages.lock.json`) et les cinq SHA-256 binaires sont
+consignés dans `packaging/sqlite-legal-manifest.json`. La CI contrôle les
+fichiers réellement publiés contre le cache NuGet : `.nupkg.sha512` (SHA-512 **archive signée** distinct de `contentHash`, égal au SHA-512 des octets du NUPKG présent),
+`.nupkg.metadata` (SHA et source HTTPS NuGet.org), `nuspec` (id, version,
+expression de licence) et fichier binaire byte-identique du bon paquet.
+Le NUPKG lui-même est **obligatoire**, vérifié avec son SHA-512 d'archive signée ; toute absence/mismatch entraîne un FAIL. Voir le [comportement NuGet documenté](https://github.com/NuGet/Home/wiki/Nupkg-Metadata-File) : `packages.lock.json`/`.nupkg.metadata` contient le hash de contenu stable, la signature éditeur/dépôt peut modifier le hash de l'archive sans modifier ce contenu. Ne jamais les comparer l'un à l'autre.
+Les contrôles n'invoquent aucune bibliothèque ROM/MEDIA réelle.
+
+Textes complets ajoutés et contrôlés par Git blob SHA avant distribution :
+`packaging/licenses/Microsoft.Data.Sqlite-LICENSE.txt` (MIT :
+[dotnet/efcore v10.0.14](https://github.com/dotnet/efcore/blob/v10.0.14/LICENSE.txt)),
+`SQLitePCLRaw-LICENSE.txt` (Apache-2.0), `SQLitePCLRaw-NOTICE.txt`
+(éditeur, [SQLitePCL.raw ed046114](https://github.com/ericsink/SQLitePCL.raw/commit/ed046114d5a30534e13294d94d78eb73de896ad4)),
+et `SQLite-PUBLIC-DOMAIN.txt` (déclaration
+[SQLite.org](https://sqlite.org/copyright.html)). Le wrapper et le moteur
+natif ont des statuts juridiques différents ; les deux sont documentés.
+
+Le builder `scripts/Build-DistZip.ps1` conserve les dix textes précédents,
+exige et copie les quatre nouveaux, et exécute le même gate strict
+`tests/sqlite_legal_gate.py` qu'Adaptive CI après `dotnet publish`.
+Les tests synthétiques `tests/test_sqlite_legal_gate.py` prouvent les cas
+positifs et négatifs (composant, paquet, licence, notice, hash, provenance et RID).
+
+**NOUVEAU GATE DE PUBLICATION — HOLD :** le marqueur historique
+`LIC_ZIP_01_BINARY_DISTRIBUTION_APPROVED` est conservé à titre d'archive,
+mais ne valide pas la nouvelle composition. La phase `publish` exige en plus
+une ligne isolée d'approbation du graphe SQLite courant, de valeur exacte
+`SQLITE_LEGAL_01_BINARY_DISTRIBUTION_APPROVED`. Cette ligne n'est pas accordée
+dans le présent document (uniquement citée dans un paragraphe) : elle relève
+d'une contre-revue DEV 2 et d'un GO propriétaire distinct après validation.
+Le Lot B reste en HOLD jusqu'à la fusion approuvée de A et à la CI post-fusion verte.
+
+

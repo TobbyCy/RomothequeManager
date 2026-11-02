@@ -1,0 +1,42 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../../src/RomothequeManager.V2",
+          "files": [
+            "RomothequeManager.V2.csproj"
+          ]
+        }
+      ],
+      "dest": "api",
+      "filter": "filterConfig.yml",
+      "properties": {
+        "TargetFramework": "net10.0",
+        "GenerateDocumentationFile": "true",
+        "Configuration": "Release"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "api/**/*.yml",
+          "api/*.yml",
+          "index.md",
+          "toc.yml"
+        ]
+      }
+    ],
+    "resource": [],
+    "dest": "_site",
+    "template": [
+      "default"
+    ],
+    "globalMetadata": {
+      "_appTitle": "ROMothèque Manager — référence API interne",
+      "_appFooter": "Documentation technique. Aucun accès ROMS/MEDIAS réel autorisé."
+    }
+  }
+}

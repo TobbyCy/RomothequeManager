@@ -5,22 +5,34 @@ namespace RomothequeManager.V2;
 
 // Presentation of the canonical synthetic DEMO-01 contract, NOT an inventory reader.
 // Never opens ROM paths or treats the test oracle as evidence of discovered games.
+/// <summary>Declared fictional media for a demo game; expected presence is a fixture oracle, not a real filesystem check.</summary>
 public sealed record ScenarioMediaPreview(string Kind, bool ExpectedInFixture, string RelativePath);
+/// <summary>Fictional game detail from the approved demo contract, not an identified ROM or scraped metadata record.</summary>
 public sealed record ScenarioGamePreview(
     string Id, string Title, string Platform, string Description, string Edition,
     bool RomExpectedInFixture, IReadOnlyList<ScenarioMediaPreview> Media);
 
+/// <summary>Presentation-only state for three canonical synthetic scenarios with no ROM path access.</summary>
 public sealed class DemoScenarioUiState
 {
+    /// <summary>Only supported fixture scenarios: prepared IDEAL, anomalous CHAOS and metadata-free MYSTERY.</summary>
     public static readonly IReadOnlyList<string> Choices = ["IDEAL", "CHAOS", "MYSTERY"];
     private readonly Dictionary<string, IReadOnlyList<ScenarioGamePreview>> _catalogues;
+    /// <summary>Active fixture scenario or null before selection; never persisted across sessions.</summary>
     public string? SelectedScenario { get; private set; }
+    /// <summary>Selected fictional entry, cleared when the scenario changes and unknown in MYSTERY.</summary>
     public string? SelectedGameId { get; private set; }
+    /// <summary>Transient title/platform text filter applied only to declared fictional entries.</summary>
     public string SearchText { get; private set; } = "";
+    /// <summary>True when a supported demo scenario is chosen; not proof of an active scan.</summary>
     public bool Active => SelectedScenario is not null;
+    /// <summary>True only for scenarios with declared ES-DE-like identities; MYSTERY remains unknown.</summary>
     public bool IdentityKnown => SelectedScenario is "IDEAL" or "CHAOS";
+    /// <summary>Explicit synthetic provenance notice preventing demo rows from appearing as observed files.</summary>
     public string Provenance => "Contrat de démonstration fictif · non observé sur disque";
+    /// <summary>Number of fictional catalogue entries defined in the fixture oracle; not a discovered game count.</summary>
     public int DeclaredCanonicalCount { get; }
+    /// <summary>Number of platform labels declared by DEMO-01, not platforms observed on a disk.</summary>
     public int DeclaredPlatformCount { get; }
 
     private DemoScenarioUiState(
@@ -40,6 +52,9 @@ public sealed class DemoScenarioUiState
         return reader.ReadToEnd();
     }
 
+    /// <summary>Loads and validates the embedded 30-game, 13-platform fixture contract without touching user storage.</summary>
+    /// <returns>A state object whose scenarios preserve the declared IDEAL/CHAOS/MYSTERY differences.</returns>
+    /// <exception cref="InvalidDataException">A synthetic oracle is missing, malformed or internally inconsistent.</exception>
     public static DemoScenarioUiState LoadCanonical()
     {
         using var catalogue = JsonDocument.Parse(Resource("DemoLibrary.Catalogue.json"));
@@ -106,6 +121,8 @@ public sealed class DemoScenarioUiState
         return new DemoScenarioUiState(result, entries.Length, platforms.Length);
     }
 
+    /// <summary>Switches only to an existing fictional scenario, clearing selection and search on success.</summary>
+    /// <returns>False for an unknown scenario without modifying the active selection.</returns>
     public bool Select(string? scenario)
     {
         if (scenario is null || !_catalogues.ContainsKey(scenario)) return false;
@@ -115,6 +132,7 @@ public sealed class DemoScenarioUiState
         return true;
     }
 
+    /// <summary>Resets scenario, text query and selected game without modifying any persisted state.</summary>
     public void Clear()
     {
         SelectedScenario = null;
@@ -122,8 +140,10 @@ public sealed class DemoScenarioUiState
         SearchText = "";
     }
 
+    /// <summary>Updates only the in-memory query; does not enumerate ROMs or resolve unidentified games.</summary>
     public void Search(string? query) => SearchText = query ?? "";
 
+    /// <summary>Filtered fictional entries; empty in MYSTERY because identity cannot be inferred without metadata.</summary>
     public IReadOnlyList<ScenarioGamePreview> VisibleGames =>
         !IdentityKnown ? Array.Empty<ScenarioGamePreview>() :
         _catalogues[SelectedScenario!].Where(game =>
@@ -132,10 +152,12 @@ public sealed class DemoScenarioUiState
             game.Platform.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
+    /// <summary>Selected declared entry when identity is known, null for MYSTERY or an unknown ID.</summary>
     public ScenarioGamePreview? SelectedGame => !IdentityKnown ? null :
         _catalogues[SelectedScenario!].FirstOrDefault(item =>
             string.Equals(item.Id, SelectedGameId, StringComparison.Ordinal));
 
+    /// <summary>Selects a known scenario game by exact ID, refusing any implicit game inference in MYSTERY.</summary>
     public bool Open(string? gameId)
     {
         if (!IdentityKnown || string.IsNullOrWhiteSpace(gameId) ||
@@ -144,6 +166,7 @@ public sealed class DemoScenarioUiState
         return true;
     }
 
+    /// <summary>Maps a recognized synthetic scenario to its user-facing label; unknown inputs are explicitly labeled.</summary>
     public static string DisplayName(string scenario) => scenario switch
     {
         "IDEAL" => "IDEAL · bibliothèque préparée",
@@ -152,6 +175,7 @@ public sealed class DemoScenarioUiState
         _ => "Scénario inconnu"
     };
 
+    /// <summary>Explains each scenario's limits, especially missing XML and non-observed identities in MYSTERY.</summary>
     public static string Explanation(string scenario) => scenario switch
     {
         "IDEAL" => "Jeux et médias décrits dans le contrat de référence. Ce n'est pas une observation réelle.",

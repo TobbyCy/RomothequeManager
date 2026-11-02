@@ -27,6 +27,7 @@ public sealed class MediaPanelViewModel : INotifyPropertyChanged, IDisposable
     private bool _disposed;
     private string _diagnostic = "Aucune source MEDIAS autorisée pour cette session.";
 
+    /// <summary>Evidence-only local media presentation; it never associates covers automatically or grants new preview permissions.</summary>
     public MediaPanelViewModel(IMediaPresentationService presentation, IMediaPreviewService preview)
     {
         _presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
@@ -35,14 +36,23 @@ public sealed class MediaPanelViewModel : INotifyPropertyChanged, IDisposable
         _cancel = new InventoryCommand(_ => ClearPreview(), _ => _busy || _result is not null);
     }
 
+    /// <summary>Notifies preview, selection and provenance changes visible in the media panel.</summary>
     public event PropertyChangedEventHandler? PropertyChanged;
+    /// <summary>Requests preview of the explicitly selected observed media through the injected backend service.</summary>
     public ICommand PreviewCommand => _load;
+    /// <summary>Clears any current preview and invalidates or cancels in-flight decoding.</summary>
     public ICommand CancelCommand => _cancel;
+    /// <summary>Candidate and unrelated gallery entries, each labelled by evidence status rather than approval.</summary>
     public IReadOnlyList<MediaChoice> Choices => _choices;
+    /// <summary>Independent media observations without an established ROM relationship.</summary>
     public IReadOnlyList<UnlinkedMediaRow> Unlinked => _evidence?.UnlinkedMedias ?? Array.Empty<UnlinkedMediaRow>();
+    /// <summary>Indicates a preview decode request is still in progress.</summary>
     public bool IsBusy => _busy;
+    /// <summary>Requires an accepted selection and index, no current operation and a non-disposed panel; backend can still refuse.</summary>
     public bool CanPreview => !_disposed && !_busy && _media is not null && _selected is not null;
+    /// <summary>Owned decoded preview result, if adopted; the VM disposes it on navigation, replacement or close.</summary>
     public MediaPreviewResult? PreviewResult => _result;
+    /// <summary>Human-readable safe status distinguishing Ready, Stale, cancellation, refusal and unavailable media.</summary>
     public string PreviewStatus => _busy ? "Décodage en cours · annulation possible." :
         _result is null ? "Aucun aperçu demandé. Sélectionnez une image, puis demandez son aperçu." :
         _result.Status switch
@@ -56,7 +66,9 @@ public sealed class MediaPanelViewModel : INotifyPropertyChanged, IDisposable
             MediaPreviewStatus.Stale => "Aperçu obsolète : vérifier la sélection.",
             _ => "Aucun aperçu disponible."
         };
+    /// <summary>Safe preview or evidence diagnostic code, excluding local exception paths.</summary>
     public string Diagnostic => _result?.DiagnosticCode ?? _diagnostic;
+    /// <summary>Labels candidate, referenced, ambiguous or not-comparable observations without approving any association.</summary>
     public string EvidenceStatus
     {
         get
@@ -75,6 +87,7 @@ public sealed class MediaPanelViewModel : INotifyPropertyChanged, IDisposable
             };
         }
     }
+    /// <summary>Shows relation rule, provenance, evidence and conflicts from the current projection.</summary>
     public string EvidenceDetails
     {
         get
@@ -89,6 +102,7 @@ public sealed class MediaPanelViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    /// <summary>Accepts only a choice from the current evidence set and disposes the previous preview.</summary>
     public MediaChoice? SelectedChoice
     {
         get => _selected;
@@ -240,6 +254,7 @@ public sealed class MediaPanelViewModel : INotifyPropertyChanged, IDisposable
     private void Notify([CallerMemberName] string? property = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
 
+    /// <summary>Cancels outstanding previews, disposes the adopted result and clears retained media evidence.</summary>
     public void Dispose()
     {
         if (_disposed) return;
@@ -254,7 +269,9 @@ public sealed class MediaPanelViewModel : INotifyPropertyChanged, IDisposable
 /// <summary>A single observed media file, not a selected or approved cover.</summary>
 public sealed record MediaChoice(MediaObservation Observation, string Relationship)
 {
+    /// <summary>Displays relative media location, detected format and kind without opening the file.</summary>
     public string Caption => Observation.RelativePath + " · " +
         Observation.DetectedFormat + " · " + Observation.Kind;
+    /// <summary>Explains why the media is a candidate or unlinked gallery entry; never proves an association.</summary>
     public string Provenance => Relationship + " · " + Observation.SourceKind;
 }
