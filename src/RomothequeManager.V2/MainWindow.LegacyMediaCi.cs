@@ -1,4 +1,7 @@
 #if NEXT05_CI
+using Avalonia;
+using Avalonia.Controls;
+
 namespace RomothequeManager.V2;
 
 // #141: only present in the runner's explicitly compiled synthetic Windows EXE.
