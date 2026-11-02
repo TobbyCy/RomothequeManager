@@ -176,7 +176,7 @@ fb6a46bc6e9e5786e3800c67e82abe6937343d8f19952b861f053ade6786e1d4  Modules/StateC
     # String-only canaries; never build, upload, tag, publish or create a Release.
     $markerFailureCount = $failures.Count
     $distSource = [IO.File]::ReadAllText((Join-Path $root 'scripts\Build-DistZip.ps1'))
-    $markerLines = @($distSource -split "`n" | Where-Object { $_.StartsWith('$legalApproved = $inventory -cmatch ') })
+    $markerLines = @($distSource -split "`n" | Where-Object { $_.StartsWith('$historicalLegalApproved = $inventory -cmatch ') })
     Require ($markerLines.Count -eq 1) 'DIST_LEGAL_MARKER_PREDICATE_MISSING_OR_DUPLICATE'
     if ($markerLines.Count -eq 1) {
         $markerPredicate = [regex]::Match($markerLines[0], "-cmatch '([^']+)'")
@@ -200,6 +200,31 @@ fb6a46bc6e9e5786e3800c67e82abe6937343d8f19952b861f053ade6786e1d4  Modules/StateC
             }
         }
     }
+    $sqliteMarkerLines = @($distSource -split "`n" | Where-Object { $_.StartsWith('$sqliteLegalApproved = $inventory -cmatch ') })
+    Require ($sqliteMarkerLines.Count -eq 1) 'DIST_SQLITE_LEGAL_MARKER_PREDICATE_MISSING_OR_DUPLICATE'
+    if ($sqliteMarkerLines.Count -eq 1) {
+        $sqliteMarkerPredicate = [regex]::Match($sqliteMarkerLines[0], "-cmatch '([^']+)'")
+        Require $sqliteMarkerPredicate.Success 'DIST_SQLITE_LEGAL_MARKER_PREDICATE_INVALID'
+        if ($sqliteMarkerPredicate.Success) {
+            $sqlitePattern = $sqliteMarkerPredicate.Groups[1].Value
+            $sqliteMarker = 'SQLITE_LEGAL_01_BINARY_DISTRIBUTION_APPROVED'
+            Require (("header`n" + $sqliteMarker + "`nfooter") -cmatch $sqlitePattern) 'DIST_SQLITE_LEGAL_MARKER_LF_REJECTED'
+            Require (("header`r`n" + $sqliteMarker + "`r`nfooter") -cmatch $sqlitePattern) 'DIST_SQLITE_LEGAL_MARKER_CRLF_REJECTED'
+            Require (-not ("header`nfooter" -cmatch $sqlitePattern)) 'DIST_SQLITE_LEGAL_MARKER_ABSENT_ACCEPTED'
+            Require (-not (("header`nPREFIX" + $sqliteMarker + "`nfooter") -cmatch $sqlitePattern)) 'DIST_SQLITE_LEGAL_MARKER_PREFIX_ACCEPTED'
+            Require (-not (("header`n" + $sqliteMarker + "SUFFIX`nfooter") -cmatch $sqlitePattern)) 'DIST_SQLITE_LEGAL_MARKER_SUFFIX_ACCEPTED'
+            Require (-not (("header`n# " + $sqliteMarker + "`nfooter") -cmatch $sqlitePattern)) 'DIST_SQLITE_LEGAL_MARKER_COMMENT_ACCEPTED'
+            Require (-not (("header`n> " + $sqliteMarker + "`nfooter") -cmatch $sqlitePattern)) 'DIST_SQLITE_LEGAL_MARKER_QUOTE_ACCEPTED'
+            Require (-not (("header`n" + $sqliteMarker.ToLowerInvariant() + "`nfooter") -cmatch $sqlitePattern)) 'DIST_SQLITE_LEGAL_MARKER_WRONG_CASE_ACCEPTED'
+            Require (-not (("header`n " + $sqliteMarker + " `nfooter") -cmatch $sqlitePattern)) 'DIST_SQLITE_LEGAL_MARKER_SPACES_ACCEPTED'
+            $sqliteInventory = [IO.File]::ReadAllText((Join-Path $root 'docs\developer\lic-zip-01-inventory.md'))
+            Require (-not ($sqliteInventory -cmatch $sqlitePattern)) 'DIST_SQLITE_LEGAL_MARKER_UNAPPROVED_REAL_INVENTORY_ACCEPTED'
+            if ($failures.Count -eq $sqliteMarkerFailureCount) {
+                Write-Host 'DIST_SQLITE_LEGAL_MARKER_CANARIES_PASS | cases=10 | LF=PASS | CRLF=PASS | realInventory=HOLD | refusals=7/7'
+            }
+        }
+    }
+    Require ($distSource.Contains('$legalApproved = $historicalLegalApproved -and $sqliteLegalApproved')) 'DIST_DUAL_APPROVAL_PREDICATE_MISSING'
     $parse = @($paths | Where-Object { $_ -match '\.(ps1|psm1)$' } | ForEach-Object { Join-Path $root $_ })
     if ($AdditionalSyntaxPath) { $parse += @($AdditionalSyntaxPath) }
     foreach ($file in $parse) {
