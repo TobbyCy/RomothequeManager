@@ -1,55 +1,57 @@
 # Guide de démarrage pour développeurs
 
-> **Attention — historique technique daté du 23.10.2026.** Les références ci-dessous au POC 31 MSTest et au packaging non publié sont des preuves de leur époque, pas un inventaire actuel. NEXT-05 comporte des intégrations supplémentaires testées sur fixtures ; DocFX #88/#138/#148 et consolidation MVVM #145/#147 évoluent. Avant de qualifier le HEAD courant, vérifier sa CI Windows et `ci-policy-gate` ; aucune CI ne vaut recette humaine. Les restrictions `REAL_*_HOLD` et `NEXT05_RELEASE_HOLD` restent actives.
+**État courant : NEXT-05 sur `main=7aa62c8f` (02.11.2026)**. Ce guide remplace en première lecture l'ancien instantané **POC V2-01A/B du 23.10 (31 MSTest)** : ces chiffres ne représentent plus la base actuelle. Le code NEXT-05 est validé **sur fixtures synthétiques**, distinct de la [Release Alpha v0.4.0](../../README.md#télécharger-et-essayer) et du [candidat bêta non publié](../../STATUS.md#blocage-du-candidat-bêta-154--ne-pas-confondre-les-preuves).
 
+## Prérequis et restauration
 
-**État au 23 octobre 2026 :** le dépôt public comprend le moteur Windows PowerShell 5.1, le prototype web local et le **POC Windows V2-01A/B** sous .NET 10 / Avalonia 12.1.4, avec quatre vues sur six jeux fictifs et trois bibliothèques fictives. V2-01B est intégrée via [PR #48](https://github.com/TobbyCy/RomothequeManager/pull/48) ; **V2-01C prépare uniquement le packaging**, sans autorisation de distribution.
+| Domaine | Environnement et contrainte |
+| --- | --- |
+| Application Avalonia Windows | **SDK .NET `10.0.401` exact** imposé par `global.json` ; Avalonia **12.1.4** ; projet `src/RomothequeManager.V2/RomothequeManager.V2.csproj` |
+| Tests .NET | `tests/dotnet/RomothequeManager.V2.Tests/` ; restauration NuGet via `packages.lock.json` et `--locked-mode` |
+| Moteur historique E1 | **Windows PowerShell 5.1 Desktop**, Pester **4.10.1** pour ses contrats ; tests synthétiques uniquement |
+| Scripts de contrôle | Git, Python 3, PowerShell sur Windows ; Node.js pour les tests/générateurs qui en ont besoin, **pas** pour utiliser l'Alpha publiée |
+| DocFX | SDK .NET exact, **DocFX 2.81.0** épinglé, Roslyn/MSBuild et job Windows natif ; aucun site API publié |
 
-## Environnements et prérequis
-
-| Domaine | Prérequis réel | État / frontière |
-| --- | --- | --- |
-| Moteur historique et inventaire E1 | **Windows PowerShell 5.1 Desktop** | Sources intégrées ; tests sur fixtures fictives uniquement |
-| Tests métier PowerShell | **Pester 4.10.1**, scripts et fixtures de `tests/` | CI-0 à CI-4 applicables et gate final verts sur le SHA cité |
-| Prototype web | Navigateur moderne ; Node.js pour tests automatisés | Pages `prototype/ui11/` utilisables hors ligne avec faux jeux ; Edge headless testé en CI |
-| **POC Windows V2-01A/B** | **SDK .NET 10.0.401 exact** pour développer ; Windows `win-x64` pour le smoke natif | `src/RomothequeManager.V2/`, Avalonia 12.1.4, **quatre vues, six jeux fictifs et trois bibliothèques fictives** |
-| Tests .NET | Python, Git, SDK exact, NuGet et packs de restauration | `tests/dotnet/RomothequeManager.V2.Tests/`, **31 MSTest** ; locks NuGet obligatoires |
-
-`global.json` à la racine impose `10.0.401`, `rollForward=disable` et `allowPrerelease=false`. Un SDK `10.0.402` seul ne convient **pas**. Les deux projets .NET possèdent leur `packages.lock.json` et utilisent `--locked-mode`.
-
-## Vérification .NET locale — Windows
-
-Depuis la racine du dépôt, dans une copie de travail **sans données ROM réelles** :
+Dans un clone **sans ROMs, BIOS, médias ni chemins personnels**, exécuter depuis la racine :
 
 ```powershell
 git status --short
-dotnet --version
+dotnet --version                           # doit afficher exactement 10.0.401
+dotnet restore tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj --locked-mode
+dotnet test tests/dotnet/RomothequeManager.V2.Tests/RomothequeManager.V2.Tests.csproj -c Release --no-restore
 python -B tests/ci_policy.py dotnet
 ```
 
-- `dotnet --version` doit retourner **exactement `10.0.401`**.
-- La dernière commande exécute le garde réellement utilisé par le job CI : vérification de `global.json`, présence des projets/locks, restauration verrouillée et auditée, build Release strict, tests MSTest et contrôle d'un rapport TRX **non vide et sans échec**. Elle nécessite Git, Python, NuGet accessible et les dépendances du projet.
-- **Ne pas substituer** `dotnet --version` exécuté hors dépôt à la preuve du pin : le dossier courant influe sur la résolution de `global.json`.
+Le contrôle `dotnet --version` doit être effectué **dans le dépôt** (résolution de `global.json`). Un test local réussi n'autorise ni une Release, ni une permission réelle. Les tests de référence sur `main=7aa62c8f` et les jobs policy/.NET/DocFX requis sont [SUCCESS](https://github.com/TobbyCy/RomothequeManager/actions/runs/41465566095) ; l'état de toute nouvelle branche exige **sa propre CI au SHA exact**.
 
-Dans GitHub Actions, le job `.NET / locked build and nonempty tests` examine d'abord les SDK du runner depuis `RUNNER_TEMP`, puis provisionne `10.0.401` avec `actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9` (v4.3.1). Il exécute le garde ci-dessus, puis produit dans `RUNNER_TEMP` un **ZIP V2-01C autonome `win-x64` et son fichier SHA-256**. La CI extrait ce ZIP dans un autre dossier, vérifie le manifeste et les fichiers requis, refuse des extensions ROM/BIOS sensibles et lance la vraie fenêtre Avalonia depuis les fichiers extraits avec les **quatre vues synthétiques**.
+## Architecture intégrée et frontières
 
-**Le ZIP et son SHA-256 restent en quarantaine sur le runner : aucun artefact téléchargeable, Pre-release ou Release.** Les licences/notices des composants tiers et l'essai sur un Windows x64 externe sans runtime préinstallé restent à valider avant toute publication. Le smoke extrait sur le runner équipé du SDK ne remplace pas cet essai. Voir le [guide packaging V2-01C](v2-01c-packaging.md), les anciens artefacts [purgés](https://github.com/TobbyCy/RomothequeManager/issues/44#issuecomment-6359600451) et le suivi SDK [#43](https://github.com/TobbyCy/RomothequeManager/issues/43).
+- **ES-DE** : `IEsDeImportApplicationService` et `ImportedCatalogueViewModel` pilotent le parcours de consentement, import et refresh ; `EsDeImportSession` demeure l'autorité de lecture XML et de `TryOpenMedia`. L'import ne commence **jamais** au lancement. `PrepareRefresh` prépare un nouveau snapshot sans remplacer `Current` ; l'adoption est gardée contre Cancel, Dispose, changement de sélection et résultats tardifs.
+- **Inventaire IDEAL** : `InventoryApplicationService` et VM séparent préflight/consentement, scan, état et présentation ; les observations ROMS restent bornées à leur racine explicitement autorisée **dans les fixtures**. Maintenir `CurrentComplete` lors d'un `LastAttempt` partiel, échoué ou Offline/Stale.
+- **Médias** : MI-A et MI-B séparent les rôles `ROMS`, `MEDIAS` et `PREVIEW`. La voie historique ES-DE du lot B utilise `ILegacyImportedMediaLoader` avec `EsDeImportSession.TryOpenMedia`, décodeur PNG/JPEG borné et `LegacyImportedMediaViewModel` sans I/O ; la View possède les `Bitmap` transférés. Aucun scraper, aucune attribution automatique. La preuve [B-05 760×480](https://github.com/TobbyCy/RomothequeManager/pull/151) est sur fixtures, pas une recette générale d'accessibilité.
+- **SQLite/PERSIST-01** : `ICatalogStore` conserve snapshots, métadonnées/provenances et décisions manuelles ; migrations et backup/restore contrôlés sur **stockage synthétique jetable uniquement**. Le constructeur public refuse le stockage personnel ; test de réouverture `Offline/Stale` n'implique pas un nouveau scan ou rattachement de support.
+- **Code UI** : couche Avalonia pour sélecteurs natifs, dispatcher, focus, rendu et ownership ; VM pour commandes/identité/générations/annulation ; services injectables pour I/O autorisées dans leur périmètre. Aucun élargissement d'accès depuis une simple nouvelle vue ou un résultat de test.
 
-## Frontières fonctionnelles
+Sources : [frontières MVVM ES-DE](../architecture/next05-mvvm145-esde-import.md), [contrat SQLite](../architecture/persist01-sqlite.md), [MI-B et permissions](../architecture/next05-mib-fixtures-backend.md), [parcours UX NEXT-05](../ux/next05-ideal-parcours.md) et [manuel utilisateur prudent](../user/parcours-ideal-next05.md). Les documents de conception NEXT-03 restent historiques.
 
-- **POC V2-01A/B intégré :** Dashboard, Collection/recherche, Fiche et Bibliothèques/snapshots avec A/B ; six jeux fictifs et trois bibliothèques fictives, lecture seule. Aucun accès ROM, BIOS, StateRoot, XML ES-DE, disque externe ou stockage personnel.
-- **Prototype web distinct :** l'interface `prototype/ui11/` conserve ses propres projections synthétiques ; ne pas lui attribuer les résultats précalculés de la fixture Avalonia.
-- **V2-01C en préparation :** ZIP autonome, manifeste, SHA-256 et smoke depuis extraction, toujours non distribué. Clavier/focus/scroll/ComboBox interactifs et essai Windows externe restent `NOT_TESTED` tant que les critères de l'Issue #50 ne sont pas exécutés.
-- **Fonctionnalités ultérieures :** persistance, import de collections, favoris/tags, exports E2–E6, usage SteamOS/ARM et distribution Windows restent non livrés.
+## Gates CI Windows et DocFX
 
-## Contribuer et vérifier les preuves
+La **CI adaptative** classe les chemins puis impose les jobs applicables. Pour un changement de code/contrat, vérifier build .NET Release, restaurations verrouillées, tests réellement exécutés, policy/doc, packaging de test et le **required `ci-policy-gate`**. Pour les guides seuls, les contrôles documentaires appropriés restent obligatoires. Un `SKIPPED` acceptable pour un job non applicable ne remplace jamais un check requis.
 
-1. Choisir une Issue **Produit** autorisée et lire [CONTRIBUTING](../../CONTRIBUTING.md).
-2. Isoler un changement court, inspecter `git diff --check` et les chemins réellement modifiés.
-3. Exécuter les contrôles applicables, noter le **SHA exact**, les versions, les tests détectés/exécutés, les canaris et les limites.
-4. Ouvrir une PR Draft, obtenir une revue indépendante et la CI requise. **Aucune fusion, Release ou publication d'artefact sans autorisation du propriétaire.**
-5. Ne jamais inclure de chemins personnels, données ROM/BIOS réelles, secrets, captures privées ni médias tiers non autorisés.
+La chaîne **DocFX permanente**, fusionnée via #148 et fiabilisée dans #149, construit **XML C# → YAML → HTML**, vérifie les UID/liens et mesure la couverture Roslyn sémantique à partir des vrais manifestes MSBuild HEAD + base. Elle exige **`10 × D ≥ 9 × N`** (≥90 %), **100 % des nouveaux IDs éligibles** et aucune perte silencieuse de documentation ou d'API. Les membres `internal` non privés sont comptés ; seules les sources **Avalonia générées avec provenance attestée** peuvent être exclues. Les signatures, surcharges et métadonnées ECMA-335 sont croisées. Les rapports temporaires du job `ci-docfx` incluent `gate.json`, `report.md`, `head.json`, `base.json` et les exclusions. **Ne pas reprendre un ancien N/D pour un autre HEAD.**
 
-## Références
+Documentation de référence : [DocFX permanent](docfx-permanent.md), [CI adaptative](ci-adaptative.md), [préflight fictif](preflight-synthetique.md), [workflow Git](workflow.md) et [inventaire licences](lic-zip-01-inventory.md). Ne pas changer `ci.yml`, les exclusions, les checks ou les seuils pour transformer un échec en PASS.
 
-[Architecture moteur](../architecture/moteur-actuel.md) · [Contrat moteur](../architecture/contrat-moteur-historique.md) · [POC .NET V2-01A](v2-01a-poc.md) · [Packaging V2-01C](v2-01c-packaging.md) · [ADR](../decisions/README.md) · [Pester](pester-execution.md) · [Couverture](pester-coverage.md) · [Préflight synthétique](preflight-synthetique.md) · [CI adaptative](ci-adaptative.md) · [Workflow Git](workflow.md) · [État produit](../product-status.md).
+## Distribution : Alpha publique, ZIP POC et candidat bêta
+
+La **Release v0.4.0-alpha.1** est téléchargeable et testée sur le périmètre NEXT-04.1. L'ancien **ZIP V2-01C POC** constitue un jalon antérieur distinct. La PR [#154 candidate IDEAL](https://github.com/TobbyCy/RomothequeManager/pull/154) prépare un ZIP `win-x64` autonome en phase **`validate`**, avec deux builds contrôlés et des notices SQLite, **en quarantaine et non téléversé**. Elle n'est **pas** une nouvelle Release.
+
+Au HEAD #154 `f27bbe71`, la [CI Windows #41482716933](https://github.com/TobbyCy/RomothequeManager/actions/runs/41482716933) reste **8/10 SUCCESS** : DocFX **860/938 = 91,68 % et nouvelles API 3/3**, probes de packaging et SQLite natif PASS, mais démarrage du vrai EXE extrait sous utilisateur standard **timeout après 90 s**, sans preuve `MainWindow.Opened`. Le job `.NET` et `ci-policy-gate` échouent. Les essais Avalonia minimalistes du laboratoire ne démontrent pas le fonctionnement de ce ZIP. **La cause reste NOT_VERIFIED** et la recette dédiée [#95](https://github.com/TobbyCy/RomothequeManager/issues/95) sur fixtures n'a pas eu lieu.
+
+Préparation seulement : [protocole opérateur #95](https://github.com/TobbyCy/RomothequeManager/issues/95#issuecomment-6582880001) et [guide candidat sur la branche #154](https://github.com/TobbyCy/RomothequeManager/blob/f27bbe716275a7ab55e9a189ed5a7fc0b9f41dae/docs/developer/beta-ideal-validate.md). Ce dernier n'est pas encore intégré à `main` : **ne pas le présenter comme une fonction distribuée**. La provenance SHA du ZIP candidat doit être établie sur ses **octets exacts**, pas déduite du seul SHA source.
+
+## Contribuer et documenter
+
+Une PR reçoit uniquement des fixtures synthétiques ; publier **SHA source exact + run Windows + nombre de tests + résultats négatifs + limites**. Distinguer `Complete` du résultat actuel, `CurrentComplete` conservé et disponibilité physique ; ne jamais transformer `OFFLINE/STALE` en bibliothèque vide. Préserver licences MIT du code et notices propriétaires des [assets graphiques](../../BRANDING.md) ; aucun import de médias tiers par défaut.
+
+Avant toute modification de code ou de documentation, lire [CONTRIBUTING](../../CONTRIBUTING.md), l'[état produit](../../STATUS.md) et le [suivi #146](https://github.com/TobbyCy/RomothequeManager/issues/146). **Pas de fusion autonome, de changement de permissions ou de Release sans GO propriétaire.**
