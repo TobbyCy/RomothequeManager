@@ -90,7 +90,12 @@ def validate(manifest_file, publish_dir, packages_dir, lock_file, notices_file, 
                 "SQLITE_LEGAL_BLOB_HASH_INVALID:" + filename)
         require(path.is_file() and not path.is_symlink() and path.stat().st_size >= 100,
                 "SQLITE_LEGAL_TEXT_MISSING:" + filename)
-        require(git_blob_sha(path.read_bytes()) == blob,
+        raw_text = path.read_bytes()
+        # GitHub Actions Windows text=auto may checkout CRLF while the
+        # canonical Git blob remains LF. Only this reversible EOL change
+        # is accepted; changed wording/whitespace still fails closed.
+        canonical_text = raw_text.replace(b"\r\n", b"\n")
+        require(git_blob_sha(raw_text) == blob or git_blob_sha(canonical_text) == blob,
                 "SQLITE_LEGAL_TEXT_HASH_MISMATCH:" + filename)
         print("SQLITE_LEGAL_TEXT_VERIFIED file=" + filename + " gitBlob=" + blob)
     versions = {}
