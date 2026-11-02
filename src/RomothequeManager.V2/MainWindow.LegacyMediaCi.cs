@@ -129,7 +129,8 @@ public sealed partial class MainWindow
         var grid = _importedList.Children.OfType<Avalonia.Controls.Grid>().FirstOrDefault();
         var card = grid?.Children.OfType<Avalonia.Controls.Border>().FirstOrDefault();
         var line = card?.Child as Avalonia.Controls.Grid;
-        var details = line?.Children.OfType<Avalonia.Controls.StackPanel>().FirstOrDefault();
+        var details = line?.Children.OfType<Avalonia.Controls.StackPanel>()
+            .FirstOrDefault(panel => panel.Children.OfType<Avalonia.Controls.Button>().Any());
         var action = details?.Children.OfType<Avalonia.Controls.Button>().FirstOrDefault();
         var selectorFocused = selector.Focus();
         var selectorActual = selector.IsFocused;
