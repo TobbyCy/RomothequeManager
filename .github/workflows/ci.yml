@@ -531,20 +531,89 @@ jobs:
             dotnet run --project tools/doc-coverage/DocCoverage.csproj -c Release --no-restore -- --root . --base $base --out $report --head-inputs $headInputs --base-inputs $baseInputs
             if ($LASTEXITCODE -ne 0) { throw 'DOC_COVERAGE_NATIVE_GATE_FAILED' }
           } finally {
-            # Windows build hosts can retain temporary baseline DLL handles briefly.
-            # Stop MSBuild/Roslyn servers before deleting this isolated worktree.
-            # Never hide a cleanup failure or alter the coverage gate verdict.
-            dotnet build-server shutdown 2>&1 | Out-Null
+            # A failed Git removal on Windows can unregister the worktree while
+            # leaving a file-locked directory behind. Retrying Git alone cannot
+            # recover that state. Clean ONLY this known isolated RUNNER_TEMP root.
+            $PSNativeCommandUseErrorActionPreference = $false
+            $cleanupReport = Join-Path $report 'baseline-cleanup.log'
+            $runnerTempFull = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
+            $baselineFull = [IO.Path]::GetFullPath($baselineRoot)
+            $expectedPrefix = $runnerTempFull.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar + 'rm-docfx-baseline-'
+            if (-not $baselineFull.StartsWith($expectedPrefix, [StringComparison]::OrdinalIgnoreCase) -or
+                -not $baselineFull.EndsWith($base.Substring(0,12), [StringComparison]::OrdinalIgnoreCase)) {
+              throw 'DOC_BASELINE_CLEANUP_UNSAFE_PATH'
+            }
+            function Write-BaselineCleanup([string] $message) {
+              $line = 'DOC_BASELINE_CLEANUP ' + $message
+              Write-Host $line
+              Add-Content -LiteralPath $cleanupReport -Value $line -Encoding utf8
+            }
+            Write-BaselineCleanup ('BEGIN root=' + $baselineFull + ' base=' + $base)
+            $shutdownLog = @(dotnet build-server shutdown 2>&1)
+            $shutdownExit = $LASTEXITCODE
+            Write-BaselineCleanup ('BUILD_SERVER_SHUTDOWN exit=' + $shutdownExit)
+            foreach ($line in $shutdownLog | Select-Object -Last 5) {
+              Write-BaselineCleanup ('BUILD_SERVER: ' + [string]$line)
+            }
+            $baselineNormalized = $baselineFull.Replace('\','/').TrimEnd('/')
             $baselineCleaned = $false
-            for ($attempt = 1; $attempt -le 5; $attempt++) {
-              git worktree remove --force -- $baselineRoot 2>&1 | Out-Null
-              if ($LASTEXITCODE -eq 0 -and -not (Test-Path -LiteralPath $baselineRoot)) {
+            for ($attempt = 1; $attempt -le 8; $attempt++) {
+              $gitOutput = @(git worktree remove --force -- $baselineFull 2>&1)
+              $gitExit = $LASTEXITCODE
+              foreach ($line in $gitOutput | Select-Object -Last 6) {
+                Write-BaselineCleanup ('GIT_REMOVE attempt=' + $attempt + ' ' + [string]$line)
+              }
+              Write-BaselineCleanup ('GIT_REMOVE attempt=' + $attempt + ' exit=' + $gitExit)
+              if (Test-Path -LiteralPath $baselineFull) {
+                try {
+                  Remove-Item -LiteralPath $baselineFull -Recurse -Force -ErrorAction Stop
+                  Write-BaselineCleanup ('FILESYSTEM_REMOVE attempt=' + $attempt + ' success')
+                } catch {
+                  Write-BaselineCleanup ('FILESYSTEM_REMOVE attempt=' + $attempt + ' failed=' + $_.Exception.GetType().Name +
+                    ' message=' + $_.Exception.Message)
+                  # Only inspect the isolated temporary tree; never inspect
+                  # personal folders or arbitrarily terminate other jobs.
+                  $remaining = @(Get-ChildItem -LiteralPath $baselineFull -Force -Recurse -ErrorAction SilentlyContinue |
+                    Select-Object -First 12 -ExpandProperty FullName)
+                  foreach ($item in $remaining) {
+                    Write-BaselineCleanup ('REMAINING_TEMP_ENTRY ' + $item)
+                  }
+                  $holders = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -in @('dotnet.exe','MSBuild.exe','VBCSCompiler.exe') -and
+                      $_.CommandLine -and $_.CommandLine.Contains($baselineFull, [StringComparison]::OrdinalIgnoreCase) })
+                  foreach ($proc in $holders) {
+                    Write-BaselineCleanup ('PROCESS_REFERENCES_BASELINE name=' + $proc.Name + ' pid=' + $proc.ProcessId)
+                  }
+                }
+              }
+              $directoryExists = Test-Path -LiteralPath $baselineFull
+              if (-not $directoryExists) {
+                $pruneOutput = @(git worktree prune --expire now 2>&1)
+                $pruneExit = $LASTEXITCODE
+                Write-BaselineCleanup ('GIT_PRUNE attempt=' + $attempt + ' exit=' + $pruneExit)
+                foreach ($line in $pruneOutput | Select-Object -Last 5) {
+                  Write-BaselineCleanup ('GIT_PRUNE: ' + [string]$line)
+                }
+              }
+              $allWorktrees = @(git worktree list --porcelain 2>&1)
+              $listExit = $LASTEXITCODE
+              if ($listExit -ne 0) {
+                Write-BaselineCleanup ('GIT_LIST_FAILED attempt=' + $attempt + ' exit=' + $listExit)
+              }
+              $registered = @($allWorktrees | Where-Object {
+                if (-not ([string]$_).StartsWith('worktree ', [StringComparison]::Ordinal)) { return $false }
+                return ([string]$_).Substring(9).Replace('\','/').TrimEnd('/') -ieq $baselineNormalized
+              }).Count -gt 0
+              Write-BaselineCleanup ('VERIFY attempt=' + $attempt + ' pathExists=' + $directoryExists +
+                ' registered=' + $registered + ' listExit=' + $listExit)
+              if (-not $directoryExists -and -not $registered -and $listExit -eq 0) {
                 $baselineCleaned = $true
                 break
               }
-              Start-Sleep -Seconds 2
+              if ($attempt -lt 8) { Start-Sleep -Seconds 2 }
             }
             if (-not $baselineCleaned) { throw 'DOC_BASELINE_WORKTREE_CLEANUP_FAILED' }
+            Write-BaselineCleanup 'PASS physical_tree_absent=true git_registration_absent=true'
           }
       - name: Store only temporary internal DocFX site and coverage evidence
         if: ${{ always() }}
