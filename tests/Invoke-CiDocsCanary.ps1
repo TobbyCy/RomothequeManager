@@ -213,7 +213,7 @@ try {
         @{Name='pr_head_absent';Event='pull_request';Exit=1;Text='DOC_COMMIT_UNAVAILABLE: PR_HEAD';Change={Write-FixtureFile 'notes/Guide.md'};Adjust={$payload.pull_request.head.sha=('1'*40)}},
         @{Name='pr_base_invalid';Event='pull_request';Exit=1;Text='DOC_SHA_INVALID: PR_BASE';Change={Write-FixtureFile 'notes/Guide.md'};Adjust={$payload.pull_request.base.sha='main'}},
         @{Name='pr_base_wrong_target';Event='pull_request';Exit=1;Text='DOC_UNEXPECTED_PR_BASE';Change={Write-FixtureFile 'notes/Guide.md'};Adjust={$payload.pull_request.base.ref='other'}},
-        @{Name='pr_merge_wrong_parents';Event='pull_request';Exit=1;Text='DOC_PR_MERGE_PARENTS_MISMATCH';Merge=$true;Change={Write-FixtureFile 'notes/Guide.md'};Adjust={$payload.pull_request.base.sha=$head}},
+        @{Name='pr_merge_wrong_parents';Event='pull_request';Exit=1;Text='DOC_PR_MERGE_PARENTS_MISMATCH';Merge=$true;Change={Write-FixtureFile 'notes/Guide.md'};Adjust={$payload.pull_request.head.sha=$base}},
         @{Name='push_code_no_docs';Event='push';Exit=1;Text='DOCS_SYNC_FAIL';Change={Write-FixtureFile 'Modules/Inventory.psm1'}},
         @{Name='push_code_multicommit_documented';Event='push';Exit=0;Text='mode=push-main';Change={Write-FixtureFile 'Modules/Inventory.psm1';$null=Commit-Fixture 'Synthetic earlier code';Write-FixtureFile 'docs/product-status.md';Write-FixtureFile 'CHANGELOG.md'}},
         @{Name='push_code_hidden_in_earlier_commit';Event='push';Exit=1;Text='DOCS_SYNC_FAIL';Change={Write-FixtureFile 'Modules/Inventory.psm1';$null=Commit-Fixture 'Synthetic earlier code';Write-FixtureFile 'notes/Guide.md'}},
