@@ -1,7 +1,7 @@
 # #149 Lot B — native Windows non-admin fixture proof against the REAL extracted ZIP.
 # Temporary account, outbound firewall block, disposable synthetic bytes only.
 [CmdletBinding()]
-param([Parameter(Mandatory = $true)][ValidatePattern('^[0-9a-f]{40}$')][string]$SourceSha)
+param([Parameter(Mandatory = $true)][ValidatePattern('^[0-9a-f]{40}$')][string]$SourceSha, [switch]$PrOnly)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or $env:GITHUB_SHA -cne $SourceSha) {
@@ -130,6 +130,7 @@ try {
       ' exit=' + $runnerExit + ' timedOut=' + $runnerTimedOut +
       ' oracleObserved=' + $oracleRunner + ' compareOnly=true')
     if ($runnerTimedOut -or $runnerProc.ExitCode -ne 0 -or -not $oracleRunner) {
+      if ($PrOnly) { throw 'BETA_PR_RUNNER_GUI_NOT_VERIFIED' }
       Write-Host 'BETA_RUNNER_TRACE_OBSERVATION_FAILED nonadmin_gate_unchanged=true'
     }
   } finally { $runnerProc.Dispose() }
@@ -198,6 +199,7 @@ public static class BetaBoundedCapture {
       '-Extract',$extract,'-Fixture',$fixture,'-Shared',$shared,'-ExpectedSid',$sid)) {
     [void]$psi.ArgumentList.Add($arg)
   }
+  if ($PrOnly) { [void]$psi.ArgumentList.Add('-PrOnly') }
   try { $child = [Diagnostics.Process]::Start($psi) }
   catch { throw 'BETA_NONADMIN_PROFILED_WORKER_START_FAILED' }
   if ($null -eq $child) { throw 'BETA_NONADMIN_WORKER_NOT_STARTED' }
@@ -243,6 +245,26 @@ public static class BetaBoundedCapture {
       }
     }
     if (-not $traceReported) { Write-Host 'BETA_AVALONIA_TRACE_SUMMARY role=nonadmin last=NOT_VERIFIED' }
+    if ($PrOnly) {
+      $prLines = @($outText -split '\r?\n')
+      $nativeMarker = 'BETA_NONADMIN_NATIVE_SQLITE_PASS e_sqlite3_from_extracted=true write_close_reopen_read=true'
+      $readyMarker = 'BETA_PR_NONADMIN_SQLITE_READY gui=RELEASE_ONLY esdeGui=RELEASE_ONLY'
+      if (@($prLines | Where-Object { $_ -ceq $nativeMarker }).Count -ne 1 -or
+          @($prLines | Where-Object { $_ -ceq $readyMarker }).Count -ne 1 -or
+          @($prLines | Where-Object {
+            $_ -cmatch '^BETA_AB_|^BETA_NONADMIN_ESDE_PASS|^BETA_NONADMIN_EXTRACTED_UI_PASS'
+          }).Count -ne 0) { throw 'BETA_PR_NATIVE_MARKERS_INVALID' }
+      $sessions = @($prLines | Where-Object { $_ -cmatch '^BETA_WINDOWS_SESSION_DIAG \{' })
+      if ($sessions.Count -ne 1) { throw 'BETA_PR_WORKER_SESSION_MISSING_OR_DUPLICATE' }
+      try { $facts = $sessions[0].Substring('BETA_WINDOWS_SESSION_DIAG '.Length) | ConvertFrom-Json }
+      catch { throw 'BETA_PR_WORKER_SESSION_INVALID' }
+      if ($facts.role -cne 'worker' -or $facts.isAdmin -ne $false -or
+          [int]$facts.integrityRid -lt 8192 -or [int]$facts.integrityRid -ge 12288) {
+        throw 'BETA_PR_WORKER_NOT_STANDARD'
+      }
+      if ($child.ExitCode -ne 0) { throw 'BETA_PR_NATIVE_WORKER_NONZERO' }
+      $passReady = $true
+    } else {
     # Trust only exact, unique A/B markers in a single strictly ordered sequence.
     # Worker output is a private fixture file; never print its raw contents.
     $abLines = @($outText -split '\r?\n')
@@ -366,6 +388,7 @@ public static class BetaBoundedCapture {
     }
     # Do not emit GUI/global PASS until every cleanup check completes.
     $passReady = $true
+    }
   } finally {
     if ($null -ne $child) {
       try {
@@ -427,9 +450,14 @@ public static class BetaBoundedCapture {
 }
 if ($passReady) {
   Write-Host 'BETA_NONADMIN_CLEANUP_VERIFIED profile=true account=true firewall=true sharedRoot=true'
-  Write-Host 'BETA_AB_VERDICT variant=B status=VERIFIED_WITHIN_GLOBAL_GATE'
-  Write-Host 'BETA_NONADMIN_EXTRACTED_UI_PASS native_window=true self_contained=true'
-  Write-Host $esdeMarker
-  Write-Host $fixtureMarker
-  Write-Host ('BETA_IDEAL_WINDOWS_NONADMIN_PASS sha256=' + $hash + ' offline_firewall=true no_global_dotnet=true fixture_only=true')
+  if ($PrOnly) {
+    Write-Host 'BETA_PR_RELIABLE_PASS native_sqlite_nonadmin=true runner_gui=true cleanup=true firewall=true source_exact=true'
+    Write-Host 'BETA_NONADMIN_GUI_RELEASE_ONLY_NOT_EXECUTED esde_gui=RELEASE_ONLY five_oracles=RELEASE_ONLY'
+  } else {
+    Write-Host 'BETA_AB_VERDICT variant=B status=VERIFIED_WITHIN_GLOBAL_GATE'
+    Write-Host 'BETA_NONADMIN_EXTRACTED_UI_PASS native_window=true self_contained=true'
+    Write-Host $esdeMarker
+    Write-Host $fixtureMarker
+    Write-Host ('BETA_IDEAL_WINDOWS_NONADMIN_PASS sha256=' + $hash + ' offline_firewall=true no_global_dotnet=true fixture_only=true')
+  }
 }

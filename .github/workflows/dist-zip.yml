@@ -78,6 +78,20 @@ jobs:
           Write-Host ('DIST_ZIP_QUARANTINED_NOT_UPLOADED sha256=' + $env:ZIP_SHA256 + ' legalStatus=' + $env:LEGAL_STATUS)
           if ($env:LEGAL_STATUS -cne 'APPROVED_SOURCE_MARKER_PRESENT') { Write-Warning 'LEGAL_HOLD — validated technical candidate; no distribution authorization.' }
           Write-Host 'No GitHub Actions artifact, draft Release, Pre-release or public download.'
+      - name: NEXT-05 signed Windows standard-user qualification — before ANY tag or upload
+        if: inputs.phase == 'publish'
+        shell: pwsh
+        env:
+          NEXT05_RELEASE_PROOF_B64: ${{ vars.NEXT05_RELEASE_PROOF_B64 }}
+          NEXT05_RELEASE_PROOF_MAC: ${{ vars.NEXT05_RELEASE_PROOF_MAC }}
+          NEXT05_RELEASE_PROOF_KEY: ${{ secrets.NEXT05_RELEASE_PROOF_KEY }}
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          ACTUAL_ZIP: ${{ steps.bundle.outputs.zip }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -B tests/ci_policy.py release-proof --zip $env:ACTUAL_ZIP --source $env:REQUESTED_SHA --tag $env:RELEASE_TAG
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT05_RELEASE_HOLD' }
       - name: Final owner authorization gate — before any upload
         if: inputs.phase == 'publish'
         shell: pwsh

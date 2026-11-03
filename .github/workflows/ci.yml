@@ -454,7 +454,7 @@ jobs:
           Write-Host 'POC_ZIP_QUARANTINED_NOT_UPLOADED thirdPartyNotices=PENDING ownerReleaseGo=PENDING'
 
 
-      - name: Validate actual IDEAL v0.5.0-beta.1 ZIP twice, then run non-admin Windows fixtures
+      - name: PR ZIP deterministic and runner GUI / non-admin native SQLite (GUI standard RELEASE_ONLY)
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -470,8 +470,9 @@ jobs:
           python -B -m unittest discover -s tests -p test_ideal_beta_zip_gate.py -v
           if ($LASTEXITCODE -ne 0) { throw 'BETA_MANIFEST_NEGATIVE_CANARIES_FAILED' }
           & .\scripts\Validate-BetaIdealZip.ps1 -SourceSha $env:GITHUB_SHA -Phase validate
-          & .\tests\Invoke-BetaIdealWindows.ps1 -SourceSha $env:GITHUB_SHA
-          Write-Host 'BETA_IDEAL_ZIP_NATIVE_FIXTURES_PASS source=exact-ci-checkout no_publish=true'
+          & .\tests\Invoke-BetaIdealWindows.ps1 -SourceSha $env:GITHUB_SHA -PrOnly
+          if ($LASTEXITCODE -ne 0) { throw 'BETA_PR_RELIABLE_NATIVE_GATE_FAILED' }
+          Write-Host 'BETA_PR_RELIABLE_NATIVE_FIXTURES_PASS source=exact-ci-checkout guiNonadmin=RELEASE_ONLY no_publish=true'
 
   ci-docfx:
     name: DocFX / Windows XML YAML HTML and API coverage

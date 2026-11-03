@@ -4,7 +4,10 @@ Only Git reads, repository inspection and explicitly requested CI commands.
 No product imports, ROM access, release publication or dependency installation.
 """
 import argparse
+import base64
+from datetime import datetime, timedelta, timezone
 import hashlib
+import hmac
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -14,10 +17,19 @@ import sys
 import time
 import unicodedata
 import xml.etree.ElementTree as ET
+from zipfile import ZipFile, BadZipFile
 
 PS_JOBS = ("ci0-static", "ci1-runtime", "ci2-pester", "ci3-e1-integration",
            "ci4-preflight-synthetic")
 NEEDS = {"policy", "ci-docs", "ci-docfx", "ci-dotnet", *PS_JOBS}
+RELEASE_ONLY = ("NONADMIN_GUI_FIVE_ORACLES", "NONADMIN_ESDE_GUI", "WINDOWS95_HUMAN_RECIPE")
+RELEASE_ONLY_ORACLES = (
+    "BETA_AVALONIA_TRACE WINDOW_OPENED",
+    "BETA_AVALONIA_TRACE DISPATCHER_EXECUTE",
+    "BETA_AVALONIA_TRACE SMOKE_PASS",
+    "POC_WINDOW_OPENED_PASS views=Dashboard,Collection,GameDetail,Libraries fixtures=6 synthetic=1",
+    "BETA_AVALONIA_TRACE LIFETIME_RETURN",
+)
 REQUIRED_DOCS = {"README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md",
                  "docs/product-status.md", "docs/roadmap.md", "docs/developer/workflow.md"}
 DOC = r"(?:README|STATUS|CHANGELOG|CONTRIBUTING|BRANDING|LEGAL)\.md|(?:docs|Docs)/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.md|Export/README\.md|assets/branding/README\.md|packaging/(?:THIRD-PARTY-NOTICES\.txt|licenses/[A-Za-z0-9_.-]+\.txt)"
@@ -199,7 +211,7 @@ def job_plan(category, has_dotnet, net_changed=False):
     ps = category == "PS_ONLY" or full
     net = category == "DOTNET_ONLY" or (full and (has_dotnet or net_changed))
     required = ["policy", "ci-docs", "ci-docfx"] + (list(PS_JOBS) if ps else []) + (["ci-dotnet"] if net else [])
-    return {"ps": ps, "dotnet": net, "required": sorted(required),
+    return {"ps": ps, "dotnet": net, "release_only": list(RELEASE_ONLY), "required": sorted(required),
             "not_required": {j: ("NOT_APPLICABLE_NO_DOTNET_PROJECT" if j == "ci-dotnet" and full
                                   else "NOT_REQUIRED_BY_CLASSIFIER") for j in sorted(NEEDS - set(required))}}
 
@@ -224,6 +236,7 @@ def make_plan(root, event, payload, env):
 
 def final_gate(plan, needs):
     require(not plan["error"], "CLASSIFICATION_SCOPE_UNPROVEN")
+    require(plan["jobs"].get("release_only") == list(RELEASE_ONLY), "RELEASE_ONLY_SCOPE_INVALID")
     require(set(needs) == NEEDS, "NEEDS_SET_MISMATCH")
     reported = json.loads(needs["policy"].get("outputs", {}).get("policy", "null"))
     require(reported == plan, "CLASSIFIER_OUTPUT_MISMATCH")
@@ -698,6 +711,103 @@ def release_boundary(candidate):
     return "NOT_AUTHORIZED_BY_CI"  # no tag/create/upload API, no contents:write job
 
 
+def _next05_no_duplicate_json(pairs):
+    value = {}
+    for key, item in pairs:
+        require(key not in value, "NEXT05_RELEASE_EVIDENCE_DUPLICATE_KEY")
+        value[key] = item
+    return value
+
+
+def verify_next05_release_proof(proof_b64, proof_mac, key_hex, source, zip_file, release_tag, now=None):
+    # This verifies an independently signed Windows #95 observation; it cannot
+    # produce one. No trusted signer or valid proof => NEXT05_RELEASE_HOLD.
+    require(all(isinstance(v, str) and v for v in
+                (proof_b64, proof_mac, key_hex, source, release_tag)),
+            "NEXT05_RELEASE_HOLD_PROOF_MISSING")
+    require(re.fullmatch(r"[0-9a-f]{40}", source) and source != "0" * 40,
+            "NEXT05_RELEASE_SOURCE_SHA_INVALID")
+    require(re.fullmatch(r"poc-v2-01c-[0-9]{8}-[0-9a-f]{12}", release_tag)
+            and release_tag.endswith(source[:12]), "NEXT05_RELEASE_TAG_INVALID")
+    require(re.fullmatch(r"[0-9a-f]{64}", key_hex) and
+            re.fullmatch(r"[0-9a-f]{64}", proof_mac), "NEXT05_RELEASE_SIGNATURE_INVALID")
+    try:
+        raw = base64.b64decode(proof_b64, validate=True)
+        require(len(raw) <= 12000, "NEXT05_RELEASE_EVIDENCE_SIZE_INVALID")
+        doc = json.loads(raw.decode("utf-8"), object_pairs_hook=_next05_no_duplicate_json,
+                         parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite")))
+    except (ValueError, UnicodeError, TypeError) as exc:
+        raise PolicyError("NEXT05_RELEASE_EVIDENCE_INVALID") from exc
+    require(isinstance(doc, dict), "NEXT05_RELEASE_EVIDENCE_SCHEMA")
+    expected_mac = hmac.new(bytes.fromhex(key_hex), raw, hashlib.sha256).hexdigest()
+    require(hmac.compare_digest(expected_mac, proof_mac), "NEXT05_RELEASE_SIGNATURE_MISMATCH")
+    require(set(doc) == {"schema", "kind", "repository", "source_sha", "zip_sha256",
+                         "exe_sha256", "release_tag", "qualified_at", "evidence_id",
+                         "session", "checks", "oracles", "gui_exit_code", "esde_exit_code"},
+            "NEXT05_RELEASE_EVIDENCE_SCHEMA")
+    require(type(doc["schema"]) is int and doc["schema"] == 1
+            and doc["kind"] == "NEXT05_WINDOWS95_STANDARD_USER"
+            and doc["repository"] == "TobbyCy/RomothequeManager",
+            "NEXT05_RELEASE_EVIDENCE_IDENTITY")
+    require(doc["source_sha"] == source and doc["release_tag"] == release_tag,
+            "NEXT05_RELEASE_CANDIDATE_MISMATCH")
+    require(isinstance(doc["evidence_id"], str) and
+            re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+                         doc["evidence_id"]), "NEXT05_RELEASE_EVIDENCE_ID_INVALID")
+    require(isinstance(doc["qualified_at"], str) and
+            re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z",
+                         doc["qualified_at"]), "NEXT05_RELEASE_EVIDENCE_DATE_INVALID")
+    try:
+        observed = datetime.fromisoformat(doc["qualified_at"].replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise PolicyError("NEXT05_RELEASE_EVIDENCE_DATE_INVALID") from exc
+    current = now if now is not None else datetime.now(timezone.utc)
+    require(current - timedelta(days=7) <= observed <= current + timedelta(minutes=5),
+            "NEXT05_RELEASE_EVIDENCE_STALE")
+    require(doc["oracles"] == list(RELEASE_ONLY_ORACLES), "NEXT05_RELEASE_GUI_ORACLES_INVALID")
+    require(type(doc["gui_exit_code"]) is int and doc["gui_exit_code"] == 0
+            and type(doc["esde_exit_code"]) is int and doc["esde_exit_code"] == 0,
+            "NEXT05_RELEASE_EXIT_NOT_ZERO")
+    session = doc["session"]
+    require(isinstance(session, dict) and set(session) ==
+            {"os", "arch", "dedicated", "standard_user", "is_admin", "interactive",
+             "desktop", "profile_loaded", "session_id"}, "NEXT05_RELEASE_SESSION_SCHEMA")
+    require(session["os"] == "Windows" and session["arch"] == "x64"
+            and session["dedicated"] is True and session["standard_user"] is True
+            and session["is_admin"] is False and session["interactive"] is True
+            and session["desktop"] == "WinSta0/Default" and session["profile_loaded"] is True
+            and type(session["session_id"]) is int and session["session_id"] >= 1,
+            "NEXT05_RELEASE_STANDARD_SESSION_UNPROVEN")
+    checks = doc["checks"]
+    names = {"esde_gui", "sqlite_native", "offline", "acl", "cleanup", "human95",
+             "manifest", "no_personal_data", "source_verified", "zip_verified", "exe_verified"}
+    require(isinstance(checks, dict) and set(checks) == names and
+            all(checks[name] is True for name in names), "NEXT05_RELEASE_CHECKS_UNPROVEN")
+    require(re.fullmatch(r"[0-9a-f]{64}", doc["zip_sha256"]) and
+            re.fullmatch(r"[0-9a-f]{64}", doc["exe_sha256"]), "NEXT05_RELEASE_HASH_SCHEMA")
+    try:
+        path = Path(zip_file)
+        require(path.is_file() and not path.is_symlink(), "NEXT05_RELEASE_ZIP_MISSING")
+        digest = hashlib.sha256()
+        with path.open("rb") as source_file:
+            for chunk in iter(lambda: source_file.read(1024 * 1024), b""):
+                digest.update(chunk)
+        require(doc["zip_sha256"] == digest.hexdigest(), "NEXT05_RELEASE_ZIP_HASH_MISMATCH")
+        with ZipFile(path) as archive:
+            names_in_zip = archive.namelist()
+            require(names_in_zip.count("RomothequeManager.V2.exe") == 1,
+                    "NEXT05_RELEASE_EXE_MISSING_OR_DUPLICATE")
+            with archive.open("RomothequeManager.V2.exe") as exe_stream:
+                exe_digest = hashlib.sha256()
+                for chunk in iter(lambda: exe_stream.read(1024 * 1024), b""):
+                    exe_digest.update(chunk)
+        require(doc["exe_sha256"] == exe_digest.hexdigest(),
+                "NEXT05_RELEASE_EXE_HASH_MISMATCH")
+    except (OSError, BadZipFile, KeyError) as exc:
+        raise PolicyError("NEXT05_RELEASE_ZIP_UNREADABLE") from exc
+    return "NEXT05_RELEASE_QUALIFICATION_PASS"
+
+
 def environment_plan(root):
     event = os.environ.get("GITHUB_EVENT_NAME", "")
     try:
@@ -709,11 +819,25 @@ def environment_plan(root):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=("classify", "docs", "gate", "dotnet"))
+    parser.add_argument("command", choices=("classify", "docs", "gate", "dotnet", "release-proof"))
+    parser.add_argument("--zip", default="")
+    parser.add_argument("--source", default="")
+    parser.add_argument("--tag", default="")
     args = parser.parse_args()
     root = Path(__file__).resolve().parent.parent
     started = time.monotonic()
     try:
+        if args.command == "release-proof":
+            require(os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+                    and os.environ.get("GITHUB_REF") == "refs/heads/main"
+                    and os.environ.get("GITHUB_SHA") == args.source,
+                    "NEXT05_RELEASE_HOLD_CONTEXT_INVALID")
+            print(verify_next05_release_proof(
+                os.environ.get("NEXT05_RELEASE_PROOF_B64", ""),
+                os.environ.get("NEXT05_RELEASE_PROOF_MAC", ""),
+                os.environ.get("NEXT05_RELEASE_PROOF_KEY", ""),
+                args.source, args.zip, args.tag))
+            return 0
         plan = environment_plan(root)
         if args.command == "classify":
             print("CI_POLICY " + json.dumps(plan, sort_keys=True))

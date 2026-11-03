@@ -5,7 +5,8 @@ param(
   [Parameter(Mandatory = $true)][string]$Extract,
   [Parameter(Mandatory = $true)][string]$Fixture,
   [Parameter(Mandatory = $true)][string]$Shared,
-  [Parameter(Mandatory = $true)][ValidatePattern('^S-1-5-21-(\d+-){3}\d+$')][string]$ExpectedSid
+  [Parameter(Mandatory = $true)][ValidatePattern('^S-1-5-21-(\d+-){3}\d+$')][string]$ExpectedSid,
+  [switch]$PrOnly
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -262,6 +263,12 @@ Add-Type -TypeDefinition $native -ErrorAction Stop
 $database = Join-Path $Shared 'synthetic-sqlite-probe.sqlite'
 [BetaNativeSqliteProbe]::Verify((Join-Path $Extract 'e_sqlite3.dll'), $database)
 Write-Host 'BETA_NONADMIN_NATIVE_SQLITE_PASS e_sqlite3_from_extracted=true write_close_reopen_read=true'
+if ($PrOnly) {
+  # SID, standard token, loaded HKU, stdio, real native SQLite and ZIP
+  # extraction were verified. Non-admin GUI and ES-DE are RELEASE_ONLY.
+  Write-Host 'BETA_PR_NONADMIN_SQLITE_READY gui=RELEASE_ONLY esdeGui=RELEASE_ONLY'
+  return
+}
 if ($sessionFacts.isAdmin -or $sessionFacts.integrityRid -ge 12288) {
   throw 'BETA_NONADMIN_INTEGRITY_OR_ADMIN_REFUSED'
 }

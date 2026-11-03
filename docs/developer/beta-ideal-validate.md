@@ -1,6 +1,6 @@
 # NEXT-05 / #149 Lot B — candidat ZIP IDEAL, validation interne
 
-**Statut : DRAFT / CI Windows NOT_VERIFIED / revue DEV 2 obligatoire.** Ce document décrit un gate technique non réceptionné ; il ne constitue pas une recette humaine ni une Release.
+**Statut : PR/Release split NEXT-05 proposé sous GO propriétaire #6612651570, en attente revue DEV 2 et CI au HEAD exact ; GUI non-admin/ES-DE GUI = RELEASE_ONLY, qualification #95 NOT_VERIFIED, publication HOLD.** Ce document décrit un gate technique non réceptionné ; il ne constitue pas une recette humaine ni une Release.
 
 ## Périmètre
 
@@ -11,6 +11,14 @@
 - tests/ideal_beta_zip_gate.py : refuse fichiers manquants, extra, altérés, liens/reparse, traversées, collisions Unicode/casse et ROMs/BIOS/sauvegardes ; tests négatifs sur fixtures fictives et copie de l'extraction.
 - tests/sqlite_legal_gate.py : vérifie sur chaque vraie publication Windows six NUPKG, empreintes séparées des contenus et archives signées, cinq binaires, notices/licences et provenance fail-closed. Le runtime .NET a sa propre licence et ses SHA.
 - Aucun ZIP ni exécutable téléchargé en artefact de CI, publié ou tagué.
+
+## Partition PR / Release — décision propriétaire #6612651570 (proposition non fusionnée)
+
+- **Required PR** : build + tests .NET vrais, provenance SHA, double ZIP déterministe/manifeste/licences, canaris négatifs, vraie fenêtre extrait sous token **runner seulement**, probe SQLite natif sous compte Windows standard (SID exact, HKU chargé, handles valides), réseau sortant bloqué, ACL et cleanup vérifiés. Le switch `-PrOnly` arrête le worker **après SQLite**, avant le lancement GUI standard : aucune attestation GUI/ES-DE non-admin `PASS` en PR.
+- **RELEASE_ONLY / NOT_EXECUTED_ON_PR** : vrai EXE du ZIP candidat exact lancé dans une session Windows graphique réellement ouverte sous compte standard (non-admin), cinq oracles `WINDOW_OPENED → DISPATCHER_EXECUTE → SMOKE_PASS → POC_WINDOW_OPENED_PASS → LIFETIME_RETURN` ordonnés, exit 0, GUI ES-DE synthétique, SQLite/offline/ACL, nettoyage et recette humaine #95. Le succès de PR n'autorise pas la livraison.
+- **Publication protégée** : `.github/workflows/dist-zip.yml phase=publish` appelle avant tout tag/asset un vérificateur de reçu indépendant signé HMAC-SHA256 ; preuve liée au SHA source, SHA-256 du ZIP reconstruit, SHA-256 de son EXE, tag précis, fraîcheur <= 7 jours, session standard, oracles, ES-DE, sécurité et #95. L'absence de preuve signée ou d'hôte qualifiant ⇒ `NEXT05_RELEASE_HOLD`. `phase=validate` reste strictement sans upload. Les secrets/attestations réels doivent être préparés hors des PR, sous contrôle du propriétaire ; une preuve synthétique de canari ne peut devenir une preuve de qualification.
+- **Limite de sécurité honnête** : une signature authentifie l'émetteur du reçu, pas la réalité physique de la recette ; la responsabilité du signataire indépendant et le contrôle humain #95 restent obligatoires. Les administrateurs possédant un accès manuel direct aux Releases/tags ne sont pas techniquement empêchés par ce workflow : protection GitHub/permissions et gouvernance hors workflow nécessaires. Parmi les onze workflows présents au HEAD de référence, seul `dist-zip.yml` contient une création de Release/tag.
+- **Risque accepté** : régression GUI spécifique non-admin potentiellement intégrée dans `main` et détectée avant livraison. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD` et `NEXT05_RELEASE_HOLD` maintenus, aucun ZIP de recette qualifié disponible.
 
 ## Preuve Windows sous compte non-administrateur
 
