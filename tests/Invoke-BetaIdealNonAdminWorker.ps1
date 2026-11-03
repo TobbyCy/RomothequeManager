@@ -4,7 +4,8 @@
 param(
   [Parameter(Mandatory = $true)][string]$Extract,
   [Parameter(Mandatory = $true)][string]$Fixture,
-  [Parameter(Mandatory = $true)][string]$Shared
+  [Parameter(Mandatory = $true)][string]$Shared,
+  [Parameter(Mandatory = $true)][ValidatePattern('^S-1-5-21-(\d+-){3}\d+$')][string]$ExpectedSid
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -15,7 +16,58 @@ if (-not (Test-Path -LiteralPath $sessionScript -PathType Leaf)) {
 }
 . $sessionScript
 $sessionFacts = Get-BetaWindowsSessionFacts -Role worker
-if ($sessionFacts.integrityRid -lt 0) { Write-Host 'BETA_WORKER_INTEGRITY_NOT_VERIFIED' }
+$actualSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+if ($actualSid -cne $ExpectedSid) { throw 'BETA_NONADMIN_EXPECTED_SID_MISMATCH' }
+if ($sessionFacts.isAdmin -or $sessionFacts.integrityRid -lt 8192 -or
+    $sessionFacts.integrityRid -ge 12288) {
+  throw 'BETA_NONADMIN_TOKEN_INTEGRITY_REFUSED'
+}
+$hive = [Microsoft.Win32.Registry]::Users.OpenSubKey($actualSid)
+if ($null -eq $hive) { throw 'BETA_NONADMIN_PROFILE_HIVE_MISSING' }
+$hive.Dispose()
+$workerProbe = @'
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+public static class BetaWorkerHandleProbe {
+  [DllImport("kernel32.dll", SetLastError=true)]
+  private static extern IntPtr GetStdHandle(int which);
+  [DllImport("kernel32.dll", SetLastError=true)]
+  private static extern bool GetHandleInformation(IntPtr handle, out int flags);
+  public static int Flags(int which) {
+    IntPtr handle = GetStdHandle(which);
+    if (handle == IntPtr.Zero || handle == new IntPtr(-1))
+      throw new InvalidOperationException("BETA_NONADMIN_STD_HANDLE_INVALID");
+    int flags;
+    if (!GetHandleInformation(handle, out flags))
+      throw new InvalidOperationException("BETA_NONADMIN_STD_HANDLE_INVALID");
+    return flags;
+  }
+  public static async Task<string> Capture(StreamReader stream, int cap) {
+    var data = new char[2048];
+    var result = new StringBuilder();
+    bool overflow = false;
+    int n;
+    while ((n = await stream.ReadAsync(data,0,data.Length).ConfigureAwait(false)) > 0) {
+      int room = cap-result.Length;
+      if (room >= n) result.Append(data,0,n);
+      else {
+        if (room > 0) result.Append(data,0,room);
+        overflow = true;
+      }
+    }
+    if (overflow) throw new InvalidDataException("BETA_EXE_OUTPUT_LIMIT_EXCEEDED");
+    return result.ToString();
+  }
+}
+'@
+Add-Type -TypeDefinition $workerProbe -ErrorAction Stop
+$stdoutFlags = [BetaWorkerHandleProbe]::Flags(-11)
+$stderrFlags = [BetaWorkerHandleProbe]::Flags(-12)
+$stdoutInherited = ($stdoutFlags -band 1) -ne 0
+$stderrInherited = ($stderrFlags -band 1) -ne 0
 $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
 if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
   throw 'BETA_NONADMIN_IDENTITY_FAILED'
@@ -86,8 +138,8 @@ function Invoke-BetaExe([string[]]$args, [string]$expected,
     $out = $null
     $err = $null
     if ($redirectPipes) {
-      $out = $proc.StandardOutput.ReadToEndAsync()
-      $err = $proc.StandardError.ReadToEndAsync()
+      $out = [BetaWorkerHandleProbe]::Capture($proc.StandardOutput,131072)
+      $err = [BetaWorkerHandleProbe]::Capture($proc.StandardError,131072)
     }
     if (-not $proc.WaitForExit(90000)) {
       $threads = -1
@@ -97,8 +149,10 @@ function Invoke-BetaExe([string[]]$args, [string]$expected,
         ' workerSession=' + $sessionFacts.session +
         ' threads=' + $threads + ' windowSignal=NOT_VERIFIED')
       # Only the EXE child, never arbitrary session processes or GUI helpers.
-      if (-not $proc.HasExited) { $proc.Kill() }
-      [void]$proc.WaitForExit(5000)
+      if (-not $proc.HasExited) {
+        $proc.Kill($true)
+        if (-not $proc.WaitForExit(5000)) { throw 'BETA_NONADMIN_EXTRACTED_TERMINATION_FAILED' }
+      }
       if ($redirectPipes) {
         # B has no direct pipes: raw inherited output, if any, is filtered by parent.
         try { [void][Threading.Tasks.Task]::WhenAll(@($out, $err)).Wait(5000) } catch { }
@@ -141,7 +195,14 @@ function Invoke-BetaExe([string[]]$args, [string]$expected,
       throw ('BETA_NONADMIN_EXTRACTED_FAIL exit=' + $proc.ExitCode +
         ' expectedOracleObserved=' + $oracle)
     }
-  } finally { $proc.Dispose() }
+  } finally {
+    try {
+      if (-not $proc.HasExited) {
+        $proc.Kill($true)
+        if (-not $proc.WaitForExit(5000)) { throw 'BETA_NONADMIN_EXTRACTED_TERMINATION_FAILED' }
+      }
+    } finally { $proc.Dispose() }
+  }
 }
 # Native SQLite is actually loaded from the EXTRACTED ZIP, never from a system copy.
 # Product SQLite persistence and restoration are additionally exercised by the
@@ -230,6 +291,8 @@ if (-not $sessionFacts.interactive) {
   throw 'CI_NONADMIN_GUI_ENV_UNSUPPORTED OWNER_DECISION_REQUIRED'
 }
 Write-Host 'BETA_NONADMIN_INTERACTIVE_DESKTOP_VERIFIED user=nonadmin station=WinSta0 desktop=Default openDefault=PASS openInput=PASS hiddenWindowCreate=PASS'
+Write-Host ('BETA_WORKER_CONTEXT_OBSERVED sidMatch=true profileHive=true workerStdioValid=true stdoutInherited=' +
+  $stdoutInherited + ' stderrInherited=' + $stderrInherited)
 # One A/B comparison under the SAME non-admin worker, extracted EXE and fixture.
 # A proves the original stdout oracle; B's inherited stdout is checked by parent.
 $aVerified = Invoke-BetaExe @('--smoke-window') 'POC_WINDOW_OPENED_PASS' $true $true

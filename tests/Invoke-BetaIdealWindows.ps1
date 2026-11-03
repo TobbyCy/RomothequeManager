@@ -36,6 +36,8 @@ $worker = Join-Path $shared 'Invoke-BetaIdealNonAdminWorker.ps1'
 $username = 'rmv' + $id
 $accountCreated = $false
 $firewallAdded = $false
+$passReady = $false
+$child = $null
 $ruleName = 'rm-beta-validate-' + $id
 New-Item -ItemType Directory -Path $shared | Out-Null
 try {
@@ -141,7 +143,6 @@ try {
   $rawPassword = $null
   $local = New-LocalUser -Name $username -Password $secret -Description 'Disposable beta ZIP CI fixture account' -ErrorAction Stop
   $accountCreated = $true
-  $credential = [Management.Automation.PSCredential]::new($username, $secret)
   $sid = $local.SID.Value
   & icacls.exe $shared /grant ('*' + $sid + ':(OI)(CI)M') /T | Out-Null
   if ($LASTEXITCODE -ne 0) { throw 'BETA_NONADMIN_FIXTURE_ACL_FAILED' }
@@ -156,24 +157,62 @@ try {
   $filter = Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $actualRule -ErrorAction Stop
   if ($filter.Program -cne $exe) { throw 'BETA_FIREWALL_EXE_PATH_MISMATCH' }
 
-  $output = Join-Path $shared 'stdout.txt'
-  $errors = Join-Path $shared 'stderr.txt'
+  # Capture both pipe streams concurrently, with bounded in-memory retention.
+  $captureSource = @'
+using System;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+public static class BetaBoundedCapture {
+  public static async Task<string> Read(StreamReader input, int cap) {
+    var chars = new char[2048];
+    var result = new StringBuilder();
+    bool overflow = false;
+    int n;
+    while ((n = await input.ReadAsync(chars,0,chars.Length).ConfigureAwait(false)) > 0) {
+      int room = cap-result.Length;
+      if (room >= n) result.Append(chars,0,n);
+      else {
+        if (room > 0) result.Append(chars,0,room);
+        overflow = true; // continue draining to avoid blocked worker
+      }
+    }
+    if (overflow) throw new InvalidDataException("BETA_WORKER_OUTPUT_LIMIT_EXCEEDED");
+    return result.ToString();
+  }
+}
+'@
+  Add-Type -TypeDefinition $captureSource -ErrorAction Stop
   $pwsh = (Get-Command pwsh.exe -ErrorAction Stop).Source
-  $args = @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', ('"' + $worker + '"'),
-    '-Extract', ('"' + $extract + '"'), '-Fixture', ('"' + $fixture + '"'),
-    '-Shared', ('"' + $shared + '"'))
-  $child = Start-Process -FilePath $pwsh -ArgumentList $args -WorkingDirectory $shared -Credential $credential -PassThru -RedirectStandardOutput $output -RedirectStandardError $errors
+  $psi = [Diagnostics.ProcessStartInfo]::new()
+  $psi.FileName = $pwsh
+  $psi.WorkingDirectory = $shared
+  $psi.UseShellExecute = $false
+  $psi.UserName = $username
+  $psi.Domain = $env:COMPUTERNAME
+  $psi.Password = $secret
+  $psi.LoadUserProfile = $true
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
+  foreach ($arg in @('-NoLogo','-NoProfile','-NonInteractive','-File',$worker,
+      '-Extract',$extract,'-Fixture',$fixture,'-Shared',$shared,'-ExpectedSid',$sid)) {
+    [void]$psi.ArgumentList.Add($arg)
+  }
+  try { $child = [Diagnostics.Process]::Start($psi) }
+  catch { throw 'BETA_NONADMIN_PROFILED_WORKER_START_FAILED' }
   if ($null -eq $child) { throw 'BETA_NONADMIN_WORKER_NOT_STARTED' }
   Write-Host ('BETA_WINDOWS_WORKER_PROCESS_START pid=' + $child.Id +
-    ' session=' + $child.SessionId +
-    ' runnerSession=' + $runnerFacts.session +
+    ' session=' + $child.SessionId + ' runnerSession=' + $runnerFacts.session +
     ' accountIsTemporary=true')
   try {
-    if (-not $child.WaitForExit(360000)) {
-      $child.Kill()
-      throw 'BETA_NONADMIN_WORKER_TIMEOUT'
-    }
-    $outText = Get-Content -LiteralPath $output -Raw
+    $outTask = [BetaBoundedCapture]::Read($child.StandardOutput,131072)
+    $errTask = [BetaBoundedCapture]::Read($child.StandardError,131072)
+    if (-not $child.WaitForExit(360000)) { throw 'BETA_NONADMIN_WORKER_TIMEOUT' }
+    try {
+      $capture = [Threading.Tasks.Task]::WhenAll([Threading.Tasks.Task[]]@($outTask,$errTask))
+      if (-not $capture.Wait(5000)) { throw 'BETA_NONADMIN_WORKER_STREAM_TIMEOUT' }
+      $outText = [string]$outTask.Result
+    } catch { throw 'BETA_NONADMIN_WORKER_STREAM_INCOMPLETE_OR_EXCESS' }
     # Raw stderr and stdout can contain PowerShell script paths or arbitrary text.
     # Only the bounded fixed-format diagnostics from the actual worker are printed.
     $traceReported = $false
@@ -207,10 +246,14 @@ try {
     # Trust only exact, unique A/B markers in a single strictly ordered sequence.
     # Worker output is a private fixture file; never print its raw contents.
     $abLines = @($outText -split '\r?\n')
+    $contexts = [Collections.Generic.List[int]]::new()
     $events = [Collections.Generic.List[int]]::new()
     for ($i = 0; $i -lt $abLines.Count; $i++) {
       if ($abLines[$i].StartsWith('BETA_AB_', [StringComparison]::Ordinal)) {
         [void]$events.Add($i)
+      }
+      if ($abLines[$i].StartsWith('BETA_WORKER_CONTEXT_OBSERVED', [StringComparison]::Ordinal)) {
+        [void]$contexts.Add($i)
       }
     }
     # Six events: A begin/result/end, B begin/result/end. Any stray,
@@ -224,6 +267,11 @@ try {
         $abLines[$events[5]] -ceq 'BETA_AB_END variant=B'
     }
     if (-not $boundariesValid) { throw 'BETA_AB_BLOCK_OR_DUPLICATE_INVALID' }
+    if ($contexts.Count -ne 1 -or $contexts[0] -ge $events[0] -or
+        $abLines[$contexts[0]] -cnotmatch '^BETA_WORKER_CONTEXT_OBSERVED sidMatch=true profileHive=true workerStdioValid=true stdoutInherited=(True|False) stderrInherited=(True|False)$') {
+      throw 'BETA_NONADMIN_WORKER_CONTEXT_NOT_VERIFIED'
+    }
+    Write-Host 'BETA_WORKER_CONTEXT_SANITIZED sidMatch=true profileHive=true workerStdioValid=true'
     $aMatch = [regex]::Match($abLines[$events[1]],
       '^BETA_AB_RESULT variant=A timeout=(True|False) exit=(TIMEOUT|-?[0-9]+) oracle=(True|False|NOT_VERIFIED)$')
     $bMatch = [regex]::Match($abLines[$events[4]],
@@ -316,18 +364,72 @@ try {
     if (-not $esdeVerified) {
       throw 'BETA_NONADMIN_ESDE_OR_FIXTURE_NOT_VERIFIED'
     }
-    # ALL oracles, A/B boundaries, B exit 0, ES-DE, fixture and worker exit 0
-    # are now verified. Only this parent may publish GUI/global PASS.
-    Write-Host 'BETA_AB_VERDICT variant=B status=VERIFIED_WITHIN_GLOBAL_GATE'
-    Write-Host 'BETA_NONADMIN_EXTRACTED_UI_PASS native_window=true self_contained=true'
-    Write-Host $esdeMarker
-    Write-Host $fixtureMarker
-    Write-Host ('BETA_IDEAL_WINDOWS_NONADMIN_PASS sha256=' + $hash + ' offline_firewall=true no_global_dotnet=true fixture_only=true')
-  } finally { $child.Dispose() }
-} finally {
-  if ($firewallAdded) { Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction Continue }
-  if ($accountCreated) { Remove-LocalUser -Name $username -ErrorAction Continue }
-  if (Test-Path -LiteralPath $shared -PathType Container) {
-    Remove-Item -LiteralPath $shared -Recurse -Force -ErrorAction Continue
+    # Do not emit GUI/global PASS until every cleanup check completes.
+    $passReady = $true
+  } finally {
+    if ($null -ne $child) {
+      try {
+        if (-not $child.HasExited) {
+          $child.Kill($true) # Only this worker's process tree.
+          if (-not $child.WaitForExit(5000)) { throw 'WORKER_STILL_RUNNING' }
+        }
+      } catch { throw 'BETA_NONADMIN_WORKER_TERMINATION_INCOMPLETE' }
+      finally { $child.Dispose() }
+    }
   }
+} finally {
+  $failures = [Collections.Generic.List[string]]::new()
+  if ($firewallAdded) {
+    try {
+      Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction Stop
+      if (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue) {
+        throw 'RULE_REMAINS'
+      }
+    } catch { $failures.Add('FIREWALL') }
+  }
+  if ($accountCreated) {
+    $profileSafe = $true
+    try {
+      $profiles = @(Get-CimInstance -ClassName Win32_UserProfile -Filter ("SID='" + $sid + "'") -ErrorAction Stop)
+      if ($profiles.Count -gt 1) { throw 'MULTIPLE_PROFILES' }
+      foreach ($profile in $profiles) {
+        if ($profile.SID -cne $sid -or $profile.Special -or $profile.Loaded) {
+          throw 'PROFILE_UNSAFE_TO_DELETE'
+        }
+        Remove-CimInstance -InputObject $profile -ErrorAction Stop
+      }
+      if (@(Get-CimInstance -ClassName Win32_UserProfile -Filter ("SID='" + $sid + "'") -ErrorAction Stop).Count -gt 0) {
+        throw 'PROFILE_REMAINS'
+      }
+      $hive = [Microsoft.Win32.Registry]::Users.OpenSubKey($sid)
+      if ($null -ne $hive) { $hive.Dispose(); throw 'PROFILE_HIVE_REMAINS' }
+    } catch { $profileSafe = $false; $failures.Add('PROFILE') }
+    if ($profileSafe) {
+      try {
+        $account = Get-LocalUser -Name $username -ErrorAction Stop
+        if ($account.SID.Value -cne $sid) { throw 'SID_MISMATCH' }
+        Remove-LocalUser -Name $username -ErrorAction Stop
+        if (Get-LocalUser -Name $username -ErrorAction SilentlyContinue) {
+          throw 'ACCOUNT_REMAINS'
+        }
+      } catch { $failures.Add('ACCOUNT') }
+    }
+  }
+  if (Test-Path -LiteralPath $shared -PathType Container) {
+    try {
+      Remove-Item -LiteralPath $shared -Recurse -Force -ErrorAction Stop
+      if (Test-Path -LiteralPath $shared) { throw 'ROOT_REMAINS' }
+    } catch { $failures.Add('SHARED_ROOT') }
+  }
+  if ($failures.Count -gt 0) {
+    throw ('BETA_NONADMIN_CLEANUP_INCOMPLETE codes=' + [string]::Join(',',$failures))
+  }
+}
+if ($passReady) {
+  Write-Host 'BETA_NONADMIN_CLEANUP_VERIFIED profile=true account=true firewall=true sharedRoot=true'
+  Write-Host 'BETA_AB_VERDICT variant=B status=VERIFIED_WITHIN_GLOBAL_GATE'
+  Write-Host 'BETA_NONADMIN_EXTRACTED_UI_PASS native_window=true self_contained=true'
+  Write-Host $esdeMarker
+  Write-Host $fixtureMarker
+  Write-Host ('BETA_IDEAL_WINDOWS_NONADMIN_PASS sha256=' + $hash + ' offline_firewall=true no_global_dotnet=true fixture_only=true')
 }
