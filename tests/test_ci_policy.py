@@ -220,6 +220,40 @@ class GitFixtureTests(unittest.TestCase):
         payload["pull_request"]["base"]["sha"] = head
         self.assertTrue(p.make_plan(self.root, "pull_request", payload, env)["error"])
 
+    def test_pr_merge_advanced_main_with_stale_event_base(self):
+        # GitHub's merge uses the current main tip, even if the PR event
+        # still reports the older base SHA. No real runner or remote needed.
+        head = self.change("docs/feature.md")
+        payload, env = self.context(head)
+        self.run_git("checkout", "--quiet", "--detach", self.base)
+        main_tip = self.change("docs/main-advance.md")
+        self.run_git("update-ref", "refs/remotes/origin/main", main_tip)
+        self.run_git("merge", "--quiet", "--no-ff", head, "-m", "Synthetic advanced main")
+        env["GITHUB_SHA"] = self.run_git("rev-parse", "HEAD")
+        env["GITHUB_REF"] = "refs/pull/7/merge"
+        plan = p.make_plan(self.root, "pull_request", payload, env)
+        self.assertIsNone(plan["error"])
+        self.assertEqual("DOCS_ONLY", plan["class"])
+        self.assertIn(["A", "docs/feature.md"], plan["context"]["changes"])
+        self.assertNotIn(["A", "docs/main-advance.md"], plan["context"]["changes"])
+        # A wrong fetched main, even if its SHA is a valid commit, is refused.
+        self.run_git("update-ref", "refs/remotes/origin/main", self.base)
+        self.assertEqual("MERGE_FIRST_PARENT_NOT_MAIN",
+                         p.make_plan(self.root, "pull_request", payload, env)["error"])
+        self.run_git("update-ref", "refs/remotes/origin/main", main_tip)
+        # A different source or a payload base not ancestral to main is refused.
+        payload["pull_request"]["head"]["sha"] = main_tip
+        self.assertEqual("MERGE_PARENTS_INVALID",
+                         p.make_plan(self.root, "pull_request", payload, env)["error"])
+        payload["pull_request"]["head"]["sha"] = head
+        payload["pull_request"]["base"]["sha"] = head
+        self.assertEqual("MERGE_BASE_ANCESTRY_INVALID",
+                         p.make_plan(self.root, "pull_request", payload, env)["error"])
+        payload["pull_request"]["base"]["sha"] = self.base
+        self.run_git("update-ref", "-d", "refs/remotes/origin/main")
+        self.assertEqual("GIT_READ_FAILED",
+                         p.make_plan(self.root, "pull_request", payload, env)["error"])
+
     def test_dispatch_empty_forced_and_missing_objects(self):
         payload, env = self.context(self.base, "push")
         self.assertTrue(p.make_plan(self.root, "push", payload, env)["error"])

@@ -121,7 +121,15 @@ def event_range(root, event, payload, env):
         else:
             require(ref == "refs/pull/" + number + "/merge", "PR_REF_INVALID")
             parents = git(root, "show", "-s", "--format=%P", checkout).decode().split()
-            require(parents == [base, source], "MERGE_PARENTS_INVALID")
+            require(len(parents) == 2 and parents[1] == source, "MERGE_PARENTS_INVALID")
+            if parents[0] != base:
+                # The event's base SHA may predate a GitHub-generated merge.
+                # Accept only the fetched main tip that descends from that base.
+                main_tip = commit(root, git(root, "rev-parse", "--verify",
+                                            "refs/remotes/origin/main").decode().strip())
+                require(parents[0] == main_tip, "MERGE_FIRST_PARENT_NOT_MAIN")
+                require(git(root, "merge-base", base, main_tip).decode().strip() == base,
+                        "MERGE_BASE_ANCESTRY_INVALID")
         origin = git(root, "merge-base", "--all", base, source).decode().strip()
         commit(root, origin)
         is_fork = (isinstance(pr.get("head", {}).get("repo"), dict)
