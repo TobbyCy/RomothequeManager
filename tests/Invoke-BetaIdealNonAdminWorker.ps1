@@ -57,13 +57,15 @@ function Write-BetaTraceSummary([object]$stdoutTask, [object]$stderrTask, [strin
     ' codes=' + $sequence + ' stdoutComplete=' + $completed +
     ' stderrComplete=' + $stderrTask.IsCompletedSuccessfully)
 }
-function Invoke-BetaExe([string[]]$args, [string]$expected) {
+function Invoke-BetaExe([string[]]$args, [string]$expected,
+    [bool]$redirectPipes = $true, [bool]$abProbe = $false) {
+  $variant = if ($redirectPipes) { 'A' } else { 'B' }
   $start = [Diagnostics.ProcessStartInfo]::new()
   $start.FileName = $exe
   $start.WorkingDirectory = $Extract
   $start.UseShellExecute = $false
-  $start.RedirectStandardOutput = $true
-  $start.RedirectStandardError = $true
+  $start.RedirectStandardOutput = $redirectPipes
+  $start.RedirectStandardError = $redirectPipes
   foreach ($arg in $args) { [void]$start.ArgumentList.Add($arg) }
   $start.Environment['GITHUB_ACTIONS'] = 'true'
   $start.Environment['RUNNER_TEMP'] = $Shared
@@ -74,14 +76,19 @@ function Invoke-BetaExe([string[]]$args, [string]$expected) {
   $start.Environment['ROMOTHEQUE_BETA_TRACE'] = '1'
   $start.Environment['ROMOTHEQUE_BETA_TRACE_ROOT'] = $Shared
   $start.Environment['PATH'] = $Extract + ';' + $env:SystemRoot + '\System32;' + $env:SystemRoot
+  if ($abProbe) { Write-Host ('BETA_AB_BEGIN variant=' + $variant) }
   $proc = [Diagnostics.Process]::Start($start)
   if ($null -eq $proc) { throw 'BETA_NONADMIN_PROCESS_NOT_STARTED' }
   Write-Host ('BETA_EXTRACTED_PROCESS_START role=worker pid=' + $proc.Id +
     ' session=' + $proc.SessionId + ' workerSession=' + $sessionFacts.session +
     ' launched=true exited=' + $proc.HasExited)
   try {
-    $out = $proc.StandardOutput.ReadToEndAsync()
-    $err = $proc.StandardError.ReadToEndAsync()
+    $out = $null
+    $err = $null
+    if ($redirectPipes) {
+      $out = $proc.StandardOutput.ReadToEndAsync()
+      $err = $proc.StandardError.ReadToEndAsync()
+    }
     if (-not $proc.WaitForExit(90000)) {
       $threads = -1
       try { $threads = $proc.Threads.Count } catch { }
@@ -92,18 +99,44 @@ function Invoke-BetaExe([string[]]$args, [string]$expected) {
       # Only the EXE child, never arbitrary session processes or GUI helpers.
       if (-not $proc.HasExited) { $proc.Kill() }
       [void]$proc.WaitForExit(5000)
-      # Capture bounded partial output only AFTER termination. No raw pipes or paths.
-      try { [void][Threading.Tasks.Task]::WhenAll(@($out, $err)).Wait(5000) } catch { }
-      Write-BetaTraceSummary $out $err 'nonadmin'
+      if ($redirectPipes) {
+        # B has no direct pipes: raw inherited output, if any, is filtered by parent.
+        try { [void][Threading.Tasks.Task]::WhenAll(@($out, $err)).Wait(5000) } catch { }
+        Write-BetaTraceSummary $out $err 'nonadmin'
+      }
+      if ($abProbe) {
+        Write-Host ('BETA_AB_RESULT variant=' + $variant +
+          ' timeout=True exit=TIMEOUT oracle=NOT_VERIFIED')
+        Write-Host ('BETA_AB_END variant=' + $variant)
+        return $false
+      }
       throw 'BETA_NONADMIN_EXTRACTED_TIMEOUT'
     }
     Write-Host ('BETA_EXTRACTED_PROCESS_EXIT pid=' + $proc.Id +
       ' session=' + $proc.SessionId + ' exit=' + $proc.ExitCode +
       ' completed=true')
-    try { [void][Threading.Tasks.Task]::WhenAll(@($out, $err)).Wait(5000) } catch { }
-    Write-BetaTraceSummary $out $err 'nonadmin'
-    $oracle = $out.IsCompletedSuccessfully -and
-      $out.Result.Contains($expected, [StringComparison]::Ordinal)
+    $oracle = $false
+    if ($redirectPipes) {
+      try { [void][Threading.Tasks.Task]::WhenAll(@($out, $err)).Wait(5000) } catch { }
+      Write-BetaTraceSummary $out $err 'nonadmin'
+      if ($out.IsCompletedSuccessfully) {
+        $stdoutText = [string]$out.Result
+        # MainWindow.Opened + real dispatcher smoke + normal lifetime are mandatory.
+        $oracle = $stdoutText.Contains($expected, [StringComparison]::Ordinal) -and
+          [regex]::IsMatch($stdoutText, '(?m)^BETA_AVALONIA_TRACE WINDOW_OPENED\r?$') -and
+          [regex]::IsMatch($stdoutText, '(?m)^BETA_AVALONIA_TRACE DISPATCHER_EXECUTE\r?$') -and
+          [regex]::IsMatch($stdoutText, '(?m)^BETA_AVALONIA_TRACE SMOKE_PASS\r?$') -and
+          [regex]::IsMatch($stdoutText, '(?m)^BETA_AVALONIA_TRACE LIFETIME_RETURN\r?$')
+      }
+    }
+    if ($abProbe) {
+      # Non-redirected B never claims oracle PASS from its exit code.
+      $oracleState = if ($redirectPipes) { [string]$oracle } else { 'PARENT_PENDING' }
+      Write-Host ('BETA_AB_RESULT variant=' + $variant +
+        ' timeout=False exit=' + $proc.ExitCode + ' oracle=' + $oracleState)
+      Write-Host ('BETA_AB_END variant=' + $variant)
+      return ($proc.ExitCode -eq 0 -and (-not $redirectPipes -or $oracle))
+    }
     if ($proc.ExitCode -ne 0 -or -not $oracle) {
       throw ('BETA_NONADMIN_EXTRACTED_FAIL exit=' + $proc.ExitCode +
         ' expectedOracleObserved=' + $oracle)
@@ -197,8 +230,13 @@ if (-not $sessionFacts.interactive) {
   throw 'CI_NONADMIN_GUI_ENV_UNSUPPORTED OWNER_DECISION_REQUIRED'
 }
 Write-Host 'BETA_NONADMIN_INTERACTIVE_DESKTOP_VERIFIED user=nonadmin station=WinSta0 desktop=Default openDefault=PASS openInput=PASS hiddenWindowCreate=PASS'
-Invoke-BetaExe @('--smoke-window') 'POC_WINDOW_OPENED_PASS'
-Write-Host 'BETA_NONADMIN_EXTRACTED_UI_PASS native_window=true self_contained=true'
+# One A/B comparison under the SAME non-admin worker, extracted EXE and fixture.
+# A proves the original stdout oracle; B's inherited stdout is checked by parent.
+$aVerified = Invoke-BetaExe @('--smoke-window') 'POC_WINDOW_OPENED_PASS' $true $true
+$bExitZero = Invoke-BetaExe @('--smoke-window') 'POC_WINDOW_OPENED_PASS' $false $true
+if (-not $aVerified) { throw 'BETA_AB_A_BASELINE_NOT_VERIFIED' }
+if (-not $bExitZero) { throw 'BETA_AB_B_EXIT_NOT_ZERO_OR_TIMEOUT' }
+# No GUI PASS here: the non-redirected B oracle is still PARENT_PENDING.
 Invoke-BetaExe @('--ci-ux-offline-fixture', $Fixture) 'UX_RECIPE_OFFLINE_ESDE_GUI_PASS'
 if ((Get-FileHash -LiteralPath $xml -Algorithm SHA256).Hash -cne $originalXml) {
   throw 'BETA_ESDE_XML_NOT_RESTORED'
