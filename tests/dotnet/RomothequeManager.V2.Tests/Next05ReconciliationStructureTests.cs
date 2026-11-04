@@ -379,14 +379,23 @@ public sealed class Next05ReconciliationStructureTests
         File.Move(marker, marker + ".ordinary");
         try
         {
-            File.CreateSymbolicLink(marker, inert);
+            try
+            {
+                File.CreateSymbolicLink(marker, inert);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+            {
+                Console.WriteLine("REC_04_FILE_LINK_CAPABILITY_UNAVAILABLE: " +
+                    ex.GetType().Name);
+                return;
+            }
             Assert.ThrowsExactly<InvalidDataException>(() =>
                 EsDeCatalogueImporter.Read(_root),
                 "A linked PARAM.SFO must never be accepted as an ordinary marker.");
         }
         finally
         {
-            File.Delete(marker);
+            if (File.Exists(marker)) File.Delete(marker);
             File.Move(marker + ".ordinary", marker);
         }
     }
