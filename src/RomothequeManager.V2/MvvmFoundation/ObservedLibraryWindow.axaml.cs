@@ -27,6 +27,7 @@ public partial class ObservedLibraryWindow : Window
     private WriteableBitmap? _mediaBitmap;
     private IdealMediaDraftWindow? _localMediaWindow;
     private string? _openLocalMediaScanId;
+    private readonly Func<EsDeCatalogueSnapshot?> _importedSnapshot;
 
     public ObservedLibraryWindow() : this(new InventoryApplicationService(), null) { }
 
@@ -38,19 +39,23 @@ public partial class ObservedLibraryWindow : Window
         IInventoryApplicationService service, RestoredCatalogSession? restored = null,
         Func<long, bool>? requestRomsGrant = null,
         Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
-        Func<string, bool>? restoreSaved = null) =>
+        Func<string, bool>? restoreSaved = null,
+        Func<EsDeCatalogueSnapshot?>? importedSnapshot = null) =>
         new(service, null, standardServiceSupplied: true, restored: restored,
             requestRomsGrant: requestRomsGrant,
-            loadSavedLibraries: loadSavedLibraries, restoreSaved: restoreSaved);
+            loadSavedLibraries: loadSavedLibraries, restoreSaved: restoreSaved,
+            importedSnapshot: importedSnapshot);
 
     private ObservedLibraryWindow(IInventoryApplicationService service,
         IReadOnlyDictionary<string, string>? syntheticRoots,
         bool standardServiceSupplied = false, RestoredCatalogSession? restored = null,
         Func<long, bool>? requestRomsGrant = null,
         Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
-        Func<string, bool>? restoreSaved = null)
+        Func<string, bool>? restoreSaved = null,
+        Func<EsDeCatalogueSnapshot?>? importedSnapshot = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
+        _importedSnapshot = importedSnapshot ?? (() => null);
         _syntheticRoots = syntheticRoots;
         InitializeComponent();
         _inventoryVm = new InventoryViewModel(_service, action =>
@@ -210,7 +215,7 @@ public partial class ObservedLibraryWindow : Window
         }
         _openLocalMediaScanId = current.ScanId;
         var child = new IdealMediaDraftWindow(() => _inventoryVm.Current,
-            productMediaUiEnabled: true);
+            imported: _importedSnapshot, productMediaUiEnabled: true);
         _localMediaWindow = child;
         child.Closed += (_, _) =>
         {
