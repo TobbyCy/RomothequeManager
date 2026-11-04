@@ -15,6 +15,7 @@ internal sealed record IdealMediaCoverProposal(
     /// <summary>Label built only from file observations and provenance, not XML game titles.</summary>
     public string Label => PlatformKey + " · " + RomRelativePath + " → " +
         MediaRelativePath + " [" + State + "]";
+    public override string ToString() => Label;
 }
 
 /// <summary>Pure, zero-I/O adapter for local cover proposals produced by the
