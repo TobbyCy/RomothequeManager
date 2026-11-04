@@ -91,6 +91,15 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     /// injected standard service; this UI boolean never grants filesystem access.</summary>
     public bool CanInventoryFixture => (_fixtureMode || _standardServiceSupplied) &&
         _restored is null && _rsa is null && _inventory.CanStart;
+    /// <summary>The standard GUI can offer optional MEDIAS selection only
+    /// after a fresh, completed ROMS scan; this flag is never a native grant.</summary>
+    public bool CanOpenLocalMedia => !_disposed && !_fixtureMode &&
+        _standardServiceSupplied && _restored is null && _rsa is null &&
+        !_inventory.IsBusy && _inventory.Current is {
+            ScanStatus: InventoryScanStatus.Complete,
+            Availability: InventoryAvailability.Online,
+            Freshness: InventoryFreshness.Fresh
+        };
     /// <summary>Explains whether displayed data are simulated, historical, fixture-only or disabled in production.</summary>
     public string ModeNotice => _restored is not null
         ? "Collection SQLite fictive restaurée : consultation OFFLINE / STALE ; aucun accès disque."
@@ -295,8 +304,12 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         // otherwise TwoWay SelectedItem can re-enter the filters indefinitely.
         if (e.PropertyName is nameof(InventoryViewModel.CanStart) or
             nameof(InventoryViewModel.ConsentConfirmed) or nameof(InventoryViewModel.Phase))
+        {
             Notify(nameof(CanInventoryFixture));
+            Notify(nameof(CanOpenLocalMedia));
+        }
         if (e.PropertyName != nameof(InventoryViewModel.DisplayedSnapshot)) return;
+        Notify(nameof(CanOpenLocalMedia));
         Notify(nameof(ModeNotice));
         var newGeneration = _inventory.DisplayedSnapshot;
         if (ReferenceEquals(_generation, newGeneration)) return;
