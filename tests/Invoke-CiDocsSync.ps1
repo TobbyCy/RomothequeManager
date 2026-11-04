@@ -139,8 +139,17 @@ try {
             } else {
                 if($env:GITHUB_REF -cne ('refs/pull/'+$number+'/merge')) {throw 'DOC_PR_CHECKOUT_REF_MISMATCH'}
                 $parents=(Invoke-GitRead @('show','-s','--format=%P',$checkout)).Output.Trim().Split(' ')
-                if($parents.Count -ne 2 -or $parents[0] -cne $base -or $parents[1] -cne $head) {
+                if($parents.Count -ne 2 -or $parents[1] -cne $head) {
                     throw 'DOC_PR_MERGE_PARENTS_MISMATCH'
+                }
+                if($parents[0] -cne $base) {
+                    # The PR event may carry an older main SHA than GitHub's merge.
+                    # Authenticate the actual first parent using fetched origin/main.
+                    $mainSha=(Invoke-GitRead @('rev-parse','--verify','refs/remotes/origin/main')).Output.Trim()
+                    $mainTip=Resolve-Commit $mainSha 'ORIGIN_MAIN'
+                    if($parents[0] -cne $mainTip) {throw 'DOC_PR_MERGE_FIRST_PARENT_NOT_MAIN'}
+                    $common=(Invoke-GitRead @('merge-base',$base,$mainTip)).Output.Trim()
+                    if($common -cne $base) {throw 'DOC_PR_BASE_ANCESTRY_INVALID'}
                 }
             }
             $bases=(Invoke-GitRead @('merge-base','--all',$base,$head)).Output.Trim()

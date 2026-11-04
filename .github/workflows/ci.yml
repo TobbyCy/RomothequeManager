@@ -286,7 +286,7 @@ jobs:
     needs: [policy, ci-docs]
     if: ${{ always() && needs.policy.result == 'success' && needs.ci-docs.result == 'success' && needs.policy.outputs.dotnet == 'true' }}
     runs-on: windows-2022
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - name: Checkout exact sources without credentials
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (Node.js 24)
@@ -452,6 +452,27 @@ jobs:
           Write-Host ('V2C_ZIP_VERIFIED_PASS sha256=' + $digest + ' sizeBytes=' + (Get-Item $zip).Length + ' files=' + $files.Count + ' source=' + $env:GITHUB_SHA)
           # No artifact upload, Release or public download. The runner temp is destroyed.
           Write-Host 'POC_ZIP_QUARANTINED_NOT_UPLOADED thirdPartyNotices=PENDING ownerReleaseGo=PENDING'
+
+
+      - name: PR ZIP deterministic and runner GUI / non-admin native SQLite (GUI standard RELEASE_ONLY)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($script in @('scripts/Validate-BetaIdealZip.ps1',
+              'tests/Invoke-BetaIdealWindows.ps1',
+              'tests/Invoke-BetaIdealNonAdminWorker.ps1',
+              'tests/BetaIdealWindowsSession.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { throw ('BETA_PS_PARSE_FAILED:' + $script + ':' + ($errors | Out-String)) }
+          }
+          python -B -m unittest discover -s tests -p test_ideal_beta_zip_gate.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'BETA_MANIFEST_NEGATIVE_CANARIES_FAILED' }
+          & .\scripts\Validate-BetaIdealZip.ps1 -SourceSha $env:GITHUB_SHA -Phase validate
+          & .\tests\Invoke-BetaIdealWindows.ps1 -SourceSha $env:GITHUB_SHA -PrOnly
+          if ($LASTEXITCODE -ne 0) { throw 'BETA_PR_RELIABLE_NATIVE_GATE_FAILED' }
+          Write-Host 'BETA_PR_RELIABLE_NATIVE_FIXTURES_PASS source=exact-ci-checkout guiNonadmin=RELEASE_ONLY no_publish=true'
 
   ci-docfx:
     name: DocFX / Windows XML YAML HTML and API coverage

@@ -1,6 +1,10 @@
 """Synthetic policy canaries. No engine/ROM access and no dotnet application built."""
 import contextlib
+import base64
 import copy
+from datetime import datetime, timedelta, timezone
+import hashlib
+import hmac
 import io
 import json
 import os
@@ -11,6 +15,8 @@ import tempfile
 import sys
 import time
 import unittest
+import uuid
+from zipfile import ZipFile
 from unittest.mock import patch
 
 import ci_policy as p
@@ -89,6 +95,100 @@ class ClassificationTests(unittest.TestCase):
             with self.assertRaises(p.PolicyError):
                 p.final_gate(plan, bad)
 
+
+class ReleaseGateSplitTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="rm-release-proof-fixture-")
+        self.addCleanup(self.tmp.cleanup)
+        self.zip_path = Path(self.tmp.name) / "synthetic.zip"
+        with ZipFile(self.zip_path, "w") as archive:
+            archive.writestr("RomothequeManager.V2.exe", b"synthetic executable bytes")
+        self.key = "22" * 32
+        self.source = "a" * 40
+        self.tag = "poc-v2-01c-20261103-" + self.source[:12]
+        self.doc = {
+            "schema": 1, "kind": "NEXT05_WINDOWS95_STANDARD_USER",
+            "repository": "TobbyCy/RomothequeManager",
+            "source_sha": self.source, "release_tag": self.tag,
+            "zip_sha256": hashlib.sha256(self.zip_path.read_bytes()).hexdigest(),
+            "exe_sha256": hashlib.sha256(b"synthetic executable bytes").hexdigest(),
+            "qualified_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "evidence_id": str(uuid.uuid4()),
+            "session": {"os": "Windows", "arch": "x64", "dedicated": True,
+                        "standard_user": True, "is_admin": False, "interactive": True,
+                        "desktop": "WinSta0/Default", "profile_loaded": True, "session_id": 2},
+            "checks": {name: True for name in (
+                "esde_gui", "sqlite_native", "offline", "acl", "cleanup", "human95",
+                "manifest", "no_personal_data", "source_verified", "zip_verified", "exe_verified")},
+            "oracles": list(p.RELEASE_ONLY_ORACLES), "gui_exit_code": 0, "esde_exit_code": 0,
+        }
+
+    def verify(self, doc=None, wrong_mac=False):
+        raw = json.dumps(self.doc if doc is None else doc, sort_keys=True,
+                         separators=(",", ":")).encode("utf-8")
+        mac = hmac.new(bytes.fromhex(self.key), raw, hashlib.sha256).hexdigest()
+        if wrong_mac:
+            mac = "f" * 64
+        return p.verify_next05_release_proof(
+            base64.b64encode(raw).decode("ascii"), mac, self.key,
+            self.source, self.zip_path, self.tag)
+
+    def test_positive_synthetic_contract_does_not_claim_real_qualification(self):
+        self.assertEqual("NEXT05_RELEASE_QUALIFICATION_PASS", self.verify())
+
+    def test_missing_and_forged_release_proofs_fail_closed(self):
+        with self.assertRaisesRegex(p.PolicyError, "NEXT05_RELEASE_HOLD_PROOF_MISSING"):
+            p.verify_next05_release_proof("", "", "", self.source, self.zip_path, self.tag)
+        with self.assertRaisesRegex(p.PolicyError, "NEXT05_RELEASE_SIGNATURE_MISMATCH"):
+            self.verify(wrong_mac=True)
+        cases = {
+            "source_sha": "b" * 40,
+            "zip_sha256": "f" * 64,
+            "exe_sha256": "f" * 64,
+            "release_tag": "poc-v2-01c-20261101-" + self.source[:12],
+            "oracles": list(reversed(p.RELEASE_ONLY_ORACLES)),
+            "gui_exit_code": 1,
+            "esde_exit_code": 1,
+            "qualified_at": (datetime.now(timezone.utc) - timedelta(days=9)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        for name, value in cases.items():
+            with self.subTest(name=name), self.assertRaises(p.PolicyError):
+                doc = copy.deepcopy(self.doc)
+                doc[name] = value
+                self.verify(doc)
+        for name, value in (("is_admin", True), ("standard_user", False),
+                            ("interactive", False), ("desktop", "Other"),
+                            ("profile_loaded", False)):
+            with self.subTest(session=name), self.assertRaises(p.PolicyError):
+                doc = copy.deepcopy(self.doc)
+                doc["session"][name] = value
+                self.verify(doc)
+        for name in ("esde_gui", "sqlite_native", "offline", "acl", "cleanup",
+                     "human95", "manifest", "source_verified", "zip_verified", "exe_verified"):
+            with self.subTest(check=name), self.assertRaises(p.PolicyError):
+                doc = copy.deepcopy(self.doc)
+                doc["checks"][name] = False
+                self.verify(doc)
+
+    def test_pr_release_partition_and_dist_publisher_gate(self):
+        root = Path(__file__).resolve().parent.parent
+        ci = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        dist = (root / ".github/workflows/dist-zip.yml").read_text(encoding="utf-8")
+        parent = (root / "tests/Invoke-BetaIdealWindows.ps1").read_text(encoding="utf-8")
+        worker = (root / "tests/Invoke-BetaIdealNonAdminWorker.ps1").read_text(encoding="utf-8")
+        self.assertIn("Invoke-BetaIdealWindows.ps1 -SourceSha $env:GITHUB_SHA -PrOnly", ci)
+        self.assertIn("BETA_PR_RELIABLE_PASS native_sqlite_nonadmin=true", parent)
+        self.assertIn("BETA_NONADMIN_GUI_RELEASE_ONLY_NOT_EXECUTED", parent)
+        self.assertIn("BETA_PR_NONADMIN_SQLITE_READY gui=RELEASE_ONLY", worker)
+        self.assertIn("BETA_PR_RUNNER_GUI_NOT_VERIFIED", parent)
+        self.assertEqual(list(p.RELEASE_ONLY), p.job_plan("DOTNET_ONLY", True)["release_only"])
+        self.assertIn("release-proof --zip", dist)
+        self.assertIn("NEXT05_RELEASE_PROOF_KEY", dist)
+        self.assertLess(dist.index("release-proof --zip"),
+                        dist.index("Final owner authorization gate"))
+        self.assertLess(dist.index("release-proof --zip"), dist.index("gh release create"))
+        self.assertNotIn("continue-on-error:", dist)
+        self.assertNotIn("gh release", ci)
 
 class GitFixtureTests(unittest.TestCase):
     def setUp(self):
@@ -219,6 +319,40 @@ class GitFixtureTests(unittest.TestCase):
         self.assertFalse(p.make_plan(self.root, "pull_request", payload, env)["error"])
         payload["pull_request"]["base"]["sha"] = head
         self.assertTrue(p.make_plan(self.root, "pull_request", payload, env)["error"])
+
+    def test_pr_merge_advanced_main_with_stale_event_base(self):
+        # GitHub's merge uses the current main tip, even if the PR event
+        # still reports the older base SHA. No real runner or remote needed.
+        head = self.change("docs/feature.md")
+        payload, env = self.context(head)
+        self.run_git("checkout", "--quiet", "--detach", self.base)
+        main_tip = self.change("docs/main-advance.md")
+        self.run_git("update-ref", "refs/remotes/origin/main", main_tip)
+        self.run_git("merge", "--quiet", "--no-ff", head, "-m", "Synthetic advanced main")
+        env["GITHUB_SHA"] = self.run_git("rev-parse", "HEAD")
+        env["GITHUB_REF"] = "refs/pull/7/merge"
+        plan = p.make_plan(self.root, "pull_request", payload, env)
+        self.assertIsNone(plan["error"])
+        self.assertEqual("DOCS_ONLY", plan["class"])
+        self.assertIn(["A", "docs/feature.md"], plan["context"]["changes"])
+        self.assertNotIn(["A", "docs/main-advance.md"], plan["context"]["changes"])
+        # A wrong fetched main, even if its SHA is a valid commit, is refused.
+        self.run_git("update-ref", "refs/remotes/origin/main", self.base)
+        self.assertEqual("MERGE_FIRST_PARENT_NOT_MAIN",
+                         p.make_plan(self.root, "pull_request", payload, env)["error"])
+        self.run_git("update-ref", "refs/remotes/origin/main", main_tip)
+        # A different source or a payload base not ancestral to main is refused.
+        payload["pull_request"]["head"]["sha"] = main_tip
+        self.assertEqual("MERGE_PARENTS_INVALID",
+                         p.make_plan(self.root, "pull_request", payload, env)["error"])
+        payload["pull_request"]["head"]["sha"] = head
+        payload["pull_request"]["base"]["sha"] = head
+        self.assertEqual("MERGE_BASE_ANCESTRY_INVALID",
+                         p.make_plan(self.root, "pull_request", payload, env)["error"])
+        payload["pull_request"]["base"]["sha"] = self.base
+        self.run_git("update-ref", "-d", "refs/remotes/origin/main")
+        self.assertEqual("GIT_READ_FAILED",
+                         p.make_plan(self.root, "pull_request", payload, env)["error"])
 
     def test_dispatch_empty_forced_and_missing_objects(self):
         payload, env = self.context(self.base, "push")

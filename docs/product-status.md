@@ -1,5 +1,21 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #154 — Split CI fiable PR / qualification Release (GO propriétaire, 03.11.2026)
+
+- GO d'architecture `PR_GATE_AND_RELEASE_GATE_SPLIT` : les tests PR fiables demeurent required et fail-closed ; les oracles GUI/ES-DE standard non-admin sont explicitement `RELEASE_ONLY / NOT_EXECUTED_ON_PR`.
+- Pré-Release : reçu de qualification Windows #95 signé et lié au SHA exact source/ZIP/EXE, cinq oracles ordonnés, GUI ES-DE, SQLite/offline/ACL, cleanup, non-admin et recette. Sans preuve : `NEXT05_RELEASE_HOLD`, aucune publication par `dist-zip.yml phase=publish`.
+- CI au HEAD de ce correctif, hôte Windows qualifiant, secret de signature et recette réelle : **NOT_EXECUTED / NOT_AVAILABLE** à ce stade ; le paquet interne validate ne constitue pas une Release.
+- Risque de détection tardive GUI non-admin accepté explicitement par le propriétaire ; aucune fusion ni Release autonome. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD` et `NEXT05_RELEASE_HOLD` inchangés. Voir `docs/developer/beta-ideal-validate.md`.
+
+## NEXT-05 / #149 — Lot B ZIP IDEAL : validation interne (DRAFT, 02.11.2026)
+
+- Entrée vérifiée : main 7aa62c8f, CI push/main #41465566095 10/10 SUCCESS, GO propriétaire B. Candidate version v0.5.0-beta.1 exclusivement en phase validate.
+- Branche distincte : double build, SHA/manifeste, licences/notices, SQLite/NuGet fail-closed, extraction et test Windows non-admin avec fixtures synthétiques. Le POC V2C n'est pas transformé en bêta et demeure quarantainé.
+- Lot B : NOT_VERIFIED avant CI Windows et revue DEV 2 au HEAD exact. Les tests .NET des invariants Offline/Stale, stockage, Cancel/Dispose, consentement et isolation ne prouvent pas à eux seuls le parcours complet depuis l'EXE extrait. Voir docs/developer/beta-ideal-validate.md.
+- REAL_*_HOLD, LEGAL_PUBLISH_HOLD et NEXT05_RELEASE_HOLD actifs ; aucun phase publish ni Release.
+
+
+
 ## NEXT-05 / #149 — Lot A : notices et provenance SQLite (PR #153, validation ciblée)
 
 - **GO d'implémentation uniquement :** PR #153 créée depuis `main=1bb5c208` pour les notices SQLite/Microsoft.Data.Sqlite 10.0.14, SQLitePCLRaw 2.1.13, SHA-256 binaires et SHA-512 NuGet, plus les contrôles Windows et leurs tests synthétiques. Aucun produit réel ni scanner modifié.
