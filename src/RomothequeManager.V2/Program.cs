@@ -49,7 +49,8 @@ internal static class Program
         BetaIdealAvaloniaTrace.Mark("MAINWINDOW_CTOR_BEGIN");
         // Backend composition is available on the DEV 1 dependent branch.
         // No grants, ROMS enumeration or SQLite source validation at startup.
-        var window = new MainWindow(() =>
+        MainWindow? window = null;
+        window = new MainWindow(() =>
         {
             var backend = new IdealLibraryBackendService();
             return ObservedLibraryWindow.FromStandardServices(backend,
