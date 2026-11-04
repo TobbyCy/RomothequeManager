@@ -207,8 +207,10 @@ public sealed class IdealLibraryBackendTests
             Path.Combine(valid, "ROMS", "gba"), valid
         })
         {
-            Assert.ThrowsException<Exception>(() =>
-                RsAAnchoredReader.ValidateSelectedLocalRomsPath(bad));
+            var refused = false;
+            try { RsAAnchoredReader.ValidateSelectedLocalRomsPath(bad); }
+            catch (Exception) { refused = true; }
+            Assert.IsTrue(refused, "Unsafe selected root must be refused.");
         }
     }
 }
