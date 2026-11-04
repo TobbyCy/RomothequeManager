@@ -52,7 +52,8 @@ public sealed class IdealMediaGuiNativeTests
         if (!OperatingSystem.IsWindows()) return;
         var (root, media) = NewSyntheticRoot();
         Png(Path.Combine(media, "gba", "covers", "Fiction.png"), SKColors.CadetBlue);
-        var roms = new InventorySession(new InventoryScope(root)).Scan();
+        var roms = new InventorySession(new InventoryScope(root,
+            IdealPlatformFolderConventions.PlatformAliases)).Scan();
         Assert.AreEqual(InventoryScanStatus.Complete, roms.ScanStatus);
         Assert.IsFalse(Directory.EnumerateFiles(root, "*.xml",
             SearchOption.AllDirectories).Any(), "This canary must work without ES-DE XML.");
@@ -99,7 +100,8 @@ public sealed class IdealMediaGuiNativeTests
         Png(Path.Combine(media, "gba", "covers", "Fiction.png"), SKColors.Red);
         Directory.CreateDirectory(Path.Combine(media, "gba", "alternate"));
         Png(Path.Combine(media, "gba", "alternate", "Fiction.png"), SKColors.Green);
-        var roms = new InventorySession(new InventoryScope(root)).Scan();
+        var roms = new InventorySession(new InventoryScope(root,
+            IdealPlatformFolderConventions.PlatformAliases)).Scan();
         using var vm = new IdealMediaDraftViewModel(
             new IdealMediaApplicationService(), productMediaUiEnabled: true);
         Assert.IsTrue(vm.SelectMediaRoot(media));
