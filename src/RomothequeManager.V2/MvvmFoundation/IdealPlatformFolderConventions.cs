@@ -10,6 +10,7 @@ internal static class IdealPlatformFolderConventions
 {
     // Explicitly supported ES-DE-style folder names. Unknown folders remain
     // UNKNOWN and cannot produce a convention-based media association.
+    /// <summary>Explicit folder-to-platform classifications; no read permission or identity proof.</summary>
     internal static IReadOnlyDictionary<string, string> PlatformAliases { get; } =
         new ReadOnlyDictionary<string, string>(
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -30,6 +31,7 @@ internal static class IdealPlatformFolderConventions
 
     // No generic "media" or platform folder is automatically a cover.
     // Only explicitly recognized subfolders can be preview candidates.
+    /// <summary>Explicit media subfolder kinds: only a cover folder produces cover candidates.</summary>
     internal static IReadOnlyDictionary<string, MediaKind> FolderKinds { get; } =
         new ReadOnlyDictionary<string, MediaKind>(
             new Dictionary<string, MediaKind>(StringComparer.OrdinalIgnoreCase)
