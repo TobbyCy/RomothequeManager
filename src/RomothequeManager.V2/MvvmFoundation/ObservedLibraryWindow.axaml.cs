@@ -285,7 +285,8 @@ public partial class ObservedLibraryWindow : Window
                 return;
             }
             if (_inventoryVm.CanChangeFolder)
-                _inventoryVm.PrepareSelectedFolder(new InventoryScope(root.Path.LocalPath));
+                _inventoryVm.PrepareSelectedFolder(new InventoryScope(root.Path.LocalPath,
+                    IdealPlatformFolderConventions.PlatformAliases));
             // NEVER start a scan here. Explicit consent alone is insufficient.
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or
