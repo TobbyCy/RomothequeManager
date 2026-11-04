@@ -103,6 +103,7 @@ public sealed class SqliteCatalogStore : ICatalogStore
     private const int MaxObservations = 30000;
     private readonly string _databasePath;
     private readonly string _fixtureRoot;
+    private readonly bool _applicationLocal;
     private readonly object _gate = new();
     private readonly Action? _testBeforeCommit;
     private readonly Action? _testBeforeRestoreSwap;
@@ -111,6 +112,87 @@ public sealed class SqliteCatalogStore : ICatalogStore
 
     /// <summary>Fail closed: public application storage is not activated by this backend PR.</summary>
     public SqliteCatalogStore() => throw new InvalidOperationException("REAL_CATALOG_STORAGE_HOLD");
+
+    /// <summary>Open a local application-owned SQLite catalogue. No ROM/MEDIAS path
+    /// or application argument can redirect this database. Opens do not restore grants.</summary>
+    public static SqliteCatalogStore OpenApplicationLocal() =>
+        new(CatalogStorageLocations.DefaultLocalCandidate, applicationLocal: true);
+
+    // Separate production path. The existing fixture constructor remains restricted.
+    private SqliteCatalogStore(string databasePath, bool applicationLocal)
+    {
+        if (!applicationLocal || !OperatingSystem.IsWindows())
+            throw new InvalidOperationException("PERSIST01_APPLICATION_LOCAL_WINDOWS_REQUIRED");
+        var expected = Path.GetFullPath(CatalogStorageLocations.DefaultLocalCandidate);
+        var full = Path.GetFullPath(databasePath);
+        if (string.IsNullOrWhiteSpace(Environment.GetFolderPath(
+                Environment.SpecialFolder.LocalApplicationData)) ||
+            !string.Equals(full, expected, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(Path.GetFileName(full), "catalog.sqlite",
+                StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("PERSIST01_APPLICATION_LOCAL_ONLY");
+
+        var folder = Path.GetDirectoryName(full)!;
+        var application = Path.GetDirectoryName(folder)!;
+        _fixtureRoot = Path.GetDirectoryName(application)!;
+        _databasePath = full;
+        _applicationLocal = true;
+
+        // Before and after creation, never follow a pre-existing junction/symlink.
+        if (Directory.Exists(application) && AnyReparse(application, false))
+            throw new UnauthorizedAccessException("PERSIST01_APPLICATION_REPARSE_REFUSED");
+        Directory.CreateDirectory(folder);
+        if (AnyReparse(full, allowMissingFinal: true))
+            throw new UnauthorizedAccessException("PERSIST01_APPLICATION_REPARSE_REFUSED");
+        lock (_gate) EnsureSchema();
+    }
+
+    /// <summary>Enumerate saved ROMS catalogue identities from SQLite alone, with
+    /// no physical drive discovery, permission activation or filesystem scan.</summary>
+    public IReadOnlyList<CatalogLastKnown> LoadSavedRoms()
+    {
+        string[] roots;
+        lock (_gate)
+        {
+            CheckDisposed();
+            using var db = Open();
+            using var cmd = Command(db, null,
+                "SELECT StorageRootId FROM StorageRoot WHERE Role='ROMS' ORDER BY StorageRootId");
+            using var rows = cmd.ExecuteReader();
+            var ids = new List<string>();
+            while (rows.Read()) ids.Add(rows.GetString(0));
+            roots = ids.ToArray();
+        }
+        return Array.AsReadOnly(roots.Select(LoadLastKnown).ToArray());
+    }
+
+    /// <summary>Idempotent, transactional identity registration bound only to roles,
+    /// never to a persisted absolute source path or a scan grant.</summary>
+    public void EnsureLibraryRoot(CatalogLibrary library, CatalogStorageRoot root)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+        ArgumentNullException.ThrowIfNull(root);
+        RequireUuid(library.LibraryId);
+        RequireUuid(root.StorageRootId);
+        if (root.LibraryId != library.LibraryId || root.Role != "ROMS" ||
+            root.RelativeBinding != "ROMS" ||
+            string.IsNullOrWhiteSpace(library.Label) || library.Label.Length > 256)
+            throw new InvalidDataException("PERSIST01_LIBRARY_BINDING_INVALID");
+        ExecuteWrite((db, tx) =>
+        {
+            Exec(db, tx, "INSERT OR IGNORE INTO Library(LibraryId,Label) VALUES(@id,@label)",
+                ("@id", library.LibraryId), ("@label", library.Label));
+            Exec(db, tx, @"INSERT OR IGNORE INTO StorageRoot(
+                StorageRootId,LibraryId,Role,RelativeBinding)
+                VALUES(@id,@lib,'ROMS','ROMS')",
+                ("@id", root.StorageRootId), ("@lib", root.LibraryId));
+            var found = Scalar(db, tx, @"SELECT LibraryId || ':' || Role || ':' ||
+                RelativeBinding FROM StorageRoot WHERE StorageRootId=@id",
+                ("@id", root.StorageRootId)) as string;
+            if (found != root.LibraryId + ":ROMS:ROMS")
+                throw new InvalidDataException("PERSIST01_ROOT_IDENTITY_CONFLICT");
+        });
+    }
 
     /// <summary>Test-only path to a synthetic catalog under a specifically named temp fixture.</summary>
     internal SqliteCatalogStore(string databasePath, Action? testBeforeCommit = null,
@@ -443,6 +525,8 @@ public sealed class SqliteCatalogStore : ICatalogStore
     /// <summary>Creates an integrity-checked consistent database backup inside the explicitly authorized fixture directory.</summary>
     public string BackupVerified()
     {
+        if (_applicationLocal)
+            throw new InvalidOperationException("PERSIST01_BACKUP_NOT_AUTHORIZED");
         lock (_gate)
         {
             CheckDisposed();
@@ -457,6 +541,8 @@ public sealed class SqliteCatalogStore : ICatalogStore
     /// <summary>Adopts a validated fixture backup only after schema, manifest, relative paths and consistency checks succeed.</summary>
     public void RestoreVerified(string backupFile)
     {
+        if (_applicationLocal)
+            throw new InvalidOperationException("PERSIST01_RESTORE_NOT_AUTHORIZED");
         ArgumentException.ThrowIfNullOrWhiteSpace(backupFile);
         lock (_gate)
         {
@@ -577,10 +663,13 @@ public sealed class SqliteCatalogStore : ICatalogStore
         if (version > 0) ValidateSchemaStructure(db, version);
         if (version == 1)
         {
-            var before = Path.Combine(_fixtureRoot, "ROMOTHEQUE_MANAGER", "backups",
-                "pre-v2-" + Guid.NewGuid().ToString("N") + ".sqlite");
-            Directory.CreateDirectory(Path.GetDirectoryName(before)!);
-            CopyOnlineBackup(database, before);
+            if (!_applicationLocal)
+            {
+                var before = Path.Combine(_fixtureRoot, "ROMOTHEQUE_MANAGER", "backups",
+                    "pre-v2-" + Guid.NewGuid().ToString("N") + ".sqlite");
+                Directory.CreateDirectory(Path.GetDirectoryName(before)!);
+                CopyOnlineBackup(database, before);
+            }
             using var tx = db.BeginTransaction();
             Exec(db, tx, @"ALTER TABLE MetadataClaim
                 ADD COLUMN RuleVersion TEXT NOT NULL DEFAULT 'legacy/1';
@@ -590,10 +679,13 @@ public sealed class SqliteCatalogStore : ICatalogStore
         }
         if (version == 2)
         {
-            var before = Path.Combine(_fixtureRoot, "ROMOTHEQUE_MANAGER", "backups",
-                "pre-v3-" + Guid.NewGuid().ToString("N") + ".sqlite");
-            Directory.CreateDirectory(Path.GetDirectoryName(before)!);
-            CopyOnlineBackup(database, before);
+            if (!_applicationLocal)
+            {
+                var before = Path.Combine(_fixtureRoot, "ROMOTHEQUE_MANAGER", "backups",
+                    "pre-v3-" + Guid.NewGuid().ToString("N") + ".sqlite");
+                Directory.CreateDirectory(Path.GetDirectoryName(before)!);
+                CopyOnlineBackup(database, before);
+            }
             using var tx = db.BeginTransaction();
             // Replace the old UNIQUE key that ignored SubjectKey and overwrote
             // provenance. Preserve each legacy claim by ID and source values.
@@ -705,7 +797,12 @@ public sealed class SqliteCatalogStore : ICatalogStore
             throw new InvalidDataException("PERSIST01_BACKUP_CLAIM_IDENTITY_MISSING");
     }
 
-    private SqliteConnection Open() => OpenConnection(_databasePath, create: true);
+    private SqliteConnection Open()
+    {
+        if (_applicationLocal && AnyReparse(_databasePath, allowMissingFinal: false))
+            throw new UnauthorizedAccessException("PERSIST01_APPLICATION_REPARSE_REFUSED");
+        return OpenConnection(_databasePath, create: true);
+    }
 
     private static SqliteConnection OpenConnection(string path, bool create)
     {
