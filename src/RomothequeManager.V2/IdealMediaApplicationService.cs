@@ -210,6 +210,7 @@ public sealed class IdealMediaApplicationService : IDisposable
             _previewGrant = null;
             var generation = _session.Generation;
             var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(10)); // results after deadline are discarded
             _cancelPreview = cts;
             _previewRunning = true;
             return RunPreviewAsync(grant, media, evidence, request, generation, cts);
