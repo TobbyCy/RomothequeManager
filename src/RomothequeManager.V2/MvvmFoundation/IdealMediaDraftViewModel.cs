@@ -200,7 +200,18 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
             !_projection.Rows.Contains(row) ||
             row.State != MediaUiState.REFERENCED ||
             row.CandidateMediaObservationIds.Count != 1) return false;
-        Cancel();
+        // Backend RequestCancellation revokes its verified index. A row change
+        // with a pending preview grant therefore requires a fresh INDEX, rather
+        // than silently reusing an invalidated native permission.
+        if (_previewGrant)
+        {
+            Cancel();
+            _status = "PREVIEW révoqué · nouvel INDEX requis après changement d'image.";
+            NotifyAll();
+            return false;
+        }
+        ++_revision;
+        ReplacePreview(null);
         _selectedReference = row;
         _status = "Jaquette ES-DE déclarée sélectionnée ; autoriser PREVIEW séparément.";
         NotifyAll();
@@ -295,8 +306,13 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _indexGrant = false;
         _previewGrant = false;
         _busy = false;
+        // RequestCancellation invalidates the backend's verified Current.
+        // Never offer a stale observation for a new PREVIEW grant.
+        _current = null;
+        _projection = null;
+        _selectedReference = null;
         ReplacePreview(null);
-        _status = "Annulé · permissions INDEX/PREVIEW révoquées.";
+        _status = "Annulé · permissions INDEX/PREVIEW révoquées ; nouvel INDEX requis.";
         NotifyAll();
     }
 
