@@ -220,7 +220,7 @@ public partial class ObservedLibraryWindow : Window
         {
             var roots = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
-                Title = "Sélectionner la racine contenant ROMS/ (scan personnel désactivé)",
+                Title = "Choisir la racine contenant ROMS/ (aucun accès avant autorisation ROMS distincte et consentement)",
                 AllowMultiple = false
             });
             var root = roots.FirstOrDefault();
