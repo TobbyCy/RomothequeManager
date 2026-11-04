@@ -89,7 +89,8 @@ internal sealed class IdealMediaDraftWindow : Window
         {
             state.Text = _vm.Status;
             choose.IsEnabled = _vm.CanChooseMedia;
-            referenced.ItemsSource = _vm.ReferencedCovers;
+            if (!ReferenceEquals(referenced.ItemsSource, _vm.ReferencedCovers))
+                referenced.ItemsSource = _vm.ReferencedCovers;
             referenced.IsEnabled = _vm.SecurityApproved &&
                 _vm.CanChooseMedia && _vm.ReferencedCovers.Count > 0;
             authorizeIndex.IsEnabled = _vm.CanAuthorizeIndex;
