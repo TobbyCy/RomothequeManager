@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #134 — MEDIAS/PREVIEW à grants indépendants (préparation DEV 1, branche distincte)
+
+- Branche candidate `dev1/next05-ideal-media-preview-scoped`, empilée sur le contrat ROMS de PR #160 : racine MEDIAS validée localement, ouverture native par handles parent-relatifs, grants distincts `Index` et `Preview` à durée limitée et usage unique, identité native/génération/observation contrôlées. Aucun consentement ROMS n'autorise MEDIA.
+- **Statut PRÉPARATOIRE** : le chemin complet de parcours MEDIAS, décodage image natif et rapprochement des seules références XML déclarées ne sont **pas encore intégrés**. La classe de capacité reste interne et aucun nouveau I/O MEDIAS public n'est activé. Tests négatifs sur dossiers entièrement fictifs ; aucune lecture de sources réelles, aucune qualification bêta ou Release.
+
+
 ## NEXT-05 / #134 — GO code DEV 1 IDEAL backend + SQLite (branche candidate, 04.11.2026)
 
 - Mandat [#6631057632](https://github.com/TobbyCy/RomothequeManager/issues/134#issuecomment-6631057632) : backend IDEAL en code sur branche distincte. La PR DEV 1 candidate apporte une sélection locale explicite, une **deuxième action positive pour la capacité ROMS**, une lecture ROMS de métadonnées Windows via handles parent-relatifs et des contrôles de génération/consommation/révocation/temps/budget ; ni accès implicite aux MEDIAS/PREVIEW, ni autorisation issue d'un XML ou de SQLite.
