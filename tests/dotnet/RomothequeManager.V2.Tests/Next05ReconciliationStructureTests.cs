@@ -76,11 +76,12 @@ public sealed class Next05ReconciliationStructureTests
         Entry(xml["ps2"], "ISOS/Fiction-PS2-Unavailable.iso",
             "Fiction-PS2-Unavailable");
 
-        // One PS3 directory is the XML game reference. Its twelve internal
-        // files are merely observed files, NEVER twelve additional games.
+        // One PS3 folder reference has the structural PARAM.SFO + EBOOT.BIN
+        // markers. Twelve inert internal files are observations, not games.
         const string ps3 = "Fiction-PS3-Directory";
+        Inert("ROMS/ps3/" + ps3 + "/PS3_GAME/PARAM.SFO");
         Inert("ROMS/ps3/" + ps3 + "/PS3_GAME/USRDIR/EBOOT.BIN");
-        for (var i = 1; i <= 11; i++)
+        for (var i = 1; i <= 10; i++)
             Inert($"ROMS/ps3/{ps3}/PS3_GAME/USRDIR/INTERNAL_{i:D2}.dat");
         Cover("ps3/" + ps3 + ".png");
         Entry(xml["ps3"], ps3, ps3, "../covers/" + ps3 + ".png");
@@ -260,11 +261,36 @@ public sealed class Next05ReconciliationStructureTests
         Assert.IsFalse(withPs2Directory.Games.Single(x =>
             x.RomRelativePath == "ROMS/ps2/JustAFolder").RomExists);
 
-        // A nonexistent PS3 directory remains unavailable; the correction
-        // must not simply promote every PS3 XML reference to "present".
+        // Present but empty or arbitrary folders are NOT PS3 games.
+        Directory.CreateDirectory(Path.Combine(_root, "ROMS", "ps3", "EmptyFolder"));
+        Inert("ROMS/ps3/ArbitraryFolder/README.txt");
+        Inert("ROMS/ps3/PartialFolder/PS3_GAME/PARAM.SFO");
+        Inert("ROMS/ps3/WrongMarkerType/PS3_GAME/PARAM.SFO");
+        Directory.CreateDirectory(Path.Combine(_root, "ROMS", "ps3",
+            "WrongMarkerType", "PS3_GAME", "USRDIR", "EBOOT.BIN"));
         var ps3Xml = Path.Combine(_root, "MEDIAS", "ps3", "metadata",
             "es-de-gamelist.xml");
         var ps3Doc = XDocument.Load(ps3Xml);
+        foreach (var folder in new[] { "EmptyFolder", "ArbitraryFolder", "PartialFolder",
+            "WrongMarkerType" })
+            ps3Doc.Root!.Add(new XElement("game",
+                new XElement("path", "./" + folder),
+                new XElement("name", "Fictional " + folder)));
+        ps3Doc.Save(ps3Xml);
+        var unstructured = EsDeCatalogueImporter.Read(_root);
+        foreach (var folder in new[] { "EmptyFolder", "ArbitraryFolder", "PartialFolder",
+            "WrongMarkerType" })
+        {
+            Assert.IsFalse(unstructured.Games.Single(x =>
+                x.RomRelativePath == "ROMS/ps3/" + folder).RomExists,
+                "PS3_GAME structural markers are required, not directory existence.");
+            Assert.IsTrue(unstructured.Diagnostics.Any(x =>
+                x.Code == "ROM_MISSING" && x.Entry == "ROMS/ps3/" + folder));
+        }
+
+        // A nonexistent PS3 directory remains unavailable; the correction
+        // must not simply promote every PS3 XML reference to "present".
+        ps3Doc = XDocument.Load(ps3Xml);
         ps3Doc.Root!.Add(new XElement("game",
             new XElement("path", "./Fiction-PS3-Nonexistent"),
             new XElement("name", "Absent fictitious PS3 folder")));
@@ -279,6 +305,14 @@ public sealed class Next05ReconciliationStructureTests
         // candidate; only internal PS3_GAME contents are excluded.
         Inert("ROMS/ps3/Fiction-PS3-Standalone.iso");
         Cover("ps3/Fiction-PS3-Standalone.png");
+        // Standalone files retain File.Exists independently of PS3_GAME markers.
+        ps3Doc = XDocument.Load(ps3Xml);
+        ps3Doc.Root!.Add(new XElement("game",
+            new XElement("path", "./Fiction-PS3-Standalone.iso"),
+            new XElement("name", "Standalone PS3 ISO fictive")));
+        ps3Doc.Save(ps3Xml);
+        Assert.IsTrue(EsDeCatalogueImporter.Read(_root).Games.Single(x =>
+            x.RomRelativePath == "ROMS/ps3/Fiction-PS3-Standalone.iso").RomExists);
         var roms = Native();
         var media = IndexedMedia();
         var mapping = VerifiedScopeMapping.FromExplicitSelections(
@@ -310,4 +344,65 @@ public sealed class Next05ReconciliationStructureTests
         Assert.IsTrue(stale.All(x => x.Status == MediaLinkStatus.NOT_COMPARABLE),
             "A stale MEDIA run must never imply that a cover is absent or approved.");
     }
+
+    [TestMethod]
+    public void REC_04_Ps3MarkerSymlinksAreRefusedNotFollowed()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var target = Path.Combine(_root, "ROMS", "ps3", "Fiction-PS3-Directory");
+        var linked = Path.Combine(_root, "ROMS", "ps3", "LinkedFolder");
+        try
+        {
+            Directory.CreateSymbolicLink(linked, target);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+        {
+            Console.WriteLine("REC_04_REPARSE_CAPABILITY_UNAVAILABLE: no symlink created; " +
+                ex.GetType().Name);
+            return;
+        }
+        var xml = Path.Combine(_root, "MEDIAS", "ps3", "metadata",
+            "es-de-gamelist.xml");
+        var doc = XDocument.Load(xml);
+        doc.Root!.Add(new XElement("game",
+            new XElement("path", "./LinkedFolder"),
+            new XElement("name", "Fictional linked folder")));
+        doc.Save(xml);
+        Assert.ThrowsExactly<InvalidDataException>(() =>
+            EsDeCatalogueImporter.Read(_root),
+            "Even a link to a structurally valid fixture folder is rejected.");
+
+        // Separately a linked marker must be rejected without opening it.
+        Directory.Delete(linked);
+        var marker = Path.Combine(target, "PS3_GAME", "PARAM.SFO");
+        var inert = Inert("ROMS/ps3/SafeMarker.ps3");
+        File.Move(marker, marker + ".ordinary");
+        try
+        {
+            File.CreateSymbolicLink(marker, inert);
+            Assert.ThrowsExactly<InvalidDataException>(() =>
+                EsDeCatalogueImporter.Read(_root),
+                "A linked PARAM.SFO must never be accepted as an ordinary marker.");
+        }
+        finally
+        {
+            File.Delete(marker);
+            File.Move(marker + ".ordinary", marker);
+        }
+    }
+
+    [TestMethod]
+    public void REC_05_Ps3RomPathTraversalIsDenied()
+    {
+        var xml = Path.Combine(_root, "MEDIAS", "ps3", "metadata",
+            "es-de-gamelist.xml");
+        var doc = XDocument.Load(xml);
+        doc.Root!.Elements("game").First().Element("path")!.Value =
+            "../../../outside-the-authorized-ROMs/escaped.ps3";
+        doc.Save(xml);
+        Assert.ThrowsExactly<InvalidDataException>(() =>
+            EsDeCatalogueImporter.Read(_root),
+            "A PS3 XML path cannot escape the selected ROMS scope.");
+    }
+
 }
