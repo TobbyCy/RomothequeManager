@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / #159 — DocFX Avalonia : provenance XAML attestée (DEV 1, PR candidate)
+
+- Corrige uniquement la comparaison native des sorties Avalonia de DocFX : permet une édition XAML enregistrée dans Git et liée aux sources natives lorsque les fichiers générés, leurs hash, leurs identités de générateur et leurs attestations sont inchangés. Conserve le refus fail-closed des dérives non prouvées.
+- Tests positifs et négatifs ciblés ; protections DocFX, seuils et CI inchangés. PR #159, aucun merge ni Release.
+
+
+
 ## NEXT-05 / #134 — IDEAL backend consent + SQLite application-local (DEV 1, 04.11.2026)
 
 - **Branche/PR candidate, non fusionnée** : connexion d'un scan ROMS metadata-only fondé sur les handles Windows RS-A à une sélection IDEAL de l'utilisateur et à une permission ROMS distincte, éphémère, liée à la génération/racine/opération et révoquée après Cancel, changement et fermeture. Aucun scan déclenché automatiquement par l'EXE.
