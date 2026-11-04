@@ -220,3 +220,6 @@ if ($LASTEXITCODE -eq 0) { throw 'BETA_NOTICE_MUTATION_NEGATIVE_FALSE_PASS' }
 Write-Host ('BETA_ZIP_TWO_BUILDS_IDENTICAL sha256=' + $first.digest + ' files=' + $first.files.Count + ' phase=validate no_upload=true')
 Write-Host 'BETA_NEGATIVES_PASS missing_native=true tampered_notice=true'
 Write-Host ('BETA_ZIP_VALIDATED_STAGED source=' + $SourceSha + ' extract=' + $first.extract)
+# An expected nonzero negative oracle must not leak into the successful caller.
+# Every fatal positive gate and both negative-refusal assertions precede this point.
+$global:LASTEXITCODE = 0
