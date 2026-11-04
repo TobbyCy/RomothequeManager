@@ -3,17 +3,34 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using RomothequeManager.V2.Inventory;
 using RomothequeManager.V2.Inventory.Application;
+using RomothequeManager.V2.Persistence;
 
 namespace RomothequeManager.V2.MvvmFoundation;
 
 // NEXT-03 foundation: never constructs InventorySession, reads a folder, or uses Avalonia.
 // DEV 1's application service is sole owner of scans, cancellation and Current/LastAttempt.
 // The View injects a UI-thread dispatcher and owns the native folder picker.
+/// <summary>One safe, offline-restorable SQLite library choice, without a local path.</summary>
+public sealed record SavedLibraryChoice(string StorageRootId, string Label);
+
 /// <summary>Read-only inventory presentation adapter. The injected application service alone owns scans, read grants and immutable results.</summary>
 public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly IInventoryApplicationService _service;
     private readonly Action<Action> _postToUi;
+    // Only a product-composed backend adapter can request a ROMS capability.
+    // Its bool result is presentation state, NOT the authoritative grant.
+    private readonly Func<long, bool>? _requestRomsGrant;
+    private readonly Func<IReadOnlyList<CatalogLastKnown>>? _loadSavedLibraries;
+    private readonly Func<string, bool>? _restoreSaved;
+    private readonly InventoryCommand _listSaved;
+    private readonly InventoryCommand _showSaved;
+    private IReadOnlyList<SavedLibraryChoice> _savedLibraries = Array.Empty<SavedLibraryChoice>();
+    private SavedLibraryChoice? _selectedSaved;
+    private string _savedLibraryStatus = "Aucun historique consulté.";
+    private readonly InventoryCommand _grant;
+    private bool _grantReportedAccepted;
+    private string _grantUiStatus = "Aucune autorisation ROMS demandée.";
     private readonly InventoryCommand _start;
     private readonly InventoryCommand _cancel;
     private readonly InventoryCommand _selectObservation;
@@ -27,13 +44,33 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     private string? _localErrorCode;
     private FileObservation? _selectedObservation;
 
+    /// <summary>Preserves the historical two-argument inventory adapter constructor.
+    /// No ROMS grant or SQLite callback is injected; only the application service
+    /// may authorize reads, and construction never starts an inventory.</summary>
+    /// <param name="service">Service owning scans, cancellation and immutable inventory state.</param>
+    /// <param name="postToUi">Dispatcher callback for UI-thread state notifications.</param>
+    public InventoryViewModel(IInventoryApplicationService service, Action<Action> postToUi)
+        : this(service, postToUi, requestRomsGrant: null,
+            loadSavedLibraries: null, restoreSaved: null)
+    {
+    }
+
     /// <summary>Creates a read-only inventory adapter around an injected application service and an explicit UI dispatch callback; construction never starts a scan.</summary>
     /// <param name="service">Service that exclusively owns selection authorization, scanning, cancellation and immutable Current/LastAttempt state; its lifetime remains with the host.</param>
     /// <param name="postToUi">Callback that marshals service notifications to the UI thread and permits stale-state checks before adoption.</param>
-    public InventoryViewModel(IInventoryApplicationService service, Action<Action> postToUi)
+    public InventoryViewModel(IInventoryApplicationService service, Action<Action> postToUi,
+        Func<long, bool>? requestRomsGrant = null,
+        Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
+        Func<string, bool>? restoreSaved = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _postToUi = postToUi ?? throw new ArgumentNullException(nameof(postToUi));
+        _requestRomsGrant = requestRomsGrant;
+        _loadSavedLibraries = loadSavedLibraries;
+        _restoreSaved = restoreSaved;
+        _grant = new InventoryCommand(_ => RequestRomsGrant(), _ => CanRequestRomsGrant);
+        _listSaved = new InventoryCommand(_ => LoadSavedLibraries(), _ => CanLoadSavedLibraries);
+        _showSaved = new InventoryCommand(_ => RestoreSelectedSaved(), _ => CanRestoreSavedLibrary);
         _state = service.State;
         _latestVersion = _state.SelectionVersion;
 
@@ -52,6 +89,47 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>Starts one explicitly confirmed inventory request; selection alone cannot run a scan.</summary>
     public ICommand StartInventoryCommand => _start;
+    /// <summary>Explicit ROMS authorization action provided by the product backend.
+    /// Hidden when no production authorization adapter is injected.</summary>
+    public ICommand RequestRomsGrantCommand => _grant;
+    /// <summary>Whether a separate backend authorization action has been supplied.</summary>
+    public bool HasRomsGrantAction => _requestRomsGrant is not null;
+    /// <summary>True only when a selected scope may request a fresh ROMS grant.</summary>
+    public bool CanRequestRomsGrant => !_disposed && !IsBusy &&
+        _requestRomsGrant is not null && !_grantReportedAccepted &&
+        !string.IsNullOrWhiteSpace(SelectedLocalRoot) &&
+        Phase is (InventoryRunPhase.Ready or InventoryRunPhase.Completed
+            or InventoryRunPhase.Rejected or InventoryRunPhase.Faulted);
+    /// <summary>Neutral display of the last grant request, never evidence of a scan.</summary>
+    public string RomsGrantStatus => _grantUiStatus;
+    /// <summary>Product SQLite composition is available without a filesystem grant.</summary>
+    public bool HasSavedLibraryCommands => _loadSavedLibraries is not null && _restoreSaved is not null;
+    /// <summary>Historical operations are unavailable while a scan is running.</summary>
+    public bool CanLoadSavedLibraries => !_disposed && !IsBusy && HasSavedLibraryCommands;
+    /// <summary>Stable library identifiers and timestamp-only labels, no absolute paths.</summary>
+    public IReadOnlyList<SavedLibraryChoice> SavedLibraries => _savedLibraries;
+    /// <summary>Currently selected saved catalogue; no implicit restore or read.</summary>
+    public SavedLibraryChoice? SelectedSavedLibrary
+    {
+        get => _selectedSaved;
+        set
+        {
+            if (_disposed || (value is not null && !_savedLibraries.Contains(value))) return;
+            if (ReferenceEquals(_selectedSaved, value)) return;
+            _selectedSaved = value;
+            Changed();
+            Changed(nameof(CanRestoreSavedLibrary));
+            _showSaved.NotifyCanExecuteChanged();
+        }
+    }
+    /// <summary>Explicit loading of known SQLite library IDs, never source volumes.</summary>
+    public ICommand LoadSavedLibrariesCommand => _listSaved;
+    /// <summary>Explicitly show the chosen historical Current/LastAttempt, without grant.</summary>
+    public ICommand RestoreSavedLibraryCommand => _showSaved;
+    /// <summary>A saved library can be restored only through its backend ID.</summary>
+    public bool CanRestoreSavedLibrary => CanLoadSavedLibraries && _selectedSaved is not null;
+    /// <summary>Redacted SQLite result status; never includes a root or exception text.</summary>
+    public string SavedLibraryStatus => _savedLibraryStatus;
     /// <summary>Requests cancellation of an active scan through the application service; it does not discard the last complete snapshot.</summary>
     public ICommand CancelInventoryCommand => _cancel;
     /// <summary>Selects an observation only when its identity exists in the currently displayed snapshot.</summary>
@@ -83,7 +161,8 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         }
     }
     /// <summary>Requires a selected root, one-shot consent and an eligible idle service phase; no implicit scanning.</summary>
-    public bool CanStart => !_disposed && _consentConfirmed && !IsBusy &&
+    public bool CanStart => !_disposed && _consentConfirmed &&
+        (_requestRomsGrant is null || _grantReportedAccepted) && !IsBusy &&
         !string.IsNullOrWhiteSpace(SelectedLocalRoot) &&
         (Phase is InventoryRunPhase.Ready or InventoryRunPhase.Completed or
             InventoryRunPhase.Rejected or InventoryRunPhase.Faulted);
@@ -185,6 +264,80 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
             _ => "État non vérifié."
         };
 
+    /// <summary>Read the app-local SQLite list on an explicit button press only.
+    /// The injected backend supplies all I/O and returns no real-root paths.</summary>
+    public void LoadSavedLibraries()
+    {
+        if (!CanLoadSavedLibraries) return;
+        try
+        {
+            _savedLibraries = _loadSavedLibraries!()
+                .Where(row => row.StorageRoot.Role == "ROMS" &&
+                    Guid.TryParse(row.StorageRoot.StorageRootId, out _))
+                .Select(row => new SavedLibraryChoice(row.StorageRoot.StorageRootId,
+                    "Bibliothèque " + row.StorageRoot.StorageRootId[..8] +
+                    " · dernier complet : " +
+                    (row.CurrentComplete?.CapturedAtUtc.ToString("u") ?? "aucun")))
+                .ToArray();
+            _selectedSaved = null;
+            _savedLibraryStatus = _savedLibraries.Count == 0
+                ? "Aucune bibliothèque ROMS sauvegardée." :
+                _savedLibraries.Count + " bibliothèque(s) sauvegardée(s) ; aucune lecture des sources.";
+        }
+        catch
+        {
+            _savedLibraries = Array.Empty<SavedLibraryChoice>();
+            _selectedSaved = null;
+            _savedLibraryStatus = "Historique SQLite indisponible ; aucune lecture des sources.";
+        }
+        NotifyAll();
+    }
+
+    /// <summary>Restore an immutable SQLite snapshot OFFLINE/STALE, without
+    /// implicitly authorizing any root or triggering a scan.</summary>
+    public void RestoreSelectedSaved()
+    {
+        if (!CanRestoreSavedLibrary) return;
+        var selected = _selectedSaved!;
+        bool accepted;
+        try { accepted = _restoreSaved!(selected.StorageRootId); }
+        catch { accepted = false; }
+        ClearGrantPresentation();
+        _consentConfirmed = false;
+        _savedLibraryStatus = accepted
+            ? "Historique ouvert : OFFLINE / STALE ; aucune autorisation de lecture restaurée."
+            : "Historique indisponible ; dernier état conservé.";
+        // The service's StateChanged owns which immutable snapshot is displayed.
+        NotifyAll();
+    }
+
+    /// <summary>Request an operation-scoped ROMS permission only after a separate
+    /// explicit button click. Permission must be validated AGAIN by the backend at Start.</summary>
+    public void RequestRomsGrant()
+    {
+        if (!CanRequestRomsGrant) return;
+        _grantReportedAccepted = false;
+        try
+        {
+            _grantReportedAccepted = _requestRomsGrant!(_latestVersion);
+            _grantUiStatus = _grantReportedAccepted
+                ? "Autorisation ponctuelle acceptée par le service ; validité contrôlée au démarrage."
+                : "Autorisation ROMS refusée ; aucun inventaire démarré.";
+        }
+        catch
+        {
+            // Never reveal an exception or personal local path.
+            _grantUiStatus = "Autorisation ROMS refusée ; aucune lecture engagée.";
+        }
+        NotifyAll();
+    }
+
+    private void ClearGrantPresentation()
+    {
+        _grantReportedAccepted = false;
+        _grantUiStatus = "Aucune autorisation ROMS active dans cette sélection.";
+    }
+
     // Called ONLY after a native picker returned a candidate. The service checks the root,
     // without enumerating ROMS until separate consent. Reject preserves previous selection.
     /// <summary>Validates a picker-selected scope via the service without enumerating ROMS or retaining consent after rejection.</summary>
@@ -198,6 +351,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         {
             _latestVersion = Math.Max(_latestVersion, result.SelectionVersion);
             _consentConfirmed = false;
+            ClearGrantPresentation();
             _preferLastAttempt = false;
             _selectedObservation = null;
             _localErrorCode = null;
@@ -208,6 +362,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
             // A rejected choice preserves the previous library but must never
             // preserve a confirmation that could now target the wrong folder.
             _consentConfirmed = false;
+            ClearGrantPresentation();
             _localErrorCode = result.SafeDiagnosticCode ?? "SELECTION_REJECTED";
             NotifyAll();
         }
@@ -221,6 +376,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         if (!CanStart) return;
         _localErrorCode = null;
         _consentConfirmed = false; // consent is one-shot, even if the service refuses.
+        ClearGrantPresentation(); // the backend independently consumes/revokes the actual grant.
         NotifyAll();
         try
         {
@@ -249,7 +405,11 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     {
         if (!CanCancel) return false;
         var accepted = _service.RequestCancellation();
-        if (accepted) ApplyIfCurrent(_service.State);
+        if (accepted)
+        {
+            ClearGrantPresentation();
+            ApplyIfCurrent(_service.State);
+        }
         return accepted;
     }
 
@@ -260,6 +420,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     {
         if (!CanChangeFolder || !_service.ClearSelection()) return false;
         _consentConfirmed = false;
+        ClearGrantPresentation();
         _localErrorCode = null;
         ApplyIfCurrent(_service.State);
         return true;
@@ -321,6 +482,7 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         _state = state;
         if (contextChanged || snapshotChanged)
         {
+            if (contextChanged) ClearGrantPresentation();
             _selectedObservation = null;
             _preferLastAttempt = false;
         }
@@ -336,6 +498,11 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         {
             nameof(Phase), nameof(SelectedLocalRoot), nameof(ConsentConfirmed), nameof(IsBusy),
             nameof(CanChangeFolder), nameof(CanStart), nameof(CanCancel),
+            nameof(HasRomsGrantAction), nameof(CanRequestRomsGrant),
+            nameof(RomsGrantStatus), nameof(HasSavedLibraryCommands),
+            nameof(CanLoadSavedLibraries), nameof(SavedLibraries),
+            nameof(SelectedSavedLibrary), nameof(CanRestoreSavedLibrary),
+            nameof(SavedLibraryStatus),
             nameof(IsProgressIndeterminate), nameof(Current), nameof(LastAttempt),
             nameof(ShowingLastAttempt), nameof(DisplayedSnapshot), nameof(Observations),
             nameof(Diagnostics), nameof(Coverage), nameof(SelectedObservation),
@@ -346,6 +513,9 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         })
             Changed(property);
         _start.NotifyCanExecuteChanged();
+        _grant.NotifyCanExecuteChanged();
+        _listSaved.NotifyCanExecuteChanged();
+        _showSaved.NotifyCanExecuteChanged();
         _cancel.NotifyCanExecuteChanged();
         _selectObservation.NotifyCanExecuteChanged();
         _showCurrent.NotifyCanExecuteChanged();

@@ -4,7 +4,13 @@
 
 - PR Draft #161 : nouveau `IdealMediaApplicationService` avec sélection de MEDIAS indépendante, clic d'autorisation INDEX puis clic indépendant PREVIEW lié à une observation du même run, grants natifs à usage unique et TTL borné, révocation sur Cancel/A→B/Dispose, état Current/LastAttempt. La lecture ne réutilise jamais le grant ROMS.
 - `NativeIdealMediaReader` énumère des handles Windows ancrés non-reparse, classe des en-têtes PNG/JPEG/WebP sous budgets de temps/profondeur/fichiers/octets et lit l'image approuvée par un nouveau handle de données, vérifiant identité native, taille et empreinte d'en-tête. Le décodeur Skia partagé conserve limites d'entrée (8 MiB), dimensions (2048/3.5 Mpx), cible (512 px), tampons et refus. Aucun chemin absolu média transmis à la vue.
-- Tests natifs synthétiques MEDIA_01–06 pour consentement séparé, refus INDEX→PREVIEW, rejouabilité, racines A→B, annulation, image invalide/trop grande, altération après indexation et lecture PNG fictif. **CI, revue DEV 2 et raccordement GUI/ES-DE restent à qualifier avant la bêta.** Aucune donnée personnelle, fusion ou Release.
+- Tests natifs synthétiques MEDIA_01–07 pour consentement séparé, refus INDEX→PREVIEW, rejouabilité, racines A→B, Cancel/Dispose, refus UNC/device/traversal, image invalide/trop grande, altération après indexation et lecture PNG fictif. **CI, revue DEV 2 et raccordement GUI/ES-DE restent à qualifier avant la bêta.** Aucune donnée personnelle, fusion ou Release.
+
+## NEXT-05 / #159 — DocFX Avalonia : provenance XAML attestée (DEV 1, PR candidate)
+
+- Corrige uniquement la comparaison native des sorties Avalonia de DocFX : permet une édition XAML enregistrée dans Git et liée aux sources natives lorsque les fichiers générés, leurs hash, leurs identités de générateur et leurs attestations sont inchangés. Conserve le refus fail-closed des dérives non prouvées.
+- Tests positifs et négatifs ciblés ; protections DocFX, seuils et CI inchangés. PR #159, aucun merge ni Release.
+
 
 
 ## NEXT-05 / #134 — IDEAL backend consent + SQLite application-local (DEV 1, 04.11.2026)
@@ -529,3 +535,11 @@ Après chaque changement intégré, préciser le comportement, la compatibilité
 ### NEXT-05 / DocFX permanent (#88/#138) — PR en cours, non fusionnée
 
 - Chaîne XML C# → DocFX YAML → HTML, contrôle des UID et liens, métriques Roslyn par symbole, canaris et gate CI obligatoire en cours de validation. Aucune conclusion PASS avant exécution Windows au SHA exact ni couverture ≥90 % effectivement mesurée. Aucun site ni Release publiés.
+
+## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
+
+- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) ouverte, intégration GUI candidate au-dessus du `main` incluant les PR backend #160 et outillage #162, toutes deux fusionnées ; #159 reste non fusionnée. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
+- UX : libellés de l'ancien refus Alpha et de l'absence de persistance corrigés dans l'accueil et le picker ; libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
+- Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
+- **Backend #160 déjà fusionné sur main** : le HEAD GUI candidat câble `IdealLibraryBackendService`, `AuthorizeRomsRead` et `LoadSavedLibraries` / `RestoreSaved` dans l'EXE standard ; le HEAD actuel ne revendique aucune recette humaine du nouveau parcours.
+- CI du HEAD final post-#162, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier ; PASS non présumé. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
