@@ -16,28 +16,41 @@ internal enum IdealMediaOperation
 
 /// <summary>Volatile one-shot native media capability, never serialized into SQLite,
 /// XML, settings, environment variables or a ViewModel.</summary>
-internal sealed class IdealMediaReadGrant(
-    IdealMediaOperation operation, string rootId, long selectionVersion,
-    DateTimeOffset expiresUtc, RsAHandleIdentity nativeIdentity,
-    string? runId = null, string? observationId = null)
+internal sealed class IdealMediaReadGrant
 {
+    /// <summary>Create an ephemeral, operation-specific capability bound to the
+    /// exact native MEDIAS root identity, generation and optional indexed image.</summary>
+    internal IdealMediaReadGrant(IdealMediaOperation operation, string rootId,
+        long selectionVersion, DateTimeOffset expiresUtc,
+        RsAHandleIdentity nativeIdentity, string? runId = null,
+        string? observationId = null)
+    {
+        Operation = operation;
+        RootId = rootId;
+        SelectionVersion = selectionVersion;
+        ExpiresUtc = expiresUtc;
+        NativeIdentity = nativeIdentity;
+        RunId = runId;
+        ObservationId = observationId;
+    }
+
     private int _claimed;
     private int _revoked;
 
     /// <summary>The only operation this capability can authorize.</summary>
-    internal IdealMediaOperation Operation { get; } = operation;
+    internal IdealMediaOperation Operation { get; }
     /// <summary>Logical role-scoped root identity, not a physical path grant.</summary>
-    internal string RootId { get; } = rootId;
+    internal string RootId { get; }
     /// <summary>Generation invalidated whenever the selected root changes.</summary>
-    internal long SelectionVersion { get; } = selectionVersion;
+    internal long SelectionVersion { get; }
     /// <summary>Short, bounded permission expiry.</summary>
-    internal DateTimeOffset ExpiresUtc { get; } = expiresUtc;
+    internal DateTimeOffset ExpiresUtc { get; }
     /// <summary>Identity of a natively opened MEDIAS root captured at consent.</summary>
-    internal RsAHandleIdentity NativeIdentity { get; } = nativeIdentity;
+    internal RsAHandleIdentity NativeIdentity { get; }
     /// <summary>Exact media-index run required for a preview.</summary>
-    internal string? RunId { get; } = runId;
+    internal string? RunId { get; }
     /// <summary>Exact indexed observation, not an arbitrary path.</summary>
-    internal string? ObservationId { get; } = observationId;
+    internal string? ObservationId { get; }
 
     /// <summary>Revoke before Cancel, selection replacement or session Dispose.</summary>
     internal void Revoke() => Interlocked.Exchange(ref _revoked, 1);
@@ -67,6 +80,9 @@ internal sealed class IdealMediaGrantSession : IDisposable
     private IdealMediaReadGrant? _grant;
     private MediaIndexSnapshot? _verified;
     private bool _disposed;
+
+    /// <summary>Begin unbound with no selected media root or active capability.</summary>
+    internal IdealMediaGrantSession() { }
 
     /// <summary>Current selection generation, invalidated on every selection attempt.</summary>
     internal long Generation { get { lock (_sync) return _generation; } }
