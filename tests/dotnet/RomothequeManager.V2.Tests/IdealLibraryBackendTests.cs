@@ -42,7 +42,7 @@ public sealed class IdealLibraryBackendTests
     }
 
     private IdealLibraryBackendService Service(Action<string>? callback = null) =>
-        new(new SqliteCatalogStore(_db), syntheticFixtureOnly: true, callback);
+        new(new SqliteCatalogStore(_db), syntheticFixtureOnly: true, beforeChildOpenForTest: callback);
 
     private static InventorySelectionResult Select(IdealLibraryBackendService service, string path) =>
         service.PrepareSelection(new InventoryScope(path, MaxDepth: 4, MaxFiles: 32,
