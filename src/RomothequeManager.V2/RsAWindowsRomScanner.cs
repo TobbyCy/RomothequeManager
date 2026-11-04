@@ -153,6 +153,8 @@ internal sealed class RsAFixtureRomSession
         return _grant = new RsAReadGrant(_storageRootId, _version, expiresUtc, identity);
     }
 
+    /// <summary>Authorize a one-use, explicitly confirmed synthetic ROMS fixture only;
+    /// the real selected-library authorization is a distinct operation.</summary>
     internal RsAReadGrant AuthorizeFixture(bool explicitUserAction,
         DateTimeOffset expiresUtc)
     {
@@ -424,6 +426,8 @@ internal static class RsAAnchoredReader
     internal static SafeFileHandle OpenSelectedLocalRoot(string root) =>
         OpenRootCore(ValidateSelectedLocalRomsPath(root));
 
+    /// <summary>Open only a named synthetic fixture ROMS root using native parent-relative
+    /// handles, preserving the original fixture gate and rejecting reparse points.</summary>
     internal static SafeFileHandle OpenRoot(string root) =>
         OpenRootCore(ValidateFixturePath(root));
 
