@@ -53,7 +53,7 @@ internal static class Program
         window = new MainWindow(() =>
         {
             var backend = new IdealLibraryBackendService();
-            return ObservedLibraryWindow.FromStandardServices(backend,
+            return ObservedLibraryWindow.FromStandardServicesWithImported(backend,
                 requestRomsGrant: version =>
                     backend.AuthorizeRomsRead(version, explicitUserAction: true),
                 loadSavedLibraries: backend.LoadSavedLibraries,
