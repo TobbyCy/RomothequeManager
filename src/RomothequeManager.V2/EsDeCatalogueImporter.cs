@@ -366,7 +366,12 @@ public static class EsDeCatalogueImporter
                     title = Path.GetFileNameWithoutExtension(romFile);
                     diagnostics.Add(new("TITLE_FALLBACK", platform, romRelative, "Name missing; filename shown."));
                 }
-                bool exists = File.Exists(romFile);
+                // ES-DE PS3 gamelists can reference an installed game DIRECTORY.
+                // Presence is not playability and never licenses recursive contents.
+                // Other platforms still require an actual ROM/playlist file.
+                bool exists = File.Exists(romFile) ||
+                    (platform.Equals("ps3", StringComparison.OrdinalIgnoreCase) &&
+                     Directory.Exists(romFile));
                 if (!exists)
                     diagnostics.Add(new("ROM_MISSING", platform, romRelative, "Source unavailable; never treated as deleted."));
 
