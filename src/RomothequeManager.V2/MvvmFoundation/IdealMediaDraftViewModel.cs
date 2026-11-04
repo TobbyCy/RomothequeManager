@@ -25,6 +25,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     private CancellationTokenSource? _pending;
     private MediaIndexSnapshot? _current;
     private MediaUiSnapshot? _projection;
+    private IReadOnlyList<MediaUiRow> _referenced = Array.Empty<MediaUiRow>();
     private MediaUiRow? _selectedReference;
     private MediaPreviewResult? _preview;
     private bool _selectedRoot, _indexGrant, _previewGrant, _busy, _disposed;
@@ -62,10 +63,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     public IReadOnlyList<MediaUiRow> Evidence =>
         _projection?.Rows ?? Array.Empty<MediaUiRow>();
     /// <summary>Only explicitly sourced and unambiguous references are selectable for preview.</summary>
-    public IReadOnlyList<MediaUiRow> ReferencedCovers =>
-        _projection?.Rows.Where(row => row.State == MediaUiState.REFERENCED &&
-            row.CandidateMediaObservationIds.Count == 1).ToArray()
-        ?? Array.Empty<MediaUiRow>();
+    public IReadOnlyList<MediaUiRow> ReferencedCovers => _referenced;
     /// <summary>Independent media observations not linked to any reference.</summary>
     public IReadOnlyList<UnlinkedMediaRow> Unlinked =>
         _projection?.UnlinkedMedias ?? Array.Empty<UnlinkedMediaRow>();
@@ -100,6 +98,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _selectedRoot = accepted;
         _current = null;
         _projection = null;
+        _referenced = Array.Empty<MediaUiRow>();
         _selectedReference = null;
         _status = accepted ? "MEDIAS sélectionné. Autoriser INDEX séparément." :
             "Racine MEDIAS refusée ou indisponible.";
@@ -139,6 +138,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
             if (_disposed || revision != _revision) return;
             _current = _service.Current;
             _projection = null; // Never carry links across INDEX generations.
+            _referenced = Array.Empty<MediaUiRow>();
             _status = attempt.ScanStatus == InventoryScanStatus.Complete &&
                 attempt.Availability == InventoryAvailability.Online
                 ? "INDEX terminé · aucune jaquette attribuée automatiquement."
@@ -181,12 +181,16 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
             mapping.MediaRootRef != _current.MediaRootRef)
         {
             _projection = null;
+            _referenced = Array.Empty<MediaUiRow>();
             _status = "Hors scope / OFFLINE / STALE : jaquettes non comparables.";
             NotifyAll();
             return;
         }
         var claims = EsDeDeclaredMediaClaims.Build(roms.Observations, imported);
         _projection = _presentation.Build(roms, _current, mapping, claims);
+        _referenced = Array.AsReadOnly(_projection.Rows.Where(row =>
+            row.State == MediaUiState.REFERENCED &&
+            row.CandidateMediaObservationIds.Count == 1).ToArray());
         _status = "Références ES-DE sourcées ; aucune association approuvée.";
         NotifyAll();
     }
@@ -310,6 +314,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         // Never offer a stale observation for a new PREVIEW grant.
         _current = null;
         _projection = null;
+        _referenced = Array.Empty<MediaUiRow>();
         _selectedReference = null;
         ReplacePreview(null);
         _status = "Annulé · permissions INDEX/PREVIEW révoquées ; nouvel INDEX requis.";
@@ -347,6 +352,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _disposed = true;
         _service.Dispose();
         _projection = null;
+        _referenced = Array.Empty<MediaUiRow>();
         _current = null;
         _selectedReference = null;
         ReplacePreview(null);
