@@ -186,7 +186,9 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         {
             _projection = null;
             _referenced = Array.Empty<MediaUiRow>();
-        _coverProposals = Array.Empty<IdealMediaCoverProposal>();
+            _coverProposals = Array.Empty<IdealMediaCoverProposal>();
+            _selectedCover = null;
+            ReplacePreview(null);
             _status = "Hors scope / OFFLINE / STALE : jaquettes non comparables.";
             NotifyAll();
             return;
@@ -196,41 +198,44 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _referenced = Array.AsReadOnly(_projection.Rows.Where(row =>
             row.State == MediaUiState.REFERENCED &&
             row.CandidateMediaObservationIds.Count == 1).ToArray());
-        _status = "Références ES-DE sourcées ; aucune association approuvée.";
+        _coverProposals = IdealMediaCoverProposals.Build(roms, _current, _projection);
+        _selectedCover = null;
+        ReplacePreview(null);
+        _status = "Jaquettes locales candidates : " + _coverProposals.Count +
+            " · XML facultatif · aucune association approuvée.";
         NotifyAll();
     }
 
-    /// <summary>Only a single observed media ID with explicit ES-DE provenance
-    /// may become an independent PREVIEW request. Never selects by title.</summary>
-    internal bool SelectReferencedCover(MediaUiRow row)
+    /// <summary>Explicit user selection of a unique native observation. This
+    /// grants neither PREVIEW nor permission to persist a cover association.</summary>
+    internal bool SelectCoverForPreview(IdealMediaCoverProposal choice)
     {
-        if (!SecurityApproved || _disposed || _busy ||
+        if (!SecurityApproved || _disposed || _busy || _pending is not null ||
             _projection is null || _current is null ||
-            !_projection.Rows.Contains(row) ||
-            row.State != MediaUiState.REFERENCED ||
-            row.CandidateMediaObservationIds.Count != 1) return false;
-        // Backend RequestCancellation revokes its verified index. A row change
-        // with a pending preview grant therefore requires a fresh INDEX, rather
-        // than silently reusing an invalidated native permission.
+            !_coverProposals.Contains(choice) ||
+            choice.RomScanId != _projection.RomScanId ||
+            choice.MediaRunId != _current.RunId ||
+            choice.MediaRootRef != _current.MediaRootRef)
+            return false;
         if (_previewGrant)
         {
+            // A consumed or granted preview cannot be silently retargeted.
             Cancel();
-            _status = "PREVIEW révoqué · nouvel INDEX requis après changement d'image.";
-            NotifyAll();
             return false;
         }
         ++_revision;
         ReplacePreview(null);
-        _selectedReference = row;
-        _status = "Jaquette ES-DE déclarée sélectionnée ; autoriser PREVIEW séparément.";
+        _selectedCover = choice;
+        _status = "Candidate " + choice.State +
+            " sélectionnée · autoriser PREVIEW séparément.";
         NotifyAll();
         return true;
     }
 
     private MediaPreviewRequest? SelectedRequest()
     {
-        if (_current is null || _selectedReference is null) return null;
-        var id = _selectedReference.CandidateMediaObservationIds.SingleOrDefault();
+        if (_current is null || _selectedCover is null) return null;
+        var id = _selectedCover.MediaObservationId;
         if (id is null || !_current.Observations.Any(x =>
             x.MediaObservationId == id && x.HeaderValidated &&
             x.Kind == MediaKind.Cover)) return null;
@@ -270,8 +275,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         {
             result = await _service.LoadPreviewAsync(request, cancellation.Token);
             if (_disposed || revision != _revision || _current?.RunId != request.MediaRunId ||
-                _selectedReference?.CandidateMediaObservationIds.SingleOrDefault() !=
-                    request.MediaObservationId) return;
+                _selectedCover?.MediaObservationId != request.MediaObservationId) return;
             ReplacePreview(result);
             _status = result.Status switch
             {
@@ -336,7 +340,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         foreach (var name in new[] { nameof(Status), nameof(CanChooseMedia),
             nameof(CanAuthorizeIndex), nameof(CanStartIndex), nameof(CanAuthorizePreview),
             nameof(CanLoadPreview), nameof(Evidence), nameof(ReferencedCovers),
-            nameof(Unlinked), nameof(Preview) })
+            nameof(CoverProposals), nameof(Unlinked), nameof(Preview) })
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         _authorizeIndex.NotifyCanExecuteChanged();
         _startIndex.NotifyCanExecuteChanged();
