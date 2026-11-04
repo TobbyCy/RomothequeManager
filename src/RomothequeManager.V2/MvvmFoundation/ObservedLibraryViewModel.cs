@@ -36,6 +36,16 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     private RestoredCatalogSession? _restored;
     private RsAUiViewModel? _rsa;
 
+    /// <summary>Preserves the historical two-argument observed-library constructor.
+    /// Fixture presentation behaves as before; standard backend composition and
+    /// authorization are never inferred from this constructor.</summary>
+    /// <param name="inventory">Injected inventory presentation adapter.</param>
+    /// <param name="fixtureMode">Whether this view is explicitly in fixture mode.</param>
+    public ObservedLibraryViewModel(InventoryViewModel inventory, bool fixtureMode)
+        : this(inventory, fixtureMode, standardServiceSupplied: false)
+    {
+    }
+
     /// <summary>Presentation-only navigation for observed ROM files; sorting and paging use the pure projection without filesystem I/O.</summary>
     public ObservedLibraryViewModel(InventoryViewModel inventory, bool fixtureMode,
         bool standardServiceSupplied = false)
