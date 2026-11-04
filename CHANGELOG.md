@@ -1,5 +1,13 @@
 # Journal des changements
 
+## NEXT-05 / #134 — Réconciliation fictive GB/PS1/PS2/PS3, correctif PS3 ciblé (04.11.2026)
+
+- Ajout d'une fixture de 131 références XML et 194 fichiers ROMS **entièrement fictifs** : 19 covers GB concordantes, 53 groupes de noms PS1 BIN/CUE/CHD, 2 dossiers PS2 fonctionnels, un jeu PS3 référencé par son dossier (12 fichiers internes). Matrice séparée des 75 médias déclarés contre 76 covers observées ; aucun doublon réel présumé.
+- ES-DE : `RomExists` accepte l'existence d'un **dossier** explicitement référencé dans un gamelist **PS3 seulement** ; jamais une preuve de jouabilité ni de contenu validé. Autres plateformes inchangées ; référence inexistante reste signalée `ROM_MISSING`.
+- `MediaLinkProjection` : les fichiers techniques `PS3_GAME/**` sont observables par l'inventaire RS-A mais ne sont pas proposés comme jeux distincts. Les ISO PS3 autonomes, les candidats variantes PS1, les références explicites et les états incomparables restent régis par les contrats existants. Pas de fusion de variantes ni d'attribution automatique.
+- Tests positifs/négatifs sur fixtures éphémères, grant RS-A à usage unique, sans lecture de contenu ROM, accès personnel ou changement GUI/MEDIAS #159/#161. CI Windows et revue DEV 2 obligatoires avant GO propriétaire.
+
+
 ## NEXT-05 / #159 — DocFX Avalonia : provenance XAML attestée (DEV 1, PR candidate)
 
 - Corrige uniquement la comparaison native des sorties Avalonia de DocFX : permet une édition XAML enregistrée dans Git et liée aux sources natives lorsque les fichiers générés, leurs hash, leurs identités de générateur et leurs attestations sont inchangés. Conserve le refus fail-closed des dérives non prouvées.
