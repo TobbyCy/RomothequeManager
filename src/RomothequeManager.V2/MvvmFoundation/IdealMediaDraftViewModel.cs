@@ -102,7 +102,9 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         if (!CanChooseMedia || string.IsNullOrWhiteSpace(selectedPath)) return false;
         Cancel();
         var accepted = _service.PrepareMediaSelection(
-            new MediaRootScope(selectedPath), Guid.NewGuid().ToString("D"));
+            new MediaRootScope(selectedPath,
+                IdealPlatformFolderConventions.PlatformAliases,
+                IdealPlatformFolderConventions.FolderKinds), Guid.NewGuid().ToString("D"));
         _selectedRoot = accepted;
         _current = null;
         _projection = null;
