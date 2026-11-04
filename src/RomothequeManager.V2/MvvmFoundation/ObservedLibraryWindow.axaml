@@ -152,14 +152,14 @@
           <TextBlock Text="{Binding Inventory.SelectedLocalRoot, FallbackValue='Aucune sélection'}" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding ScopeText}" TextWrapping="Wrap" Foreground="#C2CBD5"/>
           <TextBlock Text="2 · Consentement distinct" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
-          <CheckBox x:Name="InventoryConsentCheckbox"
+          <CheckBox
                     Content="Je confirme une lecture ponctuelle, sans écriture ni suppression."
                     IsChecked="{Binding Inventory.ConsentConfirmed, Mode=TwoWay}"
                     IsEnabled="{Binding Inventory.CanChangeFolder}" MinHeight="35"/>
           <TextBlock Text="Le choix du dossier et cette case ne sont pas des autorisations : le backend peut refuser la lecture."
                      FontSize="12" Foreground="#C2CBD5" TextWrapping="Wrap"/>
           <WrapPanel>
-            <Button x:Name="AuthorizeRomsButton"
+            <Button
                     Content="Autoriser ROMS pour une tentative"
                     Command="{Binding Inventory.RequestRomsGrantCommand}"
                     IsEnabled="{Binding Inventory.CanRequestRomsGrant}"
@@ -175,7 +175,7 @@
                     Command="{Binding Inventory.StartInventoryCommand}"
                     IsEnabled="{Binding CanInventoryFixture}"
                     MinHeight="40" Margin="0,0,8,4"/>
-            <Button x:Name="InventoryCancelButton" Content="Annuler le scan"
+            <Button Content="Annuler le scan"
                     Command="{Binding Inventory.CancelInventoryCommand}"
                     MinHeight="40" Margin="0,0,8,4"/>
           </WrapPanel>
@@ -185,15 +185,15 @@
               <TextBlock Text="Bibliothèques SQLite enregistrées · consultation hors ligne"
                          FontWeight="Bold" TextWrapping="Wrap"/>
               <WrapPanel>
-                <Button x:Name="LoadSavedLibrariesButton" Content="Afficher les sauvegardes"
+                <Button Content="Afficher les sauvegardes"
                         Command="{Binding Inventory.LoadSavedLibrariesCommand}"
                         MinHeight="40" Margin="0,0,8,4"/>
-                <Button x:Name="RestoreSavedLibraryButton" Content="Ouvrir hors ligne"
+                <Button Content="Ouvrir hors ligne"
                         Command="{Binding Inventory.RestoreSavedLibraryCommand}"
                         IsEnabled="{Binding Inventory.CanRestoreSavedLibrary}"
                         MinHeight="40" Margin="0,0,8,4"/>
               </WrapPanel>
-              <ListBox x:Name="SavedLibrariesList" ItemsSource="{Binding Inventory.SavedLibraries}"
+              <ListBox ItemsSource="{Binding Inventory.SavedLibraries}"
                        SelectedItem="{Binding Inventory.SelectedSavedLibrary, Mode=TwoWay}"
                        MinHeight="48" MaxHeight="144">
                 <ListBox.ItemTemplate>
@@ -210,10 +210,10 @@
           </Border>
           <TextBlock Text="4 · Consulter une génération" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
           <WrapPanel>
-            <Button x:Name="InventoryCompleteButton" Content="Dernier inventaire complet"
+            <Button Content="Dernier inventaire complet"
                     Command="{Binding Inventory.ShowLastCompleteCommand}"
                     MinHeight="40" Margin="0,0,8,4"/>
-            <Button x:Name="InventoryAttemptButton" Content="Dernière tentative"
+            <Button Content="Dernière tentative"
                     Command="{Binding Inventory.ShowLastAttemptCommand}"
                     MinHeight="40" Margin="0,0,8,4"/>
           </WrapPanel>
