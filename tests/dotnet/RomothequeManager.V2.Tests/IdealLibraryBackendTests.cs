@@ -193,6 +193,51 @@ public sealed class IdealLibraryBackendTests
     }
 
     [TestMethod]
+    public async Task IDEAL_07_WindowsNativeProductionPermission_UsesOnlyFictionalRoms()
+    {
+        // This is the production permission path, not syntheticFixtureOnly:true.
+        // Only the SQLite constructor is test-injected so that LocalAppData is
+        // never touched by this native Windows proof.
+        if (!OperatingSystem.IsWindows()) return;
+        var fixture = Fixture("NativeFiction.gba");
+        await using var service = new IdealLibraryBackendService(
+            new SqliteCatalogStore(_db), syntheticFixtureOnly: false);
+        var selected = Select(service, fixture);
+        Assert.IsTrue(selected.Accepted);
+        Assert.IsFalse(service.AuthorizeRomsRead(selected.SelectionVersion, false));
+        Assert.IsFalse(service.AuthorizeRomsRead(selected.SelectionVersion - 1, true));
+        Assert.IsFalse(service.AuthorizeRead(
+            IdealReadOperation.MediasIndex, selected.SelectionVersion, true));
+        Assert.IsFalse(service.AuthorizeRead(
+            IdealReadOperation.MediaPreview, selected.SelectionVersion, true));
+        var denied = await service.StartConfirmedScanAsync(
+            new InventoryRunRequest(selected.SelectionVersion, true));
+        Assert.AreEqual("REAL_LIBRARY_SCAN_HOLD", denied.SafeDiagnosticCode);
+        Assert.IsNull(denied.Current);
+
+        // Native authorization binds the opened ROMS handle's volume/FileID.
+        // The scanner opens only directory handles and file attributes.
+        Assert.IsTrue(service.AuthorizeRomsRead(selected.SelectionVersion, true));
+        var completed = await service.StartConfirmedScanAsync(
+            new InventoryRunRequest(selected.SelectionVersion, true));
+        Assert.AreEqual(InventoryRunPhase.Completed, completed.Phase);
+        Assert.AreEqual(InventoryScanStatus.Complete, completed.Current!.ScanStatus);
+        Assert.AreEqual(1, completed.Current.ObservedFileCount);
+        Assert.IsTrue(completed.Current.Observations.Single()
+            .RelativePath.EndsWith("NativeFiction.gba", StringComparison.Ordinal));
+        Assert.IsTrue(completed.Current.Observations.All(o =>
+            o.SourceKind == "RS_A_HANDLE_METADATA_SELECTED"));
+
+        // One-shot capability cannot be replayed; the Complete is retained.
+        var replay = await service.StartConfirmedScanAsync(
+            new InventoryRunRequest(selected.SelectionVersion, true));
+        Assert.AreEqual("REAL_LIBRARY_SCAN_HOLD", replay.SafeDiagnosticCode);
+        Assert.AreEqual(completed.Current.ScanId, replay.Current!.ScanId);
+        Assert.IsTrue(service.ClearSelection());
+        Assert.IsFalse(service.AuthorizeRomsRead(selected.SelectionVersion, true));
+    }
+
+    [TestMethod]
     public void IDEAL_06_LocalPathPolicyRejectsNetworkDeviceAndTraversal()
     {
         if (!OperatingSystem.IsWindows()) return;
