@@ -1,5 +1,12 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #95 — ZIP Windows public de TEST dans Actions (PR #157, NON FUSIONNÉE)
+
+- Décision propriétaire 04.11 : abandonner la remise via Pilotage privé et permettre un **artefact GitHub Actions public de TEST**, non qualifié, depuis le dépôt Produit. **Pas une Release, pas de tag, pas une version stable.**
+- Le workflow manuel existant `.github/workflows/dist-zip.yml` introduit `phase=test-artifact`, uniquement sur `main`, déclencheur `TobbyCy` et SHA source exact. Nouveau job `contents: read` : double build Windows x64 avec SDK .NET 10.0.401, manifestes/empreintes SHA-256, 14 licences, contrôles SQLite et négatifs via `scripts/Validate-BetaIdealZip.ps1 -Phase validate`. L'upload public est permis **seulement après réussite technique** ; ZIP, .sha256 et README TEST-ONLY sont conservés 3 jours.
+- L'artefact sera publiquement téléchargeable si le run est exécuté. À ce stade : **PR/CI en cours, aucun ZIP téléchargé, Windows GUI standard #95 NOT_EXECUTED**. Il ne faut pas interpréter l'artefact comme une preuve de conformité fonctionnelle ou de droits d'utilisation de ROMs/BIOS.
+- Les anciens chemins `phase=validate` (sans upload) et `phase=publish` (gates de preuve réelle signée/autorisation juridique/propriétaire avant Release) sont inchangés. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD` et `NEXT05_RELEASE_HOLD` restent applicables à la Release officielle.
+
 ## CURRENT — consolidation NEXT-05 du 04.11.2026
 
 - La [PR #154](https://github.com/TobbyCy/RomothequeManager/pull/154) est **fusionnée** : source finale `d540a84b7caf33dfa98455c519841790f519635f`, commit sur main `c7cd2f40c6e91880d5cdf5e4a6aca6a2411efacc`. La synchronisation n'ajoute que les documents déjà présents dans main ; son arbre est identique au merge synthétique examiné par DEV 2.
