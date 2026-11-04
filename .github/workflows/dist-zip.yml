@@ -5,12 +5,13 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "validate = no upload; publish = owner-approved exact hash only"
+        description: "validate = no upload; test-artifact = public test ZIP; publish = guarded Release"
         required: true
         type: choice
         default: validate
         options:
           - validate
+          - test-artifact
           - publish
       source_sha:
         description: "Exact 40-character main commit SHA (frozen source)"
@@ -35,7 +36,7 @@ concurrency:
 jobs:
   package:
     name: Frozen self-contained ZIP / final manual gate
-    if: github.ref == 'refs/heads/main' && github.actor == 'TobbyCy'
+    if: inputs.phase != 'test-artifact' && github.ref == 'refs/heads/main' && github.actor == 'TobbyCy'
     runs-on: windows-2022
     timeout-minutes: 30
     permissions:
@@ -244,3 +245,80 @@ jobs:
           $released = gh release view $env:RELEASE_TAG --json isDraft,isPrerelease,assets | ConvertFrom-Json
           if ($released.isDraft -or -not $released.isPrerelease -or $released.assets.Count -ne 2) { throw 'DIST_PUBLISHED_PRERELEASE_STATE_INVALID' }
           Write-Host ('DIST_TEST_PRERELEASE_PUBLISHED tag=' + $env:RELEASE_TAG + ' sha256=' + $env:ZIP_SHA256)
+
+  next05-test-zip:
+    name: NEXT-05 Windows x64 test ZIP — no Release
+    if: inputs.phase == 'test-artifact' && github.ref == 'refs/heads/main' && github.actor == 'TobbyCy' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - name: Check main source and owner dispatch
+        shell: pwsh
+        env:
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_REF -cne 'refs/heads/main' -or $env:GITHUB_ACTOR -cne 'TobbyCy' -or
+              $env:REQUESTED_SHA -cnotmatch '^[0-9a-f]{40}$' -or
+              $env:REQUESTED_SHA -cne $env:GITHUB_SHA) {
+            throw 'NEXT05_TEST_ARTIFACT_REF_OR_SHA_REFUSED'
+          }
+      - name: Checkout exact main without stored credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install SDK 10.0.401
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.401'
+      - name: Install Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Build twice and validate exact test ZIP
+        shell: pwsh
+        env:
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./scripts/Validate-BetaIdealZip.ps1 -SourceSha $env:REQUESTED_SHA -Phase validate
+          if ($LASTEXITCODE -ne 0) { throw 'NEXT05_TEST_ZIP_BUILD_OR_VALIDATION_FAILED' }
+          $stage = Join-Path $env:RUNNER_TEMP ('rm-beta-ideal-' + $env:REQUESTED_SHA.Substring(0, 12))
+          $zip = Join-Path $stage ('build-1/RomothequeManager-v0.5.0-beta.1-win-x64-' + $env:REQUESTED_SHA.Substring(0, 12) + '.zip')
+          $checksum = $zip + '.sha256'
+          foreach ($p in @($zip, $checksum)) {
+            if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { throw 'NEXT05_TEST_ARTIFACT_FILE_MISSING' }
+          }
+          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expected = $sha + '  ' + [IO.Path]::GetFileName($zip)
+          if ((Get-Content -LiteralPath $checksum -Raw).Trim() -cne $expected) {
+            throw 'NEXT05_TEST_ARTIFACT_SHA256_MISMATCH'
+          }
+          $out = Join-Path $env:RUNNER_TEMP 'NEXT05-TEST-ONLY'
+          if (Test-Path -LiteralPath $out) { throw 'NEXT05_TEST_ARTIFACT_DEST_EXISTS' }
+          New-Item -ItemType Directory -Path $out | Out-Null
+          Copy-Item -LiteralPath $zip, $checksum -Destination $out
+          $notice = @(
+            'ROMOTHEQUE MANAGER NEXT-05 — TEST BUILD, NOT A RELEASE'
+            'PUBLIC GITHUB ACTIONS DOWNLOAD — NOT QUALIFIED FOR END USERS'
+            ('Source: ' + $env:REQUESTED_SHA)
+            ('ZIP SHA-256: ' + $sha)
+            'Windows x64 self-contained. No ROM, BIOS or personal user data included.'
+            'Human Windows GUI recipe #95: NOT_EXECUTED / NOT QUALIFIED.'
+            'Official release/legal publishing gates remain unchanged.'
+            'Use synthetic fixtures and a standard Windows account only.'
+          ) -join [Environment]::NewLine
+          [IO.File]::WriteAllText((Join-Path $out 'README-TEST-ONLY.txt'),
+            $notice + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
+          Write-Host ('NEXT05_TEST_ARTIFACT_READY sha=' + $sha + ' source=' + $env:REQUESTED_SHA)
+      - name: Upload downloadable PUBLIC Actions artifact, not a Release
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ROMotheque-NEXT05-WIN-X64-TEST-ONLY
+          path: ${{ runner.temp }}/NEXT05-TEST-ONLY/
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
