@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / #134 — IDEAL backend consent + SQLite application-local (DEV 1, 04.11.2026)
+
+- **Branche/PR candidate, non fusionnée** : connexion d'un scan ROMS metadata-only fondé sur les handles Windows RS-A à une sélection IDEAL de l'utilisateur et à une permission ROMS distincte, éphémère, liée à la génération/racine/opération et révoquée après Cancel, changement et fermeture. Aucun scan déclenché automatiquement par l'EXE.
+- Réutilise PERSIST-01 dans l'espace de données local de l'application pour enregistrer CurrentComplete et LastAttempt avec atomicité, version et validation des chemins relatifs. Réouverture OFFLINE/STALE **sans scanner ni rétablir la permission** ; backups/restaurations explicites de production interdits. Tests de sécurité strictement synthétiques en cours de CI/revue DEV 2.
+- L'interface standard attend la PR distincte DEV 3 ; **MEDIAS/PREVIEW ne reçoivent pas de permission via le grant ROMS**, leur activation contrôlée demeure à intégrer indépendamment. Pas de qualification Windows humaine ni de Release acquise. Tous les HOLD de main restent inchangés.
+
+
 ## CURRENT — consolidation NEXT-05 du 04.11.2026
 
 - La [PR #154](https://github.com/TobbyCy/RomothequeManager/pull/154) est **fusionnée** : source finale `d540a84b7caf33dfa98455c519841790f519635f`, commit sur main `c7cd2f40c6e91880d5cdf5e4a6aca6a2411efacc`. La synchronisation n'ajoute que les documents déjà présents dans main ; son arbre est identique au merge synthétique examiné par DEV 2.
