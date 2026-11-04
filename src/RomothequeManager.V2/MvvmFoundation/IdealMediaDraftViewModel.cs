@@ -77,6 +77,9 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _selectedCover is not null && !_previewGrant;
     /// <summary>Loading requires its own explicit one-shot PREVIEW grant.</summary>
     public bool CanLoadPreview => CanChooseMedia && _previewGrant && _selectedCover is not null;
+    /// <summary>Current native index is evidence only, never an access grant.</summary>
+    internal MediaIndexSnapshot? CurrentMediaIndex => _current;
+
     /// <summary>Owned bounded pixel buffer; cleared on cancellation, navigation and close.</summary>
     public MediaPreviewResult? Preview => _preview;
     /// <summary>Independent action for MEDIAS INDEX grant.</summary>
@@ -178,8 +181,10 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         ArgumentNullException.ThrowIfNull(mapping);
         if (_current.ScanStatus != InventoryScanStatus.Complete ||
             _current.Availability != InventoryAvailability.Online ||
+            _current.Freshness != InventoryFreshness.Fresh ||
             roms.ScanStatus != InventoryScanStatus.Complete ||
             roms.Availability != InventoryAvailability.Online ||
+            roms.Freshness != InventoryFreshness.Fresh ||
             mapping.RomScanId != roms.ScanId ||
             mapping.MediaScanId != _current.RunId ||
             mapping.MediaRootRef != _current.MediaRootRef)
