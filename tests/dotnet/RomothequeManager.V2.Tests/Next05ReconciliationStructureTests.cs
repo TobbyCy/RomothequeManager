@@ -175,6 +175,8 @@ public sealed class Next05ReconciliationStructureTests
         Assert.AreEqual(75, catalogue.Games.Sum(x => x.Media.Count)); // XML-declared
         Assert.AreEqual(75, catalogue.Games.Sum(x => x.Media.Count(m => m.Exists)));
         Assert.AreEqual(194, roms.ObservedFileCount); // GB19 + PS1(53x3) + PS2(4) + PS3(12)
+        Assert.AreEqual(12, roms.Observations.Count(x => x.PlatformKey == "ps3"),
+            "PS3 technical contents remain visible as file evidence, not games.");
         Assert.AreEqual(76, media.ObservedFileCount); // 75 referenced images + one extra PS2 cover
         Assert.AreEqual(76, media.Observations.Count(x => x.HeaderValidated));
         Assert.AreEqual(0, roms.PotentialDuplicates.Count,
@@ -210,6 +212,11 @@ public sealed class Next05ReconciliationStructureTests
         Assert.IsFalse(rows.Any(x =>
             rowById[x.RomObservationId].PlatformKey == "ps3"),
             "Files internal to a PS3_GAME tree must not become game candidates.");
+        var gallery = new MediaPresentationService().Build(roms, media, mapping, claims);
+        Assert.AreEqual(1, gallery.UnlinkedMedias.Count,
+            "PS3 cover is observed and declared but has no trustworthy file-game link.");
+        Assert.IsTrue(gallery.UnlinkedMedias.Single().RelativePath.StartsWith(
+            "MEDIAS/ps3/covers/", StringComparison.Ordinal));
         Assert.IsTrue(rows.All(x => x.Status != MediaLinkStatus.EXACT_REFERENCE ||
             x.SourceProvenance.Any(p => p.Contains("SYNTHETIC_GAMELIST"))));
         Assert.AreEqual(53, Enumerable.Range(1, 53).Count(i =>
