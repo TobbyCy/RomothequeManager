@@ -495,7 +495,7 @@ public sealed partial class MainWindow : Window
         _page.Children.Add(Hero("Premiers pas  /  bibliothèque", title, explanation));
         _page.Children.Add(PrimaryButton("Inventorier les fichiers · sans ES-DE", () =>
             _observedLibraryFactory().Show(this)));
-        _page.Children.Add(Text("Inventaire réel désactivé dans cette Alpha ; seules les fixtures de validation sont autorisées en CI.", 12));
+        _page.Children.Add(Text("Inventaire IDEAL : sélectionnez une racine contenant ROMS/, autorisez explicitement ROMS pour une tentative, puis confirmez votre consentement avant de démarrer l'inventaire en lecture seule (métadonnées uniquement).", 12));
         _page.Children.Add(Button("Importer des métadonnées ES-DE (facultatif)", () => _ = ChooseLibraryAsync()));
         _page.Children.Add(Panel(Group(
             Text("Comment importer votre ROMothèque", 19, true),
@@ -504,8 +504,8 @@ public sealed partial class MainWindow : Window
             Text("3. Confirmez l'import en lecture seule, puis consultez les systèmes, la Collection et les fiches.")
         )));
         _page.Children.Add(Notice("Informations importantes",
-            "L'inventaire des fichiers ne dépend pas d'ES-DE, mais le scan personnel reste verrouillé. " +
-            "L'import historique ES-DE est facultatif et indépendant. Aucune persistance après fermeture, aucun fichier ROM modifié."));
+            "L'inventaire ROMS est volontaire et borné : choisir une racine ne donne aucun droit ; l'autorisation ROMS distincte et le consentement sont requis. " +
+            "L'import ES-DE reste indépendant. SQLite conserve un état minimal consultable après relance (OFFLINE / STALE), sans restaurer les autorisations. Aucun fichier ROM modifié ; accès MEDIAS / PREVIEW autonomes indisponibles."));
         _page.Children.Add(Button("Essayer une démonstration fictive", ShowDemo));
     }
 
