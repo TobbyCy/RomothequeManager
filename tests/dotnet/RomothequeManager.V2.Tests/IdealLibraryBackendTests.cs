@@ -199,7 +199,25 @@ public sealed class IdealLibraryBackendTests
         // Only the SQLite constructor is test-injected so that LocalAppData is
         // never touched by this native Windows proof.
         if (!OperatingSystem.IsWindows()) return;
-        var fixture = Fixture("NativeFiction.gba");
+        // GitHub Windows RUNNER_TEMP is a disposable test-only directory outside
+        // LocalAppData, which production intentionally refuses as a ROMS root.
+        var testRoot = Environment.GetEnvironmentVariable("RUNNER_TEMP");
+        if (string.IsNullOrWhiteSpace(testRoot))
+            testRoot = Path.GetTempPath();
+        var applicationData = Path.TrimEndingDirectorySeparator(Path.GetFullPath(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
+        var normalizedTemp = Path.TrimEndingDirectorySeparator(Path.GetFullPath(testRoot));
+        if (normalizedTemp.Equals(applicationData, StringComparison.OrdinalIgnoreCase) ||
+            normalizedTemp.StartsWith(applicationData + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase))
+            Assert.Inconclusive("IDEAL_NATIVE_REQUIRES_DISPOSABLE_OUTSIDE_APPDATA_ROOT");
+        var fixture = Path.Combine(normalizedTemp,
+            "rm-ideal-native-fixture-" + Guid.NewGuid().ToString("N"));
+        _temporary.Add(fixture);
+        var fictionalRomDir = Path.Combine(fixture, "ROMS", "gba");
+        Directory.CreateDirectory(fictionalRomDir);
+        File.WriteAllText(Path.Combine(fictionalRomDir, "NativeFiction.gba"),
+            "synthetic metadata fixture only");
         await using var service = new IdealLibraryBackendService(
             new SqliteCatalogStore(_db), syntheticFixtureOnly: false);
         var selected = Select(service, fixture);
