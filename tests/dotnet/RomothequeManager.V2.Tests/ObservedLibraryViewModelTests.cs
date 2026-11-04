@@ -30,6 +30,21 @@ public sealed class ObservedLibraryViewModelTests
     }
 
     [TestMethod]
+    public void N05Ux00_HistoricalTwoArgumentConstructorDoesNotInjectStandardAuthority()
+    {
+        var constructor = typeof(ObservedLibraryViewModel).GetConstructor(
+            [typeof(InventoryViewModel), typeof(bool)]);
+        Assert.IsNotNull(constructor, "Public two-argument API must remain stable for DocFX and callers.");
+
+        var service = new FakeService(Snapshot(1));
+        using var inventory = new InventoryViewModel(service, action => action());
+        using var fixture = new ObservedLibraryViewModel(inventory, fixtureMode: true);
+        Assert.IsTrue(fixture.FixtureMode);
+        Assert.IsFalse(fixture.CanInventoryFixture);
+        Assert.IsFalse(inventory.HasRomsGrantAction);
+    }
+
+    [TestMethod]
     public async Task N05Ux01_MysteryWithoutXmlIsOnlyObservedFilesAndNoIdentities()
     {
         var service = new FakeService(Snapshot(120));
