@@ -27,8 +27,17 @@ public partial class ObservedLibraryWindow : Window
 
     public ObservedLibraryWindow() : this(new InventoryApplicationService(), null) { }
 
+    /// <summary>Construct a standard window with explicitly provided application
+    /// services. Backend authorization, grant lifetime, roots and SQLite protection
+    /// remain authoritative; this factory cannot authorize a scan or media preview.
+    /// Historical SQLite state may be shown without rescanning any root.</summary>
+    public static ObservedLibraryWindow FromStandardServices(
+        IInventoryApplicationService service, RestoredCatalogSession? restored = null) =>
+        new(service, null, standardServiceSupplied: true, restored: restored);
+
     private ObservedLibraryWindow(IInventoryApplicationService service,
-        IReadOnlyDictionary<string, string>? syntheticRoots)
+        IReadOnlyDictionary<string, string>? syntheticRoots,
+        bool standardServiceSupplied = false, RestoredCatalogSession? restored = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _syntheticRoots = syntheticRoots;
@@ -38,7 +47,10 @@ public partial class ObservedLibraryWindow : Window
             if (Dispatcher.UIThread.CheckAccess()) action();
             else Dispatcher.UIThread.Post(action);
         });
-        _vm = new ObservedLibraryViewModel(_inventoryVm, _syntheticRoots is not null);
+        _vm = new ObservedLibraryViewModel(_inventoryVm,
+            _syntheticRoots is not null, standardServiceSupplied);
+        if (restored is not null)
+            _vm.AttachRestoredForStandard(restored);
         _vm.Media.PropertyChanged += OnMediaChanged;
         DataContext = _vm;
 

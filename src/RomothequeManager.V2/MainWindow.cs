@@ -16,6 +16,8 @@ public sealed partial class MainWindow : Window
 {
     // Never construct the built-in demo catalogue on a normal, empty launch.
     // The legacy demo and its projection are instantiated only after an explicit choice.
+    // UI composition is provided by product code only, never a CLI/fixture flag.
+    private readonly Func<ObservedLibraryWindow> _observedLibraryFactory;
     private readonly Lazy<NavigationState> _demoNavigation = new(() => new NavigationState(ReadOnlyCatalogue.Synthetic()));
     private readonly Lazy<LibraryProjection> _demoProjection;
     private readonly Lazy<LibraryViewState> _demoLibraries;
@@ -155,8 +157,14 @@ public sealed partial class MainWindow : Window
     /// Constructs the standard shell without auto-import; the folder picker
     /// and second explicit read-only consent are required before ES-DE I/O.
     /// </summary>
-    public MainWindow()
+    public MainWindow() : this(null) { }
+
+    /// <summary>Standard GUI with an optional production inventory-window factory.
+    /// The factory is presentation wiring, not a filesystem grant or restore permission.</summary>
+    public MainWindow(Func<ObservedLibraryWindow>? observedLibraryFactory)
     {
+        _observedLibraryFactory = observedLibraryFactory ??
+            (static () => new ObservedLibraryWindow());
         _importVm = new ImportedCatalogueViewModel(_importedUi);
         _legacyMediaVm = new LegacyImportedMediaViewModel(_importedUi, _importVm,
             new LegacyImportedMediaLoader());
@@ -242,7 +250,7 @@ public sealed partial class MainWindow : Window
         menu.Children.Add(Text("Fonction non disponible dans cette version.", 11));
         menu.Children.Add(Text("OUTILS · LECTURE SEULE", 11, true));
         menu.Children.Add(SidebarButton("Inventaire de fichiers · sans ES-DE", () =>
-            new ObservedLibraryWindow().Show(this)));
+            _observedLibraryFactory().Show(this)));
         menu.Children.Add(SidebarButton("Choisir une bibliothèque ES-DE…", () => _ = ChooseLibraryAsync()));
         _refreshImportButton = SidebarButton("Actualiser l'import", null);
         _refreshImportButton.Command = _importVm.RefreshCommand;
@@ -486,7 +494,7 @@ public sealed partial class MainWindow : Window
         };
         _page.Children.Add(Hero("Premiers pas  /  bibliothèque", title, explanation));
         _page.Children.Add(PrimaryButton("Inventorier les fichiers · sans ES-DE", () =>
-            new ObservedLibraryWindow().Show(this)));
+            _observedLibraryFactory().Show(this)));
         _page.Children.Add(Text("Inventaire réel désactivé dans cette Alpha ; seules les fixtures de validation sont autorisées en CI.", 12));
         _page.Children.Add(Button("Importer des métadonnées ES-DE (facultatif)", () => _ = ChooseLibraryAsync()));
         _page.Children.Add(Panel(Group(

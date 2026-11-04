@@ -118,6 +118,25 @@ public sealed class ObservedLibraryViewModelTests
         await Task.CompletedTask;
     }
 
+    [TestMethod]
+    public async Task N05Ux04_InjectedStandardServiceShowsCommandButDoesNotGrantViaUi()
+    {
+        var service = new FakeService(Snapshot(2));
+        using var inventory = new InventoryViewModel(service, action => action());
+        using var vm = new ObservedLibraryViewModel(inventory,
+            fixtureMode: false, standardServiceSupplied: true);
+        Assert.IsFalse(vm.CanInventoryFixture);
+        Assert.IsTrue(vm.ModeNotice.Contains("Inventaire IDEAL", StringComparison.Ordinal));
+        Assert.IsTrue(inventory.PrepareSelectedFolder(
+            new InventoryScope(@"C:\test-fixture")).Accepted);
+        Assert.IsFalse(vm.CanInventoryFixture); // selection is not consent
+        inventory.ConsentConfirmed = true;
+        Assert.IsTrue(vm.CanInventoryFixture); // presentation only
+        await inventory.StartConfirmedAsync(); // injected fake, no real filesystem I/O
+        Assert.AreEqual(2, vm.MatchingFileCount);
+        Assert.IsFalse(vm.CanInventoryFixture); // one-shot consent consumed
+    }
+
     private sealed class FakeService : IInventoryApplicationService
     {
         public InventorySnapshot CompleteSnapshot { get; }
