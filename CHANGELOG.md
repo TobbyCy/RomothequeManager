@@ -1,5 +1,11 @@
 # Journal des changements
 
+## NEXT-05 / #134 — Préparation des capacités MEDIAS/PREVIEW (DEV 1, branche séparée)
+
+- Prépare deux capacités indépendantes, éphémères et strictement liées à une racine MEDIAS native et à la génération, avec grant Preview spécifique à une observation vérifiée. Aucun partage de grant avec ROMS, et aucune interface publique d'accès aux médias réels à ce stade.
+- Parcours complet index/preview/jaquettes ES-DE reste à implémenter et prouver sur fixtures synthétiques ; code préparatoire non fusionné, HOLD et Release inchangés.
+
+
 ## NEXT-05 / #134 — IDEAL backend consent + SQLite application-local (DEV 1, 04.11.2026)
 
 - **Branche/PR candidate, non fusionnée** : connexion d'un scan ROMS metadata-only fondé sur les handles Windows RS-A à une sélection IDEAL de l'utilisateur et à une permission ROMS distincte, éphémère, liée à la génération/racine/opération et révoquée après Cancel, changement et fermeture. Aucun scan déclenché automatiquement par l'EXE.
