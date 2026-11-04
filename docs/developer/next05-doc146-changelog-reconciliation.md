@@ -1,0 +1,34 @@
+# #146 — Préparation de réconciliation du journal produit et du CHANGELOG
+
+**Statut au 02.11.2026 : PR #155 DRAFT EXISTANTE / CORRECTIONS DES DEUX JOURNAUX NOT_APPLIED.** La [PR documentaire Produit #155](https://github.com/TobbyCy/RomothequeManager/pull/155) est déjà ouverte sur cette même branche ; ce document ne demande ni nouvelle branche ni nouvelle PR. Ce document contient les corrections **préparées mais volontairement non appliquées** à `docs/product-status.md` et `CHANGELOG.md`, car la [PR #154](https://github.com/TobbyCy/RomothequeManager/pull/154) **modifie déjà les deux mêmes fichiers** depuis `main=7aa62c8f`. Cela évite de créer un conflit avant stabilisation de son P1 Windows non-admin. Le Journal et le Changelog de `main` gardent pour l'instant des en-têtes **historiques** (PR #153 en validation, cleanup #152 « proposition » et lot B média en revue) ; **ces titres ne doivent pas être lus comme CURRENT**.
+
+Sources publiques : [transfert DEV 1](https://github.com/TobbyCy/RomothequeManager/issues/146#issuecomment-6585131982), [matrice indépendante DEV 2](https://github.com/TobbyCy/RomothequeManager/issues/146#issuecomment-6585201844), [revue DEV 2 de #154](https://github.com/TobbyCy/RomothequeManager/pull/154#pullrequestreview-5741436816), [checklist canonique Windows #95](https://github.com/TobbyCy/RomothequeManager/issues/95#issuecomment-6585108522) et [Releases](https://github.com/TobbyCy/RomothequeManager/releases).
+
+## Proposition — bloc CURRENT à insérer après le titre de `docs/product-status.md`
+
+> **CURRENT — 02.11.2026 / `main=7aa62c8f`**, [CI `push/main` #41465566095](https://github.com/TobbyCy/RomothequeManager/actions/runs/41465566095) **10/10 SUCCESS**, **335/335 MSTest PASS**. Les PR #147 (MVVM ES-DE), #148 (DocFX), #150 (XML UI/VM), #151 (médias ES-DE + B-05), #152 (cleanup DocFX) et #153 (notices SQLite/provenance) sont **fusionnées**. L'inventaire ROMS, l'index MEDIAS, les états Offline/Stale/Cancel et SQLite minimal existent **sur fixtures** ; ils ne correspondent ni à une permission d'accès aux bibliothèques personnelles ni au ZIP public.
+>
+> **Documentation API CURRENT sur main :** XML → YAML → HTML **PASS**, Roslyn **857/935 = 91,66 %**, nouvelle API **0/0**, **62 exclusions Avalonia prouvées**, signatures exactes et métadonnées d'assembly PASS, liens/UID du site interne PASS. Le site DocFX n'est **pas publié**. La signature C# vérifiée ne signifie pas signature Authenticode.
+>
+> **Dernière Release réellement publiée : [v0.4.0-alpha.1](https://github.com/TobbyCy/RomothequeManager/releases/tag/v0.4.0-alpha.1)** (30.10), ZIP Windows x64 historique NEXT-04.1, import ES-DE en mémoire, **sans** inventaire autonome, médias indépendants et SQLite NEXT-05. Les anciens contenus des sections suivantes sont des **checkpoints historiques au moment de leur rédaction**, pas des statuts en cours.
+>
+> **PR #154 (candidat `v0.5.0-beta.1`) :** HEAD `f27bbe71`, **OPEN/DRAFT/NON MERGED**. [CI #41482716933](https://github.com/TobbyCy/RomothequeManager/actions/runs/41482716933) **8/10 SUCCESS** : DocFX **860/938=91,68 %**, nouvelles API **3/3** documentées et artefacts packaging contrôlés, SQLite natif non-admin PASS ; toutefois le **vrai EXE extrait** sous worker standard **timeout 90 s**, sans preuve `MainWindow.Opened`. `.NET` et `ci-policy-gate` **FAILURE**. [DEV 2 : `CHANGES_REQUIRED / OWNER_DECISION_REQUIRED`](https://github.com/TobbyCy/RomothequeManager/pull/154#pullrequestreview-5741436816). Cause Avalonia `NOT_VERIFIED`, parcours GUI ES-DE/SQLite métier `NOT_EXECUTED`. ZIP de CI **quarantainé, non uploadé**, aucune Release bêta ni fusion.
+>
+> **#95** : GO propriétaire **fixtures only** pour une recette dédiée, mais appareil/opérateur/ZIP candidat authentifiable et exécution **encore non attestés**. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD` et `NEXT05_RELEASE_HOLD` actifs. Aucune suppression de branche ni approbation juridique implicite.
+
+## Proposition — bloc CURRENT à insérer après le titre de `CHANGELOG.md`
+
+> **NEXT-05 / checkpoint consolidé du 02.11.2026 (CURRENT, sans nouvelle Release) :** `main=7aa62c8f`, CI [#41465566095](https://github.com/TobbyCy/RomothequeManager/actions/runs/41465566095) **10/10 SUCCESS, 335 tests**. Les lots ES-DE MVVM, média historique B-05, documentation XML/DocFX permanent et cleanup, notices SQLite et sécurités fixtures (#147/#148/#150/#151/#152/#153) sont intégrés. DocFX main **857/935 = 91,66 %, 0/0 nouvelles API**, exclusions **62**. **Dernière Release publiée v0.4.0-alpha.1**, sans fonctionnalités NEXT-05.
+>
+> **Préparation ZIP bêta #154 non intégrée** : PR DRAFT `f27bbe71`, CI **8/10 FAILURE** (`.NET` et `ci-policy-gate` rouges sur le smoke non-admin du vrai EXE extrait) ; DocFX **860/938, 3/3** PASS distinct, notices/licences et SQLite natif PASS, GUI et recette utilisateur NON VALIDÉES. `phase=validate` seulement, ZIP CI non disponible au téléchargement. `CHANGES_REQUIRED / OWNER_DECISION_REQUIRED`, recette #95 `NOT_EXECUTED`, aucun GO publication/Release.
+>
+> **Entrées antérieures** : les libellés « proposition », « CI pending », « DRAFT » et anciens SHAs dans les sections plus basses sont les **statuts historiques des commits correspondants**, pas des décisions CURRENT.
+
+## Stratégie anti-conflit et conditions d'application
+
+1. **Ne pas éditer les deux journaux dans la PR #155 à ce stade** : les deux sont déjà touchés par #154. Après clôture/clarification de son P1, comparer les versions `main`, branche #146 et branche #154 **par fichier et SHA**, puis appliquer **une seule** section CURRENT datée sur la même branche documentaire sans modifier les événements historiques.
+2. Vérifier les **nouvelles** conclusions de #154 et la CI au **SHA final**. Remplacer les chiffres du checkpoint seulement si des preuves plus récentes établissent un autre état ; ne jamais déclarer un échec actuel PASS.
+3. Ne pas copier un second protocole Windows : pointer vers [#95 / DEV 1](https://github.com/TobbyCy/RomothequeManager/issues/95#issuecomment-6585108522). La permission de recette sur fixtures **n'est pas** un GO de fusion, de publication ou d'utilisation de données personnelles.
+4. **Conserver la PR #155 DRAFT existante** : après stabilisation des P1 #154 et arbitrage Contrôleur, intégrer les corrections sélectivement **dans #155 uniquement si un GO explicite le permet**, vérifier liens relatifs/ancres/versions et CI documentaire au HEAD exact, puis demander contre-revue DEV 2 ; passage READY et fusion restent des décisions du Contrôleur. **Ne créer aucune seconde PR documentaire.** Aucun automerge ni Release.
+
+**État d'exécution :** rédaction préparée et traçable dans la PR #155 DRAFT existante ; modifications directes de `docs/product-status.md` et `CHANGELOG.md` **NOT_APPLIED dans #155 (chevauchement #154 évité)**. Cette note ne constitue pas une autorisation de fusion des deux journaux.
