@@ -1,9 +1,10 @@
 # Journal des changements
 
-## NEXT-05 / #134 — Préparation des capacités MEDIAS/PREVIEW (DEV 1, branche séparée)
+## NEXT-05 / #134 — MEDIAS/PREVIEW natif fonctionnel, candidat DEV 1 (04.11.2026)
 
-- Prépare deux capacités indépendantes, éphémères et strictement liées à une racine MEDIAS native et à la génération, avec grant Preview spécifique à une observation vérifiée. Aucun partage de grant avec ROMS, et aucune interface publique d'accès aux médias réels à ce stade.
-- Parcours complet index/preview/jaquettes ES-DE reste à implémenter et prouver sur fixtures synthétiques ; code préparatoire non fusionné, HOLD et Release inchangés.
+- PR Draft #161 : nouveau `IdealMediaApplicationService` avec sélection de MEDIAS indépendante, clic d'autorisation INDEX puis clic indépendant PREVIEW lié à une observation du même run, grants natifs à usage unique et TTL borné, révocation sur Cancel/A→B/Dispose, état Current/LastAttempt. La lecture ne réutilise jamais le grant ROMS.
+- `NativeIdealMediaReader` énumère des handles Windows ancrés non-reparse, classe des en-têtes PNG/JPEG/WebP sous budgets de temps/profondeur/fichiers/octets et lit l'image approuvée par un nouveau handle de données, vérifiant identité native, taille et empreinte d'en-tête. Le décodeur Skia partagé conserve limites d'entrée (8 MiB), dimensions (2048/3.5 Mpx), cible (512 px), tampons et refus. Aucun chemin absolu média transmis à la vue.
+- Tests natifs synthétiques MEDIA_01–06 pour consentement séparé, refus INDEX→PREVIEW, rejouabilité, racines A→B, annulation, image invalide/trop grande, altération après indexation et lecture PNG fictif. **CI, revue DEV 2 et raccordement GUI/ES-DE restent à qualifier avant la bêta.** Aucune donnée personnelle, fusion ou Release.
 
 
 ## NEXT-05 / #134 — IDEAL backend consent + SQLite application-local (DEV 1, 04.11.2026)
