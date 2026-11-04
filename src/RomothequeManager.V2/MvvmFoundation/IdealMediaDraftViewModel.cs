@@ -11,9 +11,9 @@ namespace RomothequeManager.V2.MvvmFoundation;
 /// No source is selected, indexed or previewed while backend security review is pending.</summary>
 internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDisposable
 {
-    // Deliberately compile-time closed. Review of #161 alone does not flip this gate:
-    // a later owner-approved GUI integration must explicitly enable the complete path.
-    private const bool NativeMediaSecurityValidated = false;
+    // Composition gate only: never an INDEX/PREVIEW grant. Defaults false until
+    // the owner-authorized production composition passes explicit true.
+    private readonly bool _productMediaUiEnabled;
     private readonly IdealMediaApplicationService _service;
     private readonly IMediaPresentationService _presentation;
     private readonly InventoryCommand _authorizeIndex;
@@ -26,7 +26,9 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     private MediaIndexSnapshot? _current;
     private MediaUiSnapshot? _projection;
     private IReadOnlyList<MediaUiRow> _referenced = Array.Empty<MediaUiRow>();
-    private MediaUiRow? _selectedReference;
+    private IdealMediaCoverProposal? _selectedCover;
+    private IReadOnlyList<IdealMediaCoverProposal> _coverProposals =
+        Array.Empty<IdealMediaCoverProposal>();
     private MediaPreviewResult? _preview;
     private bool _selectedRoot, _indexGrant, _previewGrant, _busy, _disposed;
     private long _revision;
@@ -35,9 +37,10 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     /// <summary>Take ownership of an unopened native backend and a pure presentation
     /// service. Neither construction nor UI initialization grants filesystem access.</summary>
     internal IdealMediaDraftViewModel(IdealMediaApplicationService service,
-        IMediaPresentationService? presentation = null)
+        IMediaPresentationService? presentation = null, bool productMediaUiEnabled = false)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
+        _productMediaUiEnabled = productMediaUiEnabled;
         _presentation = presentation ?? new MediaPresentationService();
         _authorizeIndex = new InventoryCommand(_ => AuthorizeIndex(), _ => CanAuthorizeIndex);
         _startIndex = new InventoryCommand(_ => _ = StartIndexAsync(), _ => CanStartIndex);
@@ -50,11 +53,11 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     /// <summary>Change notification for the prospective disabled GUI.</summary>
     public event PropertyChangedEventHandler? PropertyChanged;
     /// <summary>Explicit fail-closed UI feature flag; cannot be set by a user, CLI or persisted state.</summary>
-    public bool SecurityApproved => NativeMediaSecurityValidated;
+    public bool SecurityApproved => _productMediaUiEnabled;
     /// <summary>Safe user-facing mode and refusal text, without absolute local paths.</summary>
     public string Status => _status;
     /// <summary>True only when the future security gate explicitly permits a new root selection.</summary>
-    public bool CanChooseMedia => NativeMediaSecurityValidated && !_disposed && !_busy && _pending is null;
+    public bool CanChooseMedia => SecurityApproved && !_disposed && !_busy && _pending is null;
     /// <summary>INDEX permission requires an independent selected MEDIAS root and user click.</summary>
     public bool CanAuthorizeIndex => CanChooseMedia && _selectedRoot && !_indexGrant;
     /// <summary>Indexing requires a one-shot INDEX grant; a ROMS grant is never consulted.</summary>
@@ -64,14 +67,16 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _projection?.Rows ?? Array.Empty<MediaUiRow>();
     /// <summary>Only explicitly sourced and unambiguous references are selectable for preview.</summary>
     public IReadOnlyList<MediaUiRow> ReferencedCovers => _referenced;
+    /// <summary>XML-optional, unapproved local cover choices from bounded native observations.</summary>
+    public IReadOnlyList<IdealMediaCoverProposal> CoverProposals => _coverProposals;
     /// <summary>Independent media observations not linked to any reference.</summary>
     public IReadOnlyList<UnlinkedMediaRow> Unlinked =>
         _projection?.UnlinkedMedias ?? Array.Empty<UnlinkedMediaRow>();
     /// <summary>Preview permission is separate from both ROMS and INDEX.</summary>
     public bool CanAuthorizePreview => CanChooseMedia && _current is not null &&
-        _selectedReference is not null && !_previewGrant;
+        _selectedCover is not null && !_previewGrant;
     /// <summary>Loading requires its own explicit one-shot PREVIEW grant.</summary>
-    public bool CanLoadPreview => CanChooseMedia && _previewGrant && _selectedReference is not null;
+    public bool CanLoadPreview => CanChooseMedia && _previewGrant && _selectedCover is not null;
     /// <summary>Owned bounded pixel buffer; cleared on cancellation, navigation and close.</summary>
     public MediaPreviewResult? Preview => _preview;
     /// <summary>Independent action for MEDIAS INDEX grant.</summary>
@@ -99,7 +104,8 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _current = null;
         _projection = null;
         _referenced = Array.Empty<MediaUiRow>();
-        _selectedReference = null;
+        _coverProposals = Array.Empty<IdealMediaCoverProposal>();
+        _selectedCover = null;
         _status = accepted ? "MEDIAS sélectionné. Autoriser INDEX séparément." :
             "Racine MEDIAS refusée ou indisponible.";
         NotifyAll();
@@ -124,7 +130,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         if (!CanStartIndex) return;
         _indexGrant = false;
         _previewGrant = false;
-        _selectedReference = null;
+        _selectedCover = null;
         ReplacePreview(null);
         var revision = ++_revision;
         using var cancellation = new CancellationTokenSource();
@@ -139,6 +145,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
             _current = _service.Current;
             _projection = null; // Never carry links across INDEX generations.
             _referenced = Array.Empty<MediaUiRow>();
+        _coverProposals = Array.Empty<IdealMediaCoverProposal>();
             _status = attempt.ScanStatus == InventoryScanStatus.Complete &&
                 attempt.Availability == InventoryAvailability.Online
                 ? "INDEX terminé · aucune jaquette attribuée automatiquement."
@@ -165,7 +172,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     internal void AttachExplicitEsDeEvidence(InventorySnapshot roms,
         EsDeCatalogueSnapshot? imported, VerifiedScopeMapping mapping)
     {
-        if (!NativeMediaSecurityValidated || _disposed || _busy || _current is null)
+        if (!SecurityApproved || _disposed || _busy || _current is null)
             return;
         ArgumentNullException.ThrowIfNull(roms);
         ArgumentNullException.ThrowIfNull(mapping);
@@ -179,6 +186,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         {
             _projection = null;
             _referenced = Array.Empty<MediaUiRow>();
+        _coverProposals = Array.Empty<IdealMediaCoverProposal>();
             _status = "Hors scope / OFFLINE / STALE : jaquettes non comparables.";
             NotifyAll();
             return;
@@ -196,7 +204,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     /// may become an independent PREVIEW request. Never selects by title.</summary>
     internal bool SelectReferencedCover(MediaUiRow row)
     {
-        if (!NativeMediaSecurityValidated || _disposed || _busy ||
+        if (!SecurityApproved || _disposed || _busy ||
             _projection is null || _current is null ||
             !_projection.Rows.Contains(row) ||
             row.State != MediaUiState.REFERENCED ||
@@ -309,7 +317,8 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _current = null;
         _projection = null;
         _referenced = Array.Empty<MediaUiRow>();
-        _selectedReference = null;
+        _coverProposals = Array.Empty<IdealMediaCoverProposal>();
+        _selectedCover = null;
         ReplacePreview(null);
         _status = "Annulé · permissions INDEX/PREVIEW révoquées ; nouvel INDEX requis.";
         NotifyAll();
@@ -347,8 +356,9 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _service.Dispose();
         _projection = null;
         _referenced = Array.Empty<MediaUiRow>();
+        _coverProposals = Array.Empty<IdealMediaCoverProposal>();
         _current = null;
-        _selectedReference = null;
+        _selectedCover = null;
         ReplacePreview(null);
     }
 }
