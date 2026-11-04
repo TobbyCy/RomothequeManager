@@ -124,6 +124,43 @@ public sealed class IdealMediaGuiNativeTests
     }
 
     [TestMethod]
+    public async Task MEDIA_GUI_14_NativeJpegPixelsRequireIndependentPreviewGrant()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var (root, media) = NewSyntheticRoot();
+        var jpeg = Path.Combine(media, "gba", "covers", "Fiction.jpg");
+        using (var sk = new SKBitmap(16, 16))
+        {
+            sk.Erase(SKColors.CadetBlue);
+            using var image = SKImage.FromBitmap(sk);
+            using var encoded = image.Encode(SKEncodedImageFormat.Jpeg, 90);
+            File.WriteAllBytes(jpeg, encoded.ToArray());
+        }
+        var roms = new InventorySession(new InventoryScope(root,
+            IdealPlatformFolderConventions.PlatformAliases)).Scan();
+        using var vm = new IdealMediaDraftViewModel(
+            new IdealMediaApplicationService(), productMediaUiEnabled: true);
+        Assert.IsTrue(vm.SelectMediaRoot(media));
+        Assert.IsFalse(vm.CanLoadPreview);
+        Assert.IsTrue(vm.AuthorizeIndex());
+        await vm.StartIndexAsync();
+        var index = vm.CurrentMediaIndex;
+        Assert.IsNotNull(index);
+        vm.AttachExplicitEsDeEvidence(roms, imported: null,
+            VerifiedScopeMapping.FromExplicitSelections(roms, index,
+                new Dictionary<string, string> { ["gba"] = "gba" },
+                "CI_SYNTHETIC_EXPLICIT_ROOT_MAPPING"));
+        Assert.AreEqual(1, vm.CoverProposals.Count);
+        Assert.AreEqual(MediaUiState.CANDIDATE, vm.CoverProposals[0].State);
+        Assert.IsTrue(vm.SelectCoverForPreview(vm.CoverProposals[0]));
+        Assert.IsFalse(vm.CanLoadPreview);
+        Assert.IsTrue(vm.AuthorizePreview());
+        await vm.LoadPreviewAsync();
+        Assert.AreEqual(MediaPreviewStatus.Ready, vm.Preview?.Status);
+        Assert.IsTrue(vm.Preview?.Image?.Pixels.Length > 100);
+    }
+
+    [TestMethod]
     public void MEDIA_GUI_13_StandardDefaultConstructorCannotStartMediaOperations()
     {
         using var vm = new IdealMediaDraftViewModel(new IdealMediaApplicationService());
