@@ -1,150 +1,264 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using RomothequeManager.V2.Inventory;
 using RomothequeManager.V2.Inventory.Application;
 using RomothequeManager.V2.Inventory.Media;
 
 namespace RomothequeManager.V2.MvvmFoundation;
 
-/// <summary>Unpublished, code-only UI candidate. It is intentionally not composed
-/// by Program, MainWindow, or any public navigation route before review #161.</summary>
+/// <summary>Owner-gated native MEDIAS workflow. ROMS observations are supplied by
+/// the standard inventory window; constructing the panel never scans either root.</summary>
 internal sealed class IdealMediaDraftWindow : Window
 {
     private readonly IdealMediaDraftViewModel _vm;
+    private readonly Func<InventorySnapshot?> _roms;
+    private readonly Func<EsDeCatalogueSnapshot?> _imported;
+    private WriteableBitmap? _bitmap;
+    private MediaPreviewResult? _rendered;
+    private readonly Image _previewImage = new() {
+        Width = 320, Height = 240, Stretch = Stretch.Uniform
+    };
+    private readonly ListBox _proposals = new() { MinHeight = 130, MaxHeight = 230 };
+    private readonly TextBlock _state = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _detail = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly CheckBox _scopeConfirmed = new() {
+        Content = "Je confirme que les plateformes de ces deux racines sélectionnées correspondent."
+    };
+    private readonly CheckBox _ambiguityConfirmed = new() {
+        Content = "Je choisis explicitement cette image parmi les alternatives (aperçu seulement)."
+    };
 
-    /// <summary>Prepare independent MEDIAS controls without opening a source.</summary>
-    internal IdealMediaDraftWindow()
+    /// <summary>Create a closed-by-default GUI: normal launch needs a deliberate
+    /// product-composition decision and independent native INDEX/PREVIEW grants.</summary>
+    internal IdealMediaDraftWindow() :
+        this(() => null, () => null, productMediaUiEnabled: false) { }
+
+    /// <summary>Compose an already observed ROMS source and optional imported XML
+    /// source. The boolean is a product UI gate only, never a native permission.</summary>
+    internal IdealMediaDraftWindow(Func<InventorySnapshot?> roms,
+        Func<EsDeCatalogueSnapshot?>? imported = null, bool productMediaUiEnabled = false)
     {
-        Title = "ROMothèque · MEDIAS / PREVIEW (Draft non activé)";
+        _roms = roms ?? throw new ArgumentNullException(nameof(roms));
+        _imported = imported ?? (() => null);
+        Title = "ROMothèque · Jaquettes locales (candidates, non approuvées)";
         Width = 900;
-        Height = 650;
+        Height = 700;
         MinWidth = 700;
-        MinHeight = 460;
-        _vm = new IdealMediaDraftViewModel(new IdealMediaApplicationService());
+        MinHeight = 480;
+        _vm = new IdealMediaDraftViewModel(new IdealMediaApplicationService(),
+            productMediaUiEnabled: productMediaUiEnabled);
         DataContext = _vm;
 
-        var state = new TextBlock { Text = _vm.Status, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
-        var choose = new Button { Content = "1 · Choisir MEDIAS (sélection seule)" };
+        var choose = new Button { Content = "1 · Choisir MEDIAS (sélection seule)", MinHeight = 36 };
         var authorizeIndex = new Button {
-            Content = "2 · Autoriser INDEX (une tentative)",
-            Command = _vm.AuthorizeIndexCommand
+            Content = "2 · Autoriser INDEX pour une tentative", Command = _vm.AuthorizeIndexCommand,
+            MinHeight = 36
         };
         var startIndex = new Button {
             Content = "3 · Indexer les métadonnées MEDIAS",
-            Command = _vm.StartIndexCommand
+            Command = _vm.StartIndexCommand, MinHeight = 36
+        };
+        var project = new Button {
+            Content = "4 · Comparer les fichiers observés et proposer des jaquettes",
+            MinHeight = 36
+        };
+        var chooseCover = new Button {
+            Content = "5 · Choisir l'image exacte pour aperçu (pas une association)",
+            MinHeight = 36
         };
         var authorizePreview = new Button {
-            Content = "4 · Autoriser PREVIEW pour l'image sélectionnée",
-            Command = _vm.AuthorizePreviewCommand
+            Content = "6 · Autoriser PREVIEW (cette image seulement)",
+            Command = _vm.AuthorizePreviewCommand, MinHeight = 36
         };
         var loadPreview = new Button {
-            Content = "5 · Charger l'aperçu contrôlé",
-            Command = _vm.LoadPreviewCommand
+            Content = "7 · Afficher réellement l'image PNG/JPEG",
+            Command = _vm.LoadPreviewCommand, MinHeight = 36
         };
         var cancel = new Button {
-            Content = "Annuler / révoquer",
-            Command = _vm.CancelCommand
+            Content = "Annuler / révoquer INDEX et PREVIEW",
+            Command = _vm.CancelCommand, MinHeight = 36
         };
-        var referenced = new ListBox { MinHeight = 110, MaxHeight = 220 };
-        var outcomes = new TextBlock {
-            Text = "Absent / refusé / OFFLINE / STALE / corrompu / hors scope : aucune association automatique.",
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap
-        };
-        var caution = new TextBlock {
-            Text = "Commandes désactivées : revue sécurité #161 et GO distinct requis. " +
-                "L'import XML ES-DE est indépendant. Aucune lecture ROMS, XML ou média " +
-                "depuis la View ; les jaquettes candidates n'impliquent aucun droit PREVIEW.",
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap
-        };
+
+        var observed = new ListBox { MinHeight = 80, MaxHeight = 150 };
+        void RefreshObserved()
+        {
+            var roms = _roms();
+            observed.ItemsSource = roms?.Observations.Select(o =>
+                o.PlatformKey + " · " + o.RelativePath + " [" + o.Kind + "]").ToArray()
+                ?? Array.Empty<string>();
+        }
+        RefreshObserved();
 
         choose.Click += async (_, _) =>
         {
             if (!_vm.CanChooseMedia) return;
             try
             {
-                var selections = await StorageProvider.OpenFolderPickerAsync(
+                var selected = (await StorageProvider.OpenFolderPickerAsync(
                     new FolderPickerOpenOptions {
-                        Title = "Choisir explicitement la racine MEDIAS (aucun droit de lecture accordé)",
+                        Title = "Choisir la racine MEDIAS séparément (aucun grant)",
                         AllowMultiple = false
-                    });
-                if (!_vm.CanChooseMedia) return;
-                var selected = selections.FirstOrDefault();
-                if (selected?.Path.IsFile == true)
+                    })).FirstOrDefault();
+                if (selected?.Path.IsFile == true && _vm.CanChooseMedia)
+                {
+                    _scopeConfirmed.IsChecked = false;
+                    _ambiguityConfirmed.IsChecked = false;
                     _vm.SelectMediaRoot(selected.Path.LocalPath);
-                // Cancel or nonlocal providers never confer any grant.
+                }
             }
-            catch (Exception error) when (error is ArgumentException or IOException or
+            catch (Exception e) when (e is IOException or ArgumentException or
                 UnauthorizedAccessException or InvalidOperationException)
             {
-                // No exception text or private filesystem path is displayed.
+                // No absolute user path is shown.
             }
         };
-        referenced.SelectionChanged += (_, _) =>
+
+        project.Click += (_, _) =>
         {
-            if (referenced.SelectedItem is MediaUiRow row)
-                _vm.SelectReferencedCover(row);
+            if (!_vm.SecurityApproved || _scopeConfirmed.IsChecked != true ||
+                _vm.CurrentMediaIndex is not { } media ||
+                _roms() is not { } roms) return;
+            // No mapping by XML title or proximity: an independent user click
+            // explicitly asserts that the two selected roots share these platforms.
+            var knownRoms = roms.Observations.Select(o => o.PlatformKey)
+                .Where(k => !string.IsNullOrWhiteSpace(k) &&
+                    !string.Equals(k, "UNKNOWN", StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            var knownMedias = media.Observations.Select(o => o.PlatformKey)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var mapping = knownRoms.Where(knownMedias.Contains)
+                .ToDictionary(k => k, k => k, StringComparer.OrdinalIgnoreCase);
+            if (mapping.Count == 0)
+            {
+                _detail.Text = "Aucune plateforme commune explicitement comparable.";
+                return;
+            }
+            _vm.AttachExplicitEsDeEvidence(roms, _imported(),
+                VerifiedScopeMapping.FromExplicitSelections(roms, media, mapping,
+                    "USER_CONFIRMED_SEPARATE_ROMS_AND_MEDIAS_ROOTS"));
+            RefreshObserved();
         };
-        _vm.PropertyChanged += (_, _) =>
+
+        chooseCover.Click += (_, _) =>
         {
-            state.Text = _vm.Status;
+            if (!_vm.SecurityApproved ||
+                _proposals.SelectedItem is not IdealMediaCoverProposal selected) return;
+            if (selected.RequiresExplicitChoice && _ambiguityConfirmed.IsChecked != true)
+            {
+                _detail.Text = "Ambiguïté : confirmer cette observation exacte avant PREVIEW.";
+                return;
+            }
+            _vm.SelectCoverForPreview(selected);
+        };
+
+        _proposals.SelectionChanged += (_, _) =>
+        {
+            _ambiguityConfirmed.IsChecked = false;
+            if (_proposals.SelectedItem is IdealMediaCoverProposal selected)
+                _detail.Text = selected.Label + "\nSources : " +
+                    string.Join(", ", selected.Provenance) + "\nPreuves : " +
+                    string.Join(", ", selected.Evidence) + "\nConflits : " +
+                    string.Join(", ", selected.Conflicts);
+        };
+
+        void Refresh()
+        {
+            _state.Text = _vm.Status;
             choose.IsEnabled = _vm.CanChooseMedia;
-            if (!ReferenceEquals(referenced.ItemsSource, _vm.ReferencedCovers))
-                referenced.ItemsSource = _vm.ReferencedCovers;
-            referenced.IsEnabled = _vm.SecurityApproved &&
-                _vm.CanChooseMedia && _vm.ReferencedCovers.Count > 0;
             authorizeIndex.IsEnabled = _vm.CanAuthorizeIndex;
             startIndex.IsEnabled = _vm.CanStartIndex;
+            project.IsEnabled = _vm.SecurityApproved &&
+                _scopeConfirmed.IsChecked == true && _vm.CurrentMediaIndex is not null &&
+                _roms()?.ScanStatus == InventoryScanStatus.Complete &&
+                _roms()?.Availability == InventoryAvailability.Online &&
+                _roms()?.Freshness == InventoryFreshness.Fresh;
+            if (!ReferenceEquals(_proposals.ItemsSource, _vm.CoverProposals))
+                _proposals.ItemsSource = _vm.CoverProposals;
+            chooseCover.IsEnabled = _vm.SecurityApproved &&
+                _proposals.SelectedItem is IdealMediaCoverProposal;
             authorizePreview.IsEnabled = _vm.CanAuthorizePreview;
             loadPreview.IsEnabled = _vm.CanLoadPreview;
             cancel.IsEnabled = _vm.SecurityApproved;
-            outcomes.Text = _vm.Preview?.Status switch
+            _scopeConfirmed.IsEnabled = _vm.SecurityApproved && _vm.CurrentMediaIndex is not null;
+            _ambiguityConfirmed.IsEnabled = _vm.SecurityApproved &&
+                _proposals.SelectedItem is IdealMediaCoverProposal { RequiresExplicitChoice: true };
+
+            var preview = _vm.Preview;
+            if (ReferenceEquals(preview, _rendered)) return;
+            _previewImage.Source = null;
+            _bitmap?.Dispose();
+            _bitmap = null;
+            _rendered = preview;
+            // No disk or URI fallback: the ONLY source is decoded RGBA in memory.
+            if (preview is { Status: MediaPreviewStatus.Ready, Image: not null })
             {
-                MediaPreviewStatus.Ready => "Aperçu RGBA en mémoire (non approuvé comme jaquette).",
-                MediaPreviewStatus.DecodeFailed => "Image corrompue.",
-                MediaPreviewStatus.Stale => "Aperçu périmé.",
-                MediaPreviewStatus.Unavailable => "Média absent ou inaccessible.",
-                MediaPreviewStatus.Rejected => "Autorisation refusée / hors périmètre.",
-                _ => "Aucun aperçu affiché automatiquement."
-            };
+                _bitmap = IdealMediaBitmapAdapter.Create(preview);
+                _previewImage.Source = _bitmap;
+                if (_bitmap is null)
+                    _detail.Text = "Impossible de rendre les pixels ; image non attribuée.";
+            }
+        }
+        _vm.PropertyChanged += (_, _) =>
+        {
+            if (Dispatcher.UIThread.CheckAccess()) Refresh();
+            else Dispatcher.UIThread.Post(Refresh);
         };
+        _scopeConfirmed.IsCheckedChanged += (_, _) => Refresh();
+        _proposals.SelectionChanged += (_, _) => Refresh();
+        Refresh();
 
-        // Defense in depth: even a future accidental Window construction leaves
-        // all actionable controls disabled until the hard security gate is changed.
-        choose.IsEnabled = _vm.CanChooseMedia;
-        authorizeIndex.IsEnabled = _vm.CanAuthorizeIndex;
-        startIndex.IsEnabled = _vm.CanStartIndex;
-        authorizePreview.IsEnabled = _vm.CanAuthorizePreview;
-        loadPreview.IsEnabled = _vm.CanLoadPreview;
-        referenced.IsEnabled = _vm.SecurityApproved &&
-            _vm.CanChooseMedia && _vm.ReferencedCovers.Count > 0;
-        cancel.IsEnabled = _vm.SecurityApproved;
-
-        var steps = new StackPanel {
-            Spacing = 9,
-            Children = {
-                new TextBlock {
-                    Text = "NEXT-05 · MEDIAS / PREVIEW · CANDIDAT NON PUBLIÉ",
-                    FontSize = 19, FontWeight = Avalonia.Media.FontWeight.Bold
-                },
-                caution,
-                state,
-                choose,
-                authorizeIndex,
-                startIndex,
-                new TextBlock {
-                    Text = "Références ES-DE déclarées et observées (preuve, pas attribution) :"
-                },
-                referenced,
-                authorizePreview,
-                loadPreview,
-                outcomes,
-                cancel
+        Content = new ScrollViewer {
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            Content = new Border {
+                Padding = new Thickness(18),
+                Child = new StackPanel {
+                    Spacing = 9,
+                    Children = {
+                        new TextBlock {
+                            Text = "NEXT-05 · ROMS observées et jaquettes candidates",
+                            FontSize = 19, FontWeight = FontWeight.Bold
+                        },
+                        new TextBlock {
+                            Text = "XML facultatif. Jaquettes par plateforme et nom de fichier exact, " +
+                                "aucun titre seul. Choix, INDEX, PREVIEW et association restent distincts.",
+                            TextWrapping = TextWrapping.Wrap
+                        },
+                        _state,
+                        new TextBlock { Text = "Fichiers ROMS déjà observés (pas de scan depuis cette fenêtre) :" },
+                        observed,
+                        choose,
+                        authorizeIndex,
+                        startIndex,
+                        _scopeConfirmed,
+                        project,
+                        new TextBlock {
+                            Text = "REFERENCED / CANDIDATE / AMBIGUOUS — propositions non approuvées :"
+                        },
+                        _proposals,
+                        _detail,
+                        _ambiguityConfirmed,
+                        chooseCover,
+                        authorizePreview,
+                        loadPreview,
+                        new TextBlock { Text = "Aperçu autorisé — pixels mémoire (aucune attribution) :" },
+                        _previewImage,
+                        cancel
+                    }
+                }
             }
         };
-        Content = new ScrollViewer {
-            Content = new Border { Padding = new Thickness(18), Child = steps }
+        Closed += (_, _) =>
+        {
+            _previewImage.Source = null;
+            _bitmap?.Dispose();
+            _bitmap = null;
+            _vm.Dispose();
         };
-        Closed += (_, _) => _vm.Dispose();
     }
 }
