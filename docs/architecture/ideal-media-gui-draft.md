@@ -1,49 +1,42 @@
-# NEXT-05 — GUI MEDIAS/PREVIEW candidate (DEV 3, Draft)
+# NEXT-05 — GUI MEDIAS/PREVIEW #163 (candidat fonctionnel, non fusionné)
 
-**Source:** #161 HEAD `9ee05924a655404645fd53d4963be37aa0e42256`.
-**Isolation:** branche GUI dédiée `dev3/next05-ideal-media-gui-draft`, empilée sur #161.
-**Ne dépend PAS de #159 et ne l'altère PAS.** Aucun merge, Release, données personnelles ou activation de l'EXE standard.
+## État de la livraison
 
-## Ce qui est codé (candidat non activé)
+- PR [#159](https://github.com/TobbyCy/RomothequeManager/pull/159) GUI IDEAL standard **fusionnée**, ROMS et SQLite read-only disponibles.
+- PR [#161](https://github.com/TobbyCy/RomothequeManager/pull/161) backend INDEX/PREVIEW natif **fusionnée** après avis sécurité indépendant, avec grants distincts.
+- PR [#163](https://github.com/TobbyCy/RomothequeManager/pull/163) **OPEN/DRAFT** sur la branche existante `dev3/next05-ideal-media-gui-draft`. Aucun merge ou Release autorisé ici.
+- PR [#165](https://github.com/TobbyCy/RomothequeManager/pull/165) : variantes PS1/PS2/PS3, intégration à surveiller au nouveau main ; aucun fichier PS3 interne ne doit être promu en jeu.
 
-- `IdealMediaDraftViewModel` : contrat typé `IdealMediaApplicationService` pour une sélection MEDIAS indépendante, clic positif INDEX puis Start, clic positif PREVIEW par observation puis Load, refus, Cancel/Dispose, états et délai de résultat, destruction des pixels RGBA.
-- `IdealMediaDraftWindow` : fenêtre Avalonia code-only **non reliée à Program/MainWindow** ; picker local dédié MEDIAS et libellés INDEX / PREVIEW distincts. Pas de décodage, scan, XML ou I/O source dans View ou ViewModel.
-- **Gate compilé fail-closed** `NativeMediaSecurityValidated = false` : aucune des commandes de sélection/INDEX/PREVIEW ne peut être activée ; toute méthode interne appelée directement refuse également.
-- `EsDeDeclaredMediaClaims.Build` : projection pure sans I/O, seulement depuis `EsDeCatalogueSnapshot.Games[].Media` déjà importés. Correspondance exacte **plateforme + chemin ROMS déclaré** avec une seule observation ; référence MEDIAS bornée et déjà déclarée en XML. Ne fait ni recherche sur titre, ni scan, ni appariement réseau ; source absente ou doublon → pas de lien automatique.
-- `MediaPresentationService.Build` conserve `REFERENCED / CANDIDATE / AMBIGUOUS / ABSENT_IN_COMPLETE_SCOPE / NOT_COMPARABLE` comme indices, sans approuver une jaquette ni restaurer une autorisation. La GUI candidate ne sélectionne que `REFERENCED` pour un éventuel aperçu et ne retient aucun grant dans SQLite.
-- Tests synthétiques `MEDIA_UI_01–04` : aucune commande active, aucun Current, chemins/traversal rejetés, pas de déduction par titre, doublons/plateformes divergentes refusés, annulation/dispose.
+Ce document décrit le **code candidat**, pas une fonctionnalité déjà publiée. Les tests et la preuve GUI Windows au **HEAD final exact** doivent être `SUCCESS`, puis DEV 2 doit rendre sa revue ciblée et le propriétaire donner un GO de fusion distinct.
 
-## Verrous pour un prochain lot autorisé
+## Parcours utilisateur candidat de l'EXE standard
 
-1. **DEV 2** doit conclure la revue de sécurité #161 au HEAD exact, incluant INDEX/PREVIEW séparés, handle native, TOCTOU, budgets et annulation.
-2. **Propriétaire/Contrôleur** doit autoriser explicitement l'activation du parcours GUI. Lever le gate uniquement avec tests d'activation positifs et négatifs et nouvelle CI requise. Ne jamais déduire le droit PREVIEW d'INDEX, de ROMS, du picker, de l'XML ou de SQLite.
-3. Après stabilisation de #159, intégrer seulement dans un lot GUI distinct la navigation et les snapshots ROMS observés, les preuves des trois racines choisies séparément et le mapping `VerifiedScopeMapping.FromExplicitSelections`. Un XML ES-DE historisé n'est pas une permission d'accès MEDIAS.
-4. Faire le rendu RGBA via un adaptateur UI à partir du buffer déjà décodé **après** grant PREVIEW, sans ouvrir les chemins depuis la View. Couvrir l'annulation tardive, A→B, formats corrompus, absent, hors-scope, OFFLINE/STALE, la disparition de l'image et les tailles 1120×720 / 760×480.
-5. Recette native de l'EXE standard à partir du HEAD assemblé et de fixtures fictives, puis nouvelle contre-revue DEV 2. Une CI verte de #161 ou de cette PR n'est pas une qualification de l'EXE #159.
+1. La collection ROMS s'affiche sans import XML ES-DE. L'utilisateur choisit sa racine et autorise explicitement ROMS avant l'inventaire. SQLite peut restaurer des faits **OFFLINE/STALE** sans restaurer de permission.
+2. Après inventaire ROMS `Complete/Online/Fresh`, le bouton « Découvrir et afficher les jaquettes locales » ouvre une fenêtre MEDIA distincte. Il ne lance ni INDEX ni PREVIEW.
+3. L'utilisateur choisit une racine finissant par **MEDIAS** et clique séparément **Autoriser INDEX**, puis **Indexer**. `IdealMediaApplicationService` valide les droits via handles natifs et une autorisation volatile one-shot ; les dossiers sont classés selon `IdealPlatformFolderConventions.PlatformAliases/FolderKinds`. Un nom de dossier n'est jamais un grant.
+4. L'utilisateur **confirme explicitement** la correspondance des deux racines sélectionnées et lance la comparaison. `VerifiedScopeMapping.FromExplicitSelections`, `MediaPresentationService.Build` et `IdealMediaCoverProposals.Build` forment une projection **pure, sans I/O** et liée aux `ScanId/RunId/MediaRootRef`.
+5. Les fichiers MEDIAS indexés sous `covers` proposent `CANDIDATE` si plateforme + nom de fichier ROM sans extension correspondent de manière unique, **même sans XML ou sans balise image**. `REFERENCED` exige une référence XML de chemin média exacte préalablement importée ET une attestation positive distincte que l'import appartient à la racine ROMS. `AMBIGUOUS` conserve toutes les alternatives et demande un choix d'observation explicite ; `NOT_COMPARABLE` signale une génération ou racine inexploitable ; absence locale uniquement dans un scope complet et comparable. Jamais d'association automatique par titre.
+6. Choisir une observation candidate pour **aperçu** ne valide aucune association persistée. L'utilisateur clique **Autoriser PREVIEW** spécifiquement pour l'image choisie, puis **Afficher**. Le backend revalide `Current` et fournit un `MediaPreviewResult` borné. `IdealMediaBitmapAdapter` copie les octets `DecodedMediaPreview.Pixels` en mémoire dans un `WriteableBitmap` Avalonia `Rgba8888/Premul`, effectivement attaché à `Image.Source`. Ni la fenêtre ni le ViewModel n'ouvrent de fichier image par chemin.
+7. Cancel, changement de ROMS `ScanId`, sélection MEDIAS A→B, OFFLINE/STALE, fermeture et Dispose détruisent les droits volatiles, l'état des propositions et les buffers d'aperçu. Aucune autorisation n'est persistée par SQLite.
 
-## Oracles attendus
+## Sécurité et statut d'activation
 
-- Avant validation #161 : `CanChooseMedia = CanAuthorizeIndex = CanStartIndex = CanAuthorizePreview = CanLoadPreview = false`, aucun handle ouvert, aucun preview.
-- Après GO explicite futur : picker MEDIAS ≠ grant ; INDEX ≠ PREVIEW ; un grant PREVIEW = une observation du Current complet ; reselect/Cancel/Dispose invalident les opérations ; résultat tardif rejeté ; image disposée.
-- Jaquette ES-DE : `REFERENCED` est seulement une provenance de chemin ; lien ambigu, manquant ou incomparable conserve un placeholder. Aucun `APPROVED_COVER` automatique.
+La fenêtre MEDIA possède un verrou de **composition produit** `productMediaUiEnabled`, **désactivé par défaut** pour la construction isolée ; le parcours de l'EXE standard fournit `true` seulement depuis `ObservedLibraryWindow` après ROMS `Complete/Online/Fresh`. Ce booléen ne remplace **aucun** grant natif. INDEX et PREVIEW doivent ensuite être autorisés séparément par le backend #161, avec refus hors scope et consommation one-shot.
 
-## Vérification indépendante et validation GUI Draft
+Il n'y a pas de mode d'activation par CLI, XML, SQLite ou simple consentement ROMS. La composition des tests `NEXT05_CI` est exclue de l'EXE standard. La PR #163 reste Draft jusqu'à revue DEV 2, verdict CI et GO propriétaire ; aucune bibliothèque personnelle n'est scannée.
 
-DEV 2 [#161](https://github.com/TobbyCy/RomothequeManager/pull/161#issuecomment-6634854191) :
-`APPROVABLE_FOR_GUI_INTEGRATION` au SHA `9ee05924a655404645fd53d4963be37aa0e42256`,
-**limité au développement Draft sur fixtures**. Le verdict n'autorise aucune
-fusion, activation des commandes, test sur données personnelles ni Release.
-La fenêtre MEDIA reste non composée et son verrou compilé vaut `false`.
+## Oracles Windows et code testé
 
-L'annulation doit laisser les contrôles désactivés tant que les opérations
-asynchrones n'ont pas réellement terminé ; un `Cancel` efface toute preuve
-native `Current` pour une nouvelle PREVIEW et les buffers RGBA sont disposés.
-La liste des références est stable pendant les notifications afin d'éviter
-un cycle de changement de sélection.
+- `MEDIA_GUI_06–10` : projection CANDIDATE sans XML, doublons AMBIGUOUS, plateformes différentes, identité par fichier et non titre, OFFLINE/STALE/Partial.
+- `MEDIA_GUI_11` : vraie racine Windows temporaire avec `ROMS/gba/Fiction.gba`, `MEDIAS/gba/covers/Fiction.png`, **aucun XML** ; INDEX distinct, candidat, PREVIEW distinct, pixels décodés non vides, Cancel efface l'image.
+- `MEDIA_GUI_12` : deux jaquettes homonymes sous `covers/` et `covers/alternate/` ; alternatives conservées, jamais associées automatiquement.
+- `MEDIA_GUI_13` : constructeur défaut sans autorisation ou INDEX implicite.
+- `MEDIA_GUI_14` : JPEG natif fictif, PREVIEW séparé, pixels effectivement décodés.
+- Harnais **CI seulement** dans `Next05GuiHarness` : capture vraie fenêtre MEDIA après parcours natif et compare un pixel capturé à `CadetBlue` à **1120×720 et 760×480**. Workflow déjà suivi `.github/workflows/next05-media-ui-proof.yml`, branche unique #163, acteur `TobbyCy`, token en lecture seule, artefacts synthétiques trois jours, aucune Release. La règle `tests/ci_policy.py` est mise à jour **uniquement pour ce renommage de branche unique et le marqueur standard sans harness**, sans contourner ni supprimer les canaris.
+- La preuve requiert les liens vers **les runs complets au HEAD final**, pas des captures précédentes. Aucun `WINDOWS_GUI_PROOF PASS` anticipé.
 
-Tests `MEDIA_UI_01–05` : cas négatifs, provenance de chemin explicite,
-absence de grants et refus des chemins absolus, traversants ou ambigus.
-CI GUI au HEAD exact à contrôler ; les PASS du backend #161 ne se transfèrent
-pas automatiquement à ce Draft.
+## Limites explicites
 
-**Statut :** `IDEAL_MEDIA_GUI_DRAFT / NOT_ENABLED / NO_MERGE_NO_RELEASE`.
+Le rendu d'une jaquette n'est **pas** l'identification commerciale ou l'unicité d'un jeu. Variantes, playlists BIN/CUE/CHD/M3U, PS3 et dossiers internes doivent rester des observations distinctes. Les ambiguïtés demandent une action utilisateur ; aucun `GameId` durable, `UserDecisionId` fictif ou association persistée n'est créé par cette PR.
+
+`PR163_GUI_END_TO_END_CANDIDATE / REQUIRED_CI_AND_WINDOWS_GUI_PROOF_PENDING / DEV2_REVIEW_PENDING / NO_MERGE_NO_RELEASE`
