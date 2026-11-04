@@ -1,5 +1,14 @@
 # Historique technique des fonctionnalités
 
+## CURRENT — consolidation NEXT-05 du 04.11.2026
+
+- La [PR #154](https://github.com/TobbyCy/RomothequeManager/pull/154) est **fusionnée** : source finale `d540a84b7caf33dfa98455c519841790f519635f`, commit sur main `c7cd2f40c6e91880d5cdf5e4a6aca6a2411efacc`. La synchronisation n'ajoute que les documents déjà présents dans main ; son arbre est identique au merge synthétique examiné par DEV 2.
+- [CI PR #41792652938](https://github.com/TobbyCy/RomothequeManager/actions/runs/41792652938) et [CI post-fusion push/main #41793803770](https://github.com/TobbyCy/RomothequeManager/actions/runs/41793803770) : **10/10 SUCCESS**. Les lots #147/#148/#150/#151/#152/#153, la documentation #155 et la validation interne #154 sont intégrés. Le gate PR fiable et la qualification Windows non-admin pré-Release sont distincts.
+- **Aucune qualification humaine NEXT-05 acquise** : la recette [#95](https://github.com/TobbyCy/RomothequeManager/issues/95) reste `NOT_EXECUTED` tant qu'un candidat privé exact n'est pas qualifié, reçu et testé sous compte standard. Les fixtures fictives préparées ne valent pas PASS GUI. Aucun scanner personnel n'est autorisé.
+- **Dernière Release publiée : [v0.4.0-alpha.1](https://github.com/TobbyCy/RomothequeManager/releases/tag/v0.4.0-alpha.1)**, historique NEXT-04.1. NEXT-05 n'est pas publié : `phase=validate`, `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD` et `NEXT05_RELEASE_HOLD` restent actifs ; la CI verte ne vaut ni GO juridique ni GO Release.
+- Les libellés DRAFT, proposition, CI en attente et anciens SHAs dans les entrées suivantes sont des **checkpoints historiques datés**, pas l'état courant. Aucune entrée historique n'est supprimée.
+
+
 ## NEXT-05 / #154 — Split CI fiable PR / qualification Release (GO propriétaire, 03.11.2026)
 
 - GO d'architecture `PR_GATE_AND_RELEASE_GATE_SPLIT` : les tests PR fiables demeurent required et fail-closed ; les oracles GUI/ES-DE standard non-admin sont explicitement `RELEASE_ONLY / NOT_EXECUTED_ON_PR`.
