@@ -1,7 +1,7 @@
 name: NEXT-05 / Avalonia MEDIA PNG JPEG synthetic Windows proof
 on:
   push:
-    branches: [dev3/next05-media-ui]
+    branches: [dev3/next05-ideal-media-gui-draft]
 permissions:
   contents: read
 concurrency:
@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   windows-ui:
-    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev3/next05-media-ui' && github.actor == 'TobbyCy'
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev3/next05-ideal-media-gui-draft' && github.actor == 'TobbyCy'
     runs-on: windows-2022
     timeout-minutes: 40
     steps:
@@ -88,6 +88,8 @@ jobs:
           $media = @($png | Where-Object { $_.Name -like 'MEDIA-*.png' })
           if ($n05.Count -ne 9) { throw ('N05_BASELINE_CAPTURE_COUNT:' + $n05.Count) }
           if ($media.Count -ne 11) { throw ('N05_MEDIA_CAPTURE_COUNT:' + $media.Count) }
+          $native163 = @($png | Where-Object { $_.Name -like 'MEDIA163-NATIVE-PNG-*.png' })
+          if ($native163.Count -ne 2) { throw ('MEDIA163_NATIVE_VISUAL_CAPTURE_COUNT:' + $native163.Count) }
           Add-Type -AssemblyName System.Drawing
           foreach ($file in $png) {
             $img = [Drawing.Bitmap]::FromFile($file.FullName)
@@ -99,6 +101,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'N05_SOURCE_MUTATED' }
           Write-Host ('N05_GUI_WINDOWS_CAPTURE_PASS source=' + $env:GITHUB_SHA + ' count=9 no_xml=true untouched=true')
           Write-Host ('MEDIA_GUI_WINDOWS_CAPTURE_PASS source=' + $env:GITHUB_SHA + ' count=11 png_jpeg_alpha=true explicit_selection=true pixel_canary=true')
+          Write-Host ('MEDIA163_XML_FREE_NATIVE_AVALONIA_PIXEL_PASS source=' + $env:GITHUB_SHA + ' captures=2 xml=0 candidate=exact_filename preview=explicit')
       - name: Clean standard self-contained single-file Windows package
         shell: pwsh
         run: |
@@ -113,7 +116,7 @@ jobs:
             if (-not (Test-Path -LiteralPath (Join-Path $out $f) -PathType Leaf)) { throw ('N05_BUILD_MISSING:' + $f) }
           }
           Write-Host 'N05_STANDARD_WITHOUT_CI_PERMISSION_PASS'
-          Write-Host 'MEDIA_STANDARD_PUBLIC_PREVIEW_HOLD_PASS'
+          Write-Host 'MEDIA_STANDARD_CI_HARNESS_ABSENT_PASS'
       - name: Assemble quarantined candidate ZIP and verify SHA-256
         shell: pwsh
         run: |
