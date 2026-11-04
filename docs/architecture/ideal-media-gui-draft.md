@@ -27,4 +27,23 @@
 - Après GO explicite futur : picker MEDIAS ≠ grant ; INDEX ≠ PREVIEW ; un grant PREVIEW = une observation du Current complet ; reselect/Cancel/Dispose invalident les opérations ; résultat tardif rejeté ; image disposée.
 - Jaquette ES-DE : `REFERENCED` est seulement une provenance de chemin ; lien ambigu, manquant ou incomparable conserve un placeholder. Aucun `APPROVED_COVER` automatique.
 
+## Vérification indépendante et validation GUI Draft
+
+DEV 2 [#161](https://github.com/TobbyCy/RomothequeManager/pull/161#issuecomment-6634854191) :
+`APPROVABLE_FOR_GUI_INTEGRATION` au SHA `9ee05924a655404645fd53d4963be37aa0e42256`,
+**limité au développement Draft sur fixtures**. Le verdict n'autorise aucune
+fusion, activation des commandes, test sur données personnelles ni Release.
+La fenêtre MEDIA reste non composée et son verrou compilé vaut `false`.
+
+L'annulation doit laisser les contrôles désactivés tant que les opérations
+asynchrones n'ont pas réellement terminé ; un `Cancel` efface toute preuve
+native `Current` pour une nouvelle PREVIEW et les buffers RGBA sont disposés.
+La liste des références est stable pendant les notifications afin d'éviter
+un cycle de changement de sélection.
+
+Tests `MEDIA_UI_01–05` : cas négatifs, provenance de chemin explicite,
+absence de grants et refus des chemins absolus, traversants ou ambigus.
+CI GUI au HEAD exact à contrôler ; les PASS du backend #161 ne se transfèrent
+pas automatiquement à ce Draft.
+
 **Statut :** `IDEAL_MEDIA_GUI_DRAFT / NOT_ENABLED / NO_MERGE_NO_RELEASE`.
