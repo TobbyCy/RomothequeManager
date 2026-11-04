@@ -50,7 +50,18 @@ internal static class Program
             var headCompilation = headInputs.Compile();
             var baseCompilation = baseInputs.Compile();
             // No changed generator/version/source list may disappear behind an exclusion.
-            VerifyGeneratedInputsStable(baseInputs.GeneratedProvenance, headInputs.GeneratedProvenance);
+            // The exact git delta is independent evidence that the XAML source
+            // changed intentionally in this PR; native MSBuild separately attests
+            // that the changed project XAML belongs to the compiler input set.
+            var changedXaml = Git(root, "diff", "--name-only", "-z", baseSha, headSha,
+                "--", "src/RomothequeManager.V2/")
+                .Split('\0', StringSplitOptions.RemoveEmptyEntries)
+                .Where(p => p.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
+                .Select(p => p.Replace('\\', '/')
+                    ["src/RomothequeManager.V2/".Length..])
+                .ToArray();
+            VerifyGeneratedInputsStable(baseInputs.GeneratedProvenance,
+                headInputs.GeneratedProvenance, changedXaml);
             var head = Measure(headSha, headCompilation, root, headInputs.GeneratedProvenance);
             var baseline = Measure(baseSha, baseCompilation, root, baseInputs.GeneratedProvenance);
             headInputs.VerifyActualAssembly(headCompilation, head.Symbols.Select(x => x.Id));
@@ -151,21 +162,92 @@ internal static class Program
 
     private static void VerifyGeneratedInputsStable(
         IReadOnlyDictionary<string, GeneratedSourceProvenance> baseline,
-        IReadOnlyDictionary<string, GeneratedSourceProvenance> head)
+        IReadOnlyDictionary<string, GeneratedSourceProvenance> head,
+        IReadOnlyCollection<string>? changedXamlSources = null)
     {
-        // CI worktrees use different absolute temp roots; compare compiler-relative
-        // generator outputs, identities and real analyzer hashes instead.
-        static string[] Manifest(IReadOnlyDictionary<string, GeneratedSourceProvenance> value) =>
-            value.Values.Select(x => x.RelativePath.Replace('\\', '/') + "|" +
-                x.GeneratorIdentity + "|" + x.GeneratorVersion + "|" + x.GeneratorHash +
-                "|" + x.SourceHash + "|" + x.XamlInputHash + "|" + x.Attested)
-                .Order(StringComparer.Ordinal).ToArray();
+        // Compiler-relative keys are stable across distinct native Windows CI
+        // worktrees. Physical paths are deliberately not compared.
+        static Dictionary<string, GeneratedSourceProvenance> Manifest(
+            IReadOnlyDictionary<string, GeneratedSourceProvenance> sources)
+        {
+            var result = new Dictionary<string, GeneratedSourceProvenance>(StringComparer.Ordinal);
+            foreach (var value in sources.Values)
+            {
+                var key = value.RelativePath.Replace('\\', '/');
+                if (key.Length == 0 || !result.TryAdd(key, value))
+                    throw new InvalidDataException("DOC_GENERATED_DUPLICATE_OR_INVALID_OUTPUT");
+            }
+            return result;
+        }
         var before = Manifest(baseline);
         var after = Manifest(head);
-        if (before.Length == 0 || after.Length == 0 || !before.SequenceEqual(after, StringComparer.Ordinal))
-            throw new InvalidDataException("DOC_GENERATED_COMPILER_OUTPUT_OR_VERSION_CHANGED_REVIEW_REQUIRED:" +
-                "base=" + before.Length + " head=" + after.Length);
-        Console.WriteLine("DOC_GENERATED_BASE_HEAD_PROVENANCE_STABLE sources=" + after.Length);
+        void Reject() => throw new InvalidDataException(
+            "DOC_GENERATED_COMPILER_OUTPUT_OR_VERSION_CHANGED_REVIEW_REQUIRED:" +
+            "base=" + before.Count + " head=" + after.Count);
+        if (before.Count == 0 || before.Count != after.Count ||
+            before.Keys.Except(after.Keys, StringComparer.Ordinal).Any())
+            Reject();
+
+        var changed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in changedXamlSources ?? Array.Empty<string>())
+        {
+            var normalized = path.Replace('\\', '/');
+            if (normalized.Length == 0 || normalized.StartsWith("/", StringComparison.Ordinal) ||
+                normalized.Contains(":", StringComparison.Ordinal) ||
+                normalized.Split('/').Any(part => part is "" or "." or "..") ||
+                !normalized.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase) ||
+                !changed.Add(normalized))
+                Reject();
+        }
+
+        var inputChanged = false;
+        var sourceBindings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string? baselineInputHash = null, headInputHash = null;
+        foreach (var key in before.Keys.Order(StringComparer.Ordinal))
+        {
+            var old = before[key];
+            var now = after[key];
+            // Every output must be compiler-observed and tied to exactly one
+            // native Avalonia XAML input. No spoofed/unmapped provenance is
+            // permitted even if an output hash happens to match.
+            if (!old.Attested || !now.Attested ||
+                old.GeneratorIdentity != "Avalonia.Generators" ||
+                now.GeneratorIdentity != "Avalonia.Generators" ||
+                string.IsNullOrWhiteSpace(old.GeneratorVersion) ||
+                old.GeneratorVersion != now.GeneratorVersion ||
+                string.IsNullOrWhiteSpace(old.GeneratorHash) ||
+                old.GeneratorHash != now.GeneratorHash ||
+                string.IsNullOrWhiteSpace(old.SourceHash) ||
+                old.SourceHash != now.SourceHash ||
+                old.XamlSource != now.XamlSource ||
+                old.XamlSource.StartsWith("UNMAPPED_", StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(old.XamlInputHash) ||
+                string.IsNullOrWhiteSpace(now.XamlInputHash))
+                Reject();
+            sourceBindings.Add(old.XamlSource.Replace('\\', '/'));
+            baselineInputHash ??= old.XamlInputHash;
+            headInputHash ??= now.XamlInputHash;
+            // Native manifests hash the ENTIRE compiler XAML set, so every
+            // attested output must report the same baseline/head aggregate.
+            if (baselineInputHash != old.XamlInputHash ||
+                headInputHash != now.XamlInputHash)
+                Reject();
+            if (old.XamlInputHash != now.XamlInputHash) inputChanged = true;
+        }
+
+        // No generic "ignore XamlInputHash": it may differ only when Git proves
+        // an actual XAML source delta and every changed file has an attested
+        // native generated-output binding on both the baseline and HEAD.
+        if (inputChanged != (changed.Count > 0) ||
+            changed.Any(path => !sourceBindings.Contains(path)))
+            Reject();
+
+        if (inputChanged)
+            Console.WriteLine("DOC_GENERATED_XAML_INPUT_CHANGE_ATTESTED files=" +
+                changed.Count + " outputs=" + after.Count +
+                " sourceHashUnchanged=true generatorUnchanged=true");
+        else
+            Console.WriteLine("DOC_GENERATED_BASE_HEAD_PROVENANCE_STABLE sources=" + after.Count);
     }
 
     private static Measurement Measure(string sha, CSharpCompilation compilation, string root,
@@ -621,6 +703,62 @@ internal static class Program
             catch (InvalidDataException) { driftRejected = true; }
             if (!driftRejected) throw new InvalidOperationException("DOC_GENERATED_DRIFT_NOT_BLOCKED");
             Console.WriteLine("DOC_GENERATED_BASE_HEAD_VERSION_DRIFT_RED_PASS");
+
+            // Intentional, Git-verified XAML edit with identical compiled outputs
+            // is allowed. All other provenance drift must remain fail-closed.
+            void Allow(string name, Dictionary<string, GeneratedSourceProvenance> headEvidence,
+                string[] trackedXaml)
+            {
+                VerifyGeneratedInputsStable(stable, headEvidence, trackedXaml);
+                Console.WriteLine("DOC_GENERATED_XAML_" + name + "_GREEN_PASS");
+            }
+            void Deny(string name, Dictionary<string, GeneratedSourceProvenance> headEvidence,
+                string[] trackedXaml)
+            {
+                var refused = false;
+                try { VerifyGeneratedInputsStable(stable, headEvidence, trackedXaml); }
+                catch (InvalidDataException) { refused = true; }
+                if (!refused) throw new InvalidOperationException(
+                    "DOC_GENERATED_XAML_" + name + "_FALSE_PASS");
+                Console.WriteLine("DOC_GENERATED_XAML_" + name + "_RED_PASS");
+            }
+            Dictionary<string, GeneratedSourceProvenance> Delta(
+                Func<GeneratedSourceProvenance, GeneratedSourceProvenance> transform) =>
+                new(stable, StringComparer.OrdinalIgnoreCase) {
+                    ["one"] = transform(stable["one"])
+                };
+            var validXaml = Delta(x => x with { XamlInputHash = "XAML_HASH_CHANGED_BY_NATIVE_BUILD" });
+            Allow("INTENTIONAL_EDIT_SAME_GENERATED_OUTPUT", validXaml, ["MainWindow.axaml"]);
+            Deny("UNEXPLAINED_INPUT_HASH", validXaml, []);
+            Deny("UNMAPPED_XAML_EDIT", validXaml, ["OtherWindow.axaml"]);
+            Deny("UNTRACKED_XAML_INPUT", stable, ["MainWindow.axaml"]);
+            Deny("SOURCE_HASH_DRIFT",
+                Delta(x => x with { XamlInputHash = "NEW", SourceHash = "CHANGED_OUTPUT" }),
+                ["MainWindow.axaml"]);
+            Deny("GENERATOR_IDENTITY_DRIFT",
+                Delta(x => x with { XamlInputHash = "NEW", GeneratorIdentity = "Untrusted" }),
+                ["MainWindow.axaml"]);
+            Deny("GENERATOR_VERSION_DRIFT",
+                Delta(x => x with { XamlInputHash = "NEW", GeneratorVersion = "2.0" }),
+                ["MainWindow.axaml"]);
+            Deny("GENERATOR_HASH_DRIFT",
+                Delta(x => x with { XamlInputHash = "NEW", GeneratorHash = "UNVERIFIED" }),
+                ["MainWindow.axaml"]);
+            Deny("ATTESTATION_MISSING",
+                Delta(x => x with { XamlInputHash = "NEW", Attested = false }),
+                ["MainWindow.axaml"]);
+            Deny("XAML_BINDING_MISMATCH",
+                Delta(x => x with { XamlInputHash = "NEW", XamlSource = "OtherWindow.axaml" }),
+                ["MainWindow.axaml"]);
+            Deny("OUTPUT_ADDED",
+                new(stable, StringComparer.OrdinalIgnoreCase) {
+                    ["extra"] = stable["one"] with { RelativePath = "Avalonia.Generators/Extra.g.cs",
+                        XamlInputHash = "NEW" },
+                    ["one"] = validXaml["one"]
+                }, ["MainWindow.axaml"]);
+            Deny("OUTPUT_REMOVED",
+                new(StringComparer.OrdinalIgnoreCase), ["MainWindow.axaml"]);
+            Deny("INVALID_XAML_PATH", validXaml, ["../MainWindow.axaml"]);
         }
 
 

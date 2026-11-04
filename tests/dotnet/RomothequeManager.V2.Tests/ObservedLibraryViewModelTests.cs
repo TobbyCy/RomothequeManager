@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RomothequeManager.V2.Inventory;
 using RomothequeManager.V2.Inventory.Application;
+using RomothequeManager.V2.Persistence;
 using RomothequeManager.V2.MvvmFoundation;
 
 namespace RomothequeManager.V2.Tests;
@@ -26,6 +27,21 @@ public sealed class ObservedLibraryViewModelTests
             Array.Empty<InventoryDiagnostic>(), Array.Empty<InventoryPlaylist>(),
             Array.Empty<PotentialDuplicateGroup>(), "fictional", count,
             status == InventoryScanStatus.Complete ? count : null, null);
+    }
+
+    [TestMethod]
+    public void N05Ux00_HistoricalTwoArgumentConstructorDoesNotInjectStandardAuthority()
+    {
+        var constructor = typeof(ObservedLibraryViewModel).GetConstructor(
+            [typeof(InventoryViewModel), typeof(bool)]);
+        Assert.IsNotNull(constructor, "Public two-argument API must remain stable for DocFX and callers.");
+
+        var service = new FakeService(Snapshot(1));
+        using var inventory = new InventoryViewModel(service, action => action());
+        using var fixture = new ObservedLibraryViewModel(inventory, fixtureMode: true);
+        Assert.IsTrue(fixture.FixtureMode);
+        Assert.IsFalse(fixture.CanInventoryFixture);
+        Assert.IsFalse(inventory.HasRomsGrantAction);
     }
 
     [TestMethod]
@@ -116,6 +132,104 @@ public sealed class ObservedLibraryViewModelTests
         Assert.IsTrue(vm.ModeNotice.Contains("désactivé", StringComparison.Ordinal));
         Assert.IsFalse(vm.HasSnapshot);
         await Task.CompletedTask;
+    }
+
+    [TestMethod]
+    public async Task N05Ux04_InjectedStandardServiceShowsCommandButDoesNotGrantViaUi()
+    {
+        var service = new FakeService(Snapshot(2));
+        using var inventory = new InventoryViewModel(service, action => action());
+        using var vm = new ObservedLibraryViewModel(inventory,
+            fixtureMode: false, standardServiceSupplied: true);
+        Assert.IsFalse(vm.CanInventoryFixture);
+        Assert.IsTrue(vm.ModeNotice.Contains("Inventaire IDEAL", StringComparison.Ordinal));
+        Assert.IsTrue(inventory.PrepareSelectedFolder(
+            new InventoryScope(@"C:\test-fixture")).Accepted);
+        Assert.IsFalse(vm.CanInventoryFixture); // selection is not consent
+        inventory.ConsentConfirmed = true;
+        Assert.IsTrue(vm.CanInventoryFixture); // presentation only
+        await inventory.StartConfirmedAsync(); // injected fake, no real filesystem I/O
+        Assert.AreEqual(2, vm.MatchingFileCount);
+        Assert.IsFalse(vm.CanInventoryFixture); // one-shot consent consumed
+    }
+
+    [TestMethod]
+    public async Task N05Ux05_SeparateGrantIsRequiredBeforeConsentCanStart()
+    {
+        var service = new FakeService(Snapshot(1));
+        var calls = 0;
+        using var inventory = new InventoryViewModel(service, action => action(),
+            selectionVersion => { calls++; return selectionVersion == 1; });
+        using var vm = new ObservedLibraryViewModel(inventory,
+            fixtureMode: false, standardServiceSupplied: true);
+        Assert.IsTrue(inventory.HasRomsGrantAction);
+        Assert.IsFalse(inventory.CanRequestRomsGrant);
+        inventory.PrepareSelectedFolder(new InventoryScope(@"C:\test-fixture"));
+        inventory.ConsentConfirmed = true;
+        Assert.IsFalse(inventory.CanStart); // checkbox != permission
+        Assert.IsTrue(inventory.CanRequestRomsGrant);
+        inventory.RequestRomsGrantCommand.Execute(null);
+        Assert.AreEqual(1, calls);
+        Assert.IsTrue(inventory.CanStart);
+        await inventory.StartConfirmedAsync();
+        Assert.IsFalse(inventory.CanStart);
+        Assert.IsTrue(inventory.CanRequestRomsGrant); // one-shot
+        inventory.PrepareSelectedFolder(new InventoryScope(@"C:\other-fixture"));
+        Assert.IsFalse(inventory.CanStart);
+        Assert.IsFalse(inventory.ConsentConfirmed);
+        Assert.IsTrue(inventory.RomsGrantStatus.Contains("Aucune autorisation",
+            StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void N05Ux06_RejectedGrantNeverEnablesStart()
+    {
+        var service = new FakeService(Snapshot(1));
+        using var inventory = new InventoryViewModel(service, action => action(),
+            _ => false);
+        using var vm = new ObservedLibraryViewModel(inventory,
+            fixtureMode: false, standardServiceSupplied: true);
+        inventory.PrepareSelectedFolder(new InventoryScope(@"C:\test-fixture"));
+        inventory.ConsentConfirmed = true;
+        inventory.RequestRomsGrantCommand.Execute(null);
+        Assert.IsFalse(inventory.CanStart);
+        Assert.IsTrue(inventory.RomsGrantStatus.Contains("refusée", StringComparison.Ordinal));
+        Assert.IsFalse(vm.CanInventoryFixture);
+    }
+
+    [TestMethod]
+    public void N05Ux07_SavedLibraryRequiresExplicitLoadAndOfflineRestore()
+    {
+        var rootId = Guid.NewGuid().ToString("D");
+        var libraryId = Guid.NewGuid().ToString("D");
+        var historical = new CatalogLastKnown(
+            new CatalogStorageRoot(rootId, libraryId, "ROMS", "ROMS"),
+            null, null, Array.Empty<CatalogMetadataClaim>(),
+            Array.Empty<CatalogUserDecision>());
+        var loads = 0;
+        var restores = 0;
+        var service = new FakeService(Snapshot(1));
+        using var inventory = new InventoryViewModel(service, action => action(),
+            loadSavedLibraries: () => { loads++; return new[] { historical }; },
+            restoreSaved: id => { restores++; return id == rootId; });
+
+        Assert.IsTrue(inventory.HasSavedLibraryCommands);
+        Assert.AreEqual(0, loads);
+        Assert.AreEqual(0, restores);
+        Assert.IsFalse(inventory.CanRestoreSavedLibrary);
+
+        inventory.LoadSavedLibrariesCommand.Execute(null);
+        Assert.AreEqual(1, loads);
+        Assert.AreEqual(1, inventory.SavedLibraries.Count);
+        Assert.AreEqual(0, restores); // listing never invokes restore
+        Assert.IsFalse(inventory.CanRestoreSavedLibrary);
+
+        inventory.SelectedSavedLibrary = inventory.SavedLibraries[0];
+        Assert.IsTrue(inventory.CanRestoreSavedLibrary);
+        inventory.RestoreSavedLibraryCommand.Execute(null);
+        Assert.AreEqual(1, restores);
+        StringAssert.Contains(inventory.SavedLibraryStatus, "OFFLINE / STALE");
+        Assert.IsFalse(inventory.CanStart); // a restored ID alone cannot grant a scan
     }
 
     private sealed class FakeService : IInventoryApplicationService

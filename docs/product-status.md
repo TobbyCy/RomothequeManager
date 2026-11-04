@@ -7,6 +7,13 @@
 - Les cas MEDIA_01–06 sont **100 % synthétiques** : refus sans autorisation, operation mismatch, consentement périmé, A→B, PNG fictif, tamper, limite de taille et Cancel. La projection pure `VerifiedScopeMapping`/`ExplicitMediaReference` existante est à employer par DEV 3 pour les jaquettes **uniquement déclarées dans ES-DE**, sans auto-attribution. Le raccordement des boutons et bindings de l'EXE standard n'est pas dans #161.
 - CI required #161 + revue DEV 2 attendues au SHA final ; #161 reste non fusionnée/aucune Release. Les protections de main restent inchangées.
 
+## NEXT-05 / #159 — DocFX provenance XAML native contrôlée (PR corrective autonome, 04.11.2026)
+
+- **Correctif outillage candidat non fusionné**, basé sur `main=a8193829a94d79ec5b3a1906826e5426ff5b3f27` : `VerifyGeneratedInputsStable` contrôle encore chaque sortie native Avalonia, son chemin relatif, l'identité/version/hash du générateur, son `SourceHash`, son `XamlSource`, son `XamlInputHash` et son attestation. Une différence du hash XAML compilé n'est admissible **que si** le delta Git depuis la base prouve des fichiers `.axaml` modifiés, que chaque chemin est relié à une sortie attestée, et que les sorties/générateurs/attestations et références restent strictement identiques.
+- Les canaris comprennent le PASS `XAML modifié → mêmes sorties générées attestées`, et les RED source modifiée, générateur/version/hash modifiés, entrée XAML inexpliquée ou non liée, attestation absente, sortie ajoutée/supprimée, chemin `../` ; les contrôles Roslyn sur les API manuelles, partiales et collusions restent actifs. **CI required et revue DEV 2 distinctes** au HEAD exact avant tout GO propriétaire.
+- La PR UI #159 est **toujours non fusionnée** : la CI combinée devra être relancée par DEV 3 après intégration explicite du correctif, sans réécriture artificielle du XAML ni bypass ; aucune Release et aucune lecture de données réelles.
+
+
 
 ## NEXT-05 / #134 — GO code DEV 1 IDEAL backend + SQLite (branche candidate, 04.11.2026)
 
@@ -517,3 +524,11 @@ La recette Windows `tools/demo-library/Invoke-Demo02Recipe.ps1` réutilise stric
 ### NEXT-05 — consolidation DocFX #88/#138 (travail en PR, pas intégré)
 
 La branche DEV 1 de documentation permanente propose un workflow natif Windows de génération XML → YAML → HTML et de mesure sémantique par symbole (≥90 % du périmètre éligible, 100 % des nouvelles API). Ce chantier n'est **pas** intégré à `main` ; la couverture réelle et la recette Windows de la PR restent à prouver, et aucun état READY/RELEASE n'en découle. Les anciennes preuves pilotes sur fixtures restent historiques. Tous les `REAL_*_HOLD` et `NEXT05_RELEASE_HOLD` demeurent.
+
+## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
+
+- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) ouverte, intégration GUI candidate au-dessus du `main` incluant les PR backend #160 et outillage #162, toutes deux fusionnées ; #159 reste non fusionnée. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
+- UX : libellés de l'ancien refus Alpha et de l'absence de persistance corrigés dans l'accueil et le picker ; libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
+- Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
+- **Backend #160 déjà fusionné sur main** : le HEAD GUI candidat câble `IdealLibraryBackendService`, `AuthorizeRomsRead` et `LoadSavedLibraries` / `RestoreSaved` dans l'EXE standard ; le HEAD actuel ne revendique aucune recette humaine du nouveau parcours.
+- CI PR : #159 cible `main` incluant #160 et #162 ; required checks du nouveau HEAD exact à contrôler, sans fusion ni Release. Captures Windows 1120×720 / 760×480 et recette humaine du nouvel EXE : NOT_EXECUTED. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
