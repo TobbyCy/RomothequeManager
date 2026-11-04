@@ -32,12 +32,15 @@ public partial class ObservedLibraryWindow : Window
     /// remain authoritative; this factory cannot authorize a scan or media preview.
     /// Historical SQLite state may be shown without rescanning any root.</summary>
     public static ObservedLibraryWindow FromStandardServices(
-        IInventoryApplicationService service, RestoredCatalogSession? restored = null) =>
-        new(service, null, standardServiceSupplied: true, restored: restored);
+        IInventoryApplicationService service, RestoredCatalogSession? restored = null,
+        Func<long, bool>? requestRomsGrant = null) =>
+        new(service, null, standardServiceSupplied: true, restored: restored,
+            requestRomsGrant: requestRomsGrant);
 
     private ObservedLibraryWindow(IInventoryApplicationService service,
         IReadOnlyDictionary<string, string>? syntheticRoots,
-        bool standardServiceSupplied = false, RestoredCatalogSession? restored = null)
+        bool standardServiceSupplied = false, RestoredCatalogSession? restored = null,
+        Func<long, bool>? requestRomsGrant = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _syntheticRoots = syntheticRoots;
@@ -46,7 +49,7 @@ public partial class ObservedLibraryWindow : Window
         {
             if (Dispatcher.UIThread.CheckAccess()) action();
             else Dispatcher.UIThread.Post(action);
-        });
+        }, requestRomsGrant);
         _vm = new ObservedLibraryViewModel(_inventoryVm,
             _syntheticRoots is not null, standardServiceSupplied);
         if (restored is not null)

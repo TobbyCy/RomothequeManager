@@ -137,6 +137,50 @@ public sealed class ObservedLibraryViewModelTests
         Assert.IsFalse(vm.CanInventoryFixture); // one-shot consent consumed
     }
 
+    [TestMethod]
+    public async Task N05Ux05_SeparateGrantIsRequiredBeforeConsentCanStart()
+    {
+        var service = new FakeService(Snapshot(1));
+        var calls = 0;
+        using var inventory = new InventoryViewModel(service, action => action(),
+            selectionVersion => { calls++; return selectionVersion == 1; });
+        using var vm = new ObservedLibraryViewModel(inventory,
+            fixtureMode: false, standardServiceSupplied: true);
+        Assert.IsTrue(inventory.HasRomsGrantAction);
+        Assert.IsFalse(inventory.CanRequestRomsGrant);
+        inventory.PrepareSelectedFolder(new InventoryScope(@"C:\test-fixture"));
+        inventory.ConsentConfirmed = true;
+        Assert.IsFalse(inventory.CanStart); // checkbox != permission
+        Assert.IsTrue(inventory.CanRequestRomsGrant);
+        inventory.RequestRomsGrantCommand.Execute(null);
+        Assert.AreEqual(1, calls);
+        Assert.IsTrue(inventory.CanStart);
+        await inventory.StartConfirmedAsync();
+        Assert.IsFalse(inventory.CanStart);
+        Assert.IsTrue(inventory.CanRequestRomsGrant); // one-shot
+        inventory.PrepareSelectedFolder(new InventoryScope(@"C:\other-fixture"));
+        Assert.IsFalse(inventory.CanStart);
+        Assert.IsFalse(inventory.ConsentConfirmed);
+        Assert.IsTrue(inventory.RomsGrantStatus.Contains("Aucune autorisation",
+            StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void N05Ux06_RejectedGrantNeverEnablesStart()
+    {
+        var service = new FakeService(Snapshot(1));
+        using var inventory = new InventoryViewModel(service, action => action(),
+            _ => false);
+        using var vm = new ObservedLibraryViewModel(inventory,
+            fixtureMode: false, standardServiceSupplied: true);
+        inventory.PrepareSelectedFolder(new InventoryScope(@"C:\test-fixture"));
+        inventory.ConsentConfirmed = true;
+        inventory.RequestRomsGrantCommand.Execute(null);
+        Assert.IsFalse(inventory.CanStart);
+        Assert.IsTrue(inventory.RomsGrantStatus.Contains("refusée", StringComparison.Ordinal));
+        Assert.IsFalse(vm.CanInventoryFixture);
+    }
+
     private sealed class FakeService : IInventoryApplicationService
     {
         public InventorySnapshot CompleteSnapshot { get; }

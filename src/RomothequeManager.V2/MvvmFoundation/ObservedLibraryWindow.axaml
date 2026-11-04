@@ -158,6 +158,17 @@
                     IsEnabled="{Binding Inventory.CanChangeFolder}" MinHeight="35"/>
           <TextBlock Text="Le choix du dossier et cette case ne sont pas des autorisations : le backend peut refuser la lecture."
                      FontSize="12" Foreground="#C2CBD5" TextWrapping="Wrap"/>
+          <WrapPanel>
+            <Button x:Name="AuthorizeRomsButton"
+                    Content="Autoriser ROMS pour une tentative"
+                    Command="{Binding Inventory.RequestRomsGrantCommand}"
+                    IsEnabled="{Binding Inventory.CanRequestRomsGrant}"
+                    IsVisible="{Binding Inventory.HasRomsGrantAction}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding Inventory.RomsGrantStatus}"
+                     IsVisible="{Binding Inventory.HasRomsGrantAction}"
+                     FontSize="12" Foreground="#C2CBD5" TextWrapping="Wrap"/>
           <TextBlock Text="3 · Exécuter ou annuler" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
           <WrapPanel>
             <Button x:Name="InventoryStartButton" Content="Démarrer l'inventaire"
