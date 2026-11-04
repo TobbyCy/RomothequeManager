@@ -1,5 +1,12 @@
 # Historique technique des fonctionnalités
 
+## CURRENT — NEXT-05 / #95 P1 ZIP TEST : sortie du validateur (PR #158, 04.11.2026)
+
+- Après fusion de #157, source Produit `main=a4eb5886bcf3077bf3fe136d3972a1418e989bf3` : le [run manuel de TEST #41809015941](https://github.com/TobbyCy/RomothequeManager/actions/runs/41809015941) a terminé **FAILURE**, upload **SKIPPED**. Deux builds et ZIP identiques, SQLite/licences/manifeste et négatifs attendus ont réussi ; le dernier négatif Python non nul persistait dans `$LASTEXITCODE` du caller PowerShell.
+- PR #158 : remise à zéro explicite de `$global:LASTEXITCODE` **uniquement après tous les contrôles**, tests de contrat et mutations fail-closed dans `tests/test_ci_policy.py` ; le wrapper `.github/workflows/dist-zip.yml` et ses refus d'erreurs véritables restent inchangés. **CI et revue DEV 2 à qualifier au HEAD final** avant toute fusion.
+- **Aucun artefact TEST téléchargeable ni recette humaine #95 attestés à ce stade**. Toute nouvelle exécution `phase=test-artifact` exige une décision distincte après fusion, contrôle du nouveau SHA `main`, puis inspection de l'archive et SHA-256. Aucune Release, tag, droit réel ou `phase=publish` activé. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD` et `NEXT05_RELEASE_HOLD` restent actifs.
+- Les statuts d'ouverture de #157 ci-dessous sont un **historique** et ne remplacent pas cette section CURRENT.
+
 ## NEXT-05 / #95 — ZIP Windows public de TEST dans Actions (PR #157, NON FUSIONNÉE)
 
 - Décision propriétaire 04.11 : abandonner la remise via Pilotage privé et permettre un **artefact GitHub Actions public de TEST**, non qualifié, depuis le dépôt Produit. **Pas une Release, pas de tag, pas une version stable.**
