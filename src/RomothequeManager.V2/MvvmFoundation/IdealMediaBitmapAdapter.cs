@@ -10,6 +10,8 @@ namespace RomothequeManager.V2.MvvmFoundation;
 /// bitmap. Does not accept, reconstruct or open local paths or URIs.</summary>
 internal static class IdealMediaBitmapAdapter
 {
+    /// <summary>Adopt only validated decoded RGBA memory into a bounded Avalonia
+    /// bitmap; return no image when the source is unavailable or invalid.</summary>
     internal static WriteableBitmap? Create(MediaPreviewResult? preview)
     {
         if (preview is not { Status: MediaPreviewStatus.Ready, Image: { } image })
