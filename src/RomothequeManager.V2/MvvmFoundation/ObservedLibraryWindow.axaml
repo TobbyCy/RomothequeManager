@@ -226,7 +226,7 @@
                                  comparer les fichiers puis autoriser PREVIEW pour une image précise.
                                  Les propositions ne sont jamais des associations approuvées."
                          TextWrapping="Wrap"/>
-              <Button x:Name="OpenLocalMediaButton"
+              <Button
                       Content="Découvrir et afficher les jaquettes locales"
                       IsEnabled="{Binding CanOpenLocalMedia}"
                       Click="OpenLocalMedia_OnClick" MinHeight="40"/>
