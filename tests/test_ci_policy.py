@@ -1262,5 +1262,75 @@ class Next05AvaloniaWorkflowCanaries(unittest.TestCase):
         self.assertFalse(any(p.re.fullmatch(rule, ".github/workflows/next05-arbitrary.yml")
                              for rule in rules))
 
+class Next05ZipExitCodeContractTests(unittest.TestCase):
+    """Source-contract canaries; full Windows packaging remains a separate run."""
+
+    @classmethod
+    def setUpClass(cls):
+        root = Path(__file__).resolve().parents[1]
+        cls.validator = (root / "scripts/Validate-BetaIdealZip.ps1").read_text(
+            encoding="utf-8")
+        cls.wrapper = (root / ".github/workflows/dist-zip.yml").read_text(
+            encoding="utf-8")
+
+    def assert_safe_contract(self, validator, wrapper):
+        # The expected failing Python canaries are guarded independently.
+        for code in (
+            "BETA_MISSING_NATIVE_LIBRARY_NEGATIVE_FALSE_PASS",
+            "BETA_NOTICE_MUTATION_NEGATIVE_FALSE_PASS",
+            "BETA_INDEPENDENT_CLEAN_FAILED",
+            "BETA_LOCKED_RESTORE_FAILED",
+            "BETA_PUBLISH_BUILD_FAILED",
+            "BETA_SQLITE_NUGET_FAIL_CLOSED",
+            "BETA_EXTRACTED_MANIFEST_VALIDATION_FAILED",
+        ):
+            self.assertIn("throw '" + code + "'" if "NEGATIVE_FALSE_PASS" in code
+                          else code, validator)
+        self.assertIn(
+            "if ($LASTEXITCODE -eq 0) { throw 'BETA_MISSING_NATIVE_LIBRARY_NEGATIVE_FALSE_PASS' }",
+            validator)
+        self.assertIn(
+            "if ($LASTEXITCODE -eq 0) { throw 'BETA_NOTICE_MUTATION_NEGATIVE_FALSE_PASS' }",
+            validator)
+        self.assertEqual(validator.count("$global:LASTEXITCODE = 0"), 1)
+        noncomment = [line.strip() for line in validator.splitlines()
+                      if line.strip() and not line.lstrip().startswith("#")]
+        self.assertEqual(noncomment[-1], "$global:LASTEXITCODE = 0")
+        self.assertLess(validator.index("BETA_MISSING_NATIVE_LIBRARY_NEGATIVE_FALSE_PASS"),
+                        validator.index("BETA_NOTICE_MUTATION_NEGATIVE_FALSE_PASS"))
+        self.assertLess(validator.index("BETA_NOTICE_MUTATION_NEGATIVE_FALSE_PASS"),
+                        validator.index("BETA_NEGATIVES_PASS"))
+        self.assertLess(validator.index("BETA_ZIP_VALIDATED_STAGED"),
+                        validator.index("$global:LASTEXITCODE = 0"))
+        # Actual production wrapper must still reject nonzero validator results.
+        self.assertIn(
+            "./scripts/Validate-BetaIdealZip.ps1 -SourceSha $env:REQUESTED_SHA -Phase validate",
+            wrapper)
+        self.assertIn(
+            "if ($LASTEXITCODE -ne 0) { throw 'NEXT05_TEST_ZIP_BUILD_OR_VALIDATION_FAILED' }",
+            wrapper)
+        self.assertIn("if-no-files-found: error", wrapper)
+
+    def test_expected_negatives_then_explicit_success(self):
+        self.assert_safe_contract(self.validator, self.wrapper)
+
+    def test_mutations_fail_closed_on_missing_or_early_success_and_removed_guards(self):
+        reset = "$global:LASTEXITCODE = 0"
+        mutants = (
+            (self.validator.replace(reset, ""), self.wrapper),
+            (self.validator.replace(reset, reset + "\nWrite-Host 'BETA_EARLY_RESET'"),
+             self.wrapper),
+            (self.validator.replace(
+                "if ($LASTEXITCODE -eq 0) { throw 'BETA_NOTICE_MUTATION_NEGATIVE_FALSE_PASS' }",
+                "# negative guard disabled"), self.wrapper),
+            (self.validator, self.wrapper.replace(
+                "if ($LASTEXITCODE -ne 0) { throw 'NEXT05_TEST_ZIP_BUILD_OR_VALIDATION_FAILED' }",
+                "# wrapper error guard disabled")),
+        )
+        for index, (validator, wrapper) in enumerate(mutants):
+            with self.subTest(mutant=index), self.assertRaises(AssertionError):
+                self.assert_safe_contract(validator, wrapper)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
