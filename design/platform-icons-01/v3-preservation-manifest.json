@@ -1,0 +1,66 @@
+{
+  "sourceCommit": "da8ffb80ff5e4d669c340d6d07e90cc4fe3a0a07",
+  "files": [
+    {
+      "path": "design/identity-v3-proposal/README.md",
+      "gitBlobSha": "44e1940d1ecaabdcd75a4bbf97897774c0231782",
+      "size": 5370
+    },
+    {
+      "path": "design/identity-v3-proposal/RM_V3_Controle_Lisibilite.png",
+      "gitBlobSha": "32fed0a2da4c07a4faa18ead0e8752c76f9a8fb7",
+      "size": 118306
+    },
+    {
+      "path": "design/identity-v3-proposal/RM_V3_Horizontal_Transparent.png",
+      "gitBlobSha": "788f68572b66caa1b787fc76fe81336bc66d28ed",
+      "size": 50088
+    },
+    {
+      "path": "design/identity-v3-proposal/RM_V3_Horizontal_Transparent.svg",
+      "gitBlobSha": "3f8f401636a532a3cfa478406ab2bdb89104c595",
+      "size": 6957
+    },
+    {
+      "path": "design/identity-v3-proposal/RM_V3_Proposition.png",
+      "gitBlobSha": "8c6a3c07cdf309f658793ea3cb2333b079953390",
+      "size": 116587
+    },
+    {
+      "path": "design/identity-v3-proposal/controle.json",
+      "gitBlobSha": "5cbc89809e2826f34774d05069a0116f9afeb643",
+      "size": 1084
+    },
+    {
+      "path": "design/identity-v3-proposal/work/RM_V3_Proposition_Complet.svg",
+      "gitBlobSha": "88ea239c42ff05fb8f5a749bb7f4dbe3f26728d3",
+      "size": 6985
+    },
+    {
+      "path": "design/identity-v3-proposal/work/RM_V3_Proposition_Horizontal.svg",
+      "gitBlobSha": "3f8f401636a532a3cfa478406ab2bdb89104c595",
+      "size": 6957
+    },
+    {
+      "path": "design/identity-v3-proposal/work/RM_V3_Proposition_Horizontal_Sombre.svg",
+      "gitBlobSha": "105d09a307259f7034ce93cdb283b000a751312b",
+      "size": 7007
+    },
+    {
+      "path": "design/identity-v3-proposal/work/RM_V3_Proposition_Icone_16.svg",
+      "gitBlobSha": "64c404ae2e30e60474a739b507ac4963efaf54dc",
+      "size": 851
+    },
+    {
+      "path": "design/identity-v3-proposal/work/RM_V3_Proposition_Icone_32_48.svg",
+      "gitBlobSha": "0a2d181a39b88314434106f22c1e6edefa1dcfe7",
+      "size": 1009
+    },
+    {
+      "path": "design/identity-v3-proposal/work/RM_V3_Proposition_Icone_Detaillee.svg",
+      "gitBlobSha": "8a33d90c081622cc72e20aa3610b840e45507643",
+      "size": 2243
+    }
+  ],
+  "policy": "MUST_REMAIN_BYTE_IDENTICAL"
+}

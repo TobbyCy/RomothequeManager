@@ -1,0 +1,738 @@
+{
+  "schema": "design-only/platform-icons-01/gba-ps2-candidate-1",
+  "status": "OWNER_GRAPHIC_PARALLEL_GO",
+  "runtimeContract": false,
+  "ownerValidatedPlatforms": [],
+  "platformMappings": [],
+  "candidateSubjects": [
+    "GBA",
+    "PS2"
+  ],
+  "legacyStudiesNotMapped": [
+    "study-nes",
+    "study-playstation"
+  ],
+  "fallback": "unchanged inherited neutral fallback; runtime behavior NOT_TESTED",
+  "assets": [
+    {
+      "designId": "study-gba/console-name/dark",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-name",
+      "theme": "dark",
+      "source": "sources/study-gba/console-name/dark.svg",
+      "smallSource": "sources/study-gba/console-name/dark-small.svg",
+      "exports": [
+        {
+          "path": "png/study-gba/console-name/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-gba/console-name/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/console-name/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-gba/console-name/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/console-name/dark/32.png",
+          "width": 96,
+          "height": 32,
+          "source": "sources/study-gba/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-name/dark/48.png",
+          "width": 144,
+          "height": 48,
+          "source": "sources/study-gba/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-name/dark/64.png",
+          "width": 192,
+          "height": 64,
+          "source": "sources/study-gba/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-name/dark/128.png",
+          "width": 384,
+          "height": 128,
+          "source": "sources/study-gba/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-name/dark/256.png",
+          "width": 768,
+          "height": 256,
+          "source": "sources/study-gba/console-name/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-gba/console-name/light",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-name",
+      "theme": "light",
+      "source": "sources/study-gba/console-name/light.svg",
+      "smallSource": "sources/study-gba/console-name/light-small.svg",
+      "exports": [
+        {
+          "path": "png/study-gba/console-name/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-gba/console-name/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/console-name/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-gba/console-name/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/console-name/light/32.png",
+          "width": 96,
+          "height": 32,
+          "source": "sources/study-gba/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-name/light/48.png",
+          "width": 144,
+          "height": 48,
+          "source": "sources/study-gba/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-name/light/64.png",
+          "width": 192,
+          "height": 64,
+          "source": "sources/study-gba/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-name/light/128.png",
+          "width": 384,
+          "height": 128,
+          "source": "sources/study-gba/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-name/light/256.png",
+          "width": 768,
+          "height": 256,
+          "source": "sources/study-gba/console-name/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-gba/controller/dark",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "controller",
+      "theme": "dark",
+      "source": "sources/study-gba/controller/dark.svg",
+      "smallSource": "sources/study-gba/controller/dark-small.svg",
+      "exports": [
+        {
+          "path": "png/study-gba/controller/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-gba/controller/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/controller/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-gba/controller/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/controller/dark/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-gba/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/controller/dark/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-gba/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/controller/dark/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-gba/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/controller/dark/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-gba/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/controller/dark/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-gba/controller/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-gba/controller/light",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "controller",
+      "theme": "light",
+      "source": "sources/study-gba/controller/light.svg",
+      "smallSource": "sources/study-gba/controller/light-small.svg",
+      "exports": [
+        {
+          "path": "png/study-gba/controller/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-gba/controller/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/controller/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-gba/controller/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/controller/light/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-gba/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/controller/light/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-gba/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/controller/light/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-gba/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/controller/light/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-gba/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/controller/light/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-gba/controller/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-gba/console-silhouette/dark",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-silhouette",
+      "theme": "dark",
+      "source": "sources/study-gba/console-silhouette/dark.svg",
+      "smallSource": "sources/study-gba/console-silhouette/dark-small.svg",
+      "exports": [
+        {
+          "path": "png/study-gba/console-silhouette/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-gba/console-silhouette/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/console-silhouette/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-gba/console-silhouette/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/console-silhouette/dark/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-gba/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-silhouette/dark/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-gba/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-silhouette/dark/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-gba/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-silhouette/dark/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-gba/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-silhouette/dark/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-gba/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-gba/console-silhouette/light",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-silhouette",
+      "theme": "light",
+      "source": "sources/study-gba/console-silhouette/light.svg",
+      "smallSource": "sources/study-gba/console-silhouette/light-small.svg",
+      "exports": [
+        {
+          "path": "png/study-gba/console-silhouette/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-gba/console-silhouette/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/console-silhouette/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-gba/console-silhouette/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-gba/console-silhouette/light/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-gba/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-silhouette/light/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-gba/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-silhouette/light/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-gba/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-silhouette/light/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-gba/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-gba/console-silhouette/light/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-gba/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-ps2/console-name/dark",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-name",
+      "theme": "dark",
+      "source": "sources/study-ps2/console-name/dark.svg",
+      "smallSource": "sources/study-ps2/console-name/dark-small.svg",
+      "exports": [
+        {
+          "path": "png/study-ps2/console-name/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-ps2/console-name/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/console-name/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-ps2/console-name/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/console-name/dark/32.png",
+          "width": 96,
+          "height": 32,
+          "source": "sources/study-ps2/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-name/dark/48.png",
+          "width": 144,
+          "height": 48,
+          "source": "sources/study-ps2/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-name/dark/64.png",
+          "width": 192,
+          "height": 64,
+          "source": "sources/study-ps2/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-name/dark/128.png",
+          "width": 384,
+          "height": 128,
+          "source": "sources/study-ps2/console-name/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-name/dark/256.png",
+          "width": 768,
+          "height": 256,
+          "source": "sources/study-ps2/console-name/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-ps2/console-name/light",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-name",
+      "theme": "light",
+      "source": "sources/study-ps2/console-name/light.svg",
+      "smallSource": "sources/study-ps2/console-name/light-small.svg",
+      "exports": [
+        {
+          "path": "png/study-ps2/console-name/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-ps2/console-name/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/console-name/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-ps2/console-name/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/console-name/light/32.png",
+          "width": 96,
+          "height": 32,
+          "source": "sources/study-ps2/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-name/light/48.png",
+          "width": 144,
+          "height": 48,
+          "source": "sources/study-ps2/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-name/light/64.png",
+          "width": 192,
+          "height": 64,
+          "source": "sources/study-ps2/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-name/light/128.png",
+          "width": 384,
+          "height": 128,
+          "source": "sources/study-ps2/console-name/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-name/light/256.png",
+          "width": 768,
+          "height": 256,
+          "source": "sources/study-ps2/console-name/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-ps2/controller/dark",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "controller",
+      "theme": "dark",
+      "source": "sources/study-ps2/controller/dark.svg",
+      "smallSource": "sources/study-ps2/controller/dark-small.svg",
+      "exports": [
+        {
+          "path": "png/study-ps2/controller/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-ps2/controller/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/controller/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-ps2/controller/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/controller/dark/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-ps2/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/controller/dark/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-ps2/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/controller/dark/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-ps2/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/controller/dark/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-ps2/controller/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/controller/dark/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-ps2/controller/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-ps2/controller/light",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "controller",
+      "theme": "light",
+      "source": "sources/study-ps2/controller/light.svg",
+      "smallSource": "sources/study-ps2/controller/light-small.svg",
+      "exports": [
+        {
+          "path": "png/study-ps2/controller/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-ps2/controller/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/controller/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-ps2/controller/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/controller/light/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-ps2/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/controller/light/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-ps2/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/controller/light/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-ps2/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/controller/light/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-ps2/controller/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/controller/light/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-ps2/controller/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-ps2/console-silhouette/dark",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-silhouette",
+      "theme": "dark",
+      "source": "sources/study-ps2/console-silhouette/dark.svg",
+      "smallSource": "sources/study-ps2/console-silhouette/dark-small.svg",
+      "exports": [
+        {
+          "path": "png/study-ps2/console-silhouette/dark/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-ps2/console-silhouette/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/dark/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-ps2/console-silhouette/dark-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/dark/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-ps2/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/dark/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-ps2/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/dark/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-ps2/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/dark/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-ps2/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/dark/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-ps2/console-silhouette/dark.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    },
+    {
+      "designId": "study-ps2/console-silhouette/light",
+      "platformKey": null,
+      "platformMembership": "NOT_ASSERTED",
+      "style": "console-silhouette",
+      "theme": "light",
+      "source": "sources/study-ps2/console-silhouette/light.svg",
+      "smallSource": "sources/study-ps2/console-silhouette/light-small.svg",
+      "exports": [
+        {
+          "path": "png/study-ps2/console-silhouette/light/16.png",
+          "width": 16,
+          "height": 16,
+          "source": "sources/study-ps2/console-silhouette/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/light/24.png",
+          "width": 24,
+          "height": 24,
+          "source": "sources/study-ps2/console-silhouette/light-small.svg",
+          "textOmittedForSize": true
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/light/32.png",
+          "width": 32,
+          "height": 32,
+          "source": "sources/study-ps2/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/light/48.png",
+          "width": 48,
+          "height": 48,
+          "source": "sources/study-ps2/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/light/64.png",
+          "width": 64,
+          "height": 64,
+          "source": "sources/study-ps2/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/light/128.png",
+          "width": 128,
+          "height": 128,
+          "source": "sources/study-ps2/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        },
+        {
+          "path": "png/study-ps2/console-silhouette/light/256.png",
+          "width": 256,
+          "height": 256,
+          "source": "sources/study-ps2/console-silhouette/light.svg",
+          "textOmittedForSize": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1585 @@
+{
+  "status": "GRAPHIC_CHECKS_ONLY",
+  "renderer": "Inkscape 1.2.2",
+  "svgCount": 28,
+  "pngCount": 98,
+  "checks": [
+    {
+      "path": "study-nes/console-name/dark/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        1,
+        3,
+        15,
+        14
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "ac742c39e45789f426cec97d993b51880f675858050b6431d1d18e53617d8600"
+    },
+    {
+      "path": "study-nes/console-name/dark/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        2,
+        5,
+        22,
+        21
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "a71b24cb665ef9cea74d750488604304eb48fc6bee575a63ee2fa387dfeef39e"
+    },
+    {
+      "path": "study-nes/console-name/dark/32.png",
+      "dimensions": [
+        96,
+        32
+      ],
+      "bbox": [
+        3,
+        7,
+        57,
+        27
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "26166e25710182ce6e1ddb0869d1ced4ac5d244163b13f8c8b1cb72a1539639c"
+    },
+    {
+      "path": "study-nes/console-name/dark/48.png",
+      "dimensions": [
+        144,
+        48
+      ],
+      "bbox": [
+        5,
+        11,
+        85,
+        40
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "42ebd466593e750b28cfa2deec784d4e4f4763840c4de2a55e2bdf4e08968ffb"
+    },
+    {
+      "path": "study-nes/console-name/dark/64.png",
+      "dimensions": [
+        192,
+        64
+      ],
+      "bbox": [
+        6,
+        14,
+        114,
+        54
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "c06a3442a67cab1b6542f6752aaa32b019b14e6b82b4a07c25cacba1150cf645"
+    },
+    {
+      "path": "study-nes/console-name/dark/128.png",
+      "dimensions": [
+        384,
+        128
+      ],
+      "bbox": [
+        13,
+        29,
+        227,
+        107
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "d15b693d21893cef6e66ff6c9cf8c76d9a40a1d8a0e9b3f233f16cb9583fa0e8"
+    },
+    {
+      "path": "study-nes/console-name/dark/256.png",
+      "dimensions": [
+        768,
+        256
+      ],
+      "bbox": [
+        27,
+        59,
+        453,
+        213
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "5c7c6688cbbb715159ed4a3122f03fdfe019d457ac91417824c8da9b2d8629e4"
+    },
+    {
+      "path": "study-nes/console-name/light/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        1,
+        3,
+        15,
+        14
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "5134e06edb7cd2b5288294b47c14c812808fe2f4fe141ce9ee5360024b774b42"
+    },
+    {
+      "path": "study-nes/console-name/light/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        2,
+        5,
+        22,
+        21
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "587ab842aa2b9f5ffee3512172b630474d0c9ce47832daf2104ddea1e9442d91"
+    },
+    {
+      "path": "study-nes/console-name/light/32.png",
+      "dimensions": [
+        96,
+        32
+      ],
+      "bbox": [
+        3,
+        7,
+        57,
+        27
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "a47d7d91bf4c8fa72f19bef08f5ef96364ca0b81fb7dc4ae48e61599e98cfaea"
+    },
+    {
+      "path": "study-nes/console-name/light/48.png",
+      "dimensions": [
+        144,
+        48
+      ],
+      "bbox": [
+        5,
+        11,
+        85,
+        40
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "12395d6d32631a59af31171fc0b3df7f061a3ba76f3f8a614711aca2f933e00d"
+    },
+    {
+      "path": "study-nes/console-name/light/64.png",
+      "dimensions": [
+        192,
+        64
+      ],
+      "bbox": [
+        6,
+        14,
+        114,
+        54
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "2741a90986bdff54f9e695cbc10e4774d927da515ef231d2f3965aabfb60d16f"
+    },
+    {
+      "path": "study-nes/console-name/light/128.png",
+      "dimensions": [
+        384,
+        128
+      ],
+      "bbox": [
+        13,
+        29,
+        227,
+        107
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "d27d68cb57d621a7a21dff0108c298c0a12a84f3dce75f554ecc5825ce0c8d01"
+    },
+    {
+      "path": "study-nes/console-name/light/256.png",
+      "dimensions": [
+        768,
+        256
+      ],
+      "bbox": [
+        27,
+        59,
+        453,
+        213
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "e6f17901ed747146f3307d0dc09dafae5a35bf16287a4b3b762969d009c99a41"
+    },
+    {
+      "path": "study-nes/controller/dark/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        1,
+        4,
+        15,
+        12
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "4c472e977a9f919fc2b9a4662db20837c7a157ad6a5e9212eac95a555a62f734"
+    },
+    {
+      "path": "study-nes/controller/dark/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        1,
+        6,
+        23,
+        18
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "19f6aa01623d56ff30f866677d0bbde374d5ab7193cc531d2d3befcf05a569b1"
+    },
+    {
+      "path": "study-nes/controller/dark/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        2,
+        8,
+        30,
+        24
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "4a1405144189c97156125a41bd22ea6023db37ed73c1eb5ccde3a815f2378a44"
+    },
+    {
+      "path": "study-nes/controller/dark/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        4,
+        13,
+        44,
+        36
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "65ea2e5e3fe1d8c642c8c01aed8a00f042dbefe570519646a2f96df721ff6fa1"
+    },
+    {
+      "path": "study-nes/controller/dark/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        5,
+        17,
+        59,
+        48
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "2e749b14c4e88b74262a2dcaad48cba5e3a8f85d77d509bd228ac19926fbd348"
+    },
+    {
+      "path": "study-nes/controller/dark/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        11,
+        35,
+        117,
+        95
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "08dae2dc628ddbf261cfda2f509114c2f1c02f6380754ef49dca6f8113093a28"
+    },
+    {
+      "path": "study-nes/controller/dark/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        23,
+        71,
+        233,
+        189
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "5a817d6ee51945f08c2f11023612e64531848ef835152b6e6f199739a1bbde10"
+    },
+    {
+      "path": "study-nes/controller/light/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        1,
+        4,
+        15,
+        12
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "de799f5ff0d3e1d48dd9af3e319bdcb1a3d9de3902c551ed5a017bacddf0d1d4"
+    },
+    {
+      "path": "study-nes/controller/light/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        1,
+        6,
+        23,
+        18
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "e081e42149b097dbc2abe990359a10c8a1b6c00e02040097388c58a995b40e36"
+    },
+    {
+      "path": "study-nes/controller/light/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        2,
+        8,
+        30,
+        24
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "6e92a319b525fc29acae69435722650d8fbb046b30b3c46d7e227d9c05a283e3"
+    },
+    {
+      "path": "study-nes/controller/light/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        4,
+        13,
+        44,
+        36
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "ecd6d23188d985b2743e67b044efe316ef1fa303759e5eb82847e2f175983c6b"
+    },
+    {
+      "path": "study-nes/controller/light/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        5,
+        17,
+        59,
+        48
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "021abec35a56f97b29f0134146fbd9f78d5374631add1d3fc0070836d3c0c8a9"
+    },
+    {
+      "path": "study-nes/controller/light/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        11,
+        35,
+        117,
+        95
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "631a4cd5fc4f5fcc8ee4d330ab13b012b8b6d74880fa95d3f6dbad7d6ae97dd1"
+    },
+    {
+      "path": "study-nes/controller/light/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        23,
+        71,
+        233,
+        189
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "0e822bba6d4106965d104a383cdd83f6654f0de1e54d5e4b893575586e30b375"
+    },
+    {
+      "path": "study-nes/console-silhouette/dark/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        2,
+        4,
+        14,
+        13
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "b6614695d5f2f87fffddd47fb13dec85886bdd69a564bb2872250b9ea001f623"
+    },
+    {
+      "path": "study-nes/console-silhouette/dark/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        3,
+        6,
+        21,
+        20
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "38e551a4ee777a2c79fc76f329dd68cf51d9ebcb8e29625e017cbcb6ce457757"
+    },
+    {
+      "path": "study-nes/console-silhouette/dark/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        4,
+        8,
+        28,
+        26
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "43fcb8c34824f32b175d569ad6b7ecc9c5775a3193951c298a44714e72b79a40"
+    },
+    {
+      "path": "study-nes/console-silhouette/dark/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        6,
+        12,
+        42,
+        39
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "f2e922e2109985fc2fc6fda4a244f01b2dcc3abec67e42cbee38c137f0a7ef74"
+    },
+    {
+      "path": "study-nes/console-silhouette/dark/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        8,
+        16,
+        56,
+        52
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "20c9538b8513be44f5b763877e2ec8475d9214663cf530895302b5a4a6761164"
+    },
+    {
+      "path": "study-nes/console-silhouette/dark/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        16,
+        32,
+        112,
+        104
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "dbc1c66ae088cd673841bdf247be9d0b485bf19e4b5111b7d76e199e8ac962ab"
+    },
+    {
+      "path": "study-nes/console-silhouette/dark/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        32,
+        64,
+        224,
+        208
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "129a6f19d0fd8f30c0482b26025bd5abb94d368be1322240fe36b5f032bf584f"
+    },
+    {
+      "path": "study-nes/console-silhouette/light/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        2,
+        4,
+        14,
+        13
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "02ff60e0c9ec99115cdc4517a0a88ab53d5597ee7748bf0ca6ca59a45bb9faa1"
+    },
+    {
+      "path": "study-nes/console-silhouette/light/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        3,
+        6,
+        21,
+        20
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "ec701d26872a780c425f9c765277146ee2cc40a673355574d05481d5ceaa6106"
+    },
+    {
+      "path": "study-nes/console-silhouette/light/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        4,
+        8,
+        28,
+        26
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "f55213169d3899a96c15962c4f608836092e5c91745621964ad01449b2ff1f96"
+    },
+    {
+      "path": "study-nes/console-silhouette/light/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        6,
+        12,
+        42,
+        39
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "e5fb1164b14dfb7523178ad0db0af28bdb16b2f3f5ea1407fb8b4b9f72db9f21"
+    },
+    {
+      "path": "study-nes/console-silhouette/light/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        8,
+        16,
+        56,
+        52
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "10ff48e26d024183dc62453acbcb21a886372dd1b880da0ac02c1bae98bce5e9"
+    },
+    {
+      "path": "study-nes/console-silhouette/light/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        16,
+        32,
+        112,
+        104
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "8804cbb83da5f3b0cc166054a695d02a1ded48c9df32635020a7826ce3d22418"
+    },
+    {
+      "path": "study-nes/console-silhouette/light/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        32,
+        64,
+        224,
+        208
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "9f19107e4ca50ba9c88e2904aba27f909aaf0d5628c5e17c4f027420bc828ca8"
+    },
+    {
+      "path": "study-playstation/console-name/dark/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        1,
+        2,
+        15,
+        14
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "470282f86e2e2a72a061986a193d0095072736623bb6db9c594c2a546323af5a"
+    },
+    {
+      "path": "study-playstation/console-name/dark/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        2,
+        3,
+        22,
+        21
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "2392bfbfa4da48583210e8cadbb21e80a7f1546e50d0474e8a15f3a0502a3b24"
+    },
+    {
+      "path": "study-playstation/console-name/dark/32.png",
+      "dimensions": [
+        96,
+        32
+      ],
+      "bbox": [
+        3,
+        5,
+        90,
+        27
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "a7bfc72343b91007cb370c1550b0c86aecc7694e3e78648681cf57cd89136d9b"
+    },
+    {
+      "path": "study-playstation/console-name/dark/48.png",
+      "dimensions": [
+        144,
+        48
+      ],
+      "bbox": [
+        5,
+        8,
+        134,
+        40
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "9686b7989dafc5abd6cac6b9dc336473189eebc12537a13589d8a05725619546"
+    },
+    {
+      "path": "study-playstation/console-name/dark/64.png",
+      "dimensions": [
+        192,
+        64
+      ],
+      "bbox": [
+        6,
+        10,
+        179,
+        54
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "633013830d22286139ccb5d417b0563db90dbe63a55ffe8753a75c5ba46af148"
+    },
+    {
+      "path": "study-playstation/console-name/dark/128.png",
+      "dimensions": [
+        384,
+        128
+      ],
+      "bbox": [
+        13,
+        21,
+        357,
+        107
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "2ec0d018c4e4685dc9453f0f3e4f9b037d8821cb8ff72cf4ed4ff51bc3b69451"
+    },
+    {
+      "path": "study-playstation/console-name/dark/256.png",
+      "dimensions": [
+        768,
+        256
+      ],
+      "bbox": [
+        27,
+        43,
+        714,
+        213
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "c5d9dfb2501d7b1ca87c781d26fd8c7cc451000d12bd8d3a9ce4c815b41de1f3"
+    },
+    {
+      "path": "study-playstation/console-name/light/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        1,
+        2,
+        15,
+        14
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "ad3cf7b3e5a29e4a6d1fc57a9ab48b9046d7597f5d06e02a02c30415604485df"
+    },
+    {
+      "path": "study-playstation/console-name/light/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        2,
+        3,
+        22,
+        21
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "0ff653b94e12e546bd560bf98fa878fd85b8c76ebb00e70abbcbac29eb2f9388"
+    },
+    {
+      "path": "study-playstation/console-name/light/32.png",
+      "dimensions": [
+        96,
+        32
+      ],
+      "bbox": [
+        3,
+        5,
+        90,
+        27
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "d5e35c43a78bd49d230aa332c35aa5f825756a6a3e81c484726c0a9307c613fa"
+    },
+    {
+      "path": "study-playstation/console-name/light/48.png",
+      "dimensions": [
+        144,
+        48
+      ],
+      "bbox": [
+        5,
+        8,
+        134,
+        40
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "191e682a25b40585abb4c103af941d2fc6d54cd9a57397c4dbf1f592f966fc88"
+    },
+    {
+      "path": "study-playstation/console-name/light/64.png",
+      "dimensions": [
+        192,
+        64
+      ],
+      "bbox": [
+        6,
+        10,
+        179,
+        54
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "35a9bd38b536a55738d0bcbbcb16feb6b5b25f6237e4a33322fad7b495678c5a"
+    },
+    {
+      "path": "study-playstation/console-name/light/128.png",
+      "dimensions": [
+        384,
+        128
+      ],
+      "bbox": [
+        13,
+        21,
+        357,
+        107
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "e9a6e8960c21dd73d04938f812e0dd3a496c9c1c87aa0450e82f6d40c70ddd2c"
+    },
+    {
+      "path": "study-playstation/console-name/light/256.png",
+      "dimensions": [
+        768,
+        256
+      ],
+      "bbox": [
+        27,
+        43,
+        714,
+        213
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "8e840c307c5beaab90f044c408fd857bfb53d1b57ae0d3c89f270b7af2cab91c"
+    },
+    {
+      "path": "study-playstation/controller/dark/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        1,
+        4,
+        15,
+        13
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "70e7ad1c8018485725d7c0d8f4c36ad8fb38b8ccac9d139639311c4f791a768a"
+    },
+    {
+      "path": "study-playstation/controller/dark/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        2,
+        6,
+        22,
+        20
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "101c81b15f8e40fe77f93c0ec3db6d8a81a5d0664c6fc08dc8e960e8198e8dbb"
+    },
+    {
+      "path": "study-playstation/controller/dark/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        3,
+        9,
+        29,
+        26
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "ccb2786b4f56a5d7333d2ef3b4698b78951b756a580416d358af250e38dbb228"
+    },
+    {
+      "path": "study-playstation/controller/dark/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        5,
+        14,
+        43,
+        38
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "a1ac8cfc3198c458842455789bb1bcac73cf72b6a1524361b96dc1fd1984dad9"
+    },
+    {
+      "path": "study-playstation/controller/dark/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        7,
+        19,
+        57,
+        51
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "14a47d6f3f700125da41862db2f5129f3869a42704648081c519adf31126b6d0"
+    },
+    {
+      "path": "study-playstation/controller/dark/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        14,
+        38,
+        114,
+        101
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "6121d7c4718e4d1915bdd2f98ae58e235c34922fb3b91a17ec15ab86718eadbc"
+    },
+    {
+      "path": "study-playstation/controller/dark/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        28,
+        76,
+        228,
+        202
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "14736d8a3009c9b72b82bb52c93b91d932c238db9d3febff1ec28f04048e443b"
+    },
+    {
+      "path": "study-playstation/controller/light/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        1,
+        4,
+        15,
+        13
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "0d619bc2e71ef3d69691cd14695acd3ffb071c4da04619af914e7bcd3f963f02"
+    },
+    {
+      "path": "study-playstation/controller/light/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        2,
+        6,
+        22,
+        20
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "96a73959a83c96cb074e434b9e2b6df51848265647d915a9510427d32ad90cc0"
+    },
+    {
+      "path": "study-playstation/controller/light/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        3,
+        9,
+        29,
+        26
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "5d6502f707abd89dd2e02e06573d8ace05f1a2f1d723267fdc798b9d3c3c2b01"
+    },
+    {
+      "path": "study-playstation/controller/light/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        5,
+        14,
+        43,
+        38
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "b74a17d6b587e6470ab9f31f020266f81b21c2bb5be19c67f42979a74ba622a3"
+    },
+    {
+      "path": "study-playstation/controller/light/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        7,
+        19,
+        57,
+        51
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "b6f02032a96219ba9ecaf5ab57ce37dcfe9dc18f86fc885fdba119a2fd685ff1"
+    },
+    {
+      "path": "study-playstation/controller/light/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        14,
+        38,
+        114,
+        101
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "95e5bb6fba33ea49856208d9ce7d9c3940dde5af18d0b33bf06dc06940952fe1"
+    },
+    {
+      "path": "study-playstation/controller/light/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        28,
+        76,
+        228,
+        202
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "d76e62aae1b0999c85aedefb79ed607395089637055842e3ab408d2f84458411"
+    },
+    {
+      "path": "study-playstation/console-silhouette/dark/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        2,
+        3,
+        14,
+        13
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "ded46660b50ab7cdb7fc72c27e6598d3fc47c7257eae8a83bf8dee9bd563749c"
+    },
+    {
+      "path": "study-playstation/console-silhouette/dark/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        3,
+        4,
+        21,
+        20
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "00a0e892ea6ba50cd6b80a52c75d849008a01550163239d6ce8227c49d51134e"
+    },
+    {
+      "path": "study-playstation/console-silhouette/dark/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        4,
+        6,
+        28,
+        26
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "0ec6b1109e1afea2355da23c3ccffd7ec55209d6fd6b470dfc40ca59784e8309"
+    },
+    {
+      "path": "study-playstation/console-silhouette/dark/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        6,
+        9,
+        42,
+        39
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "eac0f17992b49b965db1d27ae65bfe8aa69454b43bdcb6b22228629a18369bf1"
+    },
+    {
+      "path": "study-playstation/console-silhouette/dark/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        8,
+        12,
+        56,
+        52
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "c62b4e0633914044182b53898b90c55383641ce9cc76f4b1205be46d1fad5d1f"
+    },
+    {
+      "path": "study-playstation/console-silhouette/dark/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        16,
+        24,
+        112,
+        104
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "6d971be54e1025614010e52829de21030db756eb70f60088ab016a84fe44cfba"
+    },
+    {
+      "path": "study-playstation/console-silhouette/dark/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        32,
+        48,
+        224,
+        208
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "2784904c2fd27026f85b3fc3b31f42258a650d5b1c18856e7ca6eccb2eade166"
+    },
+    {
+      "path": "study-playstation/console-silhouette/light/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        2,
+        3,
+        14,
+        13
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "86fbc1b1f8ed16bee365545bd113d5f2ecfc46813f906250c25c0b01f79fdc77"
+    },
+    {
+      "path": "study-playstation/console-silhouette/light/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        3,
+        4,
+        21,
+        20
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "e4a1c0c288f7ee1d84e36a884821f89117f6377330f4a7406c85e13b64584e2b"
+    },
+    {
+      "path": "study-playstation/console-silhouette/light/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        4,
+        6,
+        28,
+        26
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "caf83bb831b2df81fb9f69b2ff87a0dc96137c64293d931a2fe2ab5c439dbc18"
+    },
+    {
+      "path": "study-playstation/console-silhouette/light/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        6,
+        9,
+        42,
+        39
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "f14c5e6dfe34b713a9a0d477de465dd52b482c700fab7679c763f58fd5bd6000"
+    },
+    {
+      "path": "study-playstation/console-silhouette/light/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        8,
+        12,
+        56,
+        52
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "073247cbc379d384b13c9b44ee9f9fa6f8d026c9dc9046b9e16ef933145ef443"
+    },
+    {
+      "path": "study-playstation/console-silhouette/light/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        16,
+        24,
+        112,
+        104
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "832bec87fd8f48fa1afc7348e29acecfd0527cd4f3cb1f588a4e1b70631bc0c9"
+    },
+    {
+      "path": "study-playstation/console-silhouette/light/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        32,
+        48,
+        224,
+        208
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "0b6b8749b0834ace8edc9f62c57f6a1da9a39c525e57a40932c0e944bb235fda"
+    },
+    {
+      "path": "fallback/dark/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        4,
+        4,
+        12,
+        12
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "3b5a7b5fefdd29bac0d592073423ae046374307edabc2f2d74b915fe5514f199"
+    },
+    {
+      "path": "fallback/dark/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        6,
+        6,
+        18,
+        18
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "fce591bc24e649910dd45d2afe314e26ccc2a5c4a7d99bf72ab2fd7a87870374"
+    },
+    {
+      "path": "fallback/dark/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        3,
+        3,
+        29,
+        29
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "e6ca60a65874e5af05ebd6bc737b65eb4eefb44293ff8da6d34b7fb51056ec08"
+    },
+    {
+      "path": "fallback/dark/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        5,
+        5,
+        43,
+        43
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "92524d58959769a271e1afa189f3354a656e08fb0daca91f05d00a54c39f2a73"
+    },
+    {
+      "path": "fallback/dark/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        7,
+        7,
+        57,
+        57
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "4cd558b7fe48a15a66b30849e97f890bf2c916adfefe55878da854603fb55be4"
+    },
+    {
+      "path": "fallback/dark/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        15,
+        15,
+        113,
+        113
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "028b4b36a32c73f15d96a7b306ee9395a304fb1ccac6e86ff72c30b41ce1e2dd"
+    },
+    {
+      "path": "fallback/dark/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        31,
+        31,
+        225,
+        225
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "429b278dce0b505930075a6bf373fa4553586c1bf42e8f54d147c6cd73d41ffc"
+    },
+    {
+      "path": "fallback/light/16.png",
+      "dimensions": [
+        16,
+        16
+      ],
+      "bbox": [
+        4,
+        4,
+        12,
+        12
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "65049c52d3ff06db1a22ddbb1e26efda45232f8cbbca587e6fedf5e40357cf14"
+    },
+    {
+      "path": "fallback/light/24.png",
+      "dimensions": [
+        24,
+        24
+      ],
+      "bbox": [
+        6,
+        6,
+        18,
+        18
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "10386c738980aec7dd0305c4f976be2de9441565809393d3b24de9d0e9db8717"
+    },
+    {
+      "path": "fallback/light/32.png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bbox": [
+        3,
+        3,
+        29,
+        29
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "aeb915d57b91e2d9202160c0f3a4c7cf58d7b2b8b74372cc9e55773cb150f369"
+    },
+    {
+      "path": "fallback/light/48.png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bbox": [
+        5,
+        5,
+        43,
+        43
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "86359a5b17bbd89b700a248347cd9c1418ca70a1ba20ed2c3f7ee3034fbc7627"
+    },
+    {
+      "path": "fallback/light/64.png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bbox": [
+        7,
+        7,
+        57,
+        57
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "1c088c6ed8aad86df5f074083dc49dd12e5e529803d954f8d9b3e45049d0a58a"
+    },
+    {
+      "path": "fallback/light/128.png",
+      "dimensions": [
+        128,
+        128
+      ],
+      "bbox": [
+        15,
+        15,
+        113,
+        113
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "33b1bf2eef3862c95e87de36c1a3db9a290bb9b1b17c586ac991c78093b432ee"
+    },
+    {
+      "path": "fallback/light/256.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bbox": [
+        31,
+        31,
+        225,
+        225
+      ],
+      "alpha": true,
+      "noClipping": true,
+      "sha256": "0b2066fa4a98ef9e33556715f1fc3c0504ac0cdd707b4fdf1f34b1698416e053"
+    }
+  ],
+  "svgExternalDependencies": false,
+  "glyphsOutlined": true,
+  "windowsDpiTest": "NOT_EXECUTED",
+  "avaloniaTest": "NOT_EXECUTED",
+  "visualReview": "PERFORMED_ON_TWO_BOARDS",
+  "visualLimits": [
+    "At 16 pixels only the main silhouette and large controls are reliable.",
+    "Console-name labels begin at 32px height; prefer separate UI labels when small text is unsuitable."
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "status": "GRAPHIC_CANDIDATE_ONLY",
+  "inventory": {
+    "subjects": 2,
+    "styles": 3,
+    "themes": 2,
+    "svg": 26,
+    "pngInsideZip": 84,
+    "zip": true,
+    "smallSizes": [
+      16,
+      24
+    ],
+    "badgeRatioAbove32": "3:1"
+  },
+  "checks": {
+    "pngSignature": "GENERATED",
+    "pngRGBA": false,
+    "pngIndexedPaletteWithTransparency": true,
+    "alphaIndexZero": true,
+    "allPlatformKeysNull": true,
+    "platformMappingsEmpty": true,
+    "neutralFallbackPreservedFromHistoricalTree": true,
+    "svgAndPngEquivalence": "NOT_TESTED_PIXEL_GRID_OPTICAL",
+    "windowsVisual": "NOT_TESTED",
+    "CI": "PENDING",
+    "licensedTrademarkUse": "NOT_APPROVED",
+    "historicalDejaVuExactPackage": "NOT_VERIFIED"
+  }
+}
