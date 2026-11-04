@@ -1,5 +1,12 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #134 — GO code DEV 1 IDEAL backend + SQLite (branche candidate, 04.11.2026)
+
+- Mandat [#6631057632](https://github.com/TobbyCy/RomothequeManager/issues/134#issuecomment-6631057632) : backend IDEAL en code sur branche distincte. La PR DEV 1 candidate apporte une sélection locale explicite, une **deuxième action positive pour la capacité ROMS**, une lecture ROMS de métadonnées Windows via handles parent-relatifs et des contrôles de génération/consommation/révocation/temps/budget ; ni accès implicite aux MEDIAS/PREVIEW, ni autorisation issue d'un XML ou de SQLite.
+- Base SQLite PERSIST-01 réutilisée en app-local avec CurrentComplete/LastAttempt, restauration OFFLINE/STALE sans scan et sans grant, isolement des identités racines et refus de backup/export de production. Tests strictement synthétiques, CI et contre-revue DEV 2 nécessaires ; aucun accès réel exécuté par l'équipe.
+- La PR UI DEV 3 est distincte et nécessaire pour activer le parcours dans l'EXE standard. Ce backend candidat **ne vaut pas à lui seul** preuve de navigation/jaquettes/MEDIAS/preview ; aucune fusion, aucune Release et aucun accès à des bibliothèques personnelles sans décision distincte. Les HOLD de main restent actifs.
+
+
 ## CURRENT — NEXT-05 / #95 P1 ZIP TEST : sortie du validateur (PR #158, 04.11.2026)
 
 - Après fusion de #157, source Produit `main=a4eb5886bcf3077bf3fe136d3972a1418e989bf3` : le [run manuel de TEST #41809015941](https://github.com/TobbyCy/RomothequeManager/actions/runs/41809015941) a terminé **FAILURE**, upload **SKIPPED**. Deux builds et ZIP identiques, SQLite/licences/manifeste et négatifs attendus ont réussi ; le dernier négatif Python non nul persistait dans `$LASTEXITCODE` du caller PowerShell.
