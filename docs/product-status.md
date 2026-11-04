@@ -1,9 +1,11 @@
 # Historique technique des fonctionnalités
 
-## NEXT-05 / #134 — MEDIAS/PREVIEW à grants indépendants (préparation DEV 1, branche distincte)
+## NEXT-05 / #134 — PR #161 : MEDIAS et PREVIEW natifs séparés, candidat fonctionnel (04.11.2026)
 
-- Branche candidate `dev1/next05-ideal-media-preview-scoped`, empilée sur le contrat ROMS de PR #160 : racine MEDIAS validée localement, ouverture native par handles parent-relatifs, grants distincts `Index` et `Preview` à durée limitée et usage unique, identité native/génération/observation contrôlées. Aucun consentement ROMS n'autorise MEDIA.
-- **Statut PRÉPARATOIRE** : le chemin complet de parcours MEDIAS, décodage image natif et rapprochement des seules références XML déclarées ne sont **pas encore intégrés**. La classe de capacité reste interne et aucun nouveau I/O MEDIAS public n'est activé. Tests négatifs sur dossiers entièrement fictifs ; aucune lecture de sources réelles, aucune qualification bêta ou Release.
+- Le service `IdealMediaApplicationService` expose `PrepareMediaSelection(MediaRootScope, mediaRootId)` → `AuthorizeMediaIndex(true)` → `StartIndexAsync()`, puis `AuthorizeMediaPreview(MediaPreviewRequest,true)` → `LoadPreviewAsync()`. Deux clics distincts, aucun grant ROMS, XML, SQLite ni état Offline n'autorise la lecture MEDIAS. Annulation, A→B, double appel et résultat tardif sont bornés par génération et validité du grant.
+- L'indexeur `NativeIdealMediaReader` emploie exclusivement des handles parent-relatifs de Windows pour une racine locale MEDIAS choisie. La lecture d'en-têtes respecte temps/dossiers/profondeur/fichiers/octets, refuse jonctions et accès hors racine. La PREVIEW ouvre uniquement l'observation indexée avec identité native + taille/empreinte d'en-tête, limite 8 MiB/2048 pixels/3.5 Mpx/512 px et réutilise le décodeur Skia borné (timeout 10 s avec rejet des résultats tardifs). WebP reste non décodable ; aucun scraping.
+- Les cas MEDIA_01–06 sont **100 % synthétiques** : refus sans autorisation, operation mismatch, consentement périmé, A→B, PNG fictif, tamper, limite de taille et Cancel. La projection pure `VerifiedScopeMapping`/`ExplicitMediaReference` existante est à employer par DEV 3 pour les jaquettes **uniquement déclarées dans ES-DE**, sans auto-attribution. Le raccordement des boutons et bindings de l'EXE standard n'est pas dans #161.
+- CI required #161 + revue DEV 2 attendues au SHA final ; #161 reste non fusionnée/aucune Release. Les protections de main restent inchangées.
 
 
 ## NEXT-05 / #134 — GO code DEV 1 IDEAL backend + SQLite (branche candidate, 04.11.2026)
