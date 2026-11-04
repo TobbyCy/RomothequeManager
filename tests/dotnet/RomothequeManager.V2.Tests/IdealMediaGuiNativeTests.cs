@@ -98,8 +98,8 @@ public sealed class IdealMediaGuiNativeTests
         if (!OperatingSystem.IsWindows()) return;
         var (root, media) = NewSyntheticRoot();
         Png(Path.Combine(media, "gba", "covers", "Fiction.png"), SKColors.Red);
-        Directory.CreateDirectory(Path.Combine(media, "gba", "alternate"));
-        Png(Path.Combine(media, "gba", "alternate", "Fiction.png"), SKColors.Green);
+        Directory.CreateDirectory(Path.Combine(media, "gba", "covers", "alternate"));
+        Png(Path.Combine(media, "gba", "covers", "alternate", "Fiction.png"), SKColors.Green);
         var roms = new InventorySession(new InventoryScope(root,
             IdealPlatformFolderConventions.PlatformAliases)).Scan();
         using var vm = new IdealMediaDraftViewModel(
