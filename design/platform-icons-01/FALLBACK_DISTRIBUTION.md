@@ -14,3 +14,6 @@ IMPORTANT : le ZIP GBA/PS2 actuellement livré ne contient PAS ces quatre fallba
 Droits : Nintendo/GBA et Sony/PS2 restent OWNER_DECISION / NOT_APPROVED_FOR_BRAND_DISTRIBUTION ; les anciens glyphes DejaVu restent de version exacte NOT_VERIFIED.
 
 Le QA actuel du dépôt remplace le QA historique CI=PENDING embarqué dans le ZIP initial. Cette archive n'a pas été régénérée dans la présente correction, pour ne pas casser la validation binaire antérieure.
+
+
+**État actuel :** les quatre SVG fallback sont présents dans le ZIP candidat réconcilié, sans mapping `PlatformKey` ; ne pas utiliser le pack pour une distribution officielle sans droits, CI verte et mandat d'intégration.

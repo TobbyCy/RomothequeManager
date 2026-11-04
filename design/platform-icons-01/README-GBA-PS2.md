@@ -10,4 +10,8 @@ Le fallback neutre historique est préservé. `platformKey=null`, `platformMappi
 
 Le QA du dépôt qa-gba-ps2.json présente le vrai CI_FAIL / PATH_POLICY_BLOCK observé, ainsi que le blocage latent ZIP binaire. Consultez GRAPHIC164_VISUAL_REVIEW.md, FALLBACK_DISTRIBUTION.md, PLATFORM_ICONS_NEXT_PACK_PROPOSAL.md et CI_PATH_POLICY_REQUIREMENTS.md.
 
-IMPORTANT : le ZIP original est conservé octet pour octet et contient encore son QA initial (CI=PENDING). La documentation versionnée dans le dépôt fait foi pour la CI ; les SVG et PNG restent conformes au snapshot revu par DEV 2. Ne pas annoncer une archive synchronisée ni un résultat Windows/Avalonia PASS. Toute régénération ultérieure requiert nouvelle QA binaire et revue indépendante.
+IMPORTANT : l'archive ZIP candidate a été régénérée exclusivement pour synchroniser manifeste, QA, README, provenance et licence avec le dépôt et pour inclure les quatre SVG fallback historiques. Les 84 PNG et les 26 SVG candidats/planches précédents sont byte-identiques. Les CRC ZIP et chunks PNG, tailles, alpha, et les 119 entrées ont été revérifiés après reconstruction. Cette validation du paquet ne vaut ni CI verte, ni validation Windows/Avalonia, ni droit de redistribution.
+
+## Archive réconciliée — package-only
+
+Le ZIP comporte désormais 119 fichiers : 84 PNG GBA/PS2, 24 SVG de variantes, 2 planches SVG, 4 SVG fallback neutres, 5 documents synchronisés. Il ne contient toujours **aucun PNG fallback** et n'est donc pas garanti exploitable tel quel par un runtime PNG-only. Voir PACKAGE_CONSISTENCY.md et FUTURE_AVALONIA_CONTRACT.md pour les conditions futures. Les exports originaux restent octet-identiques, aucune adoption officielle ni PlatformKey.

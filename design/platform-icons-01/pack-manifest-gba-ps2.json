@@ -12,7 +12,7 @@
     "study-nes",
     "study-playstation"
   ],
-  "fallback": "unchanged inherited neutral fallback; runtime behavior NOT_TESTED",
+  "fallback": "sources/fallback/{dark,light}[-small].svg (four neutral SVG bundled in the candidate ZIP, no PlatformKey)",
   "assets": [
     {
       "designId": "study-gba/console-name/dark",
@@ -734,5 +734,46 @@
         }
       ]
     }
-  ]
+  ],
+  "fallbackAssets": [
+    {
+      "source": "sources/fallback/dark.svg",
+      "platformKey": null,
+      "theme": "dark",
+      "sizeVariant": "regular",
+      "rightsStatus": "NEUTRAL_GRAPHIC_ONLY_NOT_RUNTIME_APPROVED"
+    },
+    {
+      "source": "sources/fallback/dark-small.svg",
+      "platformKey": null,
+      "theme": "dark",
+      "sizeVariant": "small",
+      "rightsStatus": "NEUTRAL_GRAPHIC_ONLY_NOT_RUNTIME_APPROVED"
+    },
+    {
+      "source": "sources/fallback/light.svg",
+      "platformKey": null,
+      "theme": "light",
+      "sizeVariant": "regular",
+      "rightsStatus": "NEUTRAL_GRAPHIC_ONLY_NOT_RUNTIME_APPROVED"
+    },
+    {
+      "source": "sources/fallback/light-small.svg",
+      "platformKey": null,
+      "theme": "light",
+      "sizeVariant": "small",
+      "rightsStatus": "NEUTRAL_GRAPHIC_ONLY_NOT_RUNTIME_APPROVED"
+    }
+  ],
+  "archiveProfile": {
+    "status": "GRAPHIC_CANDIDATE_NOT_RUNTIME_INTEGRATION",
+    "pngCount": 84,
+    "candidateSvgCount": 24,
+    "comparisonSheetCount": 2,
+    "neutralFallbackSvgCount": 4,
+    "totalSvgCount": 30,
+    "zipDocCount": 5,
+    "totalZipEntries": 119,
+    "sourcePngUnchangedFromC28004": true
+  }
 }

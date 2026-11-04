@@ -9,3 +9,7 @@ Pour les deux ZIP, brancher un audit binaire fail-closed à chemins fixes : CRC,
 Cette note n'autorise ni ne modifie une règle. Aucun GO sécurité ou CI verte implicite. Le HEAD documentaire suivant doit être revérifié par DEV 2.
 
 P1_CI_POLICY_BLOCK / INFRA_SEPARATE_OWNER_GO_REQUIRED.
+
+## Inventaire exact et archive réconciliée
+
+Le fichier `CI_REQUIREMENTS_FINAL.md` contient la liste exhaustive des chemins suivis sur #164 et les garde-fous binaires. Le nouveau ZIP candidat contient **119 entrées** (84 PNG, 24 SVG sujet, 2 planches, 4 SVG fallback, 5 documents) : aucun regex générique `design/.*` ni acceptation globale de `*.zip` ne doit remplacer l'énumération stricte. Aucun changement CI apporté par cette PR.

@@ -1,5 +1,5 @@
 {
-  "status": "GRAPHIC164_QA_FINALIZED_WITH_RESERVATIONS",
+  "status": "GRAPHIC164_PACKAGE_CONSISTENCY_READY_WITH_RIGHTS_AND_CI_HOLD",
   "inventory": {
     "subjects": 2,
     "styles": 3,
@@ -31,12 +31,12 @@
     "fallbackPresentInCandidateZip": false
   },
   "ci": {
-    "referenceHead": "c28004a4ba9bbb379cb9e012e1de9fb6949c3225",
-    "referenceRun": "https://github.com/TobbyCy/RomothequeManager/actions/runs/41860507555",
+    "referenceHead": "ffc112e795ed911e4fe954029ab54341a3472ed7",
+    "referenceRun": "https://github.com/TobbyCy/RomothequeManager/actions/runs/41886656338",
     "conclusion": "FAILURE",
     "pathPolicyBlock": "TRACKED_PATH_NOT_ALLOWED:design/platform-icons-01/CONSERVATION_90.md",
     "secondaryBlock": "BINARY_ZIP_UTF8_DECODE",
-    "currentHeadCI": "PENDING_NEW_HEAD",
+    "currentHeadCI": "NOT_RUN_ON_THIS_PACKAGE_COMMIT",
     "infraCorrection": "SEPARATE_GO_REQUIRED"
   },
   "independentReview": {
@@ -96,8 +96,12 @@
     "newPreviewSheets": 2,
     "zipIncludesFallback": false,
     "repoQaIsAuthoritativeAfterUpdate": true,
-    "archivedQaSnapshotHasPreviousCIState": true,
-    "archiveRepack": "NOT_DONE_DO_NOT_ASSUME_SYNCED"
+    "archivedQaSnapshotHasPreviousCIState": false,
+    "archiveRepack": "DONE_AND_CRC_VERIFIED",
+    "archiveContainsFallback": true,
+    "svgAndPngArtworkModified": false,
+    "manifestArchiveSynced": true,
+    "qaArchiveSynced": true
   },
   "gates": {
     "rights": "OWNER_DECISION",
@@ -106,5 +110,23 @@
     "ci": "FAILURE",
     "merge": "HOLD",
     "release": "HOLD"
+  },
+  "archiveReconciliation": {
+    "oldZipBlobSha": "c0cb5c18465ed8d6b0219f0144945c2326e74fa2",
+    "oldEntries": 115,
+    "newEntries": 119,
+    "candidatePngUnchanged": 84,
+    "candidateSvgAndSheetsUnchanged": 26,
+    "neutralFallbackSvgAdded": 4,
+    "localFileHeadersAndCRC": "VALIDATED",
+    "centralDirectory": "VALIDATED",
+    "pngChunkCRCAndAlpha": "84_OF_84_VERIFIED",
+    "manifestDimensions": "84_OF_84_VERIFIED",
+    "allPlatformKeysNull": true,
+    "platformMappingsEmpty": true,
+    "zipSafety": "VALIDATED_FOR_STORED_ENTRY_NAMES_DUPLICATES_AND_CRC",
+    "windowsAvalonia": "NOT_TESTED",
+    "rights": "OWNER_DECISION",
+    "newHeadCI": "PENDING"
   }
 }
