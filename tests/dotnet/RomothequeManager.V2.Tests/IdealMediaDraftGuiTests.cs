@@ -95,6 +95,19 @@ public sealed class IdealMediaDraftGuiTests
     }
 
     [TestMethod]
+    public void MEDIA_UI_05_UnsafeOrNonMediaEsDePathsCannotBecomeClaims()
+    {
+        var roms = new[] { Rom("rom", "gba", "ROMS/gba/Safe.gba") };
+        var xml = Imported(Game("gba", "ROMS/gba/Safe.gba", "Safe",
+            new EsDeMedia("image", "MEDIAS/gba/../secret.png", true),
+            new EsDeMedia("image", "MEDIAS//nested.png", true),
+            new EsDeMedia("image", "C:/private.png", true),
+            new EsDeMedia("image", "/MEDIAS/gba/absolute.png", true),
+            new EsDeMedia("image", "MEDIAS/gba/cover.png:stream", true)));
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(roms, xml).Count);
+    }
+
+    [TestMethod]
     public void MEDIA_UI_04_CancellationAndDisposalNeverGrantRights()
     {
         var backend = new IdealMediaApplicationService();
