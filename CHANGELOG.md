@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / #159 — DocFX Avalonia : provenance XAML attestée (DEV 1, PR candidate)
+
+- Corrige uniquement la comparaison native des sorties Avalonia de DocFX : permet une édition XAML enregistrée dans Git et liée aux sources natives lorsque les fichiers générés, leurs hash, leurs identités de générateur et leurs attestations sont inchangés. Conserve le refus fail-closed des dérives non prouvées.
+- Tests positifs et négatifs ciblés ; protections DocFX, seuils et CI inchangés. PR #159, aucun merge ni Release.
+
+
+
 ## NEXT-05 / #134 — IDEAL backend consent + SQLite application-local (DEV 1, 04.11.2026)
 
 - **Branche/PR candidate, non fusionnée** : connexion d'un scan ROMS metadata-only fondé sur les handles Windows RS-A à une sélection IDEAL de l'utilisateur et à une permission ROMS distincte, éphémère, liée à la génération/racine/opération et révoquée après Cancel, changement et fermeture. Aucun scan déclenché automatiquement par l'EXE.
@@ -525,8 +532,8 @@ Après chaque changement intégré, préciser le comportement, la compatibilité
 
 ## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
 
-- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) ouverte, intégration GUI sur branche #159 avec le backend #160 (non fusionnés sur `main`). Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
+- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) ouverte, intégration GUI candidate au-dessus du `main` incluant les PR backend #160 et outillage #162, toutes deux fusionnées ; #159 reste non fusionnée. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
 - UX : libellés de l'ancien refus Alpha et de l'absence de persistance corrigés dans l'accueil et le picker ; libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
 - Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
-- **Dépendance active DEV 1** : `IdealLibraryBackendService` avec `AuthorizeRomsRead`, `LoadSavedLibraries` / `RestoreSaved`, grants, SQLite app-local et contrôles négatifs. Le HEAD assemblé câble le backend candidat dans `Program`, sans changement de `main`. Aucun PASS de scan ou de reprise SQLite standard affirmé.
-- CI PR, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier au HEAD final. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
+- **Backend #160 déjà fusionné sur main** : le HEAD GUI candidat câble `IdealLibraryBackendService`, `AuthorizeRomsRead` et `LoadSavedLibraries` / `RestoreSaved` dans l'EXE standard ; le HEAD actuel ne revendique aucune recette humaine du nouveau parcours.
+- CI du HEAD final post-#162, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier ; PASS non présumé. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
