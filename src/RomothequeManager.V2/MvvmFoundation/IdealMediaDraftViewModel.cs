@@ -54,7 +54,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     /// <summary>Safe user-facing mode and refusal text, without absolute local paths.</summary>
     public string Status => _status;
     /// <summary>True only when the future security gate explicitly permits a new root selection.</summary>
-    public bool CanChooseMedia => NativeMediaSecurityValidated && !_disposed && !_busy;
+    public bool CanChooseMedia => NativeMediaSecurityValidated && !_disposed && !_busy && _pending is null;
     /// <summary>INDEX permission requires an independent selected MEDIAS root and user click.</summary>
     public bool CanAuthorizeIndex => CanChooseMedia && _selectedRoot && !_indexGrant;
     /// <summary>Indexing requires a one-shot INDEX grant; a ROMS grant is never consulted.</summary>
@@ -154,12 +154,9 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         }
         finally
         {
-            if (revision == _revision)
-            {
-                _pending = null;
-                _busy = false;
-                if (!_disposed) NotifyAll();
-            }
+            if (ReferenceEquals(_pending, cancellation)) _pending = null;
+            if (revision == _revision) _busy = false;
+            if (!_disposed) NotifyAll();
         }
     }
 
@@ -291,12 +288,9 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         finally
         {
             result?.Dispose();
-            if (revision == _revision)
-            {
-                _pending = null;
-                _busy = false;
-                if (!_disposed) NotifyAll();
-            }
+            if (ReferenceEquals(_pending, cancellation)) _pending = null;
+            if (revision == _revision) _busy = false;
+            if (!_disposed) NotifyAll();
         }
     }
 
