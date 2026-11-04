@@ -209,7 +209,7 @@ internal sealed class IdealMediaDraftWindow : Window
             if (Dispatcher.UIThread.CheckAccess()) Refresh();
             else Dispatcher.UIThread.Post(Refresh);
         };
-        _scopeConfirmed.IsCheckedChanged += (_, _) => Refresh();
+        _scopeConfirmed.Click += (_, _) => Refresh();
         _proposals.SelectionChanged += (_, _) => Refresh();
         Refresh();
 
