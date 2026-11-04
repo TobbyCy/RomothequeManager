@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RomothequeManager.V2.Inventory;
 using RomothequeManager.V2.Inventory.Application;
+using RomothequeManager.V2.Persistence;
 using RomothequeManager.V2.MvvmFoundation;
 
 namespace RomothequeManager.V2.Tests;
@@ -179,6 +180,41 @@ public sealed class ObservedLibraryViewModelTests
         Assert.IsFalse(inventory.CanStart);
         Assert.IsTrue(inventory.RomsGrantStatus.Contains("refusée", StringComparison.Ordinal));
         Assert.IsFalse(vm.CanInventoryFixture);
+    }
+
+    [TestMethod]
+    public void N05Ux07_SavedLibraryRequiresExplicitLoadAndOfflineRestore()
+    {
+        var rootId = Guid.NewGuid().ToString("D");
+        var libraryId = Guid.NewGuid().ToString("D");
+        var historical = new CatalogLastKnown(
+            new CatalogStorageRoot(rootId, libraryId, "ROMS", "ROMS"),
+            null, null, Array.Empty<CatalogMetadataClaim>(),
+            Array.Empty<CatalogUserDecision>());
+        var loads = 0;
+        var restores = 0;
+        var service = new FakeService(Snapshot(1));
+        using var inventory = new InventoryViewModel(service, action => action(),
+            loadSavedLibraries: () => { loads++; return new[] { historical }; },
+            restoreSaved: id => { restores++; return id == rootId; });
+
+        Assert.IsTrue(inventory.HasSavedLibraryCommands);
+        Assert.AreEqual(0, loads);
+        Assert.AreEqual(0, restores);
+        Assert.IsFalse(inventory.CanRestoreSavedLibrary);
+
+        inventory.LoadSavedLibrariesCommand.Execute(null);
+        Assert.AreEqual(1, loads);
+        Assert.AreEqual(1, inventory.SavedLibraries.Count);
+        Assert.AreEqual(0, restores); // listing never invokes restore
+        Assert.IsFalse(inventory.CanRestoreSavedLibrary);
+
+        inventory.SelectedSavedLibrary = inventory.SavedLibraries[0];
+        Assert.IsTrue(inventory.CanRestoreSavedLibrary);
+        inventory.RestoreSavedLibraryCommand.Execute(null);
+        Assert.AreEqual(1, restores);
+        StringAssert.Contains(inventory.SavedLibraryStatus, "OFFLINE / STALE");
+        Assert.IsFalse(inventory.CanStart); // a restored ID alone cannot grant a scan
     }
 
     private sealed class FakeService : IInventoryApplicationService
