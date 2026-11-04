@@ -57,7 +57,8 @@ internal static class Program
                 requestRomsGrant: version =>
                     backend.AuthorizeRomsRead(version, explicitUserAction: true),
                 loadSavedLibraries: backend.LoadSavedLibraries,
-                restoreSaved: backend.RestoreSaved);
+                restoreSaved: backend.RestoreSaved,
+                importedSnapshot: () => window?.AcceptedImportedSnapshot);
         });
         BetaIdealAvaloniaTrace.Mark("MAINWINDOW_CTOR_END");
         lifetime.MainWindow = window;
