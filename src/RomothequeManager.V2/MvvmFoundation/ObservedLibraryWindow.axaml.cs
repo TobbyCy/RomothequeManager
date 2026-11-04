@@ -39,8 +39,18 @@ public partial class ObservedLibraryWindow : Window
         IInventoryApplicationService service, RestoredCatalogSession? restored = null,
         Func<long, bool>? requestRomsGrant = null,
         Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
-        Func<string, bool>? restoreSaved = null,
-        Func<EsDeCatalogueSnapshot?>? importedSnapshot = null) =>
+        Func<string, bool>? restoreSaved = null) =>
+        FromStandardServicesWithImported(service, restored, requestRomsGrant,
+            loadSavedLibraries, restoreSaved, importedSnapshot: null);
+
+    /// <summary>Compose only an already accepted optional XML snapshot for
+    /// source-provenance comparison. This does not import, scan or grant access.</summary>
+    internal static ObservedLibraryWindow FromStandardServicesWithImported(
+        IInventoryApplicationService service, RestoredCatalogSession? restored,
+        Func<long, bool>? requestRomsGrant,
+        Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries,
+        Func<string, bool>? restoreSaved,
+        Func<EsDeCatalogueSnapshot?>? importedSnapshot) =>
         new(service, null, standardServiceSupplied: true, restored: restored,
             requestRomsGrant: requestRomsGrant,
             loadSavedLibraries: loadSavedLibraries, restoreSaved: restoreSaved,
