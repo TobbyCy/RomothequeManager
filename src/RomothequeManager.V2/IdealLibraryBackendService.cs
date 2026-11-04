@@ -8,7 +8,15 @@ namespace RomothequeManager.V2.Inventory.Application;
 
 /// <summary>Independent file-access operations. ROMS approval never permits a
 /// MEDIAS enumeration, an ES-DE XML read or image preview.</summary>
-public enum IdealReadOperation { RomsInventory, MediasIndex, MediaPreview }
+public enum IdealReadOperation
+{
+    /// <summary>Metadata-only ROMS inventory.</summary>
+    RomsInventory,
+    /// <summary>Separate MEDIAS index operation (denied until its own grant backend).</summary>
+    MediasIndex,
+    /// <summary>Separate image preview operation (denied until its own grant backend).</summary>
+    MediaPreview
+}
 
 /// <summary>Production backend for an explicitly picker-selected IDEAL library.
 /// The selection and read consent are separate commands; no CLI, CI flag, XML or
@@ -260,6 +268,10 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
         InventoryApplicationState result;
         lock (_gate)
         {
+            // Capture cancellation BEFORE disposing the CTS. The worker may have
+            // returned Complete immediately before the user clicked Cancel.
+            var wasCancelled = cts.IsCancellationRequested ||
+                _state.Phase == InventoryRunPhase.CancellationRequested;
             grant.Revoke();
             _activeGrant = null;
             _cancel = null;
@@ -269,8 +281,7 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
             // Cancelled partial/failed attempts remain LastAttempt when still selected.
             if (_disposed || version != _version || rootId != _rootId)
                 return _state;
-            if (attempt is not null && (cts.IsCancellationRequested || _state.Phase ==
-                    InventoryRunPhase.CancellationRequested) &&
+            if (attempt is not null && wasCancelled &&
                 attempt.ScanStatus == InventoryScanStatus.Complete)
             {
                 // A cancellation raced with the worker's final Complete result.
