@@ -390,7 +390,16 @@ internal static class RsAAnchoredReader
          name.EndsWith(".sqlite", StringComparison.OrdinalIgnoreCase));
 
 /// <summary>Open a selected local directory as a native handle with the required confinement and sharing flags.</summary>
-    internal static string ValidateSelectedLocalRomsPath(string path)
+    /// <summary>Validate a selected local ROMS root without opening a directory.</summary>
+    internal static string ValidateSelectedLocalRomsPath(string path) =>
+        ValidateSelectedLocalRolePath(path, "ROMS");
+
+    /// <summary>Validate a selected MEDIAS root independently of ROMS, rejecting
+    /// network/device paths and unsafe canonicalization before any native open.</summary>
+    internal static string ValidateSelectedLocalMediaPath(string path) =>
+        ValidateSelectedLocalRolePath(path, "MEDIAS");
+
+    private static string ValidateSelectedLocalRolePath(string path, string role)
     {
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("RS_A_WINDOWS_ONLY");
@@ -412,9 +421,9 @@ internal static class RsAAnchoredReader
             x.EndsWith('.') || x.EndsWith(' ')))
             throw new UnauthorizedAccessException("RS_A_COMPONENT_REJECTED");
         var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
-        if (!string.Equals(Path.GetFileName(full), "ROMS", StringComparison.OrdinalIgnoreCase) ||
+        if (!string.Equals(Path.GetFileName(full), role, StringComparison.OrdinalIgnoreCase) ||
             Path.GetDirectoryName(full) is null)
-            throw new UnauthorizedAccessException("RS_A_ROMS_ROOT_REQUIRED");
+            throw new UnauthorizedAccessException("RS_A_ROLE_ROOT_REQUIRED");
         var drive = new DriveInfo(volume);
         if (drive.DriveType is not (DriveType.Fixed or DriveType.Removable))
             throw new UnauthorizedAccessException("RS_A_NETWORK_OR_VIRTUAL_DRIVE_REFUSED");
@@ -425,6 +434,11 @@ internal static class RsAAnchoredReader
     /// parent handles and reparse checks as the fixture scanner.</summary>
     internal static SafeFileHandle OpenSelectedLocalRoot(string root) =>
         OpenRootCore(ValidateSelectedLocalRomsPath(root));
+
+    /// <summary>Open the separately selected MEDIAS root through the same native
+    /// handle-anchored, no-reparse parent traversal used by ROMS.</summary>
+    internal static SafeFileHandle OpenSelectedLocalMediaRoot(string root) =>
+        OpenRootCore(ValidateSelectedLocalMediaPath(root));
 
     /// <summary>Open only a named synthetic fixture ROMS root using native parent-relative
     /// handles, preserving the original fixture gate and rejecting reparse points.</summary>
