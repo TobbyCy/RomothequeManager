@@ -47,6 +47,8 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
 
     // Friend test-assembly seam: SQLite and RS-A are restricted to disposable fixtures.
     // No public constructor, environment flag or CLI path enables this scope.
+    /// <summary>Fixture-only composition for isolated synthetic SQLite and native ROMS tests;
+    /// not accessible to the distributed application or a runtime configuration flag.</summary>
     internal IdealLibraryBackendService(SqliteCatalogStore store, bool syntheticFixtureOnly,
         Action<string>? beforeChildOpenForTest = null)
     {
