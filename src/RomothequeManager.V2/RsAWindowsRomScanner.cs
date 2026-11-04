@@ -86,6 +86,7 @@ internal sealed class RsAFixtureRomSession
     private readonly string _sessionId = "rsa-fixture-" + Guid.NewGuid().ToString("N");
     private string? _root;
     private string? _storageRootId;
+    private bool _authorizedLocalRoot;
     private long _version;
     private RsAReadGrant? _grant;
     private readonly RsABudget _budget;
@@ -110,6 +111,7 @@ internal sealed class RsAFixtureRomSession
         _grant = null;
         _root = null;
         _storageRootId = null;
+        _authorizedLocalRoot = false;
         _version++;
         if (!Guid.TryParse(storageRootId, out _))
             throw new ArgumentException("RS_A_DURABLE_ROOT_ID_REQUIRED");
@@ -120,6 +122,37 @@ internal sealed class RsAFixtureRomSession
     }
 
 /// <summary>Issue a short-lived one-shot grant only after explicit consent and native root-identity verification.</summary>
+    /// <summary>Prepare a separately picker-selected LOCAL ROMS root for a production operation.
+    /// Selection alone never issues a grant or enumerates files.</summary>
+    internal void SelectAuthorizedLocalRoot(string selectedRomsRoot, string storageRootId)
+    {
+        _grant?.Revoke();
+        _grant = null;
+        _root = null;
+        _storageRootId = null;
+        _version++;
+        _authorizedLocalRoot = false;
+        if (!Guid.TryParse(storageRootId, out _))
+            throw new ArgumentException("RS_A_DURABLE_ROOT_ID_REQUIRED");
+        _root = RsAAnchoredReader.ValidateSelectedLocalRomsPath(selectedRomsRoot);
+        _storageRootId = storageRootId;
+        _authorizedLocalRoot = true;
+    }
+
+    /// <summary>Issue a single-operation real ROMS metadata-only capability, bound to
+    /// the opened native handle identity. Must follow a separate affirmative UI action.</summary>
+    internal RsAReadGrant AuthorizeSelected(bool explicitUserAction, DateTimeOffset expiresUtc)
+    {
+        if (!_authorizedLocalRoot || !explicitUserAction || _root is null ||
+            _storageRootId is null || expiresUtc <= DateTimeOffset.UtcNow ||
+            expiresUtc > DateTimeOffset.UtcNow.AddMinutes(5))
+            throw new UnauthorizedAccessException("RS_A_EXPLICIT_FRESH_CONSENT_REQUIRED");
+        using var opened = RsAAnchoredReader.OpenSelectedLocalRoot(_root);
+        var identity = RsAAnchoredReader.Identity(opened);
+        _grant?.Revoke();
+        return _grant = new RsAReadGrant(_storageRootId, _version, expiresUtc, identity);
+    }
+
     internal RsAReadGrant AuthorizeFixture(bool explicitUserAction,
         DateTimeOffset expiresUtc)
     {
@@ -173,7 +206,9 @@ internal sealed class RsAFixtureRomSession
                 throw new UnauthorizedAccessException("RS_A_GRANT_INVALID");
             CheckPermission();
             var root = _root ?? throw new UnauthorizedAccessException("RS_A_NO_SELECTION");
-            using var pinnedRoot = RsAAnchoredReader.OpenRoot(root);
+            using var pinnedRoot = _authorizedLocalRoot
+                ? RsAAnchoredReader.OpenSelectedLocalRoot(root)
+                : RsAAnchoredReader.OpenRoot(root);
             if (supplied is null ||
                 !RsAAnchoredReader.Identity(pinnedRoot).Equals(supplied.RootIdentity))
                 throw new UnauthorizedAccessException("RS_A_ROOT_IDENTITY_CHANGED");
@@ -218,7 +253,8 @@ internal sealed class RsAFixtureRomSession
                         observations.Add(new FileObservation(
                             Guid.NewGuid().ToString("D"), rootId + ":" + relative,
                             platform, relative, kind, ext, size, null, when,
-                            "RS_A_HANDLE_METADATA_FIXTURE", InventoryAvailability.Online,
+                            _authorizedLocalRoot ? "RS_A_HANDLE_METADATA_SELECTED" :
+                                "RS_A_HANDLE_METADATA_FIXTURE", InventoryAvailability.Online,
                             Array.Empty<string>()));
                     }
                 }
@@ -352,9 +388,47 @@ internal static class RsAAnchoredReader
          name.EndsWith(".sqlite", StringComparison.OrdinalIgnoreCase));
 
 /// <summary>Open a selected local directory as a native handle with the required confinement and sharing flags.</summary>
-    internal static SafeFileHandle OpenRoot(string root)
+    internal static string ValidateSelectedLocalRomsPath(string path)
     {
-        root = ValidateFixturePath(root);
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("RS_A_WINDOWS_ONLY");
+        if (string.IsNullOrWhiteSpace(path) ||
+            path.StartsWith(@"\\", StringComparison.Ordinal) ||
+            path.StartsWith("//", StringComparison.Ordinal) ||
+            path.StartsWith(@"\\?\", StringComparison.Ordinal) ||
+            path.StartsWith(@"\\.\", StringComparison.Ordinal) ||
+            path.Contains("://", StringComparison.Ordinal) ||
+            path.Contains('/') || !Path.IsPathFullyQualified(path))
+            throw new ArgumentException("RS_A_LOCAL_ABSOLUTE_ONLY");
+        // Reject alternate streams, dot-components and device-style aliases before normalization.
+        var volume = Path.GetPathRoot(path) ?? throw new ArgumentException("RS_A_VOLUME_REQUIRED");
+        if (volume.Length != 3 || volume[1] != ':' || volume[2] != '\\' ||
+            !char.IsLetter(volume[0]))
+            throw new UnauthorizedAccessException("RS_A_LOCAL_DRIVE_REQUIRED");
+        var components = path[volume.Length..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        if (components.Any(x => x is "." or ".." || x.Contains(':') ||
+            x.EndsWith('.') || x.EndsWith(' ')))
+            throw new UnauthorizedAccessException("RS_A_COMPONENT_REJECTED");
+        var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        if (!string.Equals(Path.GetFileName(full), "ROMS", StringComparison.OrdinalIgnoreCase) ||
+            Path.GetDirectoryName(full) is null)
+            throw new UnauthorizedAccessException("RS_A_ROMS_ROOT_REQUIRED");
+        var drive = new DriveInfo(volume);
+        if (drive.DriveType is not (DriveType.Fixed or DriveType.Removable))
+            throw new UnauthorizedAccessException("RS_A_NETWORK_OR_VIRTUAL_DRIVE_REFUSED");
+        return full;
+    }
+
+    /// <summary>Open a runtime-selected ROMS root with the same anchored native
+    /// parent handles and reparse checks as the fixture scanner.</summary>
+    internal static SafeFileHandle OpenSelectedLocalRoot(string root) =>
+        OpenRootCore(ValidateSelectedLocalRomsPath(root));
+
+    internal static SafeFileHandle OpenRoot(string root) =>
+        OpenRootCore(ValidateFixturePath(root));
+
+    private static SafeFileHandle OpenRootCore(string root)
+    {
         var volume = Path.GetPathRoot(root) ??
             throw new IOException("RS_A_MISSING_VOLUME_ROOT");
         // A Windows volume root is the only name-based open; every path component
