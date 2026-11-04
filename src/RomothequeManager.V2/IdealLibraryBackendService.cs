@@ -19,6 +19,7 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
     private readonly InventoryApplicationService _preflight = new();
     private readonly SqliteCatalogStore _store;
     private readonly bool _syntheticFixtureOnly;
+    private readonly Action<string>? _beforeChildOpenForTest;
     private RsAFixtureRomSession? _reader;
     private RsAReadGrant? _pendingGrant;
     private RsAReadGrant? _activeGrant;
@@ -38,10 +39,12 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
 
     // Friend test-assembly seam: SQLite and RS-A are restricted to disposable fixtures.
     // No public constructor, environment flag or CLI path enables this scope.
-    internal IdealLibraryBackendService(SqliteCatalogStore store, bool syntheticFixtureOnly)
+    internal IdealLibraryBackendService(SqliteCatalogStore store, bool syntheticFixtureOnly,
+        Action<string>? beforeChildOpenForTest = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _syntheticFixtureOnly = syntheticFixtureOnly;
+        _beforeChildOpenForTest = beforeChildOpenForTest;
     }
 
     /// <summary>Snapshots are immutable. UI consumers must marshal worker notifications.</summary>
@@ -199,10 +202,8 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
     public Task<InventoryApplicationState> StartConfirmedScanAsync(
         InventoryRunRequest request, CancellationToken cancellationToken = default)
     {
-        InventoryApplicationState state;
-        RsAFixtureRomSession reader;
-        RsAReadGrant grant;
-        CancellationTokenSource cts;
+        InventoryApplicationState? toPublish = null;
+        Task<InventoryApplicationState> result;
         lock (_gate)
         {
             string? refusal = null;
@@ -217,30 +218,29 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
             if (refusal is not null)
             {
                 if (!_running && !_disposed)
-                {
-                    state = _state = _state with {
+                    toPublish = _state = _state with {
                         Phase = InventoryRunPhase.Rejected, SafeDiagnosticCode = refusal
                     };
-                    PublishLater(state);
-                }
-                return Task.FromResult(_state);
+                result = Task.FromResult(_state);
             }
-
-            reader = _reader!;
-            grant = _pendingGrant!;
-            _pendingGrant = null; // consume before the worker starts
-            _activeGrant = grant;
-            cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            _cancel = cts;
-            _running = true;
-            state = _state = _state with {
-                Phase = InventoryRunPhase.Running, SafeDiagnosticCode = null,
-                ProgressIsIndeterminate = true
-            };
-            _task = ExecuteAsync(reader, grant, cts, _version, _rootId!);
+            else
+            {
+                var reader = _reader!;
+                var grant = _pendingGrant!;
+                _pendingGrant = null; // consume before any worker starts
+                _activeGrant = grant;
+                var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                _cancel = cts;
+                _running = true;
+                toPublish = _state = _state with {
+                    Phase = InventoryRunPhase.Running, SafeDiagnosticCode = null,
+                    ProgressIsIndeterminate = true
+                };
+                result = _task = ExecuteAsync(reader, grant, cts, _version, _rootId!);
+            }
         }
-        Publish(state);
-        return _task!;
+        if (toPublish is not null) Publish(toPublish);
+        return result;
     }
 
     private async Task<InventoryApplicationState> ExecuteAsync(
@@ -253,7 +253,7 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
         {
             // Task.Run never receives the token: a pre-cancelled request must
             // settle as a controlled failed/partial attempt, not become an orphan.
-            attempt = await Task.Run(() => reader.Scan(grant, cts.Token)).ConfigureAwait(false);
+            attempt = await Task.Run(() => reader.Scan(grant, cts.Token, _beforeChildOpenForTest)).ConfigureAwait(false);
         }
         catch (Exception) { fault = "IDEAL_SCAN_FAILED"; }
 
@@ -269,6 +269,20 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
             // Cancelled partial/failed attempts remain LastAttempt when still selected.
             if (_disposed || version != _version || rootId != _rootId)
                 return _state;
+            if (attempt is not null && (cts.IsCancellationRequested || _state.Phase ==
+                    InventoryRunPhase.CancellationRequested) &&
+                attempt.ScanStatus == InventoryScanStatus.Complete)
+            {
+                // A cancellation raced with the worker's final Complete result.
+                // Never promote that late snapshot to Current.
+                attempt = attempt with {
+                    ScanStatus = InventoryScanStatus.Partial,
+                    Freshness = InventoryFreshness.Stale,
+                    TotalFileCount = null,
+                    CoverageProof = Array.AsReadOnly(attempt.CoverageProof.Select(
+                        proof => proof with { Status = InventoryScanStatus.Partial }).ToArray())
+                };
+            }
             if (attempt is not null)
             {
                 try { _store.SaveAttempt(rootId, attempt); }
@@ -402,12 +416,6 @@ public sealed class IdealLibraryBackendService : IInventoryApplicationService
     private void ThrowIfDisposed()
     {
         if (_disposed) throw new ObjectDisposedException(nameof(IdealLibraryBackendService));
-    }
-
-    private void PublishLater(InventoryApplicationState state)
-    {
-        // Rejections are returned synchronously. Callbacks are not invoked from
-        // inside the lock, where an observer could reenter or perform UI work.
     }
 
     private void Publish(InventoryApplicationState state)
