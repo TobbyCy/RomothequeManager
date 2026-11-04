@@ -121,7 +121,6 @@ internal sealed class RsAFixtureRomSession
         // No enumeration/opening occurs at selection.
     }
 
-/// <summary>Issue a short-lived one-shot grant only after explicit consent and native root-identity verification.</summary>
     /// <summary>Prepare a separately picker-selected LOCAL ROMS root for a production operation.
     /// Selection alone never issues a grant or enumerates files.</summary>
     internal void SelectAuthorizedLocalRoot(string selectedRomsRoot, string storageRootId)
