@@ -1,13 +1,5 @@
 # Historique technique des fonctionnalités
 
-## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
-
-- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) en DRAFT, base exacte `main=69ab98711ea6a612d402224bcb604ff7297f45dc`. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
-- UX : libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
-- Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
-- **Dépendance active DEV 1** : `IdealLibraryBackendService` avec `AuthorizeRomsRead`, `LoadSavedLibraries` / `RestoreSaved`, grants, SQLite app-local et contrôles négatifs. Le `Program` standard conserve sa composition deny-by-default tant que le backend n'est pas raccordé. Aucun PASS de scan ou de reprise SQLite standard affirmé.
-- CI PR, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier au HEAD final. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
-
 ## CURRENT — NEXT-05 / #95 P1 ZIP TEST : sortie du validateur (PR #158, 04.11.2026)
 
 - Après fusion de #157, source Produit `main=a4eb5886bcf3077bf3fe136d3972a1418e989bf3` : le [run manuel de TEST #41809015941](https://github.com/TobbyCy/RomothequeManager/actions/runs/41809015941) a terminé **FAILURE**, upload **SKIPPED**. Deux builds et ZIP identiques, SQLite/licences/manifeste et négatifs attendus ont réussi ; le dernier négatif Python non nul persistait dans `$LASTEXITCODE` du caller PowerShell.
@@ -510,3 +502,11 @@ La recette Windows `tools/demo-library/Invoke-Demo02Recipe.ps1` réutilise stric
 ### NEXT-05 — consolidation DocFX #88/#138 (travail en PR, pas intégré)
 
 La branche DEV 1 de documentation permanente propose un workflow natif Windows de génération XML → YAML → HTML et de mesure sémantique par symbole (≥90 % du périmètre éligible, 100 % des nouvelles API). Ce chantier n'est **pas** intégré à `main` ; la couverture réelle et la recette Windows de la PR restent à prouver, et aucun état READY/RELEASE n'en découle. Les anciennes preuves pilotes sur fixtures restent historiques. Tous les `REAL_*_HOLD` et `NEXT05_RELEASE_HOLD` demeurent.
+
+## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
+
+- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) en DRAFT, base exacte `main=69ab98711ea6a612d402224bcb604ff7297f45dc`. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
+- UX : libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
+- Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
+- **Dépendance active DEV 1** : `IdealLibraryBackendService` avec `AuthorizeRomsRead`, `LoadSavedLibraries` / `RestoreSaved`, grants, SQLite app-local et contrôles négatifs. Le `Program` standard conserve sa composition deny-by-default tant que le backend n'est pas raccordé. Aucun PASS de scan ou de reprise SQLite standard affirmé.
+- CI PR, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier au HEAD final. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.

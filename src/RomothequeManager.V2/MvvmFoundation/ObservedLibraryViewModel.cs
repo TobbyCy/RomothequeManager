@@ -88,9 +88,18 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         ? "RS-A · simulation Windows confinée aux fixtures internes. Aucun droit de scan personnel."
         : _fixtureMode
         ? "PREUVE WINDOWS · vrais fichiers fictifs, autorisation limitée à ces fixtures uniquement."
+        : _standardServiceSupplied && _inventory.DisplayedSnapshot is
+            { Availability: InventoryAvailability.Offline } &&
+            _inventory.SelectedLocalRoot is null
+        ? "Historique SQLite · OFFLINE / STALE, aucun disque rescanné ni grant restauré."
         : _standardServiceSupplied
         ? "Inventaire IDEAL · sélection et consentement distincts, accès soumis au backend."
         : "Inventaire personnel désactivé dans cette version. Le service de production refuse tout scan.";
+    /// <summary>Truthful message for the standard, fixture or historical composition.</summary>
+    public string PersistenceNotice => _standardServiceSupplied
+        ? "SQLite local : l'état complet est enregistré par le backend, puis consultable hors ligne. Aucun accès au support à la reprise."
+        : "Sans persistance active : la session en cours disparaît à la fermeture. Aucun fichier source modifié.";
+
     /// <summary>Explains the scope and limits of the displayed ROMS evidence and unavailable permissions.</summary>
     public string ScopeText => _restored is not null
         ? "Historique SQLite uniquement : aucun scan, aucune lecture média ou revalidation du SSD."
@@ -278,6 +287,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
             nameof(InventoryViewModel.ConsentConfirmed) or nameof(InventoryViewModel.Phase))
             Notify(nameof(CanInventoryFixture));
         if (e.PropertyName != nameof(InventoryViewModel.DisplayedSnapshot)) return;
+        Notify(nameof(ModeNotice));
         var newGeneration = _inventory.DisplayedSnapshot;
         if (ReferenceEquals(_generation, newGeneration)) return;
         _generation = newGeneration;

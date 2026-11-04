@@ -15,7 +15,7 @@
           <TextBlock FontSize="20" FontWeight="Bold" Text="NEXT-05 · INVENTAIRE AUTONOME DES FICHIERS" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding ModeNotice}" TextWrapping="Wrap"/>
           <TextBlock Text="Fichier observé ≠ jeu identifié ≠ association candidate. Aucun XML ES-DE nécessaire." TextWrapping="Wrap"/>
-          <TextBlock Text="Sans persistance active : la session en cours disparaît à la fermeture. Aucun fichier source modifié." TextWrapping="Wrap" IsVisible="{Binding HasLiveMediaPanel}"/>
+          <TextBlock Text="{Binding PersistenceNotice}" TextWrapping="Wrap" IsVisible="{Binding HasLiveMediaPanel}"/>
         </StackPanel>
       </Border>
       <Border x:Name="RestoredStatusPanel" Background="#24333E" BorderBrush="#667A8B"
@@ -179,6 +179,35 @@
                     Command="{Binding Inventory.CancelInventoryCommand}"
                     MinHeight="40" Margin="0,0,8,4"/>
           </WrapPanel>
+          <Border Background="#1F2933" CornerRadius="6" Padding="10"
+                  IsVisible="{Binding Inventory.HasSavedLibraryCommands}">
+            <StackPanel Spacing="7">
+              <TextBlock Text="Bibliothèques SQLite enregistrées · consultation hors ligne"
+                         FontWeight="Bold" TextWrapping="Wrap"/>
+              <WrapPanel>
+                <Button x:Name="LoadSavedLibrariesButton" Content="Afficher les sauvegardes"
+                        Command="{Binding Inventory.LoadSavedLibrariesCommand}"
+                        MinHeight="40" Margin="0,0,8,4"/>
+                <Button x:Name="RestoreSavedLibraryButton" Content="Ouvrir hors ligne"
+                        Command="{Binding Inventory.RestoreSavedLibraryCommand}"
+                        IsEnabled="{Binding Inventory.CanRestoreSavedLibrary}"
+                        MinHeight="40" Margin="0,0,8,4"/>
+              </WrapPanel>
+              <ListBox x:Name="SavedLibrariesList" ItemsSource="{Binding Inventory.SavedLibraries}"
+                       SelectedItem="{Binding Inventory.SelectedSavedLibrary, Mode=TwoWay}"
+                       MinHeight="48" MaxHeight="144">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SavedLibraryChoice">
+                    <TextBlock Text="{Binding Label}" TextWrapping="Wrap"/>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <TextBlock Text="{Binding Inventory.SavedLibraryStatus}" TextWrapping="Wrap"
+                         Foreground="#C2CBD5"/>
+              <TextBlock Text="L'historique ne vérifie pas le disque et ne rétablit jamais un droit de lecture."
+                         TextWrapping="Wrap" Foreground="#C2CBD5" FontSize="12"/>
+            </StackPanel>
+          </Border>
           <TextBlock Text="4 · Consulter une génération" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
           <WrapPanel>
             <Button x:Name="InventoryCompleteButton" Content="Dernier inventaire complet"

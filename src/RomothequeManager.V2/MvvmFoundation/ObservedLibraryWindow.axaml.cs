@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using RomothequeManager.V2.Inventory;
 using RomothequeManager.V2.Inventory.Application;
 using RomothequeManager.V2.Inventory.Media;
+using RomothequeManager.V2.Persistence;
 
 namespace RomothequeManager.V2.MvvmFoundation;
 
@@ -33,14 +34,19 @@ public partial class ObservedLibraryWindow : Window
     /// Historical SQLite state may be shown without rescanning any root.</summary>
     public static ObservedLibraryWindow FromStandardServices(
         IInventoryApplicationService service, RestoredCatalogSession? restored = null,
-        Func<long, bool>? requestRomsGrant = null) =>
+        Func<long, bool>? requestRomsGrant = null,
+        Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
+        Func<string, bool>? restoreSaved = null) =>
         new(service, null, standardServiceSupplied: true, restored: restored,
-            requestRomsGrant: requestRomsGrant);
+            requestRomsGrant: requestRomsGrant,
+            loadSavedLibraries: loadSavedLibraries, restoreSaved: restoreSaved);
 
     private ObservedLibraryWindow(IInventoryApplicationService service,
         IReadOnlyDictionary<string, string>? syntheticRoots,
         bool standardServiceSupplied = false, RestoredCatalogSession? restored = null,
-        Func<long, bool>? requestRomsGrant = null)
+        Func<long, bool>? requestRomsGrant = null,
+        Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
+        Func<string, bool>? restoreSaved = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _syntheticRoots = syntheticRoots;
@@ -49,7 +55,7 @@ public partial class ObservedLibraryWindow : Window
         {
             if (Dispatcher.UIThread.CheckAccess()) action();
             else Dispatcher.UIThread.Post(action);
-        }, requestRomsGrant);
+        }, requestRomsGrant, loadSavedLibraries, restoreSaved);
         _vm = new ObservedLibraryViewModel(_inventoryVm,
             _syntheticRoots is not null, standardServiceSupplied);
         if (restored is not null)

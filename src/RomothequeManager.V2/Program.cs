@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Themes.Fluent;
+using RomothequeManager.V2.Inventory.Application;
+using RomothequeManager.V2.MvvmFoundation;
 
 namespace RomothequeManager.V2;
 
@@ -45,7 +47,17 @@ internal static class Program
             .SetupWithLifetime(lifetime);
         BetaIdealAvaloniaTrace.Mark("SETUP_COMPLETE");
         BetaIdealAvaloniaTrace.Mark("MAINWINDOW_CTOR_BEGIN");
-        var window = new MainWindow();
+        // Backend composition is available on the DEV 1 dependent branch.
+        // No grants, ROMS enumeration or SQLite source validation at startup.
+        var window = new MainWindow(() =>
+        {
+            var backend = new IdealLibraryBackendService();
+            return ObservedLibraryWindow.FromStandardServices(backend,
+                requestRomsGrant: version =>
+                    backend.AuthorizeRomsRead(version, explicitUserAction: true),
+                loadSavedLibraries: backend.LoadSavedLibraries,
+                restoreSaved: backend.RestoreSaved);
+        });
         BetaIdealAvaloniaTrace.Mark("MAINWINDOW_CTOR_END");
         lifetime.MainWindow = window;
         if (args.Contains("--ci-ux-offline-fixture", StringComparer.Ordinal))

@@ -1,13 +1,5 @@
 # Journal des changements
 
-## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
-
-- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) en DRAFT, base exacte `main=69ab98711ea6a612d402224bcb604ff7297f45dc`. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
-- UX : libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
-- Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
-- **Dépendance active DEV 1** : `IdealLibraryBackendService` avec `AuthorizeRomsRead`, `LoadSavedLibraries` / `RestoreSaved`, grants, SQLite app-local et contrôles négatifs. Le `Program` standard conserve sa composition deny-by-default tant que le backend n'est pas raccordé. Aucun PASS de scan ou de reprise SQLite standard affirmé.
-- CI PR, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier au HEAD final. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
-
 ## CURRENT — consolidation NEXT-05 du 04.11.2026
 
 - La [PR #154](https://github.com/TobbyCy/RomothequeManager/pull/154) est **fusionnée** : source finale `d540a84b7caf33dfa98455c519841790f519635f`, commit sur main `c7cd2f40c6e91880d5cdf5e4a6aca6a2411efacc`. La synchronisation n'ajoute que les documents déjà présents dans main ; son arbre est identique au merge synthétique examiné par DEV 2.
@@ -523,3 +515,11 @@ Après chaque changement intégré, préciser le comportement, la compatibilité
 ### NEXT-05 / DocFX permanent (#88/#138) — PR en cours, non fusionnée
 
 - Chaîne XML C# → DocFX YAML → HTML, contrôle des UID et liens, métriques Roslyn par symbole, canaris et gate CI obligatoire en cours de validation. Aucune conclusion PASS avant exécution Windows au SHA exact ni couverture ≥90 % effectivement mesurée. Aucun site ni Release publiés.
+
+## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
+
+- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) en DRAFT, base exacte `main=69ab98711ea6a612d402224bcb604ff7297f45dc`. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
+- UX : libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
+- Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
+- **Dépendance active DEV 1** : `IdealLibraryBackendService` avec `AuthorizeRomsRead`, `LoadSavedLibraries` / `RestoreSaved`, grants, SQLite app-local et contrôles négatifs. Le `Program` standard conserve sa composition deny-by-default tant que le backend n'est pas raccordé. Aucun PASS de scan ou de reprise SQLite standard affirmé.
+- CI PR, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier au HEAD final. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
