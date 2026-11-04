@@ -7,7 +7,7 @@ namespace RomothequeManager.V2.Tests;
 [TestClass]
 public sealed class LegacyMediaDiagnosticPresentationTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("MEDIA_NOT_AVAILABLE", "Média indisponible")]
     [DataRow("MEDIA_UNSUPPORTED_OR_UNVERIFIED", "Image non vérifiable")]
     [DataRow("MEDIA_TOO_LARGE_COMPRESSED", "Image trop volumineuse")]
