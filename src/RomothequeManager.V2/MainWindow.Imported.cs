@@ -236,8 +236,12 @@ public sealed partial class MainWindow
                     }
                 }
                 else
-                    message.Text = "Aperçu non disponible · lecture limitée (" +
-                        result.Reason + ")";
+                {
+                    // Keep the precise backend code inspectable, but never split
+                    // an opaque MEDIA_* identifier across a narrow image card.
+                    message.Text = LegacyMediaDiagnosticPresentation.ShortLabel(result.Reason);
+                    ToolTip.SetTip(message, result.Reason);
+                }
             }, DispatcherPriority.Background);
         }
         catch (OperationCanceledException) { /* old generation: no adoption */ }
@@ -642,6 +646,14 @@ public sealed partial class MainWindow
             " / " + _importedUi.PageCount + " · 50 éléments maximum par page."));
         var columns = ImportedColumnCount();
         var visible = _importedUi.PageGames;
+        // A title may legitimately designate several independent ES-DE XML
+        // references. Compare within accepted Current, never merge by title.
+        var duplicateTitles = _importedUi.Snapshot?.Games
+            .GroupBy(item => item.Title, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase)
+            ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Star columns fill the same width as search and results. No trailing card margins.
         var cards = new Grid
         {
@@ -658,9 +670,13 @@ public sealed partial class MainWindow
             var line = new Grid { ColumnDefinitions = new ColumnDefinitions("96,*"), ColumnSpacing = 12 };
             line.Children.Add(CoverFor(game, 82, 108));
             var details = Group(
-                Text(game.Platform.ToUpperInvariant() + " · ES-DE", 11, true),
+                Text(game.Platform.ToUpperInvariant() + " · référence XML ES-DE", 11, true),
                 Text(game.Title, 19, true),
-                Text(game.RomRelativePath, 12),
+                Text("Chemin ROMS déclaré : " + game.RomRelativePath, 12),
+                Text(duplicateTitles.Contains(game.Title)
+                    ? "Homonyme : référence distincte par plateforme et chemin."
+                    : "Une référence déclarée, sans déduplication par titre.", 11,
+                    duplicateTitles.Contains(game.Title)),
                 Text(game.RomExists ? "ROM présente au dernier import" :
                     "ROM non trouvée — aucune suppression déduite", 12),
                 PrimaryButton("Ouvrir la fiche", () => OpenImportedGame(gameId))
@@ -702,7 +718,8 @@ public sealed partial class MainWindow
         }
         _page.Children.Add(Button("← Retour à la collection", () => Navigate(POCView.Collection)));
         _page.Children.Add(Hero("Fiche de jeu  /  " + game.Platform, game.Title,
-            "Données déclarées par ES-DE · consultation en lecture seule."));
+            "Référence XML ES-DE : " + game.Platform + " · " +
+            game.RomRelativePath + " · consultation en lecture seule."));
         _page.Children.Add(Notice(
             game.RomExists ? "ROM référencée et présente au dernier import" :
                 "ROM référencée mais indisponible au dernier import",

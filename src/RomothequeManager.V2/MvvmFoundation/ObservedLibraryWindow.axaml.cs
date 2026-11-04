@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using RomothequeManager.V2.Inventory;
 using RomothequeManager.V2.Inventory.Application;
 using RomothequeManager.V2.Inventory.Media;
+using RomothequeManager.V2.Persistence;
 
 namespace RomothequeManager.V2.MvvmFoundation;
 
@@ -27,8 +28,25 @@ public partial class ObservedLibraryWindow : Window
 
     public ObservedLibraryWindow() : this(new InventoryApplicationService(), null) { }
 
+    /// <summary>Construct a standard window with explicitly provided application
+    /// services. Backend authorization, grant lifetime, roots and SQLite protection
+    /// remain authoritative; this factory cannot authorize a scan or media preview.
+    /// Historical SQLite state may be shown without rescanning any root.</summary>
+    public static ObservedLibraryWindow FromStandardServices(
+        IInventoryApplicationService service, RestoredCatalogSession? restored = null,
+        Func<long, bool>? requestRomsGrant = null,
+        Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
+        Func<string, bool>? restoreSaved = null) =>
+        new(service, null, standardServiceSupplied: true, restored: restored,
+            requestRomsGrant: requestRomsGrant,
+            loadSavedLibraries: loadSavedLibraries, restoreSaved: restoreSaved);
+
     private ObservedLibraryWindow(IInventoryApplicationService service,
-        IReadOnlyDictionary<string, string>? syntheticRoots)
+        IReadOnlyDictionary<string, string>? syntheticRoots,
+        bool standardServiceSupplied = false, RestoredCatalogSession? restored = null,
+        Func<long, bool>? requestRomsGrant = null,
+        Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
+        Func<string, bool>? restoreSaved = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _syntheticRoots = syntheticRoots;
@@ -37,8 +55,11 @@ public partial class ObservedLibraryWindow : Window
         {
             if (Dispatcher.UIThread.CheckAccess()) action();
             else Dispatcher.UIThread.Post(action);
-        });
-        _vm = new ObservedLibraryViewModel(_inventoryVm, _syntheticRoots is not null);
+        }, requestRomsGrant, loadSavedLibraries, restoreSaved);
+        _vm = new ObservedLibraryViewModel(_inventoryVm,
+            _syntheticRoots is not null, standardServiceSupplied);
+        if (restored is not null)
+            _vm.AttachRestoredForStandard(restored);
         _vm.Media.PropertyChanged += OnMediaChanged;
         DataContext = _vm;
 
@@ -199,7 +220,7 @@ public partial class ObservedLibraryWindow : Window
         {
             var roots = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
-                Title = "Sélectionner la racine contenant ROMS/ (scan personnel désactivé)",
+                Title = "Choisir la racine contenant ROMS/ (aucun accès avant autorisation ROMS distincte et consentement)",
                 AllowMultiple = false
             });
             var root = roots.FirstOrDefault();

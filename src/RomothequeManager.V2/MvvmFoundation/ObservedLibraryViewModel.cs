@@ -15,6 +15,8 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
 {
     private readonly InventoryViewModel _inventory;
     private readonly bool _fixtureMode;
+    // Presentation capability only; backend always makes the access decision.
+    private readonly bool _standardServiceSupplied;
     private readonly InventoryCommand _dashboard;
     private readonly InventoryCommand _collection;
     private readonly InventoryCommand _openFile;
@@ -34,11 +36,23 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     private RestoredCatalogSession? _restored;
     private RsAUiViewModel? _rsa;
 
-    /// <summary>Presentation-only navigation for observed ROM files; sorting and paging use the pure projection without filesystem I/O.</summary>
+    /// <summary>Preserves the historical two-argument observed-library constructor.
+    /// Fixture presentation behaves as before; standard backend composition and
+    /// authorization are never inferred from this constructor.</summary>
+    /// <param name="inventory">Injected inventory presentation adapter.</param>
+    /// <param name="fixtureMode">Whether this view is explicitly in fixture mode.</param>
     public ObservedLibraryViewModel(InventoryViewModel inventory, bool fixtureMode)
+        : this(inventory, fixtureMode, standardServiceSupplied: false)
+    {
+    }
+
+    /// <summary>Presentation-only navigation for observed ROM files; sorting and paging use the pure projection without filesystem I/O.</summary>
+    public ObservedLibraryViewModel(InventoryViewModel inventory, bool fixtureMode,
+        bool standardServiceSupplied = false)
     {
         _inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
         _fixtureMode = fixtureMode;
+        _standardServiceSupplied = standardServiceSupplied;
         Media = new MediaPanelViewModel(new MediaPresentationService(), new MediaPreviewService());
         _dashboard = new InventoryCommand(_ => View = ObservedView.Dashboard, _ => true);
         _collection = new InventoryCommand(_ => View = ObservedView.Collection, _ => true);
@@ -73,8 +87,10 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
     public MediaPanelViewModel Media { get; }
     /// <summary>Indicates that the composition was explicitly created for bounded fixture testing.</summary>
     public bool FixtureMode => _fixtureMode;
-    /// <summary>Allows fixture inventory only without competing RS-A/restored modes and with service consent gates satisfied.</summary>
-    public bool CanInventoryFixture => _fixtureMode && _restored is null && _rsa is null && _inventory.CanStart;
+    /// <summary>Shows Start for approved CI fixture composition or an explicitly
+    /// injected standard service; this UI boolean never grants filesystem access.</summary>
+    public bool CanInventoryFixture => (_fixtureMode || _standardServiceSupplied) &&
+        _restored is null && _rsa is null && _inventory.CanStart;
     /// <summary>Explains whether displayed data are simulated, historical, fixture-only or disabled in production.</summary>
     public string ModeNotice => _restored is not null
         ? "Collection SQLite fictive restaurée : consultation OFFLINE / STALE ; aucun accès disque."
@@ -82,7 +98,18 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         ? "RS-A · simulation Windows confinée aux fixtures internes. Aucun droit de scan personnel."
         : _fixtureMode
         ? "PREUVE WINDOWS · vrais fichiers fictifs, autorisation limitée à ces fixtures uniquement."
+        : _standardServiceSupplied && _inventory.DisplayedSnapshot is
+            { Availability: InventoryAvailability.Offline } &&
+            _inventory.SelectedLocalRoot is null
+        ? "Historique SQLite · OFFLINE / STALE, aucun disque rescanné ni grant restauré."
+        : _standardServiceSupplied
+        ? "Inventaire IDEAL · sélection et consentement distincts, accès soumis au backend."
         : "Inventaire personnel désactivé dans cette version. Le service de production refuse tout scan.";
+    /// <summary>Truthful message for the standard, fixture or historical composition.</summary>
+    public string PersistenceNotice => _standardServiceSupplied
+        ? "SQLite local : l'état complet est enregistré par le backend, puis consultable hors ligne. Aucun accès au support à la reprise."
+        : "Sans persistance active : la session en cours disparaît à la fermeture. Aucun fichier source modifié.";
+
     /// <summary>Explains the scope and limits of the displayed ROMS evidence and unavailable permissions.</summary>
     public string ScopeText => _restored is not null
         ? "Historique SQLite uniquement : aucun scan, aucune lecture média ou revalidation du SSD."
@@ -270,6 +297,7 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
             nameof(InventoryViewModel.ConsentConfirmed) or nameof(InventoryViewModel.Phase))
             Notify(nameof(CanInventoryFixture));
         if (e.PropertyName != nameof(InventoryViewModel.DisplayedSnapshot)) return;
+        Notify(nameof(ModeNotice));
         var newGeneration = _inventory.DisplayedSnapshot;
         if (ReferenceEquals(_generation, newGeneration)) return;
         _generation = newGeneration;
@@ -331,12 +359,27 @@ public sealed class ObservedLibraryViewModel : INotifyPropertyChanged, IDisposab
         Notify(nameof(KindOptions));
     }
 
-    /// <summary>Inject one fixture-owned restored session. Normal product startup does not call this.</summary>
+    /// <summary>Attach a fixture-owned historical session only in CI composition.</summary>
     internal void AttachRestoredForCi(RestoredCatalogSession session)
     {
+        if (!_fixtureMode) throw new InvalidOperationException("UI05_FIXTURE_SESSION_REQUIRED");
+        AttachHistorical(session);
+    }
+
+    /// <summary>Attach already-loaded SQLite history in the standard composition.
+    /// No grants are persisted or restored; the historical view remains Offline/Stale.</summary>
+    internal void AttachRestoredForStandard(RestoredCatalogSession session)
+    {
+        if (!_standardServiceSupplied || _fixtureMode)
+            throw new InvalidOperationException("UI05_STANDARD_COMPOSITION_REQUIRED");
+        AttachHistorical(session);
+    }
+
+    private void AttachHistorical(RestoredCatalogSession session)
+    {
         ArgumentNullException.ThrowIfNull(session);
-        if (!_fixtureMode || _disposed || _restored is not null || _rsa is not null)
-            throw new InvalidOperationException("UI05_FIXTURE_SESSION_REQUIRED");
+        if (_disposed || _restored is not null || _rsa is not null)
+            throw new InvalidOperationException("UI05_HISTORY_ALREADY_ATTACHED");
         _restored = session;
         _restored.PropertyChanged += OnRestoredChanged;
         _inventory.PropertyChanged -= OnInventoryChanged;

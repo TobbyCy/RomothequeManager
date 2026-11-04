@@ -529,3 +529,11 @@ Après chaque changement intégré, préciser le comportement, la compatibilité
 ### NEXT-05 / DocFX permanent (#88/#138) — PR en cours, non fusionnée
 
 - Chaîne XML C# → DocFX YAML → HTML, contrôle des UID et liens, métriques Roslyn par symbole, canaris et gate CI obligatoire en cours de validation. Aucune conclusion PASS avant exécution Windows au SHA exact ni couverture ≥90 % effectivement mesurée. Aucun site ni Release publiés.
+
+## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
+
+- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) ouverte, intégration GUI candidate au-dessus du `main` incluant les PR backend #160 et outillage #162, toutes deux fusionnées ; #159 reste non fusionnée. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
+- UX : libellés de l'ancien refus Alpha et de l'absence de persistance corrigés dans l'accueil et le picker ; libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
+- Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
+- **Backend #160 déjà fusionné sur main** : le HEAD GUI candidat câble `IdealLibraryBackendService`, `AuthorizeRomsRead` et `LoadSavedLibraries` / `RestoreSaved` dans l'EXE standard ; le HEAD actuel ne revendique aucune recette humaine du nouveau parcours.
+- CI du HEAD final post-#162, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier ; PASS non présumé. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
