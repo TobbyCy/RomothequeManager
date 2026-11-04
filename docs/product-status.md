@@ -1,5 +1,12 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #134 — diagnostic XML ↔ ROMS ↔ MEDIAS sur fixtures (04.11.2026)
+
+- Lot isolé DEV 1 : quatre structures **entièrement synthétiques**, 19 GB avec covers de même nom, 53 familles PS1 BIN/CUE/CHD, deux sous-dossiers fonctionnels PS2 et un jeu PS3 référencé comme **dossier** contenant douze fichiers internes. Matrice, hypothèses et refus : [docs/developer/next05-reconciliation-fixtures.md](developer/next05-reconciliation-fixtures.md).
+- **P1 reproduction en tests** : une référence ES-DE à un dossier de jeu PS3 existant ne doit pas être considérée ROM absente ; les fichiers internes `PS3_GAME/...` restent observables en métadonnées mais ne doivent pas se voir proposer automatiquement des couvertures/identités de jeux. Variante PS1 ≠ doublon physique prouvé. Les références XML, fichiers réels observés, sources médias déclarées, candidates locales et variantes sont comptées séparément.
+- Changement limité à deux règles de classification et leurs oracles synthétiques, aucun traitement de collection personnelle, aucun hashing ROM, suppression, attribution ambiguë ni modification des PR #159/#161. **CI et DEV 2 requises au SHA exact, aucune fusion/Release.**
+
+
 ## NEXT-05 / #159 — DocFX provenance XAML native contrôlée (PR corrective autonome, 04.11.2026)
 
 - **Correctif outillage candidat non fusionné**, basé sur `main=a8193829a94d79ec5b3a1906826e5426ff5b3f27` : `VerifyGeneratedInputsStable` contrôle encore chaque sortie native Avalonia, son chemin relatif, l'identité/version/hash du générateur, son `SourceHash`, son `XamlSource`, son `XamlInputHash` et son attestation. Une différence du hash XAML compilé n'est admissible **que si** le delta Git depuis la base prouve des fichiers `.axaml` modifiés, que chaque chemin est relié à une sortie attestée, et que les sorties/générateurs/attestations et références restent strictement identiques.
