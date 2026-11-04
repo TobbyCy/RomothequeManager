@@ -234,6 +234,9 @@ internal static class NativeIdealMediaReader
                 nested.Add(child);
                 parent = child;
             }
+            token.ThrowIfCancellationRequested();
+            if (!grant.Valid(IdealMediaOperation.Preview, grant.RootId, generation))
+                return Refuse(MediaPreviewStatus.Rejected, "MEDIA_PREVIEW_GRANT_REVOKED");
             using var handle = RsAAnchoredReader.OpenMediaFile(parent, components[^1]);
             if (RsAAnchoredReader.Identity(handle) != evidence.Identity ||
                 RsAAnchoredReader.Size(handle) != media.SizeBytes)
