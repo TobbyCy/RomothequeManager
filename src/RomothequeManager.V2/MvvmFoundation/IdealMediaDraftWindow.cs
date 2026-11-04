@@ -77,6 +77,9 @@ internal sealed class IdealMediaDraftWindow : Window
     private readonly CheckBox _ambiguityConfirmed = new() {
         Content = "Je choisis explicitement cette image parmi les alternatives (aperçu seulement)."
     };
+    private readonly CheckBox _xmlRootConfirmed = new() {
+        Content = "J'atteste que l'import ES-DE affiché correspond à la racine ROMS sélectionnée (XML facultatif)."
+    };
 
     /// <summary>Create a closed-by-default GUI: normal launch needs a deliberate
     /// product-composition decision and independent native INDEX/PREVIEW grants.</summary>
@@ -152,6 +155,7 @@ internal sealed class IdealMediaDraftWindow : Window
                 if (selected?.Path.IsFile == true && _vm.CanChooseMedia)
                 {
                     _scopeConfirmed.IsChecked = false;
+                    _xmlRootConfirmed.IsChecked = false;
                     _ambiguityConfirmed.IsChecked = false;
                     _vm.SelectMediaRoot(selected.Path.LocalPath);
                 }
@@ -183,7 +187,8 @@ internal sealed class IdealMediaDraftWindow : Window
                 _detail.Text = "Aucune plateforme commune explicitement comparable.";
                 return;
             }
-            _vm.AttachExplicitEsDeEvidence(roms, _imported(),
+            _vm.AttachExplicitEsDeEvidence(roms,
+                _xmlRootConfirmed.IsChecked == true ? _imported() : null,
                 VerifiedScopeMapping.FromExplicitSelections(roms, media, mapping,
                     "USER_CONFIRMED_SEPARATE_ROMS_AND_MEDIAS_ROOTS"));
             RefreshObserved();
@@ -234,6 +239,8 @@ internal sealed class IdealMediaDraftWindow : Window
             loadPreview.IsEnabled = _vm.CanLoadPreview;
             cancel.IsEnabled = _vm.SecurityApproved;
             _scopeConfirmed.IsEnabled = _vm.SecurityApproved && _vm.CurrentMediaIndex is not null;
+            _xmlRootConfirmed.IsEnabled = _vm.SecurityApproved && _imported() is not null &&
+                _scopeConfirmed.IsChecked == true;
             _ambiguityConfirmed.IsEnabled = _vm.SecurityApproved &&
                 _proposals.SelectedItem is IdealMediaCoverProposal { RequiresExplicitChoice: true };
 
@@ -284,6 +291,7 @@ internal sealed class IdealMediaDraftWindow : Window
                         authorizeIndex,
                         startIndex,
                         _scopeConfirmed,
+                        _xmlRootConfirmed,
                         project,
                         new TextBlock {
                             Text = "REFERENCED / CANDIDATE / AMBIGUOUS — propositions non approuvées :"
