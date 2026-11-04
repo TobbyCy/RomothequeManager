@@ -17,6 +17,49 @@ namespace RomothequeManager.V2.MvvmFoundation;
 internal sealed class IdealMediaDraftWindow : Window
 {
     private readonly IdealMediaDraftViewModel _vm;
+#if NEXT05_CI
+    /// <summary>CI-only real Avalonia preview image; absent from standard EXE.</summary>
+    internal Image PreviewImageForCi => _previewImage;
+
+    /// <summary>Exercise native INDEX then PREVIEW with explicitly created
+    /// RUNNER_TEMP files only. Not a product permission, not callable in Release.</summary>
+    internal async Task ExerciseNativeMediaForCi(string root)
+    {
+        var temp = Environment.GetEnvironmentVariable("RUNNER_TEMP");
+        if (!OperatingSystem.IsWindows() ||
+            Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true" ||
+            string.IsNullOrWhiteSpace(temp) ||
+            !Path.GetFullPath(root).StartsWith(Path.GetFullPath(temp) +
+                Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            !Path.GetFileName(root).StartsWith("rm-next05-native-gui-", StringComparison.Ordinal))
+            throw new InvalidDataException("MEDIA_GUI_CI_ONLY_FIXTURE_REQUIRED");
+        if (!_vm.SecurityApproved || _roms() is not { } roms ||
+            roms.ScanStatus != InventoryScanStatus.Complete ||
+            Directory.EnumerateFiles(root, "*.xml", SearchOption.AllDirectories).Any())
+            throw new InvalidDataException("MEDIA_GUI_CI_NO_XML_AND_ROMS_REQUIRED");
+        var mediaRoot = Path.Combine(root, "MEDIAS");
+        if (!_vm.SelectMediaRoot(mediaRoot) || !_vm.AuthorizeIndex())
+            throw new InvalidDataException("MEDIA_GUI_INDEX_NOT_AUTHORIZED");
+        await _vm.StartIndexAsync();
+        var index = _vm.CurrentMediaIndex ??
+            throw new InvalidDataException("MEDIA_GUI_NATIVE_INDEX_MISSING");
+        if (index.ScanStatus != InventoryScanStatus.Complete)
+            throw new InvalidDataException("MEDIA_GUI_NATIVE_INDEX_INCOMPLETE");
+        var mapping = VerifiedScopeMapping.FromExplicitSelections(roms, index,
+            new Dictionary<string, string> { ["gba"] = "gba" },
+            "CI_EXPLICIT_SEPARATE_SYNTHETIC_ROOTS");
+        _vm.AttachExplicitEsDeEvidence(roms, null, mapping);
+        if (_vm.CoverProposals.Count != 1 ||
+            _vm.CoverProposals[0].State != MediaUiState.CANDIDATE ||
+            !_vm.SelectCoverForPreview(_vm.CoverProposals[0]) ||
+            _vm.CanLoadPreview || !_vm.AuthorizePreview())
+            throw new InvalidDataException("MEDIA_GUI_XML_FREE_CANDIDATE_OR_GRANT_FAILED");
+        await _vm.LoadPreviewAsync();
+        if (_vm.Preview is not { Status: MediaPreviewStatus.Ready, Image: not null } ||
+            _previewImage.Source is not WriteableBitmap)
+            throw new InvalidDataException("MEDIA_GUI_BITMAP_NOT_VISIBLE");
+    }
+#endif
     private readonly Func<InventorySnapshot?> _roms;
     private readonly Func<EsDeCatalogueSnapshot?> _imported;
     private WriteableBitmap? _bitmap;
