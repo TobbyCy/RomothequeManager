@@ -15,6 +15,9 @@ namespace RomothequeManager.V2;
 public sealed partial class MainWindow
 {
     private readonly ImportedCatalogueUiState _importedUi = new();
+    /// <summary>Last accepted ES-DE reference snapshot, optional and read-only;
+    /// it never authorizes ROMS or MEDIAS filesystem access.</summary>
+    internal EsDeCatalogueSnapshot? AcceptedImportedSnapshot => _importedUi.Snapshot;
     private readonly ImportedCatalogueViewModel _importVm;
     private readonly List<Bitmap> _coverImages = new();
     // #145/B: all identity/generation/queue and #141 decode orchestration is outside Views.
