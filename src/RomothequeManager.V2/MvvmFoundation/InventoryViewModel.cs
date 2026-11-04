@@ -44,6 +44,17 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
     private string? _localErrorCode;
     private FileObservation? _selectedObservation;
 
+    /// <summary>Preserves the historical two-argument inventory adapter constructor.
+    /// No ROMS grant or SQLite callback is injected; only the application service
+    /// may authorize reads, and construction never starts an inventory.</summary>
+    /// <param name="service">Service owning scans, cancellation and immutable inventory state.</param>
+    /// <param name="postToUi">Dispatcher callback for UI-thread state notifications.</param>
+    public InventoryViewModel(IInventoryApplicationService service, Action<Action> postToUi)
+        : this(service, postToUi, requestRomsGrant: null,
+            loadSavedLibraries: null, restoreSaved: null)
+    {
+    }
+
     /// <summary>Creates a read-only inventory adapter around an injected application service and an explicit UI dispatch callback; construction never starts a scan.</summary>
     /// <param name="service">Service that exclusively owns selection authorization, scanning, cancellation and immutable Current/LastAttempt state; its lifetime remains with the host.</param>
     /// <param name="postToUi">Callback that marshals service notifications to the UI thread and permits stale-state checks before adoption.</param>
