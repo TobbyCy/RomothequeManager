@@ -100,9 +100,10 @@ public sealed class Next05ReconciliationStructureTests
 
     private void Cover(string relative)
     {
-        var path = Path.Combine(_mediaRoot, "covers-unused"); // no source access
-        path = Path.Combine(_mediaRoot, relative.Replace('/', Path.DirectorySeparatorChar));
-        path = Path.Combine(Path.GetDirectoryName(path)!, "covers", Path.GetFileName(path));
+        var source = Path.Combine(_mediaRoot,
+            relative.Replace('/', Path.DirectorySeparatorChar));
+        var path = Path.Combine(Path.GetDirectoryName(source)!, "covers",
+            Path.GetFileName(source));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         using var bitmap = new SKBitmap(3, 3);
         bitmap.Erase(SKColors.SkyBlue);
@@ -251,6 +252,36 @@ public sealed class Next05ReconciliationStructureTests
         var withPs2Directory = EsDeCatalogueImporter.Read(_root);
         Assert.IsFalse(withPs2Directory.Games.Single(x =>
             x.RomRelativePath == "ROMS/ps2/JustAFolder").RomExists);
+
+        // A nonexistent PS3 directory remains unavailable; the correction
+        // must not simply promote every PS3 XML reference to "present".
+        var ps3Xml = Path.Combine(_root, "MEDIAS", "ps3", "metadata",
+            "es-de-gamelist.xml");
+        var ps3Doc = XDocument.Load(ps3Xml);
+        ps3Doc.Root!.Add(new XElement("game",
+            new XElement("path", "./Fiction-PS3-Nonexistent"),
+            new XElement("name", "Absent fictitious PS3 folder")));
+        ps3Doc.Save(ps3Xml);
+        var negative = EsDeCatalogueImporter.Read(_root);
+        Assert.IsFalse(negative.Games.Single(x =>
+            x.RomRelativePath == "ROMS/ps3/Fiction-PS3-Nonexistent").RomExists);
+        Assert.IsTrue(negative.Diagnostics.Any(x =>
+            x.Code == "ROM_MISSING" && x.Platform == "ps3"));
+
+        // A standalone PS3 ISO OUTSIDE PS3_GAME remains an ordinary file
+        // candidate; only internal PS3_GAME contents are excluded.
+        Inert("ROMS/ps3/Fiction-PS3-Standalone.iso");
+        Cover("ps3/Fiction-PS3-Standalone.png");
+        var roms = Native();
+        var media = IndexedMedia();
+        var mapping = VerifiedScopeMapping.FromExplicitSelections(
+            roms, media, Aliases, "SYNTHETIC_PRESENCE_NOT_APPROVAL");
+        var suggested = MediaLinkProjection.Reconcile(roms, media, mapping);
+        var iso = roms.Observations.Single(x =>
+            x.RelativePath == "ps3/Fiction-PS3-Standalone.iso");
+        Assert.AreEqual(MediaLinkStatus.AMBIGUOUS,
+            suggested.Single(x => x.RomObservationId == iso.ObservationId).Status,
+            "A standalone ISO is an archive candidate: never auto-approve its cover.");
     }
 
     [TestMethod]
