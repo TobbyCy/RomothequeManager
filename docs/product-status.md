@@ -1,5 +1,13 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #159 — DocFX provenance XAML native contrôlée (PR corrective autonome, 04.11.2026)
+
+- **Correctif outillage candidat non fusionné**, basé sur `main=a8193829a94d79ec5b3a1906826e5426ff5b3f27` : `VerifyGeneratedInputsStable` contrôle encore chaque sortie native Avalonia, son chemin relatif, l'identité/version/hash du générateur, son `SourceHash`, son `XamlSource`, son `XamlInputHash` et son attestation. Une différence du hash XAML compilé n'est admissible **que si** le delta Git depuis la base prouve des fichiers `.axaml` modifiés, que chaque chemin est relié à une sortie attestée, et que les sorties/générateurs/attestations et références restent strictement identiques.
+- Les canaris comprennent le PASS `XAML modifié → mêmes sorties générées attestées`, et les RED source modifiée, générateur/version/hash modifiés, entrée XAML inexpliquée ou non liée, attestation absente, sortie ajoutée/supprimée, chemin `../` ; les contrôles Roslyn sur les API manuelles, partiales et collusions restent actifs. **CI required et revue DEV 2 distinctes** au HEAD exact avant tout GO propriétaire.
+- La PR UI #159 est **toujours non fusionnée** : la CI combinée devra être relancée par DEV 3 après intégration explicite du correctif, sans réécriture artificielle du XAML ni bypass ; aucune Release et aucune lecture de données réelles.
+
+
+
 ## NEXT-05 / #134 — GO code DEV 1 IDEAL backend + SQLite (branche candidate, 04.11.2026)
 
 - Mandat [#6631057632](https://github.com/TobbyCy/RomothequeManager/issues/134#issuecomment-6631057632) : backend IDEAL en code sur branche distincte. La PR DEV 1 candidate apporte une sélection locale explicite, une **deuxième action positive pour la capacité ROMS**, une lecture ROMS de métadonnées Windows via handles parent-relatifs et des contrôles de génération/consommation/révocation/temps/budget ; ni accès implicite aux MEDIAS/PREVIEW, ni autorisation issue d'un XML ou de SQLite.
