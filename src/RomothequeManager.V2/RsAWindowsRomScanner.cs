@@ -469,7 +469,16 @@ internal static class RsAAnchoredReader
     }
 
 /// <summary>Resolve a child only relative to an already opened trusted parent handle, never by a rebuilt absolute path.</summary>
-    internal static SafeFileHandle OpenChild(SafeFileHandle parent, string name, bool isDirectory)
+    internal static SafeFileHandle OpenChild(SafeFileHandle parent, string name, bool isDirectory) =>
+        OpenChildCore(parent, name, isDirectory, mediaReadData: false);
+
+    /// <summary>Open a selected MEDIAS leaf through the already opened native parent,
+    /// with FILE_READ_DATA, without ever constructing an absolute file path.</summary>
+    internal static SafeFileHandle OpenMediaFile(SafeFileHandle parent, string name) =>
+        OpenChildCore(parent, name, isDirectory: false, mediaReadData: true);
+
+    private static SafeFileHandle OpenChildCore(SafeFileHandle parent, string name,
+        bool isDirectory, bool mediaReadData)
     {
         if (string.IsNullOrWhiteSpace(name) || name is "." or ".." ||
             name.Contains('/') || name.Contains('\\') || name.Contains(':') ||
@@ -496,7 +505,8 @@ internal static class RsAAnchoredReader
             };
             var flags = (isDirectory ? NtDirectoryFile : NtNonDirectoryFile) |
                 NtSynchronous | NtOpenReparsePoint | NtOpenForBackup;
-            var access = ReadAttributes | Synchronize | (isDirectory ? ListDirectory : 0);
+            var access = ReadAttributes | Synchronize | (isDirectory ? ListDirectory :
+                (mediaReadData ? ListDirectory : 0)); // bit 0x1 is FILE_READ_DATA for files
             var status = NtCreateFile(out var result, access, ref attrs, out _,
                 IntPtr.Zero, 0, ShareReadWrite, FileOpen, flags, IntPtr.Zero, 0);
             if (status < 0 || result.IsInvalid)
