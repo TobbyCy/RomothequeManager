@@ -388,7 +388,6 @@ internal static class RsAAnchoredReader
          name.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
          name.EndsWith(".sqlite", StringComparison.OrdinalIgnoreCase));
 
-/// <summary>Open a selected local directory as a native handle with the required confinement and sharing flags.</summary>
     /// <summary>Validate a selected local ROMS root without opening a directory.</summary>
     internal static string ValidateSelectedLocalRomsPath(string path) =>
         ValidateSelectedLocalRolePath(path, "ROMS");
