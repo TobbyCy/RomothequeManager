@@ -1,5 +1,12 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #134 — GO code DEV 1 IDEAL backend + SQLite (branche candidate, 04.11.2026)
+
+- Mandat [#6631057632](https://github.com/TobbyCy/RomothequeManager/issues/134#issuecomment-6631057632) : backend IDEAL en code sur branche distincte. La PR DEV 1 candidate apporte une sélection locale explicite, une **deuxième action positive pour la capacité ROMS**, une lecture ROMS de métadonnées Windows via handles parent-relatifs et des contrôles de génération/consommation/révocation/temps/budget ; ni accès implicite aux MEDIAS/PREVIEW, ni autorisation issue d'un XML ou de SQLite.
+- Base SQLite PERSIST-01 réutilisée en app-local avec CurrentComplete/LastAttempt, restauration OFFLINE/STALE sans scan et sans grant, isolement des identités racines et refus de backup/export de production. Tests strictement synthétiques, CI et contre-revue DEV 2 nécessaires ; aucun accès réel exécuté par l'équipe.
+- La PR UI DEV 3 est distincte et nécessaire pour activer le parcours dans l'EXE standard. Ce backend candidat **ne vaut pas à lui seul** preuve de navigation/jaquettes/MEDIAS/preview ; aucune fusion, aucune Release et aucun accès à des bibliothèques personnelles sans décision distincte. Les HOLD de main restent actifs.
+
+
 ## CURRENT — NEXT-05 / #95 P1 ZIP TEST : sortie du validateur (PR #158, 04.11.2026)
 
 - Après fusion de #157, source Produit `main=a4eb5886bcf3077bf3fe136d3972a1418e989bf3` : le [run manuel de TEST #41809015941](https://github.com/TobbyCy/RomothequeManager/actions/runs/41809015941) a terminé **FAILURE**, upload **SKIPPED**. Deux builds et ZIP identiques, SQLite/licences/manifeste et négatifs attendus ont réussi ; le dernier négatif Python non nul persistait dans `$LASTEXITCODE` du caller PowerShell.
@@ -505,8 +512,8 @@ La branche DEV 1 de documentation permanente propose un workflow natif Windows d
 
 ## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
 
-- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) en DRAFT, base exacte `main=69ab98711ea6a612d402224bcb604ff7297f45dc`. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
-- UX : libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
+- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) ouverte, intégration GUI sur branche #159 avec le backend #160 (non fusionnés sur `main`). Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
+- UX : libellés de l'ancien refus Alpha et de l'absence de persistance corrigés dans l'accueil et le picker ; libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
 - Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
-- **Dépendance active DEV 1** : `IdealLibraryBackendService` avec `AuthorizeRomsRead`, `LoadSavedLibraries` / `RestoreSaved`, grants, SQLite app-local et contrôles négatifs. Le `Program` standard conserve sa composition deny-by-default tant que le backend n'est pas raccordé. Aucun PASS de scan ou de reprise SQLite standard affirmé.
+- **Dépendance active DEV 1** : `IdealLibraryBackendService` avec `AuthorizeRomsRead`, `LoadSavedLibraries` / `RestoreSaved`, grants, SQLite app-local et contrôles négatifs. Le HEAD assemblé câble le backend candidat dans `Program`, sans changement de `main`. Aucun PASS de scan ou de reprise SQLite standard affirmé.
 - CI PR, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier au HEAD final. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.

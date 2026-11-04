@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / #134 — IDEAL backend consent + SQLite application-local (DEV 1, 04.11.2026)
+
+- **Branche/PR candidate, non fusionnée** : connexion d'un scan ROMS metadata-only fondé sur les handles Windows RS-A à une sélection IDEAL de l'utilisateur et à une permission ROMS distincte, éphémère, liée à la génération/racine/opération et révoquée après Cancel, changement et fermeture. Aucun scan déclenché automatiquement par l'EXE.
+- Réutilise PERSIST-01 dans l'espace de données local de l'application pour enregistrer CurrentComplete et LastAttempt avec atomicité, version et validation des chemins relatifs. Réouverture OFFLINE/STALE **sans scanner ni rétablir la permission** ; backups/restaurations explicites de production interdits. Tests de sécurité strictement synthétiques en cours de CI/revue DEV 2.
+- L'interface standard attend la PR distincte DEV 3 ; **MEDIAS/PREVIEW ne reçoivent pas de permission via le grant ROMS**, leur activation contrôlée demeure à intégrer indépendamment. Pas de qualification Windows humaine ni de Release acquise. Tous les HOLD de main restent inchangés.
+
+
 ## CURRENT — consolidation NEXT-05 du 04.11.2026
 
 - La [PR #154](https://github.com/TobbyCy/RomothequeManager/pull/154) est **fusionnée** : source finale `d540a84b7caf33dfa98455c519841790f519635f`, commit sur main `c7cd2f40c6e91880d5cdf5e4a6aca6a2411efacc`. La synchronisation n'ajoute que les documents déjà présents dans main ; son arbre est identique au merge synthétique examiné par DEV 2.
@@ -518,8 +525,8 @@ Après chaque changement intégré, préciser le comportement, la compatibilité
 
 ## NEXT-05 / DEV 3 — PR #159 GUI standard IDEAL en développement (04.11.2026)
 
-- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) en DRAFT, base exacte `main=69ab98711ea6a612d402224bcb604ff7297f45dc`. Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
-- UX : libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
+- [PR #159](https://github.com/TobbyCy/RomothequeManager/pull/159) ouverte, intégration GUI sur branche #159 avec le backend #160 (non fusionnés sur `main`). Le GO propriétaire #134/#145 autorise code et PR sur branches, **pas fusion ni Release**.
+- UX : libellés de l'ancien refus Alpha et de l'absence de persistance corrigés dans l'accueil et le picker ; libellés courts pour diagnostics médias tronqués, code exact gardé en infobulle ; cartes ES-DE homonymes identifiées par plateforme et chemin déclaré, sans déduplication ; étapes et commandes Inventaire plus compactes, focus visible.
 - Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
-- **Dépendance active DEV 1** : `IdealLibraryBackendService` avec `AuthorizeRomsRead`, `LoadSavedLibraries` / `RestoreSaved`, grants, SQLite app-local et contrôles négatifs. Le `Program` standard conserve sa composition deny-by-default tant que le backend n'est pas raccordé. Aucun PASS de scan ou de reprise SQLite standard affirmé.
+- **Dépendance active DEV 1** : `IdealLibraryBackendService` avec `AuthorizeRomsRead`, `LoadSavedLibraries` / `RestoreSaved`, grants, SQLite app-local et contrôles négatifs. Le HEAD assemblé câble le backend candidat dans `Program`, sans changement de `main`. Aucun PASS de scan ou de reprise SQLite standard affirmé.
 - CI PR, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier au HEAD final. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
