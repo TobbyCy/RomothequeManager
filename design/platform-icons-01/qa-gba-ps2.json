@@ -1,5 +1,5 @@
 {
-  "status": "GRAPHIC_CANDIDATE_ONLY",
+  "status": "GRAPHIC164_QA_FINALIZED_WITH_RESERVATIONS",
   "inventory": {
     "subjects": 2,
     "styles": 3,
@@ -23,8 +23,88 @@
     "neutralFallbackPreservedFromHistoricalTree": true,
     "svgAndPngEquivalence": "NOT_TESTED_PIXEL_GRID_OPTICAL",
     "windowsVisual": "NOT_TESTED",
-    "CI": "PENDING",
+    "CI": "CI_FAIL / PATH_POLICY_BLOCK",
     "licensedTrademarkUse": "NOT_APPROVED",
-    "historicalDejaVuExactPackage": "NOT_VERIFIED"
+    "historicalDejaVuExactPackage": "NOT_VERIFIED",
+    "visualStaticReview": "DONE_WITH_WARNINGS",
+    "zipPngManifest": "DEV2_VERIFIED_84_OF_84_OLD_HEAD",
+    "fallbackPresentInCandidateZip": false
+  },
+  "ci": {
+    "referenceHead": "c28004a4ba9bbb379cb9e012e1de9fb6949c3225",
+    "referenceRun": "https://github.com/TobbyCy/RomothequeManager/actions/runs/41860507555",
+    "conclusion": "FAILURE",
+    "pathPolicyBlock": "TRACKED_PATH_NOT_ALLOWED:design/platform-icons-01/CONSERVATION_90.md",
+    "secondaryBlock": "BINARY_ZIP_UTF8_DECODE",
+    "currentHeadCI": "PENDING_NEW_HEAD",
+    "infraCorrection": "SEPARATE_GO_REQUIRED"
+  },
+  "independentReview": {
+    "verdict": "GRAPHIC_CANDIDATE_ACCEPTABLE_WITH_RESERVATIONS",
+    "comment": "https://github.com/TobbyCy/RomothequeManager/pull/164#issuecomment-6635480524",
+    "zipBlob": "c0cb5c18465ed8d6b0219f0144945c2326e74fa2",
+    "bytes": 550073,
+    "zipEntries": 115,
+    "png": 84,
+    "svgVariants": 24,
+    "sheets": 2,
+    "documents": 5,
+    "crc": "PASS_84_PNG_AND_ZIP",
+    "colorType": "INDEXED_8BIT_WITH_TRANSPARENT_PALETTE_INDEX_0",
+    "zipUnchangedByThisCommit": true
+  },
+  "visual": {
+    "method": "SOURCE_GEOMETRY_AND_CONTRAST_ONLY_NO_ACTUAL_RENDER",
+    "sizes": [
+      16,
+      24,
+      32,
+      48,
+      256
+    ],
+    "noViewBoxOverflowInCheckedSources": true,
+    "contrastOnSheetBackground": {
+      "darkMain": 13.58,
+      "darkAccent": 5.4,
+      "lightMain": 12.05,
+      "lightAccent": 5.06,
+      "fallbackDark": 13.02,
+      "fallbackLight": 13.01,
+      "lightInnerFillToBackground": 1.12
+    },
+    "issues": [
+      {
+        "kind": "LOW_RES_OPTICAL_RISK",
+        "detail": "PS2 narrow 2-unit SVG details project to 0.5px at 16 and 0.75px at 24; verify after real raster/DPI check"
+      },
+      {
+        "kind": "SMALL_FALLBACK_SCALE",
+        "detail": "small fallback ink box 30/64 may appear smaller than candidate icons; must validate visually"
+      },
+      {
+        "kind": "SMALL_BADGE_TEXT",
+        "detail": "console-name pixel letter cell projects to 2.5px at badge height 32; separate accessible label required"
+      }
+    ],
+    "windowsAvalonia": "NOT_TESTED"
+  },
+  "artifactConsistency": {
+    "manifestPlatformMappings": [],
+    "allPlatformKeysNull": true,
+    "newPngInsideZip": 84,
+    "svgVariantFiles": 24,
+    "newPreviewSheets": 2,
+    "zipIncludesFallback": false,
+    "repoQaIsAuthoritativeAfterUpdate": true,
+    "archivedQaSnapshotHasPreviousCIState": true,
+    "archiveRepack": "NOT_DONE_DO_NOT_ASSUME_SYNCED"
+  },
+  "gates": {
+    "rights": "OWNER_DECISION",
+    "historicalFontVersion": "NOT_VERIFIED",
+    "reviewNewHead": "PENDING",
+    "ci": "FAILURE",
+    "merge": "HOLD",
+    "release": "HOLD"
   }
 }
