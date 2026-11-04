@@ -90,7 +90,13 @@ internal sealed class IdealMediaDraftWindow : Window
             state.Text = _vm.Status;
             choose.IsEnabled = _vm.CanChooseMedia;
             referenced.ItemsSource = _vm.ReferencedCovers;
-            referenced.IsEnabled = _vm.CanAuthorizePreview;
+            referenced.IsEnabled = _vm.SecurityApproved &&
+                _vm.CanChooseMedia && _vm.ReferencedCovers.Count > 0;
+            authorizeIndex.IsEnabled = _vm.CanAuthorizeIndex;
+            startIndex.IsEnabled = _vm.CanStartIndex;
+            authorizePreview.IsEnabled = _vm.CanAuthorizePreview;
+            loadPreview.IsEnabled = _vm.CanLoadPreview;
+            cancel.IsEnabled = _vm.SecurityApproved;
             outcomes.Text = _vm.Preview?.Status switch
             {
                 MediaPreviewStatus.Ready => "Aperçu RGBA en mémoire (non approuvé comme jaquette).",
@@ -109,8 +115,9 @@ internal sealed class IdealMediaDraftWindow : Window
         startIndex.IsEnabled = _vm.CanStartIndex;
         authorizePreview.IsEnabled = _vm.CanAuthorizePreview;
         loadPreview.IsEnabled = _vm.CanLoadPreview;
-        referenced.IsEnabled = _vm.CanAuthorizePreview;
-        cancel.IsEnabled = false;
+        referenced.IsEnabled = _vm.SecurityApproved &&
+            _vm.CanChooseMedia && _vm.ReferencedCovers.Count > 0;
+        cancel.IsEnabled = _vm.SecurityApproved;
 
         var steps = new StackPanel {
             Spacing = 9,
