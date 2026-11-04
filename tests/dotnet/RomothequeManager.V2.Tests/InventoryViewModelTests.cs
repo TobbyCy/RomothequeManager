@@ -13,6 +13,23 @@ public sealed class InventoryViewModelTests
     private static InventoryScope Scope(string path = @"C:\fixture-synthetic") => new(path);
 
     [TestMethod]
+    public void F00_HistoricalTwoArgumentConstructorKeepsGrantAndSqliteUninjected()
+    {
+        var constructor = typeof(InventoryViewModel).GetConstructor(
+            [typeof(IInventoryApplicationService), typeof(Action<Action>)]);
+        Assert.IsNotNull(constructor, "Public two-argument API must remain stable for DocFX and callers.");
+
+        var fake = new FakeInventoryService();
+        using var vm = new InventoryViewModel(fake, action => action());
+        Assert.IsFalse(vm.HasRomsGrantAction);
+        Assert.IsFalse(vm.HasSavedLibraryCommands);
+        Assert.IsFalse(vm.RequestRomsGrantCommand.CanExecute(null));
+        Assert.AreEqual(0, fake.StartCalls);
+        Assert.IsTrue(vm.PrepareSelectedFolder(Scope()).Accepted);
+        Assert.AreEqual(0, fake.StartCalls);
+    }
+
+    [TestMethod]
     public void F01_SelectionDoesNotStartScanAndRequiresExplicitConsent()
     {
         var fake = new FakeInventoryService();

@@ -8,14 +8,14 @@
         Width="1120" Height="720" MinWidth="760" MinHeight="480"
         Background="#16181D" Foreground="#E8E6E3">
   <ScrollViewer x:Name="RootScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="20" Spacing="12">
+    <StackPanel Margin="14" Spacing="10">
       <Image x:Name="OfficialLogo" Width="230" Height="66" HorizontalAlignment="Left" Stretch="Uniform"/>
       <Border Background="#38262B" BorderBrush="#A9444B" BorderThickness="1" CornerRadius="8" Padding="14">
         <StackPanel Spacing="5">
           <TextBlock FontSize="20" FontWeight="Bold" Text="NEXT-05 · INVENTAIRE AUTONOME DES FICHIERS" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding ModeNotice}" TextWrapping="Wrap"/>
           <TextBlock Text="Fichier observé ≠ jeu identifié ≠ association candidate. Aucun XML ES-DE nécessaire." TextWrapping="Wrap"/>
-          <TextBlock Text="Sans persistance active : la session en cours disparaît à la fermeture. Aucun fichier source modifié." TextWrapping="Wrap" IsVisible="{Binding HasLiveMediaPanel}"/>
+          <TextBlock Text="{Binding PersistenceNotice}" TextWrapping="Wrap" IsVisible="{Binding HasLiveMediaPanel}"/>
         </StackPanel>
       </Border>
       <Border x:Name="RestoredStatusPanel" Background="#24333E" BorderBrush="#667A8B"
@@ -117,10 +117,29 @@
                      Foreground="#B8CBC0" TextWrapping="Wrap"/>
         </StackPanel>
       </Border>
-      <Border x:Name="LiveInventoryPanel" Background="#23262B" CornerRadius="8"
-              Padding="15" IsVisible="{Binding HasLiveMediaPanel}">
+      <Border x:Name="LiveInventoryPanel" Background="#23262B" BorderBrush="#505862"
+              BorderThickness="1" CornerRadius="8" Padding="12"
+              IsVisible="{Binding HasLiveMediaPanel}">
+        <Border.Styles>
+          <Style Selector="Button">
+            <Setter Property="Foreground" Value="#F4F6F8"/>
+            <Setter Property="Background" Value="#374656"/>
+            <Setter Property="BorderBrush" Value="#889EAE"/>
+            <Setter Property="BorderThickness" Value="1"/>
+          </Style>
+          <Style Selector="Button:disabled">
+            <Setter Property="Foreground" Value="#C7D0D9"/>
+            <Setter Property="Background" Value="#30363C"/>
+            <Setter Property="BorderBrush" Value="#64727D"/>
+            <Setter Property="Opacity" Value="1"/>
+          </Style>
+          <Style Selector="Button:focus">
+            <Setter Property="BorderBrush" Value="#BCEBFF"/>
+            <Setter Property="BorderThickness" Value="2"/>
+          </Style>
+        </Border.Styles>
         <StackPanel Spacing="9">
-          <TextBlock Text="1 · Choisir → confirmer → inventorier en lecture seule" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
+          <TextBlock Text="1 · Sélectionner une bibliothèque" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
           <WrapPanel>
             <Button x:Name="ChooseFolderButton" Content="Choisir une racine (sélection seule)" Click="ChooseFolder_OnClick" IsEnabled="{Binding Inventory.CanChangeFolder}" MinHeight="40" Margin="0,0,8,4"/>
             <ComboBox x:Name="FixtureChoices" IsVisible="False" SelectedIndex="0" MinWidth="220" Margin="0,0,8,4">
@@ -131,13 +150,72 @@
             <Button x:Name="ChooseFixtureButton" IsVisible="False" Content="Sélectionner cette fixture" Click="ChooseFixture_OnClick" MinHeight="40"/>
           </WrapPanel>
           <TextBlock Text="{Binding Inventory.SelectedLocalRoot, FallbackValue='Aucune sélection'}" TextWrapping="Wrap"/>
-          <TextBlock Text="{Binding ScopeText}" TextWrapping="Wrap" Foreground="#AAB2BF"/>
-          <CheckBox Content="Je confirme la lecture seule de la fixture autorisée (aucun accès personnel)" IsChecked="{Binding Inventory.ConsentConfirmed, Mode=TwoWay}" IsEnabled="{Binding Inventory.CanChangeFolder}"/>
+          <TextBlock Text="{Binding ScopeText}" TextWrapping="Wrap" Foreground="#C2CBD5"/>
+          <TextBlock Text="2 · Consentement distinct" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
+          <CheckBox
+                    Content="Je confirme une lecture ponctuelle, sans écriture ni suppression."
+                    IsChecked="{Binding Inventory.ConsentConfirmed, Mode=TwoWay}"
+                    IsEnabled="{Binding Inventory.CanChangeFolder}" MinHeight="35"/>
+          <TextBlock Text="Le choix du dossier et cette case ne sont pas des autorisations : le backend peut refuser la lecture."
+                     FontSize="12" Foreground="#C2CBD5" TextWrapping="Wrap"/>
           <WrapPanel>
-            <Button x:Name="InventoryStartButton" Content="Inventorier en lecture seule" Command="{Binding Inventory.StartInventoryCommand}" IsEnabled="{Binding CanInventoryFixture}" MinHeight="40" Margin="0,0,8,4"/>
-            <Button Content="Annuler" Command="{Binding Inventory.CancelInventoryCommand}" MinHeight="40"/>
-            <Button Content="Dernier complet" Command="{Binding Inventory.ShowLastCompleteCommand}" MinHeight="40" Margin="0,0,8,4"/>
-            <Button Content="Dernière tentative" Command="{Binding Inventory.ShowLastAttemptCommand}" MinHeight="40"/>
+            <Button
+                    Content="Autoriser ROMS pour une tentative"
+                    Command="{Binding Inventory.RequestRomsGrantCommand}"
+                    IsEnabled="{Binding Inventory.CanRequestRomsGrant}"
+                    IsVisible="{Binding Inventory.HasRomsGrantAction}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+          </WrapPanel>
+          <TextBlock Text="{Binding Inventory.RomsGrantStatus}"
+                     IsVisible="{Binding Inventory.HasRomsGrantAction}"
+                     FontSize="12" Foreground="#C2CBD5" TextWrapping="Wrap"/>
+          <TextBlock Text="3 · Exécuter ou annuler" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
+          <WrapPanel>
+            <Button x:Name="InventoryStartButton" Content="Démarrer l'inventaire"
+                    Command="{Binding Inventory.StartInventoryCommand}"
+                    IsEnabled="{Binding CanInventoryFixture}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Annuler le scan"
+                    Command="{Binding Inventory.CancelInventoryCommand}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+          </WrapPanel>
+          <Border Background="#1F2933" CornerRadius="6" Padding="10"
+                  IsVisible="{Binding Inventory.HasSavedLibraryCommands}">
+            <StackPanel Spacing="7">
+              <TextBlock Text="Bibliothèques SQLite enregistrées · consultation hors ligne"
+                         FontWeight="Bold" TextWrapping="Wrap"/>
+              <WrapPanel>
+                <Button Content="Afficher les sauvegardes"
+                        Command="{Binding Inventory.LoadSavedLibrariesCommand}"
+                        MinHeight="40" Margin="0,0,8,4"/>
+                <Button Content="Ouvrir hors ligne"
+                        Command="{Binding Inventory.RestoreSavedLibraryCommand}"
+                        IsEnabled="{Binding Inventory.CanRestoreSavedLibrary}"
+                        MinHeight="40" Margin="0,0,8,4"/>
+              </WrapPanel>
+              <ListBox ItemsSource="{Binding Inventory.SavedLibraries}"
+                       SelectedItem="{Binding Inventory.SelectedSavedLibrary, Mode=TwoWay}"
+                       MinHeight="48" MaxHeight="144">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SavedLibraryChoice">
+                    <TextBlock Text="{Binding Label}" TextWrapping="Wrap"/>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <TextBlock Text="{Binding Inventory.SavedLibraryStatus}" TextWrapping="Wrap"
+                         Foreground="#C2CBD5"/>
+              <TextBlock Text="L'historique ne vérifie pas le disque et ne rétablit jamais un droit de lecture."
+                         TextWrapping="Wrap" Foreground="#C2CBD5" FontSize="12"/>
+            </StackPanel>
+          </Border>
+          <TextBlock Text="4 · Consulter une génération" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
+          <WrapPanel>
+            <Button Content="Dernier inventaire complet"
+                    Command="{Binding Inventory.ShowLastCompleteCommand}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Dernière tentative"
+                    Command="{Binding Inventory.ShowLastAttemptCommand}"
+                    MinHeight="40" Margin="0,0,8,4"/>
           </WrapPanel>
           <ProgressBar IsVisible="{Binding Inventory.IsBusy}" IsIndeterminate="{Binding Inventory.IsProgressIndeterminate}" Height="7"/>
           <TextBlock Text="{Binding Inventory.StatusMessage}" TextWrapping="Wrap"/>
