@@ -25,6 +25,7 @@ internal sealed class IdealMediaDraftWindow : Window
         Width = 320, Height = 240, Stretch = Stretch.Uniform
     };
     private readonly ListBox _proposals = new() { MinHeight = 130, MaxHeight = 230 };
+    private readonly ListBox _evidence = new() { MinHeight = 70, MaxHeight = 160 };
     private readonly TextBlock _state = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _detail = new() { TextWrapping = TextWrapping.Wrap };
     private readonly CheckBox _scopeConfirmed = new() {
@@ -180,6 +181,10 @@ internal sealed class IdealMediaDraftWindow : Window
                 _roms()?.Freshness == InventoryFreshness.Fresh;
             if (!ReferenceEquals(_proposals.ItemsSource, _vm.CoverProposals))
                 _proposals.ItemsSource = _vm.CoverProposals;
+            _evidence.ItemsSource = _vm.Evidence.Select(row =>
+                row.State + " · ROM observation " + row.RomObservationId +
+                " · Provenance : " + string.Join(", ", row.SourceProvenance) +
+                " · Conflits : " + string.Join(", ", row.Conflicts)).ToArray();
             chooseCover.IsEnabled = _vm.SecurityApproved &&
                 _proposals.SelectedItem is IdealMediaCoverProposal;
             authorizePreview.IsEnabled = _vm.CanAuthorizePreview;
@@ -241,6 +246,11 @@ internal sealed class IdealMediaDraftWindow : Window
                             Text = "REFERENCED / CANDIDATE / AMBIGUOUS — propositions non approuvées :"
                         },
                         _proposals,
+                        new TextBlock {
+                            Text = "Tous les statuts d'observation : REFERENCED, CANDIDATE, " +
+                                "AMBIGUOUS, NOT_COMPARABLE, ABSENT_IN_COMPLETE_SCOPE"
+                        },
+                        _evidence,
                         _detail,
                         _ambiguityConfirmed,
                         chooseCover,
