@@ -15,6 +15,7 @@ internal sealed record IdealMediaCoverProposal(
     /// <summary>Label built only from file observations and provenance, not XML game titles.</summary>
     public string Label => PlatformKey + " · " + RomRelativePath + " → " +
         MediaRelativePath + " [" + State + "]";
+    /// <summary>Present only platform and observed relative paths, never title or absolute source path.</summary>
     public override string ToString() => Label;
 }
 
@@ -23,6 +24,8 @@ internal sealed record IdealMediaCoverProposal(
 /// CANDIDATE suggestions from platform plus exact filename stem alone.</summary>
 internal static class IdealMediaCoverProposals
 {
+    /// <summary>Build source-scoped XML-optional, non-approved cover observations
+    /// without opening any file or inferring identity from a game title.</summary>
     internal static IReadOnlyList<IdealMediaCoverProposal> Build(
         InventorySnapshot roms, MediaIndexSnapshot medias, MediaUiSnapshot projected)
     {
