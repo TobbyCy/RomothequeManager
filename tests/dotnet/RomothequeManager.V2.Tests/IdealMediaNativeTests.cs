@@ -123,4 +123,72 @@ public sealed class IdealMediaNativeTests
         Assert.AreEqual(InventoryScanStatus.Complete, newScan.ScanStatus);
         Assert.IsTrue(newScan.Observations.Single().RelativePath.EndsWith("fiction.png"));
     }
+
+    [TestMethod]
+    public async Task MEDIA_06_DisposeAndCancelRevokeIndexAndPreviewBeforeAnyImplicitRead()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var root = NewRoot();
+        Png(Path.Combine(root, "gba", "fiction.png"), 2, SKColors.Blue);
+        var id = Guid.NewGuid().ToString("D");
+        using var service = new IdealMediaApplicationService();
+        Assert.IsFalse(service.AuthorizeMediaIndex(true),
+            "An affirmative flag without a selected MEDIAS root is not a grant.");
+        Assert.IsTrue(service.PrepareMediaSelection(new MediaRootScope(root), id));
+        Assert.IsTrue(service.AuthorizeMediaIndex(true));
+        Assert.IsFalse(service.RequestCancellation(),
+            "Cancelling an issued but not started grant does not invent an active run.");
+        Assert.AreEqual(InventoryScanStatus.Failed,
+            (await service.StartIndexAsync()).ScanStatus,
+            "A revoked INDEX grant cannot be replayed.");
+        Assert.IsTrue(service.AuthorizeMediaIndex(true));
+        var index = await service.StartIndexAsync();
+        Assert.AreEqual(InventoryScanStatus.Complete, index.ScanStatus);
+        var request = new MediaPreviewRequest(index.RunId, id,
+            index.Observations.Single().MediaObservationId, 128);
+        Assert.IsTrue(service.AuthorizeMediaPreview(request, true));
+        service.Dispose();
+        Assert.IsNull(service.Current);
+        Assert.IsFalse(service.AuthorizeMediaIndex(true));
+        Assert.IsFalse(service.AuthorizeMediaPreview(request, true));
+        Assert.AreEqual(InventoryScanStatus.Failed,
+            (await service.StartIndexAsync()).ScanStatus);
+        using var denied = await service.LoadPreviewAsync(request);
+        Assert.AreEqual(MediaPreviewStatus.Rejected, denied.Status);
+        Assert.IsNull(denied.Image);
+    }
+
+    [TestMethod]
+    public async Task MEDIA_07_UntrustedRootAndCancelledPreviewDoNotExposePixels()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var root = NewRoot();
+        var id = Guid.NewGuid().ToString("D");
+        using var service = new IdealMediaApplicationService();
+        Assert.IsFalse(service.PrepareMediaSelection(new MediaRootScope(
+            @"\\server\share\MEDIAS"), id));
+        Assert.IsFalse(service.PrepareMediaSelection(new MediaRootScope(
+            @"\\?\C:\untrusted\MEDIAS"), id));
+        Assert.IsFalse(service.PrepareMediaSelection(new MediaRootScope(
+            root + @"\..\OTHER\MEDIAS"), id));
+        Assert.AreEqual(InventoryScanStatus.Failed,
+            (await service.StartIndexAsync()).ScanStatus);
+        Png(Path.Combine(root, "gba", "fiction.png"), 2, SKColors.Green);
+        Assert.IsTrue(service.PrepareMediaSelection(new MediaRootScope(root), id));
+        Assert.IsTrue(service.AuthorizeMediaIndex(true));
+        var index = await service.StartIndexAsync();
+        Assert.AreEqual(InventoryScanStatus.Complete, index.ScanStatus);
+        var request = new MediaPreviewRequest(index.RunId, id,
+            index.Observations.Single().MediaObservationId, 64);
+        Assert.IsTrue(service.AuthorizeMediaPreview(request, true));
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        using var rejected = await service.LoadPreviewAsync(request, cancelled.Token);
+        Assert.AreNotEqual(MediaPreviewStatus.Ready, rejected.Status);
+        Assert.IsNull(rejected.Image);
+        Assert.AreEqual(MediaPreviewStatus.Rejected,
+            (await service.LoadPreviewAsync(request)).Status,
+            "The cancelled PREVIEW capability cannot be replayed.");
+    }
+
 }
