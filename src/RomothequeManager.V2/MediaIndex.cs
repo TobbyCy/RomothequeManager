@@ -456,7 +456,9 @@ internal static class MediaIndexReader
         ex is IOException or UnauthorizedAccessException or SecurityException or ArgumentException
             or NotSupportedException or System.ComponentModel.Win32Exception;
 
-    private static MediaImageFormat Classify(byte[] b, string extension, MediaRootScope scope,
+    /// <summary>Validate bounded PNG/JPEG/WebP header bytes obtained through an already
+    /// authorized native file handle; does not read files or decode pixels.</summary>
+    internal static MediaImageFormat Classify(byte[] b, string extension, MediaRootScope scope,
         out bool valid, out int? width, out int? height, out string? diagnostic)
     {
         valid = false;

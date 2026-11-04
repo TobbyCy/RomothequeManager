@@ -293,7 +293,9 @@ public sealed class MediaPreviewService : IMediaPreviewService
         }
     }
 
-    private static MediaPreviewResult Decode(byte[] bytes, MediaObservation media,
+    /// <summary>Decode already-authorized, fully read and size-bounded bytes; the caller
+    /// retains responsibility for handle-bound provenance and input-size limits.</summary>
+    internal static MediaPreviewResult Decode(byte[] bytes, MediaObservation media,
         int target, CancellationToken token, Action? started)
     {
         token.ThrowIfCancellationRequested();
