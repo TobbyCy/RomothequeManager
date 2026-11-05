@@ -95,6 +95,65 @@ public sealed class IdealMediaDraftGuiTests
     }
 
     [TestMethod]
+    public void MEDIA_UI_06_RsARelativePathNormalizesToExactLibraryIdentity()
+    {
+        var roms = new[] { Rom("real-rsa", "gba", "gba/Fiction.gba") };
+        var xml = Imported(Game("gba", "ROMS/gba/Fiction.gba",
+            "Title deliberately unrelated to file name",
+            new EsDeMedia("image",
+                "MEDIAS/gba/covers/Artwork-Different-From-Rom.png", true)));
+        var claims = EsDeDeclaredMediaClaims.Build(roms, xml);
+        Assert.AreEqual(1, claims.Count);
+        Assert.AreEqual("real-rsa", claims[0].RomObservationId);
+        Assert.AreEqual("MEDIAS/gba/covers/Artwork-Different-From-Rom.png",
+            claims[0].MediaRelativePath);
+        Assert.AreEqual("ESDE_IMPORTED_XML", claims[0].SourceKind);
+        StringAssert.Contains(claims[0].Provenance, "fixture-fingerprint");
+    }
+
+    [TestMethod]
+    public void MEDIA_UI_07_RsAPlatformPathScopeAndAmbiguityNeverCreateFalseClaims()
+    {
+        var rsa = new[] { Rom("rsa", "gba", "gba/Fiction.gba") };
+        EsDeGame With(string platform, string romPath, string title = "Same XML Title") =>
+            Game(platform, romPath, title,
+                new EsDeMedia("image", "MEDIAS/gba/covers/OtherArtwork.png", true));
+
+        // Game title must never substitute for exact (platform, canonical path).
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            rsa, Imported(With("ps2", "ROMS/gba/Fiction.gba"))).Count);
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            rsa, Imported(With("gba", "ROMS/gba/Other.gba"))).Count);
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            rsa, Imported(With("gba", "ROMS/ps2/Fiction.gba"))).Count);
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            rsa, Imported(With("gba", "ROMS/gba/../Fiction.gba"))).Count);
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            rsa, Imported(With("gba", "C:/outside/Fiction.gba"))).Count);
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            new[] { Rom("wrong-platform-folder", "gba", "ps2/Fiction.gba") },
+            Imported(With("gba", "ROMS/gba/Fiction.gba"))).Count);
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            new[] { Rom("traversal", "gba", "gba/../Fiction.gba") },
+            Imported(With("gba", "ROMS/gba/Fiction.gba"))).Count);
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            new[] { Rom("outside", "gba", "MEDIAS/gba/Fiction.gba") },
+            Imported(With("gba", "ROMS/gba/Fiction.gba"))).Count);
+
+        // Both representations canonicalize to the same identity; the adapter
+        // cannot pick one arbitrarily when two physical observations collide.
+        var mixed = new[] {
+            Rom("rsa", "gba", "gba/Fiction.gba"),
+            Rom("legacy", "gba", "ROMS/gba/Fiction.gba")
+        };
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            mixed, Imported(With("gba", "ROMS/gba/Fiction.gba"))).Count);
+        Assert.AreEqual(0, EsDeDeclaredMediaClaims.Build(
+            rsa, Imported(With("gba", "ROMS/gba/Fiction.gba"),
+                With("gba", "ROMS/gba/Fiction.gba", "Another display title"))).Count);
+    }
+
+    [TestMethod]
     public void MEDIA_UI_05_UnsafeOrNonMediaEsDePathsCannotBecomeClaims()
     {
         var roms = new[] { Rom("rom", "gba", "ROMS/gba/Safe.gba") };
