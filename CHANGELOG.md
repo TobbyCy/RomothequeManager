@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / #134 — Réconciliation fictive GB/PS1/PS2/PS3, correctif PS3 ciblé (04.11.2026)
+
+- Ajout d'une fixture de 131 références XML et 194 fichiers ROMS **entièrement fictifs** : 19 covers GB concordantes, 53 groupes de noms PS1 BIN/CUE/CHD, 2 dossiers PS2 fonctionnels, un jeu PS3 référencé par son dossier (12 fichiers internes). Matrice séparée des 75 médias déclarés contre 76 covers observées ; aucun doublon réel présumé.
+- ES-DE : `RomExists` ne reconnaît un **dossier de jeu PS3 déclaré** que si `PS3_GAME/PARAM.SFO` et `PS3_GAME/USRDIR/EBOOT.BIN` existent comme fichiers ordinaires, sous confinement et refus reparse existants ; dossier vide, arbitraire, incomplet ou absent = `ROM_MISSING`. Fichiers/ISO PS3 autonomes et autres plateformes inchangés ; aucune lecture de contenu ni preuve de jouabilité.
+- `MediaLinkProjection` : les fichiers techniques `PS3_GAME/**` sont observables par l'inventaire RS-A mais ne sont pas proposés comme jeux distincts. Les ISO PS3 autonomes, les candidats variantes PS1, les références explicites et les états incomparables restent régis par les contrats existants. Pas de fusion de variantes ni d'attribution automatique.
+- Tests `REC_01–05` sur fixtures éphémères (structure PS3 valide, vide, arbitraire, partielle, absente, mauvais type de marqueur, traversal et symlink avec réserve Windows), grant RS-A à usage unique, sans lecture de contenu ROM, accès personnel ou changement GUI/MEDIAS #159/#161. CI Windows et revue DEV 2 obligatoires avant GO propriétaire.
+
 ## NEXT-05 / #134 — MEDIAS/PREVIEW natif fonctionnel, candidat DEV 1 (04.11.2026)
 
 - PR Draft #161 : nouveau `IdealMediaApplicationService` avec sélection de MEDIAS indépendante, clic d'autorisation INDEX puis clic indépendant PREVIEW lié à une observation du même run, grants natifs à usage unique et TTL borné, révocation sur Cancel/A→B/Dispose, état Current/LastAttempt. La lecture ne réutilise jamais le grant ROMS.

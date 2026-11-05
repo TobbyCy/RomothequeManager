@@ -366,7 +366,13 @@ public static class EsDeCatalogueImporter
                     title = Path.GetFileNameWithoutExtension(romFile);
                     diagnostics.Add(new("TITLE_FALLBACK", platform, romRelative, "Name missing; filename shown."));
                 }
-                bool exists = File.Exists(romFile);
+                // An ES-DE PS3 directory reference is present only when the
+                // bounded, expected PS3_GAME structure is observed. This is
+                // structural evidence, not execution/contents verification.
+                // All other platforms and standalone PS3 ISO files retain File.Exists.
+                bool exists = File.Exists(romFile) ||
+                    (platform.Equals("ps3", StringComparison.OrdinalIgnoreCase) &&
+                     IsStructuredPs3GameDirectory(romFile, romRoot));
                 if (!exists)
                     diagnostics.Add(new("ROM_MISSING", platform, romRelative, "Source unavailable; never treated as deleted."));
 
@@ -650,6 +656,30 @@ public static class EsDeCatalogueImporter
         diagnostics.Add(new("RELEASE_DATE_UNSUPPORTED", platform, romRelative,
             "Unrecognized ES-DE release date; the game was preserved without a date."));
         return null;
+    }
+
+    // ES-DE folder-based PS3 game references have no ROM file to inspect.
+    // Check only two fixed structural markers; never open their contents,
+    // recursively scan a game, infer playability or follow reparse points.
+    // The importer remains source-relative and read-only.
+    private static bool IsStructuredPs3GameDirectory(string gameDirectory, string romRoot)
+    {
+        if (!Directory.Exists(gameDirectory)) return false;
+        // Recheck every constructed component in the original ROMS domain.
+        // AssertNoReparsePoints fails closed on a linked directory or marker.
+        string gameData = Path.Combine(gameDirectory, "PS3_GAME");
+        string userData = Path.Combine(gameData, "USRDIR");
+        string param = Path.Combine(gameData, "PARAM.SFO");
+        string executable = Path.Combine(userData, "EBOOT.BIN");
+        foreach (var path in new[] { gameDirectory, gameData, userData, param, executable })
+        {
+            AssertWithin(path, romRoot);
+            AssertNoReparsePoints(path);
+        }
+        return Directory.Exists(gameData) && Directory.Exists(userData) &&
+            File.Exists(param) && File.Exists(executable) &&
+            (File.GetAttributes(param) & (FileAttributes.Directory | FileAttributes.ReparsePoint)) == 0 &&
+            (File.GetAttributes(executable) & (FileAttributes.Directory | FileAttributes.ReparsePoint)) == 0;
     }
 
     private static string ResolveRelative(string baseDirectory, string raw, string permittedRoot)
