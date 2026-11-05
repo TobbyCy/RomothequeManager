@@ -590,7 +590,7 @@ internal static class Next05GuiHarness
     // screenshot pixel canary of the NEW standard-child Avalonia media window.
     // This entire harness is #if NEXT05_CI and never shipped in the normal EXE.
     private static async Task ExerciseNativeMediaGuiAsync(
-        ObservedLibraryWindow owner, string captures)
+        ObservedLibraryWindow owner, string captures, bool xmlWithoutImage)
     {
         var temp = Environment.GetEnvironmentVariable("RUNNER_TEMP") ??
             throw new InvalidDataException("MEDIA_GUI_CI_RUNNER_TEMP_REQUIRED");
@@ -611,8 +611,23 @@ internal static class Next05GuiHarness
                 File.WriteAllBytes(Path.Combine(root, "MEDIAS", "gba", "covers",
                     "Fiction.png"), png.ToArray());
             }
-            Demand(!Directory.EnumerateFiles(root, "*.xml",
-                SearchOption.AllDirectories).Any(), "MEDIA163_XML_NOT_OPTIONAL");
+            EsDeCatalogueSnapshot? imported = null;
+            if (xmlWithoutImage)
+            {
+                // This is a real, bounded ES-DE XML fixture, not a fabricated
+                // catalog DTO; no image/media field is declared anywhere.
+                File.WriteAllText(Path.Combine(root, "ROMS", "gba", "gamelist.xml"),
+                    "<gameList><game><path>./Fiction.gba</path>" +
+                    "<name>Different XML Title</name></game></gameList>");
+                imported = EsDeCatalogueImporter.Read(root);
+                Demand(imported.Games.Count == 1 &&
+                    imported.Games[0].Media.Count == 0 &&
+                    imported.Games[0].RomRelativePath == "ROMS/gba/Fiction.gba",
+                    "MEDIA163_XML_WITHOUT_IMAGE_IMPORT_FAILED");
+            }
+            else
+                Demand(!Directory.EnumerateFiles(root, "*.xml",
+                    SearchOption.AllDirectories).Any(), "MEDIA163_XML_NOT_OPTIONAL");
             var roms = new InventorySession(new InventoryScope(root,
                 IdealPlatformFolderConventions.PlatformAliases)).Scan();
             Demand(roms.ScanStatus == InventoryScanStatus.Complete &&
@@ -620,14 +635,15 @@ internal static class Next05GuiHarness
                     o.RelativePath == "ROMS/gba/Fiction.gba"),
                 "MEDIA163_ROM_NOT_OBSERVED");
             child = new IdealMediaDraftWindow(() => roms,
-                imported: () => null, productMediaUiEnabled: true);
+                imported: () => imported, productMediaUiEnabled: true);
             child.Show(owner);
-            await child.ExerciseNativeMediaForCi(root);
+            await child.ExerciseNativeMediaForCi(root, xmlWithoutImage);
             foreach (var (width, height) in new[] { (1120, 720), (760, 480) })
             {
                 child.Width = width;
                 child.Height = height;
                 child.UpdateLayout();
+                child.VerifyKeyboardAndLayoutForCi(width, height);
                 if (child.Content is not ScrollViewer scroll ||
                     scroll.Content is not Control content)
                     throw new InvalidDataException("MEDIA163_NATIVE_LAYOUT_MISSING");
@@ -652,7 +668,8 @@ internal static class Next05GuiHarness
                     new PixelSize(width, height), new Vector(96, 96));
                 captured.Render(visual);
                 var file = Path.Combine(captures,
-                    "MEDIA163-NATIVE-PNG-" + width + "x" + height + ".png");
+                    (xmlWithoutImage ? "MEDIA163-ESDE-NOIMAGE-PNG-" :
+                        "MEDIA163-NATIVE-PNG-") + width + "x" + height + ".png");
                 captured.Save(file, PngBitmapEncoderOptions.Default);
                 using var proof = SKBitmap.Decode(file) ??
                     throw new InvalidDataException("MEDIA163_SCREENSHOT_NOT_DECODABLE");
@@ -663,8 +680,8 @@ internal static class Next05GuiHarness
                     Math.Abs(pixel.Blue - SKColors.CadetBlue.Blue) < 25,
                     "MEDIA163_SCREENSHOT_ACTUAL_PIXEL_MISMATCH");
                 Console.WriteLine("MEDIA163_NATIVE_GUI_PIXEL_PASS viewport=" +
-                    width + "x" + height + " xml=0 media_index=explicit " +
-                    "preview=explicit source=synthetic");
+                    width + "x" + height + " xml=" + (xmlWithoutImage ? "1-no-image" : "0") +
+                    " media_index=explicit preview=explicit source=synthetic");
             }
         }
         finally
@@ -740,7 +757,10 @@ internal static class Next05GuiHarness
                     "N05_MYSTERY_FILE_DETAILS_FALSE_IDENTIFICATION");
                 Capture(window, captures, "N05-MYSTERY-FileDetail", 1120, 720);
                 await ExerciseMediaAsync(window, snapshot, captures);
-                await ExerciseNativeMediaGuiAsync(window, captures);
+                await ExerciseNativeMediaGuiAsync(window, captures,
+                    xmlWithoutImage: false);
+                await ExerciseNativeMediaGuiAsync(window, captures,
+                    xmlWithoutImage: true);
                 vm.ReturnCollectionCommand.Execute(null);
                 Demand(vm.IsCollection, "N05_MYSTERY_DETAIL_RETURN_FAILED");
             }
