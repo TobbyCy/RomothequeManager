@@ -17,17 +17,23 @@ internal static class EsDeDeclaredMediaClaims
         if (imported is null) return Array.Empty<ExplicitMediaReference>();
 
         var result = new List<ExplicitMediaReference>();
+        // RS-A observations are relative to the already selected ROMS/ root:
+        // "gba/Fiction.gba". Imported ES-DE references are library-relative:
+        // "ROMS/gba/Fiction.gba". Normalize *only* this trusted root convention,
+        // never by a game title, filename alone or a guessed platform.
         var uniqueRoms = roms
             .Where(r => r.Kind is InventoryKind.PotentialRom or InventoryKind.Playlist
                 or InventoryKind.ArchiveCandidate)
-            .Where(r => SafeRelative(r.RelativePath, "ROMS/"))
-            .GroupBy(r => (r.PlatformKey, r.RelativePath))
+            .Select(r => (Rom: r, CanonicalPath: CanonicalObservedRomPath(r)))
+            .Where(x => x.CanonicalPath is not null)
+            .GroupBy(x => (x.Rom.PlatformKey, Path: x.CanonicalPath!))
             .Where(group => group.Count() == 1)
-            .ToDictionary(group => group.Key, group => group.Single());
+            .ToDictionary(group => group.Key, group => group.Single().Rom);
 
         // Duplicate source rows cannot assert a unique, attributable claim.
         var uniqueGames = imported.Games
-            .Where(g => SafeRelative(g.RomRelativePath, "ROMS/"))
+            .Where(g => SafeRelative(g.RomRelativePath, "ROMS/") &&
+                ExactPlatformComponent(g.Platform, g.RomRelativePath["ROMS/".Length..]))
             .GroupBy(g => (g.Platform, g.RomRelativePath))
             .Where(group => group.Count() == 1)
             .Select(group => group.Single());
@@ -53,6 +59,33 @@ internal static class EsDeDeclaredMediaClaims
             .OrderBy(c => c.RomObservationId, StringComparer.Ordinal)
             .ThenBy(c => c.MediaRelativePath, StringComparer.Ordinal)
             .ToArray());
+    }
+
+    /// <summary>Normalize only RS-A ROMS-root-relative and historical
+    /// library-relative observations to a library-relative identity.
+    /// Reject platform/path disagreement and every unsafe path component.
+    /// This is a pure lexical conversion, never a scope grant.</summary>
+    private static string? CanonicalObservedRomPath(FileObservation rom)
+    {
+        var path = rom.RelativePath;
+        if (string.IsNullOrWhiteSpace(path)) return null;
+        var suffix = path.StartsWith("ROMS/", StringComparison.Ordinal)
+            ? path["ROMS/".Length..] : path;
+        var candidate = "ROMS/" + suffix;
+        return SafeRelative(candidate, "ROMS/") &&
+            ExactPlatformComponent(rom.PlatformKey, suffix)
+            ? candidate : null;
+    }
+
+    private static bool ExactPlatformComponent(string? platform, string path)
+    {
+        if (string.IsNullOrWhiteSpace(platform) ||
+            platform.Contains('/') || platform.Contains('\\') ||
+            platform.Contains(':') || platform.Contains('\\0'))
+            return false;
+        var slash = path.IndexOf('/');
+        return slash > 0 &&
+            string.Equals(path[..slash], platform, StringComparison.Ordinal);
     }
 
     /// <summary>Conservative lexical boundary only: it never proves on-disk scope
