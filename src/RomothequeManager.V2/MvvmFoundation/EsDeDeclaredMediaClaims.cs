@@ -81,7 +81,7 @@ internal static class EsDeDeclaredMediaClaims
     {
         if (string.IsNullOrWhiteSpace(platform) ||
             platform.Contains('/') || platform.Contains('\\') ||
-            platform.Contains(':') || platform.Contains('\\0'))
+            platform.Contains(':') || platform.Any(char.IsControl))
             return false;
         var slash = path.IndexOf('/');
         return slash > 0 &&
