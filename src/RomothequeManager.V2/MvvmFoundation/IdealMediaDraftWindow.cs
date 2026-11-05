@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
@@ -20,10 +21,11 @@ internal sealed class IdealMediaDraftWindow : Window
 #if NEXT05_CI
     /// <summary>CI-only real Avalonia preview image; absent from standard EXE.</summary>
     internal Image PreviewImageForCi => _previewImage;
+    private Button[] _ciActionButtons = Array.Empty<Button>();
 
     /// <summary>Exercise native INDEX then PREVIEW with explicitly created
     /// RUNNER_TEMP files only. Not a product permission, not callable in Release.</summary>
-    internal async Task ExerciseNativeMediaForCi(string root)
+    internal async Task ExerciseNativeMediaForCi(string root, bool xmlWithoutImage = false)
     {
         var temp = Environment.GetEnvironmentVariable("RUNNER_TEMP");
         if (!OperatingSystem.IsWindows() ||
@@ -34,9 +36,25 @@ internal sealed class IdealMediaDraftWindow : Window
             !Path.GetFileName(root).StartsWith("rm-next05-native-gui-", StringComparison.Ordinal))
             throw new InvalidDataException("MEDIA_GUI_CI_ONLY_FIXTURE_REQUIRED");
         if (!_vm.SecurityApproved || _roms() is not { } roms ||
-            roms.ScanStatus != InventoryScanStatus.Complete ||
-            Directory.EnumerateFiles(root, "*.xml", SearchOption.AllDirectories).Any())
-            throw new InvalidDataException("MEDIA_GUI_CI_NO_XML_AND_ROMS_REQUIRED");
+            roms.ScanStatus != InventoryScanStatus.Complete)
+            throw new InvalidDataException("MEDIA_GUI_CI_ROMS_REQUIRED");
+        var xmlFiles = Directory.EnumerateFiles(root, "*.xml",
+            SearchOption.AllDirectories).ToArray();
+        EsDeCatalogueSnapshot? imported = null;
+        if (xmlWithoutImage)
+        {
+            if (xmlFiles.Length != 1 ||
+                !xmlFiles[0].EndsWith("gamelist.xml", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("MEDIA_GUI_ESDE_NOIMAGE_XML_NOT_PRESENT");
+            imported = _imported() ??
+                throw new InvalidDataException("MEDIA_GUI_ESDE_IMPORT_NOT_AVAILABLE");
+            if (imported.Games.Count != 1 ||
+                imported.Games[0].Media.Count != 0 ||
+                imported.Games[0].RomRelativePath != "ROMS/gba/Fiction.gba")
+                throw new InvalidDataException("MEDIA_GUI_ESDE_NOIMAGE_CONTENT_INVALID");
+        }
+        else if (xmlFiles.Length != 0)
+            throw new InvalidDataException("MEDIA_GUI_CI_NO_XML_REQUIRED");
         var mediaRoot = Path.Combine(root, "MEDIAS");
         if (!_vm.SelectMediaRoot(mediaRoot) || !_vm.AuthorizeIndex())
             throw new InvalidDataException("MEDIA_GUI_INDEX_NOT_AUTHORIZED");
@@ -48,7 +66,9 @@ internal sealed class IdealMediaDraftWindow : Window
         var mapping = VerifiedScopeMapping.FromExplicitSelections(roms, index,
             new Dictionary<string, string> { ["gba"] = "gba" },
             "CI_EXPLICIT_SEPARATE_SYNTHETIC_ROOTS");
-        _vm.AttachExplicitEsDeEvidence(roms, null, mapping);
+        _scopeConfirmed.IsChecked = true;
+        _xmlRootConfirmed.IsChecked = xmlWithoutImage;
+        _vm.AttachExplicitEsDeEvidence(roms, imported, mapping);
         if (_vm.CoverProposals.Count != 1 ||
             _vm.CoverProposals[0].State != MediaUiState.CANDIDATE ||
             !_vm.SelectCoverForPreview(_vm.CoverProposals[0]) ||
@@ -58,6 +78,64 @@ internal sealed class IdealMediaDraftWindow : Window
         if (_vm.Preview is not { Status: MediaPreviewStatus.Ready, Image: not null } ||
             _previewImage.Source is not WriteableBitmap)
             throw new InvalidDataException("MEDIA_GUI_BITMAP_NOT_VISIBLE");
+        if (_vm.CoverProposals.Count != 1 ||
+            _vm.CoverProposals[0].State != MediaUiState.CANDIDATE)
+            throw new InvalidDataException("MEDIA_GUI_ESDE_XML_WITHOUT_IMAGE_NOT_CANDIDATE");
+    }
+
+    /// <summary>CI-only proof of focusable and readable action controls under
+    /// real Windows layout at both requested viewports. Uses normal Avalonia
+    /// Tab navigation, never fakes a success by setting the focused element.</summary>
+    internal void VerifyKeyboardAndLayoutForCi(int width, int height)
+    {
+        if (!IsVisible || width < 760 || height < 480 ||
+            _ciActionButtons.Length != 8 ||
+            Content is not ScrollViewer scroll ||
+            scroll.Content is not Control root)
+            throw new InvalidDataException("MEDIA_GUI_CI_ACCESSIBILITY_PRECONDITION");
+        Width = width;
+        Height = height;
+        UpdateLayout();
+        if (scroll.Bounds.Height < 290 || scroll.Bounds.Width < 620)
+            throw new InvalidDataException("MEDIA_GUI_CI_COMPACT_VIEWPORT_NOT_USABLE");
+
+        // Check every action has a readable, correctly sized control and can
+        // be brought into the viewport, including items below the fold.
+        foreach (var button in _ciActionButtons)
+        {
+            if (!button.Focusable || !button.IsTabStop ||
+                button.Bounds.Width < 200 || button.Bounds.Height < 34 ||
+                button.Content is not string text || text.Length < 7)
+                throw new InvalidDataException("MEDIA_GUI_CI_ACTION_UNREADABLE");
+            var location = button.TranslatePoint(new Point(0, 0), root) ??
+                throw new InvalidDataException("MEDIA_GUI_CI_ACTION_NOT_IN_TREE");
+            scroll.Offset = new Vector(0, Math.Clamp(location.Y - 50, 0,
+                Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)));
+            UpdateLayout();
+            var visible = button.TranslatePoint(new Point(0, 0), scroll) ??
+                throw new InvalidDataException("MEDIA_GUI_CI_ACTION_NOT_REACHABLE");
+            if (visible.Y < -3 ||
+                visible.Y + button.Bounds.Height > scroll.Bounds.Height + 4)
+                throw new InvalidDataException("MEDIA_GUI_CI_ACTION_CLIPPED");
+        }
+
+        // Tab/Shift+Tab traversal after the chosen image is rendered, with
+        // enabled controls separated by disabled one-shot INDEX/PREVIEW actions.
+        var first = _ciActionButtons[0];
+        if (!first.IsEnabled || !first.Focus(NavigationMethod.Tab) ||
+            !ReferenceEquals(FocusManager.GetFocusedElement(), first) ||
+            !FocusManager.TryMoveFocus(NavigationDirection.Next, default))
+            throw new InvalidDataException("MEDIA_GUI_CI_TAB_NAVIGATION_FAILED");
+        var next = FocusManager.GetFocusedElement();
+        if (next is null || ReferenceEquals(next, first) ||
+            !FocusManager.TryMoveFocus(NavigationDirection.Previous, default) ||
+            !ReferenceEquals(FocusManager.GetFocusedElement(), first))
+            throw new InvalidDataException("MEDIA_GUI_CI_SHIFT_TAB_NAVIGATION_FAILED");
+        if (_proposals.Items.Count == 0 || _evidence.Items.Count == 0 ||
+            string.IsNullOrWhiteSpace(_detail.Text))
+            throw new InvalidDataException("MEDIA_GUI_CI_PROVENANCE_NOT_ACCESSIBLE");
+        Console.WriteLine("MEDIA163_TAB_SHIFT_TAB_LAYOUT_PASS viewport=" +
+            width + "x" + height + " actions=8 scroll=true provenance=true");
     }
 #endif
     private readonly Func<InventorySnapshot?> _roms;
@@ -132,6 +210,10 @@ internal sealed class IdealMediaDraftWindow : Window
             Command = _vm.CancelCommand, MinHeight = 36
         };
 
+#if NEXT05_CI
+        _ciActionButtons = new[] { choose, authorizeIndex, startIndex, project,
+            chooseCover, authorizePreview, loadPreview, cancel };
+#endif
         var observed = new ListBox { MinHeight = 80, MaxHeight = 150 };
         void RefreshObserved()
         {
