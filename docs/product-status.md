@@ -1,5 +1,11 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #134 — diagnostic XML ↔ ROMS ↔ MEDIAS sur fixtures (04.11.2026)
+
+- Lot isolé DEV 1 : quatre structures **entièrement synthétiques**, 19 GB avec covers de même nom, 53 familles PS1 BIN/CUE/CHD, deux sous-dossiers fonctionnels PS2 et un jeu PS3 référencé comme **dossier** contenant douze fichiers internes. Matrice, hypothèses et refus : [docs/developer/next05-reconciliation-fixtures.md](developer/next05-reconciliation-fixtures.md).
+- **P1 corrigé** : un dossier déclaré PS3 n'est considéré présent que si ses deux marqueurs structuraux ordinaires `PS3_GAME/PARAM.SFO` et `PS3_GAME/USRDIR/EBOOT.BIN` sont vérifiés sans reparse ni sortie de ROMS. Dossier vide/arbitraire/partiel = référence indisponible ; les fichiers internes `PS3_GAME/...` restent observables en métadonnées mais ne deviennent pas des jeux distincts. Variante PS1 ≠ doublon physique prouvé. Les références XML, fichiers réels observés, sources médias déclarées, candidates locales et variantes sont comptées séparément.
+- Changement limité à deux règles de classification et leurs oracles synthétiques, aucun traitement de collection personnelle, aucun hashing ROM, suppression, attribution ambiguë ni modification des PR #159/#161. **CI et DEV 2 requises au SHA exact, aucune fusion/Release.**
+
 ## NEXT-05 / #134 — PR #161 : MEDIAS et PREVIEW natifs séparés, candidat fonctionnel (04.11.2026)
 
 - Le service `IdealMediaApplicationService` expose `PrepareMediaSelection(MediaRootScope, mediaRootId)` → `AuthorizeMediaIndex(true)` → `StartIndexAsync()`, puis `AuthorizeMediaPreview(MediaPreviewRequest,true)` → `LoadPreviewAsync()`. Deux clics distincts, aucun grant ROMS, XML, SQLite ni état Offline n'autorise la lecture MEDIAS. Annulation, A→B, double appel et résultat tardif sont bornés par génération et validité du grant.

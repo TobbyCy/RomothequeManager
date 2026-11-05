@@ -98,8 +98,8 @@ public static class MediaLinkProjection
             !string.IsNullOrWhiteSpace(mapping.Provenance);
 
         var eligible = roms.Observations
-            .Where(o => o.Kind is InventoryKind.PotentialRom or InventoryKind.ArchiveCandidate or
-                        InventoryKind.Playlist)
+            .Where(o => (o.Kind is InventoryKind.PotentialRom or InventoryKind.ArchiveCandidate or
+                        InventoryKind.Playlist) && !Ps3InternalFile(o))
             .OrderBy(o => o.RelativePath, StringComparer.Ordinal)
             .ThenBy(o => o.ObservationId, StringComparer.Ordinal)
             .ToArray();
@@ -213,6 +213,15 @@ public static class MediaLinkProjection
         }
         return Array.AsReadOnly(result.ToArray());
     }
+
+    // A native ROMS scan must retain every safely observed file, including
+    // PS3_GAME/USRDIR/EBOOT.BIN; these internal files are not separate games.
+    // Only the pure presentation candidate list is filtered, never the scan.
+    // A standalone PS3 ISO outside PS3_GAME remains eligible.
+    private static bool Ps3InternalFile(FileObservation observation) =>
+        string.Equals(observation.PlatformKey, "ps3", StringComparison.OrdinalIgnoreCase) &&
+        observation.RelativePath.Split('/').Skip(1).Any(component =>
+            string.Equals(component, "PS3_GAME", StringComparison.OrdinalIgnoreCase));
 
     private static string Stem(string path) =>
         Path.GetFileNameWithoutExtension(path).Normalize(System.Text.NormalizationForm.FormC);
