@@ -550,3 +550,10 @@ Après chaque changement intégré, préciser le comportement, la compatibilité
 - Coutures GUI : factory `MainWindow` pour deux points d'entrée ; `ObservedLibraryWindow.FromStandardServices` accepte `IInventoryApplicationService` de production et une reprise SQLite historique. Une action de grant ROMS séparée du picker et de la checkbox est déléguée au backend via callback **après un clic explicite** ; le booléen UI n'accorde aucune permission et le service revalide au Start. Les tests n'utilisent que des fixtures synthétiques.
 - **Backend #160 déjà fusionné sur main** : le HEAD GUI candidat câble `IdealLibraryBackendService`, `AuthorizeRomsRead` et `LoadSavedLibraries` / `RestoreSaved` dans l'EXE standard ; le HEAD actuel ne revendique aucune recette humaine du nouveau parcours.
 - CI du HEAD final post-#162, captures Windows 1120×720 / 760×480 et revue DEV 2 : à vérifier ; PASS non présumé. `REAL_*_HOLD`, `LEGAL_PUBLISH_HOLD`, `NEXT05_RELEASE_HOLD` intacts sur main.
+
+### NEXT-05 — #163 MEDIAS GUI (Draft, non fusionnée)
+
+- Séparation des observations ROMS et des propositions locales de jaquettes : références XML ES-DE facultatives ; candidats de même plateforme et même nom de fichier ; variantes, homonymes et ambiguïtés jamais associés automatiquement.
+- Parcours standard **candidat** : sélection MEDIAS, autorisation INDEX indépendante, comparaison explicitement confirmée des racines ROMS/MEDIAS, sélection d'une observation exacte, autorisation PREVIEW indépendante, rendu de pixels PNG/JPEG décodés en mémoire via Avalonia.
+- Invalidation après Cancel, Dispose et changement de génération ; accès fichiers uniquement dans le backend natif #161. Aucune association SQLite ni autorisation restaurée.
+- PR #163 toujours Draft, CI/recette Windows/DEV 2 et GO propriétaire **requis** avant fusion/activation ; aucune Release.

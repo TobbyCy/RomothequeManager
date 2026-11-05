@@ -217,6 +217,21 @@
                     Command="{Binding Inventory.ShowLastAttemptCommand}"
                     MinHeight="40" Margin="0,0,8,4"/>
           </WrapPanel>
+          <Border Background="#24333E" CornerRadius="6" Padding="10"
+                  IsVisible="{Binding Inventory.HasRomsGrantAction}">
+            <StackPanel Spacing="7">
+              <TextBlock Text="5 · Jaquettes locales (XML facultatif)"
+                         FontSize="16" FontWeight="Bold" TextWrapping="Wrap"/>
+              <TextBlock Text="Après un inventaire ROMS complet : choisir MEDIAS, autoriser INDEX,
+                                 comparer les fichiers puis autoriser PREVIEW pour une image précise.
+                                 Les propositions ne sont jamais des associations approuvées."
+                         TextWrapping="Wrap"/>
+              <Button
+                      Content="Découvrir et afficher les jaquettes locales"
+                      IsEnabled="{Binding CanOpenLocalMedia}"
+                      Click="OpenLocalMedia_OnClick" MinHeight="40"/>
+            </StackPanel>
+          </Border>
           <ProgressBar IsVisible="{Binding Inventory.IsBusy}" IsIndeterminate="{Binding Inventory.IsProgressIndeterminate}" Height="7"/>
           <TextBlock Text="{Binding Inventory.StatusMessage}" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding Inventory.LatestAttemptText}" Foreground="#AAB2BF" TextWrapping="Wrap"/>

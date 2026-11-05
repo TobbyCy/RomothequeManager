@@ -25,6 +25,9 @@ public partial class ObservedLibraryWindow : Window
     private readonly ObservedLibraryViewModel _vm;
     private Bitmap? _brand;
     private WriteableBitmap? _mediaBitmap;
+    private IdealMediaDraftWindow? _localMediaWindow;
+    private string? _openLocalMediaScanId;
+    private readonly Func<EsDeCatalogueSnapshot?> _importedSnapshot;
 
     public ObservedLibraryWindow() : this(new InventoryApplicationService(), null) { }
 
@@ -37,18 +40,32 @@ public partial class ObservedLibraryWindow : Window
         Func<long, bool>? requestRomsGrant = null,
         Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
         Func<string, bool>? restoreSaved = null) =>
+        FromStandardServicesWithImported(service, restored, requestRomsGrant,
+            loadSavedLibraries, restoreSaved, importedSnapshot: null);
+
+    /// <summary>Compose only an already accepted optional XML snapshot for
+    /// source-provenance comparison. This does not import, scan or grant access.</summary>
+    internal static ObservedLibraryWindow FromStandardServicesWithImported(
+        IInventoryApplicationService service, RestoredCatalogSession? restored,
+        Func<long, bool>? requestRomsGrant,
+        Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries,
+        Func<string, bool>? restoreSaved,
+        Func<EsDeCatalogueSnapshot?>? importedSnapshot) =>
         new(service, null, standardServiceSupplied: true, restored: restored,
             requestRomsGrant: requestRomsGrant,
-            loadSavedLibraries: loadSavedLibraries, restoreSaved: restoreSaved);
+            loadSavedLibraries: loadSavedLibraries, restoreSaved: restoreSaved,
+            importedSnapshot: importedSnapshot);
 
     private ObservedLibraryWindow(IInventoryApplicationService service,
         IReadOnlyDictionary<string, string>? syntheticRoots,
         bool standardServiceSupplied = false, RestoredCatalogSession? restored = null,
         Func<long, bool>? requestRomsGrant = null,
         Func<IReadOnlyList<CatalogLastKnown>>? loadSavedLibraries = null,
-        Func<string, bool>? restoreSaved = null)
+        Func<string, bool>? restoreSaved = null,
+        Func<EsDeCatalogueSnapshot?>? importedSnapshot = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
+        _importedSnapshot = importedSnapshot ?? (() => null);
         _syntheticRoots = syntheticRoots;
         InitializeComponent();
         _inventoryVm = new InventoryViewModel(_service, action =>
@@ -61,6 +78,7 @@ public partial class ObservedLibraryWindow : Window
         if (restored is not null)
             _vm.AttachRestoredForStandard(restored);
         _vm.Media.PropertyChanged += OnMediaChanged;
+        _inventoryVm.PropertyChanged += OnInventoryChangedForMedia;
         DataContext = _vm;
 
         var root = AppContext.BaseDirectory;
@@ -83,6 +101,9 @@ public partial class ObservedLibraryWindow : Window
         Closed += async (_, _) =>
         {
             _vm.Media.PropertyChanged -= OnMediaChanged;
+            _inventoryVm.PropertyChanged -= OnInventoryChangedForMedia;
+            _localMediaWindow?.Close();
+            _localMediaWindow = null;
             this.FindControl<Image>("MediaPreviewImage")!.Source = null;
             _mediaBitmap?.Dispose();
             _mediaBitmap = null;
@@ -187,6 +208,54 @@ public partial class ObservedLibraryWindow : Window
         }
     }
 
+    // This button is present only in the standard ROMS view. Neither opening
+    // MEDIAS nor confirming a root grants access; the native backend decides.
+    private void OpenLocalMedia_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_syntheticRoots is not null || !_vm.CanOpenLocalMedia ||
+            _inventoryVm.Current is not {
+                ScanStatus: InventoryScanStatus.Complete,
+                Availability: InventoryAvailability.Online,
+                Freshness: InventoryFreshness.Fresh
+            } current) return;
+        if (_localMediaWindow is { IsVisible: true })
+        {
+            _localMediaWindow.Activate();
+            return;
+        }
+        _openLocalMediaScanId = current.ScanId;
+        var child = new IdealMediaDraftWindow(() => _inventoryVm.Current,
+            imported: _importedSnapshot, productMediaUiEnabled: true);
+        _localMediaWindow = child;
+        child.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_localMediaWindow, child))
+            {
+                _localMediaWindow = null;
+                _openLocalMediaScanId = null;
+            }
+        };
+        child.Show(this);
+    }
+
+    // Revoke a child MEDIA workflow if the ROMS selection, run or availability
+    // changes while that child is open. Never carry previews into another scope.
+    private void OnInventoryChangedForMedia(object? sender, PropertyChangedEventArgs args)
+    {
+        if (_localMediaWindow is null) return;
+        if (_inventoryVm.Current is not {
+                ScanStatus: InventoryScanStatus.Complete,
+                Availability: InventoryAvailability.Online,
+                Freshness: InventoryFreshness.Fresh
+            } current ||
+            current.ScanId != _openLocalMediaScanId)
+        {
+            _localMediaWindow.Close();
+            _localMediaWindow = null;
+            _openLocalMediaScanId = null;
+        }
+    }
+
     private void ChooseFixture_OnClick(object? sender, RoutedEventArgs e)
     {
 #if NEXT05_CI
@@ -231,7 +300,8 @@ public partial class ObservedLibraryWindow : Window
                 return;
             }
             if (_inventoryVm.CanChangeFolder)
-                _inventoryVm.PrepareSelectedFolder(new InventoryScope(root.Path.LocalPath));
+                _inventoryVm.PrepareSelectedFolder(new InventoryScope(root.Path.LocalPath,
+                    IdealPlatformFolderConventions.PlatformAliases));
             // NEVER start a scan here. Explicit consent alone is insufficient.
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or

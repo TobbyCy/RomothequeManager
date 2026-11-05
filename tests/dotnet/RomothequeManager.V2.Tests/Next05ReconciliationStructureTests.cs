@@ -6,6 +6,7 @@ using RomothequeManager.V2;
 using RomothequeManager.V2.Inventory;
 using RomothequeManager.V2.Inventory.Media;
 using RomothequeManager.V2.Inventory.RsA;
+using RomothequeManager.V2.MvvmFoundation;
 using SkiaSharp;
 
 namespace RomothequeManager.V2.Tests;
@@ -160,6 +161,70 @@ public sealed class Next05ReconciliationStructureTests
         var approved = service.ScanConfirmed(scope, explicitConsent: true);
         Assert.AreEqual(InventoryScanStatus.Complete, approved.ScanStatus);
         return approved;
+    }
+
+    [TestMethod]
+    public void REC_06_RsANativeXmlDeclaredDifferentStemArtworkIsReferenced()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        // Add one inert game to the existing genuinely scanned RS-A fixture.
+        // The ES-DE title and declared image name intentionally do not match
+        // the ROM filename: only the source paths can establish the reference.
+        Inert("ROMS/gb/Fiction-GB-Declared.gb");
+        Cover("gb/Artwork-Different-From-Rom.png");
+        var xmlFile = Path.Combine(_mediaRoot, "gb", "metadata",
+            "es-de-gamelist.xml");
+        var xml = File.ReadAllText(xmlFile, Encoding.UTF8);
+        const string entry =
+            "<game><path>./Fiction-GB-Declared.gb</path>" +
+            "<name>Completely Unrelated Imported Title</name>" +
+            "<image>../covers/Artwork-Different-From-Rom.png</image></game>";
+        Assert.IsTrue(xml.Contains("</gameList>", StringComparison.Ordinal));
+        File.WriteAllText(xmlFile,
+            xml.Replace("</gameList>", entry + "</gameList>", StringComparison.Ordinal),
+            Encoding.UTF8);
+
+        var imported = EsDeCatalogueImporter.Read(_root);
+        var game = imported.Games.Single(g =>
+            g.RomRelativePath == "ROMS/gb/Fiction-GB-Declared.gb");
+        Assert.AreEqual(1, game.Media.Count);
+        Assert.AreEqual("MEDIAS/gb/covers/Artwork-Different-From-Rom.png",
+            game.Media[0].RelativePath);
+        Assert.IsTrue(game.Media[0].Exists);
+
+        var roms = Native(); // Real RS-A, observations relative to ROMS/, not library root
+        var media = IndexedMedia();
+        var observed = roms.Observations.Single(o =>
+            o.RelativePath == "gb/Fiction-GB-Declared.gb");
+        Assert.AreEqual("gb", observed.PlatformKey);
+        var claims = EsDeDeclaredMediaClaims.Build(roms.Observations, imported);
+        var exact = claims.Single(c => c.RomObservationId == observed.ObservationId);
+        Assert.AreEqual("MEDIAS/gb/covers/Artwork-Different-From-Rom.png",
+            exact.MediaRelativePath);
+        Assert.AreEqual("ESDE_IMPORTED_XML", exact.SourceKind);
+        StringAssert.Contains(exact.Provenance, imported.ContentFingerprint);
+
+        var mapping = VerifiedScopeMapping.FromExplicitSelections(roms, media,
+            Aliases, "SYNTHETIC_CONFIRMED_ROMS_MEDIA_SCOPE");
+        var gallery = new MediaPresentationService().Build(
+            roms, media, mapping, claims);
+        var referenced = gallery.Rows.Single(row =>
+            row.RomObservationId == observed.ObservationId);
+        Assert.AreEqual(MediaUiState.REFERENCED, referenced.State);
+        Assert.IsTrue(referenced.SourceProvenance.Any(p =>
+            p.Contains("ESDE_IMPORTED_XML", StringComparison.Ordinal)));
+        Assert.AreEqual(1, referenced.CandidateMediaObservationIds.Count);
+        var covers = IdealMediaCoverProposals.Build(roms, media, gallery);
+        var cover = covers.Single(p => p.RomObservationId == observed.ObservationId);
+        Assert.AreEqual(MediaUiState.REFERENCED, cover.State);
+        Assert.AreEqual("MEDIAS/gb/covers/Artwork-Different-From-Rom.png",
+            cover.MediaRelativePath);
+        Assert.IsTrue(cover.Provenance.Any(p =>
+            p.Contains("ESDE_IMPORTED_XML", StringComparison.Ordinal)));
+        Console.WriteLine(
+            "MEDIA163_RSA_ESDE_EXACT_REFERENCE_PASS source=native-rsa path=canonical " +
+            "xml=declared different_filename=true status=REFERENCED approval=false");
     }
 
     [TestMethod]
