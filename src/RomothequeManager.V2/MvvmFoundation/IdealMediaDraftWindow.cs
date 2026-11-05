@@ -69,6 +69,8 @@ internal sealed class IdealMediaDraftWindow : Window
         _scopeConfirmed.IsChecked = true;
         _xmlRootConfirmed.IsChecked = xmlWithoutImage;
         _vm.AttachExplicitEsDeEvidence(roms, imported, mapping);
+        if (_vm.CoverProposals.Count == 1)
+            _proposals.SelectedItem = _vm.CoverProposals[0];
         if (_vm.CoverProposals.Count != 1 ||
             _vm.CoverProposals[0].State != MediaUiState.CANDIDATE ||
             !_vm.SelectCoverForPreview(_vm.CoverProposals[0]) ||
