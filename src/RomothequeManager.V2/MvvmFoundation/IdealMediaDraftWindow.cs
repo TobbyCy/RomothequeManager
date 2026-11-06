@@ -193,13 +193,13 @@ internal sealed class IdealMediaDraftWindow : Window
     private readonly TextBlock _state = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _detail = new() { TextWrapping = TextWrapping.Wrap };
     private readonly CheckBox _scopeConfirmed = new() {
-        Content = "Je confirme que les plateformes de ces deux racines sélectionnées correspondent."
+        Content = "Je confirme que les plateformes des deux dossiers correspondent."
     };
     private readonly CheckBox _ambiguityConfirmed = new() {
-        Content = "Je choisis explicitement cette image parmi les alternatives (aperçu seulement)."
+        Content = "Je confirme cette image parmi les alternatives (aperçu seulement)."
     };
     private readonly CheckBox _xmlRootConfirmed = new() {
-        Content = "J'atteste que l'import ES-DE affiché correspond à la racine ROMS sélectionnée (XML facultatif)."
+        Content = "Cet import ES-DE appartient au dossier ROMS choisi (facultatif)."
     };
 
     /// <summary>Create a closed-by-default GUI: normal launch needs a deliberate
@@ -215,6 +215,9 @@ internal sealed class IdealMediaDraftWindow : Window
         _roms = roms ?? throw new ArgumentNullException(nameof(roms));
         _imported = imported ?? (() => null);
         Title = "ROMothèque · Jaquettes locales (candidates, non approuvées)";
+        RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+        Background = new SolidColorBrush(Color.Parse("#16181D"));
+        Foreground = new SolidColorBrush(Color.Parse("#E8E6E3"));
         Width = 900;
         Height = 700;
         MinWidth = 700;
@@ -417,6 +420,7 @@ internal sealed class IdealMediaDraftWindow : Window
         Refresh();
 
         Content = new ScrollViewer {
+            Background = Background,
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
             Content = new Border {
                 Padding = new Thickness(18),
