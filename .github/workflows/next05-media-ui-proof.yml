@@ -1,7 +1,7 @@
 name: NEXT-05 / Avalonia MEDIA PNG JPEG synthetic Windows proof
 on:
   push:
-    branches: [dev3/next05-ideal-media-gui-draft]
+    branches: [fix/next05-post-recette-95]
 permissions:
   contents: read
 concurrency:
@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   windows-ui:
-    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/dev3/next05-ideal-media-gui-draft' && github.actor == 'TobbyCy'
+    if: github.repository == 'TobbyCy/RomothequeManager' && github.ref == 'refs/heads/fix/next05-post-recette-95' && github.actor == 'TobbyCy'
     runs-on: windows-2022
     timeout-minutes: 40
     steps:

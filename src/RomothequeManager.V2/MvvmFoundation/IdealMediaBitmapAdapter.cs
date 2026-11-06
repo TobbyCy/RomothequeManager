@@ -10,6 +10,20 @@ namespace RomothequeManager.V2.MvvmFoundation;
 /// bitmap. Does not accept, reconstruct or open local paths or URIs.</summary>
 internal static class IdealMediaBitmapAdapter
 {
+    /// <summary>Zero each owned native bitmap row before releasing its allocation.</summary>
+    internal static void ClearAndDispose(WriteableBitmap? bitmap)
+    {
+        if (bitmap is null) return;
+        try
+        {
+            using var frame = bitmap.Lock();
+            var zeroRow = new byte[frame.RowBytes];
+            for (var row = 0; row < frame.Size.Height; ++row)
+                Marshal.Copy(zeroRow, 0, IntPtr.Add(frame.Address,
+                    checked(row * frame.RowBytes)), zeroRow.Length);
+        }
+        finally { bitmap.Dispose(); }
+    }
     /// <summary>Adopt only validated decoded RGBA memory into a bounded Avalonia
     /// bitmap; return no image when the source is unavailable or invalid.</summary>
     internal static WriteableBitmap? Create(MediaPreviewResult? preview)
@@ -26,9 +40,10 @@ internal static class IdealMediaBitmapAdapter
         // Native Skia PREMUL RGBA8888; match Avalonia AlphaFormat.Premul.
         var bitmap = new WriteableBitmap(new PixelSize(image.Width, image.Height),
             new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Premul);
+        byte[]? bytes = null;
         try
         {
-            var bytes = image.Pixels.ToArray();
+            bytes = image.Pixels.ToArray();
             using (var frame = bitmap.Lock())
             {
                 if (frame.RowBytes < stride)
@@ -37,13 +52,16 @@ internal static class IdealMediaBitmapAdapter
                     Marshal.Copy(bytes, row * stride,
                         IntPtr.Add(frame.Address, checked(row * frame.RowBytes)), stride);
             }
-            Array.Clear(bytes);
             return bitmap;
         }
         catch
         {
-            bitmap.Dispose();
+            ClearAndDispose(bitmap);
             return null; // never guess a path-based cover on render failure
+        }
+        finally
+        {
+            if (bytes is not null) Array.Clear(bytes);
         }
     }
 }

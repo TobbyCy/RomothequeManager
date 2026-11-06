@@ -206,8 +206,10 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         DisplayedSnapshot?.Diagnostics.FirstOrDefault()?.SourceKind ?? "Non observé";
     /// <summary>Distinguishes a historical complete snapshot from the last attempt.</summary>
     public string DisplayedGenerationText => DisplayedSnapshot is null ? "Aucune génération disponible" :
-        ShowingLastAttempt || Current is null ? "Dernière tentative (historique)" :
-        "Dernier inventaire complet (historique)";
+        (HasSavedLibraryCommands && SelectedLocalRoot is null
+            ? "Historique SQLite consulté · " : "Inventaire de la sélection courante · ") +
+        (ShowingLastAttempt || Current is null ? "Dernière tentative (LastAttempt)" :
+            "Dernier inventaire complet conservé (Current / Last Complete)");
     /// <summary>Shows timestamp, status, availability and freshness of the latest historical attempt.</summary>
     public string LatestAttemptText => LastAttempt is null
         ? "Dernière tentative : aucune"
@@ -275,9 +277,9 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
                 .Where(row => row.StorageRoot.Role == "ROMS" &&
                     Guid.TryParse(row.StorageRoot.StorageRootId, out _))
                 .Select(row => new SavedLibraryChoice(row.StorageRoot.StorageRootId,
-                    "Bibliothèque " + row.StorageRoot.StorageRootId[..8] +
-                    " · dernier complet : " +
-                    (row.CurrentComplete?.CapturedAtUtc.ToString("u") ?? "aucun")))
+                    "Historique ROMS · dernier complet : " +
+                    (row.CurrentComplete?.CapturedAtUtc.ToString("u") ?? "aucun") +
+                    " · référence " + row.StorageRoot.StorageRootId[..8]))
                 .ToArray();
             _selectedSaved = null;
             _savedLibraryStatus = _savedLibraries.Count == 0
@@ -483,6 +485,11 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         if (contextChanged || snapshotChanged)
         {
             if (contextChanged) ClearGrantPresentation();
+            if (contextChanged && state.SelectedLocalRoot is not null && HasSavedLibraryCommands)
+            {
+                _savedLibraryStatus = "Historique SQLite non affiché ; sélection courante active.";
+                _selectedSaved = null;
+            }
             _selectedObservation = null;
             _preferLastAttempt = false;
         }

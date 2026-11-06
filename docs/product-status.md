@@ -1,5 +1,15 @@
 # Historique technique des fonctionnalités
 
+## NEXT-05 / #95 — Lot correctif Produit #166 (06.11.2026)
+
+Base autorisée : `0f8660a371588dfc4f849a344de29f04d38987c4`. Une seule PR corrective, sans modification des budgets ou de l’architecture native.
+
+- F95-12 : l’effacement explicite reste disponible après PREVIEW terminé ; annulation d’opération et effacement/révocation sont deux commandes distinctes. Le buffer RGBA est mis à zéro, la source visuelle détachée, le bitmap effacé puis libéré. La copie intermédiaire est nettoyée même en cas d’erreur de rendu.
+- R4 : projection pure du snapshot retourné, distinct du dernier Complete. Seuls les codes natifs globaux connus sont affichés ; codes inconnus, champs privés et diagnostics par observation ne deviennent pas une cause globale inventée. Aucun historique SQLite ROMS n’est présenté comme une tentative MEDIAS.
+- UX : Choisir → Analyser → Proposer → Consulter, étape et prochaine action explicites, boutons de largeur homogène, provenance accessible dans un panneau repliable. Current/Last Complete, LastAttempt et historique SQLite consulté ont des libellés distincts ; les droits ROMS/INDEX/PREVIEW restent indépendants et révocables.
+- Validation : tests positifs/négatifs sur fixtures et preuve GUI native aux deux tailles, navigation Tab/Maj+Tab et effacement par Espace. Adaptive CI, GUI Windows et ES-DE doivent réussir au HEAD livré avant demande de revue DEV 2. L’origine du R4 personnel reste indéterminée ; aucun scan personnel n’est effectué.
+- Les particularités backend R4 de LastAttempt en refus précoce et d’annulation après observation ne sont pas modifiées : la GUI utilise le snapshot retourné. Aucun élargissement des permissions, fusion ou Release.
+
 ## NEXT-05 / #134 — diagnostic XML ↔ ROMS ↔ MEDIAS sur fixtures (04.11.2026)
 
 - Lot isolé DEV 1 : quatre structures **entièrement synthétiques**, 19 GB avec covers de même nom, 53 familles PS1 BIN/CUE/CHD, deux sous-dossiers fonctionnels PS2 et un jeu PS3 référencé comme **dossier** contenant douze fichiers internes. Matrice, hypothèses et refus : [docs/developer/next05-reconciliation-fixtures.md](developer/next05-reconciliation-fixtures.md).
