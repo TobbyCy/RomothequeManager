@@ -134,14 +134,21 @@ internal sealed class IdealMediaDraftWindow : Window
             !ReferenceEquals(FocusManager.GetFocusedElement(), first))
             throw new InvalidDataException("MEDIA_GUI_CI_SHIFT_TAB_NAVIGATION_FAILED");
         var reached = new HashSet<Button> { first };
+        var focusTrace = new List<string>();
         for (var step = 0; step < 80; ++step)
         {
             if (!FocusManager.TryMoveFocus(NavigationDirection.Next, default)) break;
             if (FocusManager.GetFocusedElement() is Button button) reached.Add(button);
+            focusTrace.Add(FocusManager.GetFocusedElement()?.GetType().Name ?? "none");
             if (_ciActionButtons.Where(b => b.IsEnabled).All(reached.Contains)) break;
         }
         if (_ciActionButtons.Where(b => b.IsEnabled).Any(b => !reached.Contains(b)))
-            throw new InvalidDataException("F95_12_ENABLED_ACTION_NOT_TAB_REACHABLE");
+            throw new InvalidDataException("F95_12_ENABLED_ACTION_NOT_TAB_REACHABLE missing=" +
+                string.Join(",", _ciActionButtons.Select((b, i) => (b, i))
+                    .Where(x => x.b.IsEnabled && !reached.Contains(x.b)).Select(x => x.i)) +
+                " reached=" + string.Join(",", _ciActionButtons.Select((b, i) => (b, i))
+                    .Where(x => reached.Contains(x.b)).Select(x => x.i)) +
+                " trace=" + string.Join(",", focusTrace));
         if (_proposals.Items.Count == 0 || _evidence.Items.Count == 0 ||
             string.IsNullOrWhiteSpace(_detail.Text))
             throw new InvalidDataException("MEDIA_GUI_CI_PROVENANCE_NOT_ACCESSIBLE");
