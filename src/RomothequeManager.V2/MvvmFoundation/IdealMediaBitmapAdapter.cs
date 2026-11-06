@@ -10,6 +10,7 @@ namespace RomothequeManager.V2.MvvmFoundation;
 /// bitmap. Does not accept, reconstruct or open local paths or URIs.</summary>
 internal static class IdealMediaBitmapAdapter
 {
+    /// <summary>Zero each owned native bitmap row before releasing its allocation.</summary>
     internal static void ClearAndDispose(WriteableBitmap? bitmap)
     {
         if (bitmap is null) return;

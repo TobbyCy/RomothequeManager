@@ -3,7 +3,8 @@ using RomothequeManager.V2.Inventory.Media;
 
 namespace RomothequeManager.V2.MvvmFoundation;
 
-// Pure R4 projection: never render diagnostic Reason, ScopeRef or unknown codes.
+/// <summary>Pure R4 presentation of a native attempt using only known global codes;
+/// diagnostic reasons, scope references and unknown code text are never exposed.</summary>
 internal sealed record MediaIndexAttemptDiagnosticView(
     InventoryScanStatus AttemptStatus, InventoryAvailability Availability,
     InventoryFreshness Freshness, IReadOnlyList<string> Codes,
@@ -23,6 +24,8 @@ internal sealed record MediaIndexAttemptDiagnosticView(
             ["MEDIA_INDEX_NATIVE_FAILED"] = "Cause technique non déterminée. Contacter le support avec le code uniquement."
         };
 
+    /// <summary>Project the returned attempt independently of retained complete evidence,
+    /// preserving ambiguous or missing causes without inferring a budget or access failure.</summary>
     internal static MediaIndexAttemptDiagnosticView From(MediaIndexSnapshot attempt,
         MediaIndexSnapshot? current)
     {
@@ -40,6 +43,7 @@ internal sealed record MediaIndexAttemptDiagnosticView(
             current is not null);
     }
 
+    /// <summary>Static explanation and next action alongside status and whitelisted codes.</summary>
     internal string Text => "Dernière tentative INDEX MEDIAS : " + AttemptStatus +
         " / " + Availability + " / " + Freshness + "\n" +
         string.Join(" · ", Codes) + "\n" + Explanation;

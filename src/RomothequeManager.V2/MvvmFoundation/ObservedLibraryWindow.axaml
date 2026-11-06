@@ -185,10 +185,10 @@
               <TextBlock Text="Bibliothèques SQLite enregistrées · consultation hors ligne"
                          FontWeight="Bold" TextWrapping="Wrap"/>
               <WrapPanel>
-                <Button Content="Afficher les sauvegardes"
+                <Button Content="Lister les historiques"
                         Command="{Binding Inventory.LoadSavedLibrariesCommand}"
                         MinHeight="40" Margin="0,0,8,4"/>
-                <Button Content="Ouvrir hors ligne"
+                <Button Content="Consulter l’historique"
                         Command="{Binding Inventory.RestoreSavedLibraryCommand}"
                         IsEnabled="{Binding Inventory.CanRestoreSavedLibrary}"
                         MinHeight="40" Margin="0,0,8,4"/>

@@ -58,11 +58,15 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     public bool SecurityApproved => _productMediaUiEnabled;
     /// <summary>Safe user-facing mode and refusal text, without absolute local paths.</summary>
     public string Status => _status;
+    /// <summary>Allows explicit cleanup after completion or while media rights remain.</summary>
     public bool CanClearPreview => SecurityApproved && !_disposed &&
         (_preview is not null || _indexGrant || _previewGrant || _current is not null || _busy);
+    /// <summary>Names the active workflow stage without granting access.</summary>
     public string ActiveStep => !_selectedRoot ? "1 · Choisir" :
+        _busy && _selectedCover is null ? "2 · Analyser" :
         _current is null ? "2 · Analyser" :
         _coverProposals.Count == 0 ? "3 · Proposer les jaquettes" : "4 · Consulter";
+    /// <summary>Explains the next explicit action or why the workflow must wait.</summary>
     public string NextAction => _busy ? "Opération en cours : vous pouvez l’annuler." :
         _pending is not null ? "Attendre la fin de l’annulation avant une nouvelle autorisation." :
         !_selectedRoot ? "Choisir MEDIAS pour activer l’autorisation INDEX." :
@@ -71,7 +75,9 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _selectedCover is null ? "Sélectionner une candidate puis choisir cette image." :
         _preview is not null ? "Effacer l’aperçu pour retirer les pixels et révoquer les autorisations MEDIAS." :
         _previewGrant ? "Afficher l’aperçu autorisé." : "Autoriser PREVIEW pour cette image.";
+    /// <summary>Sanitized diagnostics from the returned native attempt, not inferred from Current.</summary>
     public string IndexAttemptText => _attemptDiagnostic?.Text ?? "Dernière tentative INDEX MEDIAS : aucune.";
+    /// <summary>Separately identifies whether complete evidence remains for this media selection.</summary>
     public string CompleteIndexText => "Dernier INDEX MEDIAS complet conservé : " +
         (_current is null ? "non" : "oui") + " (sélection courante).";
     /// <summary>True only when the future security gate explicitly permits a new root selection.</summary>
@@ -355,6 +361,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         NotifyAll();
     }
 
+    /// <summary>Remove displayed pixels and revoke all residual media capabilities.</summary>
     internal void ClearPreview()
     {
         if (!CanClearPreview) return;

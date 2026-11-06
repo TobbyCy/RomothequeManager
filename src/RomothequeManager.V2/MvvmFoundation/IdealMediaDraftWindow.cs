@@ -363,13 +363,14 @@ internal sealed class IdealMediaDraftWindow : Window
             cancel.IsEnabled = _vm.CancelCommand.CanExecute(null);
             clear.IsEnabled = _vm.ClearCommand.CanExecute(null);
             var primary = !_vm.CanChooseMedia ? null :
+                _vm.Preview is not null ? clear :
                 _vm.CanLoadPreview ? loadPreview :
                 _vm.CanAuthorizePreview ? authorizePreview :
                 _vm.CanStartIndex ? startIndex :
                 _vm.CurrentMediaIndex is null ? (_vm.CanAuthorizeIndex ? authorizeIndex : choose) :
                 _vm.CoverProposals.Count == 0 ? project : chooseCover;
             foreach (var button in new[] { choose, authorizeIndex, startIndex, project,
-                chooseCover, authorizePreview, loadPreview })
+                chooseCover, authorizePreview, loadPreview, clear })
                 button.FontWeight = ReferenceEquals(button, primary) ? FontWeight.Bold : FontWeight.Normal;
             _scopeConfirmed.IsEnabled = _vm.SecurityApproved && _vm.CurrentMediaIndex is not null;
             _xmlRootConfirmed.IsEnabled = _vm.SecurityApproved && _imported() is not null &&

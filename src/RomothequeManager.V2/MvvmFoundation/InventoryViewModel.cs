@@ -485,6 +485,11 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         if (contextChanged || snapshotChanged)
         {
             if (contextChanged) ClearGrantPresentation();
+            if (contextChanged && state.SelectedLocalRoot is not null && HasSavedLibraryCommands)
+            {
+                _savedLibraryStatus = "Historique SQLite non affiché ; sélection courante active.";
+                _selectedSaved = null;
+            }
             _selectedObservation = null;
             _preferLastAttempt = false;
         }
