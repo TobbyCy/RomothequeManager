@@ -206,8 +206,10 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
         DisplayedSnapshot?.Diagnostics.FirstOrDefault()?.SourceKind ?? "Non observé";
     /// <summary>Distinguishes a historical complete snapshot from the last attempt.</summary>
     public string DisplayedGenerationText => DisplayedSnapshot is null ? "Aucune génération disponible" :
-        ShowingLastAttempt || Current is null ? "Dernière tentative (historique)" :
-        "Dernier inventaire complet (historique)";
+        (HasSavedLibraryCommands && SelectedLocalRoot is null
+            ? "Historique SQLite consulté · " : "Inventaire de la sélection courante · ") +
+        (ShowingLastAttempt || Current is null ? "Dernière tentative (LastAttempt)" :
+            "Dernier inventaire complet conservé (Current / Last Complete)");
     /// <summary>Shows timestamp, status, availability and freshness of the latest historical attempt.</summary>
     public string LatestAttemptText => LastAttempt is null
         ? "Dernière tentative : aucune"

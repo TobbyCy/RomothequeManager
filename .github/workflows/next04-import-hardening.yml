@@ -10,7 +10,7 @@ on:
       - 'tests/dotnet/RomothequeManager.V2.Tests/EsDeImportHardeningTests.cs'
       - '.github/workflows/next04-import-hardening.yml'
   push:
-    branches: [main]
+    branches: [main, fix/next05-post-recette-95]
     paths:
       - 'src/RomothequeManager.V2/EsDeCatalogueImporter.cs'
       - 'src/RomothequeManager.V2/Next04ImportEngineHarness.cs'

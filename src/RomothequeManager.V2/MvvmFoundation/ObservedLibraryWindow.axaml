@@ -12,7 +12,7 @@
       <Image x:Name="OfficialLogo" Width="230" Height="66" HorizontalAlignment="Left" Stretch="Uniform"/>
       <Border Background="#38262B" BorderBrush="#A9444B" BorderThickness="1" CornerRadius="8" Padding="14">
         <StackPanel Spacing="5">
-          <TextBlock FontSize="20" FontWeight="Bold" Text="NEXT-05 · INVENTAIRE AUTONOME DES FICHIERS" TextWrapping="Wrap"/>
+          <TextBlock FontSize="20" FontWeight="Bold" Text="Choisir → Analyser → Proposer → Consulter" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding ModeNotice}" TextWrapping="Wrap"/>
           <TextBlock Text="Fichier observé ≠ jeu identifié ≠ association candidate. Aucun XML ES-DE nécessaire." TextWrapping="Wrap"/>
           <TextBlock Text="{Binding PersistenceNotice}" TextWrapping="Wrap" IsVisible="{Binding HasLiveMediaPanel}"/>
@@ -139,7 +139,7 @@
           </Style>
         </Border.Styles>
         <StackPanel Spacing="9">
-          <TextBlock Text="1 · Sélectionner une bibliothèque" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
+          <TextBlock Text="1 · Choisir une bibliothèque" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
           <WrapPanel>
             <Button x:Name="ChooseFolderButton" Content="Choisir une racine (sélection seule)" Click="ChooseFolder_OnClick" IsEnabled="{Binding Inventory.CanChangeFolder}" MinHeight="40" Margin="0,0,8,4"/>
             <ComboBox x:Name="FixtureChoices" IsVisible="False" SelectedIndex="0" MinWidth="220" Margin="0,0,8,4">
@@ -151,7 +151,7 @@
           </WrapPanel>
           <TextBlock Text="{Binding Inventory.SelectedLocalRoot, FallbackValue='Aucune sélection'}" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding ScopeText}" TextWrapping="Wrap" Foreground="#C2CBD5"/>
-          <TextBlock Text="2 · Consentement distinct" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
+          <TextBlock Text="2 · Analyser — autorisation ROMS distincte" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
           <CheckBox
                     Content="Je confirme une lecture ponctuelle, sans écriture ni suppression."
                     IsChecked="{Binding Inventory.ConsentConfirmed, Mode=TwoWay}"
@@ -169,9 +169,9 @@
           <TextBlock Text="{Binding Inventory.RomsGrantStatus}"
                      IsVisible="{Binding Inventory.HasRomsGrantAction}"
                      FontSize="12" Foreground="#C2CBD5" TextWrapping="Wrap"/>
-          <TextBlock Text="3 · Exécuter ou annuler" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
+          <TextBlock Text="Lancer après autorisation, ou annuler l’opération en cours" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
           <WrapPanel>
-            <Button x:Name="InventoryStartButton" Content="Démarrer l'inventaire"
+            <Button x:Name="InventoryStartButton" Content="Analyser les fichiers ROMS"
                     Command="{Binding Inventory.StartInventoryCommand}"
                     IsEnabled="{Binding CanInventoryFixture}"
                     MinHeight="40" Margin="0,0,8,4"/>
@@ -220,14 +220,14 @@
           <Border Background="#24333E" CornerRadius="6" Padding="10"
                   IsVisible="{Binding Inventory.HasRomsGrantAction}">
             <StackPanel Spacing="7">
-              <TextBlock Text="5 · Jaquettes locales (XML facultatif)"
+              <TextBlock Text="3 · Proposer les jaquettes (XML facultatif)"
                          FontSize="16" FontWeight="Bold" TextWrapping="Wrap"/>
               <TextBlock Text="Après un inventaire ROMS complet : choisir MEDIAS, autoriser INDEX,
                                  comparer les fichiers puis autoriser PREVIEW pour une image précise.
                                  Les propositions ne sont jamais des associations approuvées."
                          TextWrapping="Wrap"/>
               <Button
-                      Content="Découvrir et afficher les jaquettes locales"
+                      Content="Proposer les jaquettes locales"
                       IsEnabled="{Binding CanOpenLocalMedia}"
                       Click="OpenLocalMedia_OnClick" MinHeight="40"/>
             </StackPanel>

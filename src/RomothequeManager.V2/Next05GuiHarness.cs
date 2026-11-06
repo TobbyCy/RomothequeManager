@@ -683,6 +683,7 @@ internal static class Next05GuiHarness
                     width + "x" + height + " xml=" + (xmlWithoutImage ? "1-no-image" : "0") +
                     " media_index=explicit preview=explicit source=synthetic");
             }
+            child.VerifyPreviewRevocationForCi();
         }
         finally
         {

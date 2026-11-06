@@ -10,6 +10,66 @@ namespace RomothequeManager.V2.Tests;
 [TestClass]
 public sealed class IdealMediaNativeTests
 {
+    [TestMethod]
+    public async Task R4_N_01_ReturnedRefusalIsTheDiagnosticSource()
+    {
+        using var service = new IdealMediaApplicationService();
+        var result = await service.StartIndexAsync();
+        Assert.AreEqual("MEDIA_INDEX_EXPLICIT_GRANT_REQUIRED", result.Diagnostics.Single().Code);
+        // Early refusal is not a native run: GUI must use the returned attempt,
+        // regardless of the independently retained LastAttempt property.
+        var view = MvvmFoundation.MediaIndexAttemptDiagnosticView.From(result, service.Current);
+        StringAssert.Contains(view.Text, "MEDIA_INDEX_EXPLICIT_GRANT_REQUIRED");
+    }
+
+    [TestMethod]
+    public async Task R4_N_02_NativeFileBudgetPreservesPreviousComplete()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var root = NewRoot();
+        Png(Path.Combine(root, "gba", "fiction.png"), 3, SKColors.Red);
+        using var service = new IdealMediaApplicationService();
+        Assert.IsTrue(service.PrepareMediaSelection(new MediaRootScope(root, MaxFiles: 1), Guid.NewGuid().ToString("D")));
+        Assert.IsTrue(service.AuthorizeMediaIndex(true));
+        var complete = await service.StartIndexAsync();
+        Assert.AreEqual(InventoryScanStatus.Complete, complete.ScanStatus);
+        File.WriteAllText(Path.Combine(root, "gba", "second.txt"), "SYNTHETIC");
+        Assert.IsTrue(service.AuthorizeMediaIndex(true));
+        var partial = await service.StartIndexAsync();
+        Assert.AreEqual(InventoryScanStatus.Partial, partial.ScanStatus);
+        Assert.IsTrue(partial.Diagnostics.Any(d => d.Code == "MEDIA_FILE_BUDGET"));
+        Assert.AreSame(complete, service.Current);
+        Assert.AreSame(partial, service.LastAttempt);
+        Assert.IsNull(partial.TotalFileCount);
+    }
+
+    [TestMethod]
+    public async Task R4_N_03_04_05_06_NativeDepthHeadersTimeoutAndCancellation()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        foreach (var code in new[] { "MEDIA_DEPTH_BUDGET", "MEDIA_TOTAL_HEADER_BUDGET",
+            "MEDIA_INDEX_TIMEOUT", "MEDIA_INDEX_CANCELLED" })
+        {
+            var root = NewRoot();
+            Directory.CreateDirectory(Path.Combine(root, "gba", "covers", "nested"));
+            Png(Path.Combine(root, "gba", "fiction.png"), 3, SKColors.Red);
+            var scope = new MediaRootScope(root,
+                MaxDepth: code == "MEDIA_DEPTH_BUDGET" ? 1 : 8,
+                MaxTotalHeaderBytes: code == "MEDIA_TOTAL_HEADER_BUDGET" ? 33 : 8388608,
+                TimeLimit: code == "MEDIA_INDEX_TIMEOUT" ? TimeSpan.FromTicks(1) : null);
+            using var service = new IdealMediaApplicationService();
+            Assert.IsTrue(service.PrepareMediaSelection(scope, Guid.NewGuid().ToString("D")));
+            Assert.IsTrue(service.AuthorizeMediaIndex(true));
+            using var cancellation = new CancellationTokenSource();
+            if (code == "MEDIA_INDEX_CANCELLED") cancellation.Cancel();
+            var result = await service.StartIndexAsync(cancellation.Token);
+            Assert.AreNotEqual(InventoryScanStatus.Complete, result.ScanStatus, code);
+            Assert.IsTrue(result.Diagnostics.Any(d => d.Code == code), code);
+            Assert.IsNull(service.Current);
+            Assert.AreSame(result, service.LastAttempt);
+        }
+    }
+
     private readonly List<string> _fixtures = new();
 
     private string NewRoot()

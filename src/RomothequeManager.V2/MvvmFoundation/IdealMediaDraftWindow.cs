@@ -91,7 +91,7 @@ internal sealed class IdealMediaDraftWindow : Window
     internal void VerifyKeyboardAndLayoutForCi(int width, int height)
     {
         if (!IsVisible || width < 760 || height < 480 ||
-            _ciActionButtons.Length != 8 ||
+            _ciActionButtons.Length != 9 ||
             Content is not ScrollViewer scroll ||
             scroll.Content is not Control root)
             throw new InvalidDataException("MEDIA_GUI_CI_ACCESSIBILITY_PRECONDITION");
@@ -133,11 +133,38 @@ internal sealed class IdealMediaDraftWindow : Window
             !FocusManager.TryMoveFocus(NavigationDirection.Previous, default) ||
             !ReferenceEquals(FocusManager.GetFocusedElement(), first))
             throw new InvalidDataException("MEDIA_GUI_CI_SHIFT_TAB_NAVIGATION_FAILED");
+        var reached = new HashSet<Button> { first };
+        for (var step = 0; step < 80; ++step)
+        {
+            if (!FocusManager.TryMoveFocus(NavigationDirection.Next, default)) break;
+            if (FocusManager.GetFocusedElement() is Button button) reached.Add(button);
+            if (_ciActionButtons.Where(b => b.IsEnabled).All(reached.Contains)) break;
+        }
+        if (_ciActionButtons.Where(b => b.IsEnabled).Any(b => !reached.Contains(b)))
+            throw new InvalidDataException("F95_12_ENABLED_ACTION_NOT_TAB_REACHABLE");
         if (_proposals.Items.Count == 0 || _evidence.Items.Count == 0 ||
             string.IsNullOrWhiteSpace(_detail.Text))
             throw new InvalidDataException("MEDIA_GUI_CI_PROVENANCE_NOT_ACCESSIBLE");
         Console.WriteLine("MEDIA163_TAB_SHIFT_TAB_LAYOUT_PASS viewport=" +
-            width + "x" + height + " actions=8 scroll=true provenance=true");
+            width + "x" + height + " actions=9 scroll=true provenance=true");
+    }
+
+    internal void VerifyPreviewRevocationForCi()
+    {
+        var pixels = _vm.Preview?.Image?.Pixels ?? ReadOnlyMemory<byte>.Empty;
+        if (pixels.IsEmpty || _bitmap is null || !_vm.ClearCommand.CanExecute(null) ||
+            _vm.CancelCommand.CanExecute(null))
+            throw new InvalidDataException("F95_12_CLEAR_UNAVAILABLE_AFTER_PREVIEW");
+        var clear = _ciActionButtons[^1];
+        if (!clear.IsEnabled || !clear.Focus(NavigationMethod.Tab))
+            throw new InvalidDataException("F95_12_CLEAR_NOT_KEYBOARD_REACHABLE");
+        clear.RaiseEvent(new KeyEventArgs { RoutedEvent = KeyDownEvent, Key = Key.Space });
+        clear.RaiseEvent(new KeyEventArgs { RoutedEvent = KeyUpEvent, Key = Key.Space });
+        if (_previewImage.Source is not null || _bitmap is not null || _rendered is not null ||
+            _vm.Preview is not null || pixels.Span.ContainsAnyExcept((byte)0) ||
+            _vm.CanLoadPreview || _vm.CanAuthorizePreview || _vm.CanStartIndex)
+            throw new InvalidDataException("F95_12_REVOCATION_INCOMPLETE");
+        Console.WriteLine("F95_12_GUI_REVOCATION_PASS pixels_zero=true bitmap_released=true grants_revoked=true");
     }
 #endif
     private readonly Func<InventorySnapshot?> _roms;
@@ -182,39 +209,43 @@ internal sealed class IdealMediaDraftWindow : Window
             productMediaUiEnabled: productMediaUiEnabled);
         DataContext = _vm;
 
-        var choose = new Button { Content = "1 · Choisir MEDIAS (sélection seule)", MinHeight = 36 };
+        var choose = new Button { Content = "Choisir le dossier MEDIAS", MinHeight = 36 };
         var authorizeIndex = new Button {
-            Content = "2 · Autoriser INDEX pour une tentative", Command = _vm.AuthorizeIndexCommand,
+            Content = "Autoriser l’analyse INDEX", Command = _vm.AuthorizeIndexCommand,
             MinHeight = 36
         };
         var startIndex = new Button {
-            Content = "3 · Indexer les métadonnées MEDIAS",
+            Content = "Analyser les médias",
             Command = _vm.StartIndexCommand, MinHeight = 36
         };
         var project = new Button {
-            Content = "4 · Comparer les fichiers observés et proposer des jaquettes",
+            Content = "Proposer les jaquettes",
             MinHeight = 36
         };
         var chooseCover = new Button {
-            Content = "5 · Choisir l'image exacte pour aperçu (pas une association)",
+            Content = "Choisir cette image",
             MinHeight = 36
         };
         var authorizePreview = new Button {
-            Content = "6 · Autoriser PREVIEW (cette image seulement)",
+            Content = "Autoriser cet aperçu PREVIEW",
             Command = _vm.AuthorizePreviewCommand, MinHeight = 36
         };
         var loadPreview = new Button {
-            Content = "7 · Afficher réellement l'image PNG/JPEG",
+            Content = "Afficher l’aperçu",
             Command = _vm.LoadPreviewCommand, MinHeight = 36
         };
         var cancel = new Button {
-            Content = "Annuler / révoquer INDEX et PREVIEW",
+            Content = "Annuler l’opération",
             Command = _vm.CancelCommand, MinHeight = 36
         };
 
+        var clear = new Button {
+            Content = "Effacer l’aperçu et révoquer MEDIAS",
+            Command = _vm.ClearCommand, MinHeight = 36
+        };
 #if NEXT05_CI
         _ciActionButtons = new[] { choose, authorizeIndex, startIndex, project,
-            chooseCover, authorizePreview, loadPreview, cancel };
+            chooseCover, authorizePreview, loadPreview, cancel, clear };
 #endif
         var observed = new ListBox { MinHeight = 80, MaxHeight = 150 };
         void RefreshObserved()
@@ -302,7 +333,9 @@ internal sealed class IdealMediaDraftWindow : Window
 
         void Refresh()
         {
-            _state.Text = _vm.Status;
+            _state.Text = "Choisir → Analyser → Proposer → Consulter\nÉtape active : " +
+                _vm.ActiveStep + "\n" + _vm.Status + "\n" + _vm.NextAction +
+                "\n" + _vm.IndexAttemptText + "\n" + _vm.CompleteIndexText;
             choose.IsEnabled = _vm.CanChooseMedia;
             authorizeIndex.IsEnabled = _vm.CanAuthorizeIndex;
             startIndex.IsEnabled = _vm.CanStartIndex;
@@ -321,7 +354,17 @@ internal sealed class IdealMediaDraftWindow : Window
                 _proposals.SelectedItem is IdealMediaCoverProposal;
             authorizePreview.IsEnabled = _vm.CanAuthorizePreview;
             loadPreview.IsEnabled = _vm.CanLoadPreview;
-            cancel.IsEnabled = _vm.SecurityApproved;
+            cancel.IsEnabled = _vm.CancelCommand.CanExecute(null);
+            clear.IsEnabled = _vm.ClearCommand.CanExecute(null);
+            var primary = !_vm.CanChooseMedia ? null :
+                _vm.CanLoadPreview ? loadPreview :
+                _vm.CanAuthorizePreview ? authorizePreview :
+                _vm.CanStartIndex ? startIndex :
+                _vm.CurrentMediaIndex is null ? (_vm.CanAuthorizeIndex ? authorizeIndex : choose) :
+                _vm.CoverProposals.Count == 0 ? project : chooseCover;
+            foreach (var button in new[] { choose, authorizeIndex, startIndex, project,
+                chooseCover, authorizePreview, loadPreview })
+                button.FontWeight = ReferenceEquals(button, primary) ? FontWeight.Bold : FontWeight.Normal;
             _scopeConfirmed.IsEnabled = _vm.SecurityApproved && _vm.CurrentMediaIndex is not null;
             _xmlRootConfirmed.IsEnabled = _vm.SecurityApproved && _imported() is not null &&
                 _scopeConfirmed.IsChecked == true;
@@ -331,7 +374,7 @@ internal sealed class IdealMediaDraftWindow : Window
             var preview = _vm.Preview;
             if (ReferenceEquals(preview, _rendered)) return;
             _previewImage.Source = null;
-            _bitmap?.Dispose();
+            IdealMediaBitmapAdapter.ClearAndDispose(_bitmap);
             _bitmap = null;
             _rendered = preview;
             // No disk or URI fallback: the ONLY source is decoded RGBA in memory.
@@ -385,15 +428,16 @@ internal sealed class IdealMediaDraftWindow : Window
                             Text = "Tous les statuts d'observation : REFERENCED, CANDIDATE, " +
                                 "AMBIGUOUS, NOT_COMPARABLE, ABSENT_IN_COMPLETE_SCOPE"
                         },
-                        _evidence,
-                        _detail,
+                        new Expander { Header = "Détails et provenance", Content =
+                            new StackPanel { Children = { _evidence, _detail } } },
                         _ambiguityConfirmed,
                         chooseCover,
                         authorizePreview,
                         loadPreview,
                         new TextBlock { Text = "Aperçu autorisé — pixels mémoire (aucune attribution) :" },
                         _previewImage,
-                        cancel
+                        cancel,
+                        clear
                     }
                 }
             }
@@ -401,7 +445,7 @@ internal sealed class IdealMediaDraftWindow : Window
         Closed += (_, _) =>
         {
             _previewImage.Source = null;
-            _bitmap?.Dispose();
+            IdealMediaBitmapAdapter.ClearAndDispose(_bitmap);
             _bitmap = null;
             _vm.Dispose();
         };

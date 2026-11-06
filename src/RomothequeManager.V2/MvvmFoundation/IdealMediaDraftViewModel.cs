@@ -30,6 +30,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     private IReadOnlyList<IdealMediaCoverProposal> _coverProposals =
         Array.Empty<IdealMediaCoverProposal>();
     private MediaPreviewResult? _preview;
+    private MediaIndexAttemptDiagnosticView? _attemptDiagnostic;
     private bool _selectedRoot, _indexGrant, _previewGrant, _busy, _disposed;
     private long _revision;
     private string _status = "MEDIAS / PREVIEW : Draft inactif ; validation sécurité #161 requise.";
@@ -47,7 +48,8 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _authorizePreview = new InventoryCommand(_ => AuthorizePreview(), _ => CanAuthorizePreview);
         _loadPreview = new InventoryCommand(_ => _ = LoadPreviewAsync(), _ => CanLoadPreview);
         _cancel = new InventoryCommand(_ => Cancel(), _ => !_disposed && _busy);
-        _clear = new InventoryCommand(_ => Cancel(), _ => !_disposed && _preview is not null);
+        _clear = new InventoryCommand(_ => ClearPreview(), _ => CanClearPreview);
+        if (SecurityApproved) _status = "Choisir le dossier MEDIAS ; aucune autorisation accordée.";
     }
 
     /// <summary>Change notification for the prospective disabled GUI.</summary>
@@ -56,6 +58,22 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     public bool SecurityApproved => _productMediaUiEnabled;
     /// <summary>Safe user-facing mode and refusal text, without absolute local paths.</summary>
     public string Status => _status;
+    public bool CanClearPreview => SecurityApproved && !_disposed &&
+        (_preview is not null || _indexGrant || _previewGrant || _current is not null || _busy);
+    public string ActiveStep => !_selectedRoot ? "1 · Choisir" :
+        _current is null ? "2 · Analyser" :
+        _coverProposals.Count == 0 ? "3 · Proposer les jaquettes" : "4 · Consulter";
+    public string NextAction => _busy ? "Opération en cours : vous pouvez l’annuler." :
+        _pending is not null ? "Attendre la fin de l’annulation avant une nouvelle autorisation." :
+        !_selectedRoot ? "Choisir MEDIAS pour activer l’autorisation INDEX." :
+        _current is null ? (_indexGrant ? "Lancer l’analyse MEDIAS." : "Autoriser INDEX pour analyser MEDIAS.") :
+        _coverProposals.Count == 0 ? "Confirmer les plateformes puis proposer les jaquettes ; un inventaire ROMS complet et actuel est requis." :
+        _selectedCover is null ? "Sélectionner une candidate puis choisir cette image." :
+        _preview is not null ? "Effacer l’aperçu pour retirer les pixels et révoquer les autorisations MEDIAS." :
+        _previewGrant ? "Afficher l’aperçu autorisé." : "Autoriser PREVIEW pour cette image.";
+    public string IndexAttemptText => _attemptDiagnostic?.Text ?? "Dernière tentative INDEX MEDIAS : aucune.";
+    public string CompleteIndexText => "Dernier INDEX MEDIAS complet conservé : " +
+        (_current is null ? "non" : "oui") + " (sélection courante).";
     /// <summary>True only when the future security gate explicitly permits a new root selection.</summary>
     public bool CanChooseMedia => SecurityApproved && !_disposed && !_busy && _pending is null;
     /// <summary>INDEX permission requires an independent selected MEDIAS root and user click.</summary>
@@ -107,6 +125,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
                 IdealPlatformFolderConventions.FolderKinds), Guid.NewGuid().ToString("D"));
         _selectedRoot = accepted;
         _current = null;
+        _attemptDiagnostic = null;
         _projection = null;
         _referenced = Array.Empty<MediaUiRow>();
         _coverProposals = Array.Empty<IdealMediaCoverProposal>();
@@ -148,13 +167,14 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
             var attempt = await _service.StartIndexAsync(cancellation.Token);
             if (_disposed || revision != _revision) return;
             _current = _service.Current;
+            _attemptDiagnostic = MediaIndexAttemptDiagnosticView.From(attempt, _current);
             _projection = null; // Never carry links across INDEX generations.
             _referenced = Array.Empty<MediaUiRow>();
         _coverProposals = Array.Empty<IdealMediaCoverProposal>();
             _status = attempt.ScanStatus == InventoryScanStatus.Complete &&
                 attempt.Availability == InventoryAvailability.Online
                 ? "INDEX terminé · aucune jaquette attribuée automatiquement."
-                : "INDEX partiel/refusé · état antérieur conservé, absent non prouvé.";
+                : _attemptDiagnostic.Explanation;
         }
         catch (OperationCanceledException)
         {
@@ -335,6 +355,14 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         NotifyAll();
     }
 
+    internal void ClearPreview()
+    {
+        if (!CanClearPreview) return;
+        Cancel();
+        _status = "Aperçu effacé · pixels libérés et autorisations MEDIAS révoquées. Autoriser un nouvel INDEX pour continuer.";
+        NotifyAll();
+    }
+
     private void ReplacePreview(MediaPreviewResult? next)
     {
         _preview?.Dispose();
@@ -345,6 +373,8 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(caller));
         foreach (var name in new[] { nameof(Status), nameof(CanChooseMedia),
+            nameof(CanClearPreview), nameof(ActiveStep), nameof(NextAction),
+            nameof(IndexAttemptText), nameof(CompleteIndexText),
             nameof(CanAuthorizeIndex), nameof(CanStartIndex), nameof(CanAuthorizePreview),
             nameof(CanLoadPreview), nameof(Evidence), nameof(ReferencedCovers),
             nameof(CoverProposals), nameof(Unlinked), nameof(Preview) })
