@@ -20,6 +20,51 @@ public sealed class IdealMediaGuiNativeTests
     }
     private readonly List<string> _temporaryRoots = new();
 
+    [TestMethod]
+    public async Task R4_CompleteThenCancelledIndexNeverLabelsOldCompleteAsLatestAttempt()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var (_, media) = NewSyntheticRoot();
+        Png(Path.Combine(media, "gba", "covers", "Fiction.png"), SKColors.CadetBlue);
+        using var vm = new IdealMediaDraftViewModel(new IdealMediaApplicationService(),
+            productMediaUiEnabled: true);
+        Assert.IsTrue(vm.SelectMediaRoot(media));
+        Assert.IsTrue(vm.AuthorizeIndex());
+        await vm.StartIndexAsync();
+        StringAssert.Contains(vm.IndexAttemptText, "Complete");
+        // Hold a real native result at the UI continuation boundary. If a tiny
+        // index completes synchronously, retry rather than silently skipping
+        // the late-result oracle or depending on filesystem timing.
+        for (var retry = 0; retry < 16; ++retry)
+        {
+            Assert.IsTrue(vm.AuthorizeIndex());
+            var held = new HeldUiContext();
+            var previous = SynchronizationContext.Current;
+            Task pending;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(held);
+                pending = vm.StartIndexAsync();
+            }
+            finally { SynchronizationContext.SetSynchronizationContext(previous); }
+            if (pending.IsCompleted) { await pending; continue; }
+            var continuation = await held.Posted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            StringAssert.Contains(vm.IndexAttemptText, "en cours");
+            Assert.IsFalse(vm.IndexAttemptText.Contains("Complete", StringComparison.Ordinal));
+            Assert.IsTrue(vm.CancelCommand.CanExecute(null));
+            vm.CancelCommand.Execute(null);
+            StringAssert.Contains(vm.IndexAttemptText, "annulée");
+            continuation.Callback(continuation.State);
+            await pending;
+            StringAssert.Contains(vm.IndexAttemptText, "annulée");
+            Assert.IsFalse(vm.IndexAttemptText.Contains("Complete", StringComparison.Ordinal));
+            Assert.IsNull(vm.CurrentMediaIndex);
+            Assert.IsFalse(vm.CanStartIndex);
+            return;
+        }
+        Assert.Fail("Native INDEX never reached the held UI continuation; late-result oracle not exercised.");
+    }
+
     private (string root, string media) NewSyntheticRoot()
     {
         var temp = Environment.GetEnvironmentVariable("RUNNER_TEMP") ?? Path.GetTempPath();

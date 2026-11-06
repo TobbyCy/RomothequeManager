@@ -31,6 +31,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         Array.Empty<IdealMediaCoverProposal>();
     private MediaPreviewResult? _preview;
     private MediaIndexAttemptDiagnosticView? _attemptDiagnostic;
+    private string _indexAttemptNotice = "Dernière tentative INDEX MEDIAS : aucune.";
     private bool _selectedRoot, _indexGrant, _previewGrant, _busy, _disposed;
     private long _revision;
     private string _status = "MEDIAS / PREVIEW : Draft inactif ; validation sécurité #161 requise.";
@@ -76,7 +77,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _preview is not null ? "Effacer l’aperçu pour retirer les pixels et révoquer les autorisations MEDIAS." :
         _previewGrant ? "Afficher l’aperçu autorisé." : "Autoriser PREVIEW pour cette image.";
     /// <summary>Sanitized diagnostics from the returned native attempt, not inferred from Current.</summary>
-    public string IndexAttemptText => _attemptDiagnostic?.Text ?? "Dernière tentative INDEX MEDIAS : aucune.";
+    public string IndexAttemptText => _attemptDiagnostic?.Text ?? _indexAttemptNotice;
     /// <summary>Separately identifies whether complete evidence remains for this media selection.</summary>
     public string CompleteIndexText => "Dernier INDEX MEDIAS complet conservé : " +
         (_current is null ? "non" : "oui") + " (sélection courante).";
@@ -132,6 +133,7 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _selectedRoot = accepted;
         _current = null;
         _attemptDiagnostic = null;
+        _indexAttemptNotice = "Dernière tentative INDEX MEDIAS : aucune.";
         _projection = null;
         _referenced = Array.Empty<MediaUiRow>();
         _coverProposals = Array.Empty<IdealMediaCoverProposal>();
@@ -167,6 +169,8 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         _pending = cancellation;
         _busy = true;
         _status = "INDEX MEDIAS en cours · lecture native bornée.";
+        _attemptDiagnostic = null;
+        _indexAttemptNotice = "Dernière tentative INDEX MEDIAS : en cours ; résultat non adopté.";
         NotifyAll();
         try
         {
@@ -184,11 +188,19 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
         }
         catch (OperationCanceledException)
         {
-            if (!_disposed && revision == _revision) _status = "INDEX annulé.";
+            if (!_disposed && revision == _revision)
+            {
+                _status = "INDEX annulé.";
+                _indexAttemptNotice = "Dernière tentative INDEX MEDIAS : annulée ; résultat non adopté.";
+            }
         }
         catch (Exception)
         {
-            if (!_disposed && revision == _revision) _status = "INDEX indisponible.";
+            if (!_disposed && revision == _revision)
+            {
+                _status = "INDEX indisponible.";
+                _indexAttemptNotice = "Dernière tentative INDEX MEDIAS : cause non renseignée. Vérifier la source avant une nouvelle tentative autorisée.";
+            }
         }
         finally
         {
@@ -343,6 +355,11 @@ internal sealed class IdealMediaDraftViewModel : INotifyPropertyChanged, IDispos
     internal void Cancel()
     {
         if (_disposed) return;
+        if (_busy && _selectedCover is null)
+        {
+            _attemptDiagnostic = null;
+            _indexAttemptNotice = "Dernière tentative INDEX MEDIAS : annulée ; résultat non adopté. Autoriser un nouvel INDEX pour relancer.";
+        }
         ++_revision;
         _pending?.Cancel();
         _service.RequestCancellation();
