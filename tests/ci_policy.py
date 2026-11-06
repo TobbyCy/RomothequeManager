@@ -592,8 +592,8 @@ def documents(root, plan):
                    "contents: write", "gh release", "secrets.", "continue-on-error:"):
         require(unsafe not in n05, "NEXT05_UX_WORKFLOW_UNSAFE:" + unsafe)
     media_ui = (root / ".github/workflows/next05-media-ui-proof.yml").read_text(encoding="utf-8")
-    require("branches: [dev3/next05-ideal-media-gui-draft]" in media_ui and
-            "github.ref == 'refs/heads/dev3/next05-ideal-media-gui-draft'" in media_ui and
+    require("branches: [fix/next05-post-recette-95]" in media_ui and
+            "github.ref == 'refs/heads/fix/next05-post-recette-95'" in media_ui and
             "github.actor == 'TobbyCy'" in media_ui and
             "permissions:\n  contents: read" in media_ui and
             "persist-credentials: false" in media_ui and
