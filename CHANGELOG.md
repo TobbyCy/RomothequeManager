@@ -1,5 +1,12 @@
 # Journal des changements
 
+## NEXT-05 / #95 — Révocation PREVIEW, diagnostic R4 et parcours guidé (06.11.2026)
+
+- Correctif candidat #166 depuis `main=0f8660a371588dfc4f849a344de29f04d38987c4` : **Annuler l’opération** est réservé au travail actif ; **Effacer l’aperçu et révoquer MEDIAS** reste disponible après affichage, efface les pixels détenus, détache et libère le bitmap, et invalide les réponses tardives. INDEX et PREVIEW doivent être réautorisés séparément.
+- Le résultat natif retourné par INDEX fournit la dernière tentative, ses codes whitelistés, une raison statique et une action suivante. Le dernier Complete conservé est distinct ; une cause absente ou ambiguë reste inconnue. Aucun chemin ou message d’exception brut n’est projeté.
+- Parcours Choisir → Analyser → Proposer → Consulter, action principale mise en évidence, commandes homogènes, détails de provenance repliables, historique SQLite daté sans chemin personnel.
+- Fixtures Windows : révocation après affichage, Cancel/Dispose/changement de sélection/réponses tardives, budgets natifs et conservation du Complete, diagnostics inconnus et données privées. Harnais GUI : neuf actions, clavier, fenêtres compactes, effacement par Espace et pixels remis à zéro. CI et revue DEV 2 au HEAD final restent les critères de livraison ; aucune fusion ou Release.
+
 ## NEXT-05 / #134 — Réconciliation fictive GB/PS1/PS2/PS3, correctif PS3 ciblé (04.11.2026)
 
 - Ajout d'une fixture de 131 références XML et 194 fichiers ROMS **entièrement fictifs** : 19 covers GB concordantes, 53 groupes de noms PS1 BIN/CUE/CHD, 2 dossiers PS2 fonctionnels, un jeu PS3 référencé par son dossier (12 fichiers internes). Matrice séparée des 75 médias déclarés contre 76 covers observées ; aucun doublon réel présumé.
