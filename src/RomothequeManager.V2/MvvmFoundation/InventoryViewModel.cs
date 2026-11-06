@@ -277,9 +277,9 @@ public sealed class InventoryViewModel : INotifyPropertyChanged, IDisposable
                 .Where(row => row.StorageRoot.Role == "ROMS" &&
                     Guid.TryParse(row.StorageRoot.StorageRootId, out _))
                 .Select(row => new SavedLibraryChoice(row.StorageRoot.StorageRootId,
-                    "Bibliothèque " + row.StorageRoot.StorageRootId[..8] +
-                    " · dernier complet : " +
-                    (row.CurrentComplete?.CapturedAtUtc.ToString("u") ?? "aucun")))
+                    "Historique ROMS · dernier complet : " +
+                    (row.CurrentComplete?.CapturedAtUtc.ToString("u") ?? "aucun") +
+                    " · référence " + row.StorageRoot.StorageRootId[..8]))
                 .ToArray();
             _selectedSaved = null;
             _savedLibraryStatus = _savedLibraries.Count == 0

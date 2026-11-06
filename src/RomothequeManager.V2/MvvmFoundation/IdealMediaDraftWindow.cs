@@ -243,6 +243,12 @@ internal sealed class IdealMediaDraftWindow : Window
             Content = "Effacer l’aperçu et révoquer MEDIAS",
             Command = _vm.ClearCommand, MinHeight = 36
         };
+        foreach (var button in new[] { choose, authorizeIndex, startIndex, project,
+            chooseCover, authorizePreview, loadPreview, cancel, clear })
+        {
+            button.MinWidth = 240;
+            button.HorizontalAlignment = HorizontalAlignment.Stretch;
+        }
 #if NEXT05_CI
         _ciActionButtons = new[] { choose, authorizeIndex, startIndex, project,
             chooseCover, authorizePreview, loadPreview, cancel, clear };

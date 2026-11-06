@@ -208,15 +208,6 @@
                          TextWrapping="Wrap" Foreground="#C2CBD5" FontSize="12"/>
             </StackPanel>
           </Border>
-          <TextBlock Text="4 · Consulter une génération" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
-          <WrapPanel>
-            <Button Content="Dernier inventaire complet"
-                    Command="{Binding Inventory.ShowLastCompleteCommand}"
-                    MinHeight="40" Margin="0,0,8,4"/>
-            <Button Content="Dernière tentative"
-                    Command="{Binding Inventory.ShowLastAttemptCommand}"
-                    MinHeight="40" Margin="0,0,8,4"/>
-          </WrapPanel>
           <Border Background="#24333E" CornerRadius="6" Padding="10"
                   IsVisible="{Binding Inventory.HasRomsGrantAction}">
             <StackPanel Spacing="7">
@@ -232,6 +223,15 @@
                       Click="OpenLocalMedia_OnClick" MinHeight="40"/>
             </StackPanel>
           </Border>
+          <TextBlock Text="4 · Consulter un inventaire" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
+          <WrapPanel>
+            <Button Content="Consulter le dernier complet"
+                    Command="{Binding Inventory.ShowLastCompleteCommand}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+            <Button Content="Consulter la dernière tentative"
+                    Command="{Binding Inventory.ShowLastAttemptCommand}"
+                    MinHeight="40" Margin="0,0,8,4"/>
+          </WrapPanel>
           <ProgressBar IsVisible="{Binding Inventory.IsBusy}" IsIndeterminate="{Binding Inventory.IsProgressIndeterminate}" Height="7"/>
           <TextBlock Text="{Binding Inventory.StatusMessage}" TextWrapping="Wrap"/>
           <TextBlock Text="{Binding Inventory.LatestAttemptText}" Foreground="#AAB2BF" TextWrapping="Wrap"/>
