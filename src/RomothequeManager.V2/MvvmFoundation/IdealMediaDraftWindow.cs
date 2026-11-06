@@ -124,20 +124,27 @@ internal sealed class IdealMediaDraftWindow : Window
         // Tab/Shift+Tab traversal after the chosen image is rendered, with
         // enabled controls separated by disabled one-shot INDEX/PREVIEW actions.
         var first = _ciActionButtons[0];
+        bool MoveTab(bool backwards = false)
+        {
+            if (FocusManager.GetFocusedElement() is not InputElement focused) return false;
+            focused.RaiseEvent(new KeyEventArgs { RoutedEvent = KeyDownEvent,
+                Key = Key.Tab, KeyModifiers = backwards ? KeyModifiers.Shift : KeyModifiers.None });
+            return !ReferenceEquals(focused, FocusManager.GetFocusedElement());
+        }
         if (!first.IsEnabled || !first.Focus(NavigationMethod.Tab) ||
             !ReferenceEquals(FocusManager.GetFocusedElement(), first) ||
-            !FocusManager.TryMoveFocus(NavigationDirection.Next, default))
+            !MoveTab())
             throw new InvalidDataException("MEDIA_GUI_CI_TAB_NAVIGATION_FAILED");
         var next = FocusManager.GetFocusedElement();
         if (next is null || ReferenceEquals(next, first) ||
-            !FocusManager.TryMoveFocus(NavigationDirection.Previous, default) ||
+            !MoveTab(backwards: true) ||
             !ReferenceEquals(FocusManager.GetFocusedElement(), first))
             throw new InvalidDataException("MEDIA_GUI_CI_SHIFT_TAB_NAVIGATION_FAILED");
         var reached = new HashSet<Button> { first };
         var focusTrace = new List<string>();
         for (var step = 0; step < 80; ++step)
         {
-            if (!FocusManager.TryMoveFocus(NavigationDirection.Next, default)) break;
+            if (!MoveTab()) break;
             if (FocusManager.GetFocusedElement() is Button button) reached.Add(button);
             focusTrace.Add(FocusManager.GetFocusedElement()?.GetType().Name ?? "none");
             if (_ciActionButtons.Where(b => b.IsEnabled).All(reached.Contains)) break;
