@@ -29,14 +29,15 @@ jobs:
       - name: Checkout exact revision without credentials
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           fetch-depth: 1
       - name: Record exact checkout SHA
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          if ((git rev-parse HEAD).Trim() -cne '${{ github.sha }}') { throw 'N04_ENGINE_CHECKOUT_SHA_MISMATCH' }
-          Write-Host 'N04_ENGINE_EXACT_SOURCE_PASS sha=${{ github.sha }}'
+          if ((git rev-parse HEAD).Trim() -cne '${{ github.event.pull_request.head.sha || github.sha }}') { throw 'N04_ENGINE_CHECKOUT_SHA_MISMATCH' }
+          Write-Host 'N04_ENGINE_EXACT_SOURCE_PASS sha=${{ github.event.pull_request.head.sha || github.sha }}'
       - name: Setup pinned .NET SDK 10.0.401
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:

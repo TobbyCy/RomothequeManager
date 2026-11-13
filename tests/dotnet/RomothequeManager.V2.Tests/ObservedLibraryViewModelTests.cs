@@ -230,6 +230,12 @@ public sealed class ObservedLibraryViewModelTests
         Assert.AreEqual(1, restores);
         StringAssert.Contains(inventory.SavedLibraryStatus, "OFFLINE / STALE");
         Assert.IsFalse(inventory.CanStart); // a restored ID alone cannot grant a scan
+        StringAssert.Contains(inventory.SavedLibraries[0].Label, "Historique ROMS");
+        inventory.PrepareSelectedFolder(new InventoryScope(@"C:\synthetic-next-selection"));
+        StringAssert.Contains(inventory.SavedLibraryStatus, "non affiché");
+        Assert.IsFalse(inventory.SavedLibraryStatus.Contains("OFFLINE / STALE", StringComparison.Ordinal));
+        Assert.IsNull(inventory.SelectedSavedLibrary);
+        Assert.IsFalse(inventory.CanStart);
     }
 
     private sealed class FakeService : IInventoryApplicationService
